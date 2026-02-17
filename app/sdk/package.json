@@ -1,0 +1,35 @@
+{
+  "name": "@skitsaas/sdk",
+  "version": "0.1.0",
+  "description": "Public module SDK contract for skit-saas.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server.js",
+    "./db": "./dist/db.js",
+    "./datatables": "./dist/datatables/index.js",
+    "./build": "./dist/build.js",
+    "./testing": "./dist/testing.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.43.1",
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "typescript": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "@types/react": "^19.0.0",
+    "drizzle-orm": "^0.43.1"
+  }
+}

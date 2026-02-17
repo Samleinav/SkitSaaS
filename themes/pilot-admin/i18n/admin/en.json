@@ -1,0 +1,7 @@
+{
+    "pilotTable": {
+        "title": "Pilot Admin Table",
+        "noData": "No data available in this pilot table",
+        "rowsCount": "{count} rows"
+    }
+}

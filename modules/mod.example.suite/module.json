@@ -1,0 +1,16 @@
+{
+  "moduleId": "mod.example.suite",
+  "moduleMode": "source-host",
+  "version": "0.1.0",
+  "sourceEntry": "src/manifest.ts",
+  "sdkRange": "^0.1.0",
+  "templatePack": {
+    "defaultEntry": "src/templates/defaults.json",
+    "overrideEntry": "src/templates/overrides.json",
+    "contractRange": "^1.0.0"
+  },
+  "db": {
+    "schemaVersion": 1,
+    "migrationsDir": "db/migrations"
+  }
+}

@@ -1,0 +1,58 @@
+export type SubscriptionCheckoutTargetType = 'team' | 'user';
+export type SubscriptionTemplateTargetScope = 'organization' | 'user';
+
+const SELF_SERVICE_SUBSCRIPTION_TEMPLATE_SCOPE_SET = new Set<
+  SubscriptionTemplateTargetScope
+>(['organization']);
+
+function normalizeCheckoutTargetType(
+  value: string | null | undefined
+): SubscriptionCheckoutTargetType | null {
+  if (value === 'team' || value === 'user') {
+    return value;
+  }
+
+  return null;
+}
+
+function normalizeTemplateTargetScope(
+  value: string | null | undefined
+): SubscriptionTemplateTargetScope | null {
+  if (value === 'organization' || value === 'user') {
+    return value;
+  }
+
+  return null;
+}
+
+export function supportsSelfServiceSubscriptionTemplateScope(
+  templateTargetScope: string | null | undefined
+) {
+  const normalizedTemplateScope = normalizeTemplateTargetScope(templateTargetScope);
+  if (!normalizedTemplateScope) {
+    return false;
+  }
+
+  return SELF_SERVICE_SUBSCRIPTION_TEMPLATE_SCOPE_SET.has(normalizedTemplateScope);
+}
+
+export function isSubscriptionTemplateScopeCompatible({
+  checkoutTargetType,
+  templateTargetScope
+}: {
+  checkoutTargetType: string | null | undefined;
+  templateTargetScope: string | null | undefined;
+}) {
+  const normalizedTargetType = normalizeCheckoutTargetType(checkoutTargetType);
+  const normalizedTemplateScope = normalizeTemplateTargetScope(templateTargetScope);
+
+  if (!normalizedTargetType || !normalizedTemplateScope) {
+    return false;
+  }
+
+  if (normalizedTargetType === 'team') {
+    return normalizedTemplateScope === 'organization';
+  }
+
+  return normalizedTemplateScope === 'user';
+}

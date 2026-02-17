@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "subscription_template_id" integer;

@@ -1,0 +1,2 @@
+ALTER TABLE "subscription_change_requests" DROP CONSTRAINT "subscription_change_requests_change_mode_chk";--> statement-breakpoint
+ALTER TABLE "subscription_change_requests" ADD CONSTRAINT "subscription_change_requests_change_mode_chk" CHECK ("subscription_change_requests"."change_mode" in ('period_end', 'immediate'));

@@ -1,0 +1,11 @@
+{
+  "contractRange": "^1.0.0",
+  "overrides": [
+    {
+      "componentId": "ui.async-submit-button",
+      "templateId": "mod.example.package.override.async-submit",
+      "lockTemplate": true,
+      "description": "Module override for async submit button."
+    }
+  ]
+}

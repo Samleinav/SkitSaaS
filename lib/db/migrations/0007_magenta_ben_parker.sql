@@ -1,0 +1,2 @@
+ALTER TABLE "subscription_templates" ADD COLUMN "target_scope" varchar(20) DEFAULT 'organization' NOT NULL;--> statement-breakpoint
+CREATE INDEX "subscription_templates_target_scope_idx" ON "subscription_templates" USING btree ("target_scope");

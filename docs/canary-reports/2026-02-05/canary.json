@@ -1,0 +1,33 @@
+
+> @ restructure:canary D:\GitHub\saas-starter
+> npx tsx scripts/restructure-canary-report.ts
+
+{
+  "generatedAt": "2026-02-05T15:46:23.845Z",
+  "label": "local-2026-02-05",
+  "windowDays": 30,
+  "since": "2026-01-06T15:46:22.583Z",
+  "status": "warning",
+  "criticalIssues": [],
+  "notes": [],
+  "unresolvedTargets": 0,
+  "missingTargetIds": {
+    "missingTeamTargets": 0,
+    "missingUserTargets": 0
+  },
+  "missingTransactions": {
+    "ordersChecked": 0,
+    "missingTransactions": 0,
+    "sampleOrderIds": []
+  },
+  "missingTemplates": 0,
+  "duplicateAssignments": {
+    "duplicateTargets": 0,
+    "extraAssignments": 0,
+    "sampleTargets": []
+  },
+  "lifecycleFailures": {
+    "failed": 0,
+    "warnings": 1
+  }
+}

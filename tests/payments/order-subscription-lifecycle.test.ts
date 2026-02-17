@@ -1,0 +1,381 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { runPaymentOrderSubscriptionLifecycle } from '../../lib/payments/order-subscription-events';
+import type { PaymentOrderStatus } from '../../lib/payments/orders';
+import type {
+  ActivateSubscriptionAssignmentInput,
+  SuspendSubscriptionAssignmentInput
+} from '../../lib/payments/subscription-assignments';
+
+type TeamState = {
+  id: number;
+  name: string;
+};
+
+type UserState = {
+  id: number;
+  email: string;
+  deletedAt: Date | null;
+};
+
+type TemplateState = {
+  id: number;
+  name: string;
+  targetScope: string;
+  categoryKey?: string;
+  trialPeriodDays?: number;
+};
+
+type LifecycleTemplateState = {
+  id: number;
+  name: string;
+  targetScope: string;
+  categoryKey: string;
+  trialPeriodDays: number;
+};
+
+function createHarness({
+  teams = [],
+  users = [],
+  templates = []
+}: {
+  teams?: TeamState[];
+  users?: UserState[];
+  templates?: TemplateState[];
+}) {
+  const teamMap = new Map<number, TeamState>(teams.map((team) => [team.id, team]));
+  const userMap = new Map<number, UserState>(users.map((user) => [user.id, user]));
+  const templateMap = new Map<number, LifecycleTemplateState>(
+    templates.map((template) => [
+      template.id,
+      {
+        ...template,
+        categoryKey: template.categoryKey ?? `template.${template.id}`,
+        trialPeriodDays: template.trialPeriodDays ?? 0
+      }
+    ])
+  );
+  const assignmentActivations: ActivateSubscriptionAssignmentInput[] = [];
+  const assignmentSuspensions: SuspendSubscriptionAssignmentInput[] = [];
+  const logs: Array<Record<string, unknown>> = [];
+  const emittedEvents: string[] = [];
+
+  const deps = {
+    getTeam: async (teamId: number) => teamMap.get(teamId) || null,
+    getUser: async (userId: number) => userMap.get(userId) || null,
+    getTemplate: async (templateId: number) => templateMap.get(templateId) || null,
+    activateSubscriptionAssignment: async (
+      payload: ActivateSubscriptionAssignmentInput
+    ) => {
+      assignmentActivations.push(payload);
+    },
+    suspendSubscriptionAssignment: async (
+      payload: SuspendSubscriptionAssignmentInput
+    ) => {
+      assignmentSuspensions.push(payload);
+    },
+    createSysActivityLog: async (payload: Record<string, unknown>) => {
+      logs.push(payload);
+    },
+    emitEventAsync: async (hook: string) => {
+      emittedEvents.push(hook);
+      return {
+        eventId: 'evt_test_lifecycle',
+        handlerCount: 0,
+        mode: 'inline' as const
+      };
+    }
+  };
+
+  return {
+    assignmentActivations,
+    assignmentSuspensions,
+    logs,
+    emittedEvents,
+    deps
+  };
+}
+
+test('order/payment status changes trigger correct lifecycle events for organization target', async () => {
+  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+    createHarness({
+      teams: [
+        {
+          id: 10,
+          name: 'Org A'
+        }
+      ],
+      templates: [
+        {
+          id: 101,
+          name: 'Pro',
+          targetScope: 'organization'
+        }
+      ]
+    });
+
+  const applyOrderStatus = async (status: PaymentOrderStatus) =>
+    runPaymentOrderSubscriptionLifecycle(
+      {
+        orderId: 9001,
+        provider: 'stripe',
+        status,
+        eventType: `test.order.${status}`,
+        orderSource: 'dashboard',
+        triggerSource: '/tests/payments/order-subscription-lifecycle.test.ts',
+        teamId: 10,
+        subscriptionTemplateId: 101,
+        planName: 'Pro',
+        providerPlanId: 'price_test_123',
+        externalPaymentId: 'sub_test_123'
+      },
+      deps
+    );
+
+  const pendingResult = await applyOrderStatus('pending');
+  assert.equal(pendingResult.applied, false);
+  assert.equal(pendingResult.reason, 'status_not_actionable');
+  assert.equal(logs.length, 0);
+  assert.equal(assignmentActivations.length, 0);
+  assert.equal(assignmentSuspensions.length, 0);
+
+  const receivedResult = await applyOrderStatus('received');
+  assert.equal(receivedResult.applied, true);
+  assert.equal(receivedResult.reason, 'team_activated');
+  assert.equal(logs.length, 1);
+  assert.equal(assignmentActivations.length, 1);
+  assert.deepEqual(assignmentActivations[0], {
+    targetType: 'team',
+    targetId: 10,
+    subscriptionTemplateId: 101,
+    paymentProvider: 'stripe',
+    providerReferenceId: 'sub_test_123',
+    providerPlanId: 'price_test_123',
+    status: 'active',
+    planName: 'Pro',
+    sourceOrderId: 9001
+  });
+
+  const failedResult = await applyOrderStatus('failed');
+  assert.equal(failedResult.applied, true);
+  assert.equal(failedResult.reason, 'team_suspended');
+  assert.equal(logs.length, 2);
+  assert.equal(assignmentSuspensions.length, 1);
+  assert.deepEqual(assignmentSuspensions[0], {
+    targetType: 'team',
+    targetId: 10,
+    status: 'unpaid',
+    sourceOrderId: 9001
+  });
+
+  const canceledResult = await applyOrderStatus('canceled');
+  assert.equal(canceledResult.applied, true);
+  assert.equal(canceledResult.reason, 'team_suspended');
+  assert.equal(logs.length, 3);
+  assert.equal(assignmentSuspensions.length, 2);
+  assert.deepEqual(assignmentSuspensions[1], {
+    targetType: 'team',
+    targetId: 10,
+    status: 'canceled',
+    sourceOrderId: 9001
+  });
+});
+
+test('explicit user order/payment status changes activate and suspend user subscription', async () => {
+  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+    createHarness({
+      users: [
+        {
+          id: 77,
+          email: 'user77@test.com',
+          deletedAt: null
+        }
+      ],
+      templates: [
+        {
+          id: 205,
+          name: 'Solo Pro',
+          targetScope: 'user'
+        }
+      ]
+    });
+
+  const applyUserOrderStatus = async (status: PaymentOrderStatus) =>
+    runPaymentOrderSubscriptionLifecycle(
+      {
+        orderId: 7007,
+        provider: 'system',
+        status,
+        eventType: `test.user-order.${status}`,
+        orderSource: 'system',
+        targetType: 'user',
+        targetUserId: 77,
+        subscriptionTemplateId: 205,
+        metadata: {
+          checkoutContext: {
+            providerMetadata: {
+              system: {
+                targetType: 'user',
+                userId: 77
+              }
+            }
+          }
+        }
+      },
+      deps
+    );
+
+  const receivedResult = await applyUserOrderStatus('received');
+  assert.equal(receivedResult.applied, true);
+  assert.equal(receivedResult.reason, 'user_activated');
+  assert.equal(logs.length, 1);
+  assert.equal(assignmentActivations.length, 1);
+  assert.deepEqual(assignmentActivations[0], {
+    targetType: 'user',
+    targetId: 77,
+    subscriptionTemplateId: 205,
+    paymentProvider: null,
+    providerReferenceId: null,
+    providerPlanId: null,
+    status: 'active',
+    planName: 'Solo Pro',
+    sourceOrderId: 7007
+  });
+
+  const failedResult = await applyUserOrderStatus('failed');
+  assert.equal(failedResult.applied, true);
+  assert.equal(failedResult.reason, 'user_suspended');
+  assert.equal(logs.length, 2);
+  assert.equal(assignmentSuspensions.length, 1);
+  assert.deepEqual(assignmentSuspensions[0], {
+    targetType: 'user',
+    targetId: 77,
+    status: 'unpaid',
+    sourceOrderId: 7007
+  });
+});
+
+test('non-supported status like refunded does not mutate subscription state', async () => {
+  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+    createHarness({
+      teams: [
+        {
+          id: 40,
+          name: 'Org B'
+        }
+      ],
+      templates: [
+        {
+          id: 9,
+          name: 'Starter',
+          targetScope: 'organization'
+        }
+      ]
+    });
+
+  const refundedResult = await runPaymentOrderSubscriptionLifecycle(
+    {
+      orderId: 4004,
+      provider: 'stripe',
+      status: 'refunded' as unknown as PaymentOrderStatus,
+      eventType: 'test.order.refunded',
+      orderSource: 'webhook',
+      teamId: 40,
+      subscriptionTemplateId: 9,
+      externalPaymentId: 'sub_live'
+    },
+    deps
+  );
+
+  assert.equal(refundedResult.applied, false);
+  assert.equal(refundedResult.reason, 'status_not_actionable');
+  assert.equal(logs.length, 0);
+  assert.equal(assignmentActivations.length, 0);
+  assert.equal(assignmentSuspensions.length, 0);
+});
+
+test('one_time order type never triggers subscription lifecycle projection', async () => {
+  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+    createHarness({
+      teams: [
+        {
+          id: 55,
+          name: 'Org One-Time'
+        }
+      ],
+      templates: [
+        {
+          id: 404,
+          name: 'One-Time Product',
+          targetScope: 'organization'
+        }
+      ]
+    });
+
+  const result = await runPaymentOrderSubscriptionLifecycle(
+    {
+      orderId: 5050,
+      orderType: 'one_time',
+      provider: 'stripe',
+      status: 'received',
+      eventType: 'checkout.completed',
+      orderSource: 'checkout',
+      teamId: 55,
+      subscriptionTemplateId: 404,
+      externalPaymentId: 'pi_onetime_1'
+    },
+    deps
+  );
+
+  assert.equal(result.applied, false);
+  assert.equal(result.reason, 'order_type_not_subscription');
+  assert.equal(logs.length, 0);
+  assert.equal(assignmentActivations.length, 0);
+  assert.equal(assignmentSuspensions.length, 0);
+});
+
+test('scheduled change requests skip immediate activation', async () => {
+  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+    createHarness({
+      teams: [
+        {
+          id: 88,
+          name: 'Org Scheduled'
+        }
+      ],
+      templates: [
+        {
+          id: 505,
+          name: 'Enterprise',
+          targetScope: 'organization'
+        }
+      ]
+    });
+
+  const result = await runPaymentOrderSubscriptionLifecycle(
+    {
+      orderId: 9090,
+      provider: 'stripe',
+      status: 'received',
+      eventType: 'checkout.completed',
+      orderSource: 'checkout',
+      teamId: 88,
+      subscriptionTemplateId: 505,
+      externalPaymentId: 'sub_sched_1',
+      metadata: {
+        subscriptionChange: {
+          mode: 'period_end',
+          requestId: 123,
+          effectiveAt: '2026-03-01T00:00:00.000Z'
+        }
+      }
+    },
+    deps
+  );
+
+  assert.equal(result.applied, false);
+  assert.equal(result.reason, 'change_scheduled');
+  assert.equal(assignmentActivations.length, 0);
+  assert.equal(assignmentSuspensions.length, 0);
+  assert.equal(logs.length, 1);
+});

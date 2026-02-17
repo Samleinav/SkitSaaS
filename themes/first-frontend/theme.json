@@ -1,0 +1,13 @@
+{
+  "themeId": "theme.first.frontend",
+  "version": "1.0.0",
+  "areas": ["frontend"],
+  "mode": "tokens",
+  "entryTokens": "tokens.css",
+  "entryTemplates": "templates.json",
+  "themeRange": "^1.0.0",
+  "displayName": "First Frontend",
+  "description": "First frontend theme scaffold for host-to-theme migration.",
+  "author": "Local Workspace",
+  "tags": ["frontend", "first", "scaffold"]
+}

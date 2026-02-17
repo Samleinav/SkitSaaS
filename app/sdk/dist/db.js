@@ -1,0 +1,3 @@
+// Re-export a curated Drizzle surface so modules can depend on SDK entrypoints.
+export { and, or, not, eq, ne, gt, gte, lt, lte, inArray, notInArray, isNull, isNotNull, like, ilike, asc, desc, sql, count, sum, avg, min, max, relations } from 'drizzle-orm';
+export { pgTable, serial, bigserial, bigint, integer, smallint, numeric, decimal, real, doublePrecision, boolean, text, varchar, char, uuid, json, jsonb, date, time, timestamp, index, uniqueIndex, check } from 'drizzle-orm/pg-core';

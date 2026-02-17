@@ -1,0 +1,19 @@
+{
+  "moduleId": "mod.example.package",
+  "moduleMode": "source-package",
+  "version": "0.1.0",
+  "entry": "dist/manifest.js",
+  "sourceEntry": "src/manifest.js",
+  "buildCommand": "pnpm build",
+  "testCommand": "pnpm test:module",
+  "sdkRange": "^0.1.0",
+  "templatePack": {
+    "defaultEntry": "dist/templates/defaults.json",
+    "overrideEntry": "dist/templates/overrides.json",
+    "contractRange": "^1.0.0"
+  },
+  "db": {
+    "schemaVersion": 1,
+    "migrationsDir": "db/migrations"
+  }
+}

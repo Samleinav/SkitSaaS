@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-02-05T15:46:40.646Z",
+  "label": "local-2026-02-05",
+  "outputDir": "docs\\canary-reports\\2026-02-05",
+  "tasks": [
+    {
+      "name": "canary",
+      "command": "pnpm restructure:canary",
+      "exitCode": 0,
+      "outputFile": "docs\\canary-reports\\2026-02-05\\canary.json",
+      "startedAt": "2026-02-05T15:46:13.277Z",
+      "finishedAt": "2026-02-05T15:46:24.067Z",
+      "durationMs": 10790
+    },
+    {
+      "name": "smoke",
+      "command": "pnpm restructure:admin-smoke",
+      "exitCode": 0,
+      "outputFile": "docs\\canary-reports\\2026-02-05\\admin-smoke.json",
+      "startedAt": "2026-02-05T15:46:24.076Z",
+      "finishedAt": "2026-02-05T15:46:30.105Z",
+      "durationMs": 6029
+    },
+    {
+      "name": "module",
+      "command": "pnpm restructure:module-runtime",
+      "exitCode": 0,
+      "outputFile": "docs\\canary-reports\\2026-02-05\\module-runtime.json",
+      "startedAt": "2026-02-05T15:46:30.108Z",
+      "finishedAt": "2026-02-05T15:46:40.643Z",
+      "durationMs": 10535
+    }
+  ]
+}

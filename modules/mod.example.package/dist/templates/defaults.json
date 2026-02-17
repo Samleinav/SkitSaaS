@@ -1,0 +1,10 @@
+{
+  "contractRange": "^1.0.0",
+  "defaults": [
+    {
+      "componentId": "ui.table",
+      "templateId": "mod.example.package.default.table",
+      "description": "Default table template from source-package module."
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+import { Card, CardContent } from '@/components/ui/card';
+import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
+import {
+  getAdminDashboardMonthlySeries,
+  getAdminDashboardSummary,
+  getSystemActivityLogsForAdmin
+} from '@/lib/db/queries';
+import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getThemeSelectionForArea } from '@/lib/theme-runtime';
+import { getEnabledAdminDashboardModules } from './admin-dashboard/modules';
+import type { AdminDashboardModuleProps } from './admin-dashboard/types';
+import { requireAdminAccess } from './guards';
+
+const CHART_SOURCE_DAYS = 180;
+const RECENT_ACTIVITY_LIMIT = 4;
+const ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE: Partial<
+  Record<string, string>
+> = {
+  overview: 'section.admin.dashboard.overview',
+  quickLinks: 'section.admin.dashboard.quick-links',
+  recentActivity: 'section.admin.dashboard.recent-activity'
+};
+
+export default async function AdminPage() {
+  await requireAdminAccess();
+
+  const { locale, messages } = await getServerLocaleAndMessages('admin');
+  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+
+  const [summary, activityLogs, monthlySeries] = await Promise.all([
+    getAdminDashboardSummary(),
+    getSystemActivityLogsForAdmin(120),
+    getAdminDashboardMonthlySeries(CHART_SOURCE_DAYS)
+  ]);
+
+  const moduleProps = {
+    messages,
+    dateLocale,
+    summary,
+    recentActivity: activityLogs.slice(0, RECENT_ACTIVITY_LIMIT).map((activityLog) => ({
+      id: activityLog.id,
+      eventType: activityLog.eventType,
+      status: activityLog.status,
+      message: activityLog.message,
+      createdAt: activityLog.createdAt
+    })),
+    activityChart: monthlySeries
+  } satisfies AdminDashboardModuleProps;
+
+  const enabledModules = await getEnabledAdminDashboardModules();
+  const themeSelection = await getThemeSelectionForArea('admin');
+  const renderedModules = enabledModules.map((moduleItem) => {
+    const fallbackModule = <moduleItem.Component key={moduleItem.id} {...moduleProps} />;
+    const templateId =
+      ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE[moduleItem.id];
+
+    if (!templateId || !themeSelection.themeKey) {
+      return fallbackModule;
+    }
+
+    return (
+      <ThemeCodeTemplate
+        key={moduleItem.id}
+        id={templateId}
+        themeId={themeSelection.themeKey}
+        fallback={fallbackModule}
+      >
+        {fallbackModule}
+      </ThemeCodeTemplate>
+    );
+  });
+
+  const fallbackPage = (
+    <div className="space-y-6">
+      {enabledModules.length === 0 ? (
+        <Card>
+          <CardContent className="py-6">
+            <p className="text-sm text-muted-foreground">{messages.dataTable.noResults}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        renderedModules
+      )}
+    </div>
+  );
+
+  if (!themeSelection.themeKey) {
+    return fallbackPage;
+  }
+
+  return (
+    <ThemeCodeTemplate
+      id="page.admin.home"
+      themeId={themeSelection.themeKey}
+      data={{
+        title: messages.layout.title
+      }}
+      fallback={fallbackPage}
+    >
+      {fallbackPage}
+    </ThemeCodeTemplate>
+  );
+}

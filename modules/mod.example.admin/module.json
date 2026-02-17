@@ -1,0 +1,7 @@
+{
+  "moduleId": "mod.example.admin",
+  "moduleMode": "source-host",
+  "version": "0.1.0",
+  "sourceEntry": "src/manifest.ts",
+  "sdkRange": "^0.1.0"
+}

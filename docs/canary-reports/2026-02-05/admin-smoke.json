@@ -1,0 +1,76 @@
+
+> @ restructure:admin-smoke D:\GitHub\saas-starter
+> npx tsx scripts/restructure-admin-smoke.ts
+
+{
+  "generatedAt": "2026-02-05T15:46:29.918Z",
+  "baseUrl": "http://localhost:3000",
+  "allowUnauth": true,
+  "routesChecked": 9,
+  "failures": 0,
+  "results": [
+    {
+      "path": "/admin",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/app-config",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/app-config/theme",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/orders",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/orders/create",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/payments",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/subscriptions",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/admin/suscriptions",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    },
+    {
+      "path": "/dashboard/subscriptions",
+      "status": 307,
+      "location": "/sign-in",
+      "ok": true,
+      "note": "redirected_to_sign_in"
+    }
+  ]
+}

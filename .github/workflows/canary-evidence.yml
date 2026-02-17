@@ -1,0 +1,132 @@
+name: Canary Evidence
+
+on:
+  schedule:
+    - cron: '15 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment label (prod/staging)'
+        required: false
+        default: 'staging'
+      tasks:
+        description: 'Tasks: canary,smoke,module,all'
+        required: false
+        default: 'all'
+      window_days:
+        description: 'Canary window in days'
+        required: false
+        default: '7'
+      smoke_base_url:
+        description: 'Override smoke base URL'
+        required: false
+        default: ''
+      allow_unauth:
+        description: 'Allow unauth smoke (true/false)'
+        required: false
+        default: 'true'
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Compute evidence date
+        id: date
+        run: echo "DATE=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve inputs
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TASKS: ${{ github.event_name == 'workflow_dispatch' && inputs.tasks || '' }}
+          INPUT_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || '' }}
+          INPUT_SMOKE_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.smoke_base_url || '' }}
+          SECRET_SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
+          SECRET_SMOKE_AUTH_COOKIE: ${{ secrets.SMOKE_AUTH_COOKIE }}
+          SECRET_EVIDENCE_ENV: ${{ secrets.EVIDENCE_ENV }}
+        run: |
+          SMOKE_BASE_URL="$INPUT_SMOKE_BASE_URL"
+          if [ -z "$SMOKE_BASE_URL" ]; then
+            SMOKE_BASE_URL="$SECRET_SMOKE_BASE_URL"
+          fi
+
+          TASKS="$INPUT_TASKS"
+          if [ -z "$TASKS" ]; then
+            if [ -n "$SECRET_SMOKE_AUTH_COOKIE" ] && [ -n "$SMOKE_BASE_URL" ]; then
+              TASKS="all"
+            else
+              TASKS="canary,module"
+            fi
+          fi
+
+          if echo "$TASKS" | grep -q "smoke"; then
+            if [ -z "$SMOKE_BASE_URL" ]; then
+              TASKS=$(echo "$TASKS" | sed 's/smoke//g; s/,,/,/g; s/^,//; s/,$//')
+              if [ -z "$TASKS" ] || [ "$TASKS" = "all" ]; then
+                TASKS="canary,module"
+              fi
+            fi
+          fi
+
+          EVIDENCE_ENV="$INPUT_ENV"
+          if [ -z "$EVIDENCE_ENV" ]; then
+            EVIDENCE_ENV="$SECRET_EVIDENCE_ENV"
+          fi
+          if [ -z "$EVIDENCE_ENV" ]; then
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              EVIDENCE_ENV="staging"
+            else
+              EVIDENCE_ENV="scheduled"
+            fi
+          fi
+
+          echo "smoke_base_url=$SMOKE_BASE_URL" >> "$GITHUB_OUTPUT"
+          echo "tasks=$TASKS" >> "$GITHUB_OUTPUT"
+          echo "evidence_env=$EVIDENCE_ENV" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure required secrets
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+        run: |
+          if [ -z "${POSTGRES_URL}" ]; then
+            echo "Missing POSTGRES_URL secret."
+            exit 1
+          fi
+
+      - name: Run evidence pack
+        env:
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          SMOKE_BASE_URL: ${{ steps.resolve.outputs.smoke_base_url }}
+          SMOKE_AUTH_COOKIE: ${{ secrets.SMOKE_AUTH_COOKIE }}
+          SMOKE_ALLOW_UNAUTH: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_unauth || 'true' }}
+          EVIDENCE_ENV: ${{ steps.resolve.outputs.evidence_env }}
+          EVIDENCE_TASKS: ${{ steps.resolve.outputs.tasks }}
+          EVIDENCE_DATE: ${{ steps.date.outputs.DATE }}
+          CANARY_WINDOW_DAYS: ${{ github.event_name == 'workflow_dispatch' && inputs.window_days || '7' }}
+          CANARY_LABEL: ${{ steps.resolve.outputs.evidence_env }}-${{ steps.date.outputs.DATE }}
+        run: pnpm restructure:evidence
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-evidence-${{ steps.date.outputs.DATE }}
+          path: docs/canary-reports/${{ steps.date.outputs.DATE }}
+          retention-days: 30

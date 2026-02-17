@@ -1,0 +1,20 @@
+
+> @ restructure:module-runtime D:\GitHub\saas-starter
+> npx tsx scripts/restructure-module-runtime-check.ts
+
+{
+  "generatedAt": "2026-02-05T15:46:40.428Z",
+  "runtimeRowCount": 6,
+  "enabledCount": 5,
+  "invalidStatusRows": [],
+  "missingManifests": [],
+  "enabledWithoutSurface": [
+    "core.admin",
+    "core.dashboard",
+    "core.payments",
+    "core.subscriptions",
+    "core.users"
+  ],
+  "adminNavItems": [],
+  "dashboardNavItems": []
+}

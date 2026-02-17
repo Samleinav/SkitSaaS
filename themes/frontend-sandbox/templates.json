@@ -1,0 +1,26 @@
+{
+  "contractRange": "^1.0.0",
+  "templates": {
+    "frontend": [
+      {
+        "componentId": "ui.table",
+        "templateId": "theme.frontend.sandbox.table",
+        "description": "Frontend QA table style for smoke checks.",
+        "payload": {
+          "containerClassName": "rounded-2xl border border-border/70 bg-card/80 shadow-md",
+          "tableClassName": "text-sm [&_th]:tracking-wide"
+        }
+      },
+      {
+        "componentId": "ui.async-submit-button",
+        "templateId": "theme.frontend.sandbox.async-submit",
+        "description": "Frontend QA submit button style.",
+        "payload": {
+          "className": "h-11 rounded-full px-6 font-semibold",
+          "iconClassName": "size-4"
+        }
+      }
+    ]
+  }
+}
+

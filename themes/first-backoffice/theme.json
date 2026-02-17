@@ -1,0 +1,12 @@
+{
+  "themeId": "theme.first.backoffice",
+  "version": "1.0.0",
+  "areas": ["admin", "dashboard"],
+  "mode": "tokens",
+  "entryTokens": "tokens.css",
+  "themeRange": "^1.0.0",
+  "displayName": "First Backoffice",
+  "description": "First admin/dashboard/login theme scaffold for host-to-theme migration.",
+  "author": "Local Workspace",
+  "tags": ["admin", "dashboard", "login", "first", "scaffold"]
+}
