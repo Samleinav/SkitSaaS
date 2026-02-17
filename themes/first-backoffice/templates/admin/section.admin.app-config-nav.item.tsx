@@ -13,9 +13,11 @@ export default function SectionAdminAppConfigNavItemTemplate({
   className,
   children
 }: TemplateProps) {
+  const resolvedClassName = className ? `contents ${className}` : 'contents';
+
   return (
     <div
-      className={className}
+      className={resolvedClassName}
       data-theme-template="section.admin.app-config-nav.item"
     >
       {children}

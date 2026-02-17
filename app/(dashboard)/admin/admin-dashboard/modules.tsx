@@ -234,7 +234,7 @@ function QuickLinksModule({ messages }: AdminDashboardModuleProps) {
           <Link
             key={linkItem.href}
             href={linkItem.href}
-            className="group rounded-xl border border-border/70 bg-background/70 p-4 transition-colors hover:bg-accent/40"
+            className="group block w-full rounded-xl border border-border/70 bg-background/70 p-4 transition-colors hover:bg-accent/40"
           >
             <div className="flex items-start gap-3">
               <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 bg-background">

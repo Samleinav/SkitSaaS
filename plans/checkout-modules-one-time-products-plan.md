@@ -1,9 +1,9 @@
 # Plan: Checkout Order-First (Core Subscriptions -> One-Time Module)
 
-Status: Draft
+Status: In progress
 Start date: 2026-02-16
-Current phase: Sprint 4 (hardening complete) + Sprint 5 (kickoff in progress)
-Last review: 2026-02-16
+Current phase: Sprint 6 (UI planning package)
+Last review: 2026-02-17
 
 ## Objective
 Implement a clean checkout architecture where **core works with checkout orders** (not direct template IDs in URL), starting with subscriptions, and later enabling `mod.commerce.one-time-payments` to consume the same checkout system for one-time payments.
@@ -254,12 +254,161 @@ Verification checklist:
 Definition of Done:
 - One-time module uses core order-first checkout for payment while retaining module-owned product/cart/order flows.
 
+---
+
+## Sprint 6 - UI planning package (admin + frontend + templates, no implementation)
+Duration target:
+- 3 working days
+
+Goal:
+- Leave an implementation-ready UI plan for:
+- admin product management (`mod.commerce.products`)
+- frontend one-time purchase UX (`mod.commerce.one-time-payments`)
+- theme/template integration (CTC, theme-first) for future UI build.
+
+Current UI planning gaps (must be resolved before coding):
+- [ ] Confirm UI ownership boundary: admin product CRUD in `mod.commerce.products`, frontend catalog/cart/order in `mod.commerce.one-time-payments`, and core checkout page remains core-owned (`/checkout/[checkoutToken]`).
+- [ ] Confirm admin route aliases + IA for products (`/admin/products` and detail/create routes).
+- [ ] Confirm frontend access policy for `/products` (`public` vs `user`), currently `user`.
+- [ ] Define template ID catalog (admin + frontend) and payload contracts before theme work.
+- [ ] Define i18n baseline for module UIs (remove hardcoded copy from module pages).
+
+### Task 6.1 (P0) - UX ownership and route matrix lock
+Risk:
+- Route collisions and mixed responsibilities between modules can cause unstable IA and duplicated logic.
+
+Target files:
+- `plans/checkout-modules-one-time-products-plan.md`
+- `modules/mod.commerce.products/README.md`
+- `modules/mod.commerce.one-time-payments/README.md`
+- `AGENTS.md` (only if canonical route lists change)
+
+Checklist:
+- [ ] Lock canonical route ownership per area (admin/dashboard/frontend/core checkout).
+- [ ] Lock admin products IA: list, create, edit, publish/unpublish, and provider/type visibility rules.
+- [ ] Lock frontend products IA: catalog, cart, order confirmation, checkout handoff, return/cancel surfaces.
+- [ ] Document module-off behavior for UI routes (fail closed/fallback).
+
+Validation checklist:
+- [ ] Route matrix reviewed against current core routes and module alias rules.
+- [ ] No collision risk left undocumented.
+
+Commands:
+- `pnpm modules:prepare`
+- `pnpm exec tsc --noEmit`
+
+### Task 6.2 (P0) - CTC/template contract design (theme-first)
+Risk:
+- Implementing UI before template contracts creates unstable IDs and theme breakage.
+
+Target files:
+- `modules/mod.commerce.products/README.md`
+- `modules/mod.commerce.one-time-payments/README.md`
+- `plans/core-admin-dashboard-template-coverage-audit-plan.md` (cross-plan alignment)
+- `lib/templates/catalog.ts` (reference-only during planning)
+
+Checklist:
+- [ ] Define admin template IDs (minimum): `section.admin.products.page`, `section.admin.products.table`, `section.admin.products.form`, `section.admin.products.filters`.
+- [ ] Define frontend template IDs (minimum): `section.frontend.products.catalog`, `section.frontend.products.catalog.card`, `section.frontend.products.cart.summary`, `section.frontend.products.order.form`.
+- [ ] Define payload contracts per template ID (data keys and expected shapes).
+- [ ] Define precedence policy: theme-first defaults, optional module defaults, explicit override-only when needed.
+- [ ] Decide if module template pack metadata is required for each module in next sprint.
+
+Validation checklist:
+- [ ] IDs are unique and follow existing naming conventions.
+- [ ] Payload contracts are specific enough to implement tests before UI coding.
+
+Commands:
+- `pnpm exec tsc --noEmit`
+- `npx tsx --test tests/templates/template-controller.test.ts`
+- `npx tsx --test tests/theme/theme-slot-data-contract.test.ts`
+
+### Task 6.3 (P1) - Admin UI implementation backlog definition (`mod.commerce.products`)
+Risk:
+- Shipping admin pages without action/query boundaries can regress auth and CRUD consistency.
+
+Target files (future implementation scope):
+- `modules/mod.commerce.products/src/manifest.ts`
+- `modules/mod.commerce.products/src/pages.tsx`
+- `modules/mod.commerce.products/src/actions.ts`
+- `modules/mod.commerce.products/src/api-handler.ts`
+- `modules/mod.commerce.products/i18n/admin/en.json`
+- `tests/modules/mod-commerce-products-api.test.ts`
+
+Checklist:
+- [ ] Define server/page split (`adminPage` router + server actions + API reuse).
+- [ ] Define table columns and publish state UI states.
+- [ ] Define create/edit form contract for product types (`subscription` and `one_time`).
+- [ ] Define permission and audit expectations for admin mutations.
+- [ ] Define i18n key set for admin UI.
+
+Validation checklist:
+- [ ] Backlog includes tests for validation errors and publish transitions from UI flow.
+- [ ] No hardcoded copy policy violation in planned admin pages.
+
+Commands:
+- `npx tsx --test tests/modules/mod-commerce-products-api.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint modules/mod.commerce.products/src`
+
+### Task 6.4 (P1) - Frontend UI implementation backlog definition (`mod.commerce.one-time-payments`)
+Risk:
+- Baseline pages can diverge from checkout contracts and theme/i18n requirements.
+
+Target files (future implementation scope):
+- `modules/mod.commerce.one-time-payments/src/pages.tsx`
+- `modules/mod.commerce.one-time-payments/src/actions.ts`
+- `modules/mod.commerce.one-time-payments/src/manifest.ts`
+- `modules/mod.commerce.one-time-payments/i18n/frontend/en.json`
+- `tests/payments/checkout-system-one-time.test.ts`
+
+Checklist:
+- [ ] Define replacement scope from baseline UI to template-driven + i18n UI.
+- [ ] Define product card, cart summary, order form, and error/empty/success states.
+- [ ] Define provider selector UX and guardrails by product provider compatibility.
+- [ ] Define checkout handoff copy and return/cancel user messaging.
+- [ ] Define accessibility and responsive acceptance criteria.
+
+Validation checklist:
+- [ ] Backlog maps each UI state to an existing API/action response code.
+- [ ] Planned frontend routes preserve core checkout redirect contract.
+
+Commands:
+- `npx tsx --test tests/payments/checkout-system-one-time.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint modules/mod.commerce.one-time-payments/src`
+
+### Task 6.5 (P2) - UI acceptance matrix and rollout plan
+Risk:
+- Missing rollout criteria can ship partial UI without operational readiness.
+
+Target files:
+- `plans/checkout-modules-one-time-products-plan.md`
+- `modules/mod.commerce.products/README.md`
+- `modules/mod.commerce.one-time-payments/README.md`
+
+Checklist:
+- [ ] Define acceptance matrix: admin create/edit/publish + frontend catalog/cart/order + checkout completion.
+- [ ] Define module-enabled vs module-disabled UI behavior checks.
+- [ ] Define smoke-test order for CI and local verification.
+- [ ] Define migration note for enabling admin nav/routes when UI lands.
+
+Validation checklist:
+- [ ] Acceptance matrix covers Stripe + PayPal one-time flows.
+- [ ] Rollout can be toggled by module enablement without breaking core.
+
+Commands:
+- `pnpm modules:prepare`
+- `pnpm exec tsc --noEmit`
+- `pnpm check`
+
 ## Dependencies
 - Decision on slug contract for subscription templates (`slug` field or deterministic alias).
 - DB migration window for introducing `checkout_orders`.
 - Final decision on legacy route deprecation timeline.
 - Provider config consistency in app config (Stripe/PayPal runtime keys).
 - SDK manifest/runtime evolution for payment method registration.
+- UI ownership and CTC template contract lock (Sprint 6 P0).
 
 ## Blockers and open decisions
 - [ ] Confirm canonical checkout URL format: `/checkout/[token]` vs `/checkout/order/[token]`.
@@ -267,6 +416,9 @@ Definition of Done:
 - [ ] Confirm webhook ownership model for module methods: module endpoint only, core endpoint only, or hybrid dispatch.
 - [ ] Confirm ownership boundary for one-time post-payment fulfillment trigger.
 - [ ] Confirm where cancel/return URLs are declared: per-method static contract vs dynamic callback resolver.
+- [ ] Confirm admin product UI route alias strategy (`/admin/products` vs module-prefixed alias).
+- [ ] Confirm frontend `/products` access policy (`public` vs `user`) before UI implementation.
+- [ ] Confirm template ID catalog and payload contracts for admin/frontend one-time flows.
 
 ## Test strategy
 Core tests:

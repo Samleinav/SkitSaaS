@@ -2,7 +2,7 @@
 
 Status: In progress
 Start date: 2026-02-17
-Current phase: Audit checklist ready
+Current phase: P0 execution (app-config nav parity + direct-render gaps)
 Last review: 2026-02-17
 
 ## Objective
@@ -15,13 +15,18 @@ Verificar que el core de `admin/dashboard` renderiza mediante templates theme (C
 
 ## Out of Scope
 - Frontend publico (`app/(frontend)`), excepto componentes compartidos ya usados por admin/dashboard.
-- Implementacion de cambios funcionales o visuales en esta fase (solo analisis + plan).
+- Cambios funcionales fuera de cobertura CTC (excepto hotfix visual de paridad en `/admin/app-config`).
 - UI interna de modulos externos (module-owned pages/widgets), salvo su punto de entrada en core.
 
 ## Priority Order
 1. P0 - Cerrar huecos de rutas core con render directo sin template.
 2. P1 - Consolidar contrato CTC/docs/tests para evitar regresiones.
 3. P2 - Endurecer cobertura para extensiones modulares dinamicas.
+
+## Active Sprint Snapshot
+- [x] P0 - Corregir paridad visual de items en `/admin/app-config` para mantener el patron de widget menu de `/admin`.
+- [ ] P0 - Definir y cerrar estrategia final para wrapper compartido de `app/(dashboard)/layout.tsx`.
+- [ ] P1 - Formalizar excepcion de dispatchers modulares (`return content`) en docs/tests.
 
 ## Coverage Legend
 - `X`: cubierto por template en core y presente en `themes/first-backoffice`.
@@ -130,6 +135,30 @@ Cambiar wrappers de layout/dispatcher puede afectar composition con modulos y fa
 ### Commands
 - `pnpm themes:prepare`
 - `npx tsx --test tests/theme/theme-code-template.test.tsx`
+- `npx tsx --test tests/theme/theme-route-smoke.test.ts`
+
+## Task 1A (P0): Restore App Config Menu Visual Parity
+
+### Risk
+Si los wrappers template cambian el flujo de layout (grid item vs inline child), los cards de navegacion se deforman al hidratar en cliente.
+
+### Target files
+- `app/(dashboard)/admin/app-config/section-nav.client.tsx`
+- `themes/first-backoffice/templates/admin/section.admin.app-config-nav.item.tsx`
+- `app/(dashboard)/admin/admin-dashboard/modules.tsx`
+
+### Checklist
+- [x] Identificar causa raiz del desajuste: wrapper de template en item alterando el comportamiento de grid.
+- [x] Asegurar `Link` como bloque de ancho completo (`block w-full`) para no depender del contexto del parent.
+- [x] Hacer el wrapper de theme `section.admin.app-config-nav.item` layout-transparent (`display: contents`).
+- [x] Mantener consistencia de estilo en `quick-links` base de `/admin`.
+
+### Validation checklist
+- [ ] Verificar visualmente que `/admin/app-config` mantiene cards iguales al widget menu de `/admin`.
+- [ ] Confirmar que `section.admin.app-config-nav.item` sigue activo en runtime (sin romper contrato CTC).
+
+### Commands
+- `pnpm exec eslint \"app/(dashboard)/admin/app-config/section-nav.client.tsx\" \"themes/first-backoffice/templates/admin/section.admin.app-config-nav.item.tsx\" \"app/(dashboard)/admin/admin-dashboard/modules.tsx\"`
 - `npx tsx --test tests/theme/theme-route-smoke.test.ts`
 
 ## Task 1B (P1): Document Module Dispatcher Exception (By Design)

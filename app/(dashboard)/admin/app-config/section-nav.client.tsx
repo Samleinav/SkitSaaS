@@ -114,7 +114,7 @@ export function AppConfigSectionNavClient({
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'group rounded-xl border p-4 transition-colors',
+                'group block w-full rounded-xl border p-4 transition-colors',
                 isActive
                   ? 'border-primary/25 bg-primary/10'
                   : 'border-border/70 bg-background/70 hover:bg-accent/40'
