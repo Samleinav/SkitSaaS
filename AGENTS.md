@@ -84,7 +84,12 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `/admin/modules/[moduleId]/[[...slug]]`
   - `/admin/[...moduleAlias]` (module custom aliases)
 - Admin layout reuses the `(dashboard)` group: `app/(dashboard)/admin/layout.tsx`.
-- Admin/owner access guard: `app/(dashboard)/admin/guards.ts`.
+- Admin access guard (global `users.role='admin'` only): `app/(dashboard)/admin/guards.ts`.
+- Existing deployments migration note (owner->admin):
+  - before enabling admin-only guard in production, verify at least one global admin exists:
+    - `select count(*) from users where role = 'admin' and deleted_at is null;`
+  - if result is `0`, promote a trusted existing account:
+    - `update users set role = 'admin' where email = '<trusted-email>' and deleted_at is null;`
 - Dashboard module alias route: `/dashboard/[...moduleAlias]`.
 - Frontend module canonical route: `/modules/[moduleId]/[[...slug]]`.
 - Frontend module alias route: `/[...moduleAlias]` (only for non-core frontend paths).
@@ -291,7 +296,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 Default seed user (if not changed in env):
 - email: `test@test.com`
 - password: `admin123`
-- role: `owner` (admin-capable, can access `/admin`)
+- role: `admin` (can access `/admin`)
 
 ## Payments
 

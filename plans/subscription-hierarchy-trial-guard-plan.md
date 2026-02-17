@@ -1,8 +1,8 @@
 # Plan: Jerarquia de Suscripciones + Free Trial Unico por Categoria
 
-Status: In progress
+Status: Completed
 Start date: 2026-02-17
-Current phase: Task 8 (P1) - hardening de roles admin (`/admin` solo `admin`)
+Current phase: Closed
 Last review: 2026-02-17
 
 ## Objective
@@ -269,23 +269,26 @@ Alta: riesgo de lockout operativo si no se controla la transicion de usuarios `o
 - `tests/auth/*` (agregar/ajustar cobertura de acceso admin por rol global)
 
 ### Checklist
-- [ ] Definir regla unica: acceso a `/admin` y acciones admin solo para `users.role='admin'`.
-- [ ] Confirmar que `team_members.role='owner'` no concede permisos admin globales.
-- [ ] Aplicar cambio en guards y helpers admin core.
-- [ ] Alinear politica admin en rutas/dispatch de modulos y SDK (defaults de `adminRoles`).
-- [ ] Agregar estrategia de transicion para instancias existentes:
-- [ ] validar que exista al menos un usuario `admin` antes de bloquear `owner` en `/admin`.
-- [ ] documentar paso operativo (promocion owner -> admin) para ambientes existentes.
-- [ ] Actualizar AGENTS/docs para explicitar separacion de roles global/team.
+- [x] Definir regla unica: acceso a `/admin` y acciones admin solo para `users.role='admin'`.
+- [x] Confirmar que `team_members.role='owner'` no concede permisos admin globales.
+- [x] Aplicar cambio en guards y helpers admin core.
+- [x] Alinear politica admin en rutas/dispatch de modulos y SDK (defaults de `adminRoles`).
+- [x] Agregar estrategia de transicion para instancias existentes:
+- [x] validar que exista al menos un usuario `admin` antes de bloquear `owner` en `/admin`.
+- [x] documentar paso operativo (promocion owner -> admin) para ambientes existentes.
+- [x] Actualizar AGENTS/docs para explicitar separacion de roles global/team.
 
 ### Validation checklist
-- [ ] Usuario global `admin` conserva acceso completo a `/admin`.
-- [ ] Usuario global `owner` sin `admin` ya no puede entrar a `/admin`.
-- [ ] Flujos de `/dashboard` y ownership de team no se rompen.
-- [ ] Tests de guards/admin role policy en verde.
+- [x] Usuario global `admin` conserva acceso completo a `/admin`.
+- [x] Usuario global `owner` sin `admin` ya no puede entrar a `/admin`.
+- [x] Flujos de `/dashboard` y ownership de team no se rompen.
+- [x] Tests de guards/admin role policy en verde.
 
 ### Commands
 - `npx tsx --test tests/auth/proxy-guards.test.ts`
+- `npx tsx --test tests/modules/module-runtime.test.ts`
+- `npx tsx --test tests/sdk/server-adapters.test.ts`
+- `npx tsx --test tests/modules/auth-provider-registry.test.ts`
 - `pnpm exec tsc --noEmit`
 
 ## Open Decisions (bloqueos de diseno a resolver antes de implementar)
@@ -295,7 +298,7 @@ Alta: riesgo de lockout operativo si no se controla la transicion de usuarios `o
 - [x] Si admin conserva bypass explicito para asignaciones manuales con trial.
 - [x] Regla de mapping categoria/scope para checkout self-service mientras no exista compra self-service de templates `targetScope='user'`.
 - [x] Politica de lifecycle de planes PayPal "sin trial" (rotacion/reuso) para evitar proliferacion de planes remotos.
-- [ ] Estrategia final de rollout para eliminar `owner` de `/admin` sin lockout.
+- [x] Estrategia final de rollout para eliminar `owner` de `/admin` sin lockout.
 
 ## Completion Criteria
 - [x] Caso reportado queda cerrado: trial no reutilizable tras cancel/resubscribe en misma categoria.
@@ -303,4 +306,4 @@ Alta: riesgo de lockout operativo si no se controla la transicion de usuarios `o
 - [x] Checkout core aplica trial de forma condicional para Stripe y PayPal.
 - [x] Pruebas de regresion de pagos/suscripciones cubren trial unico y clasificacion de cambio.
 - [x] Documentacion tecnica actualizada.
-- [ ] `/admin` queda restringido a rol global `admin` sin romper dashboard/team ownership.
+- [x] `/admin` queda restringido a rol global `admin` sin romper dashboard/team ownership.

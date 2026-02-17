@@ -132,7 +132,7 @@ async function seed() {
         {
           email,
           passwordHash,
-          role: 'owner',
+          role: 'admin',
         },
       ])
       .returning();
