@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { configureAuth } from '@skitsaas/sdk/server';
+import commerceProductsManifest from '../../modules/mod.commerce.products/src/manifest';
 import { createCommerceProductsApiHandler } from '../../modules/mod.commerce.products/src/api-handler';
 import type { CommerceProduct } from '../../modules/mod.commerce.products/src/types';
 
@@ -131,6 +132,12 @@ test('products API health route is public', async () => {
   assert.equal(payload.service, 'products');
 });
 
+test('products module manifest exposes admin products alias and page router', () => {
+  assert.ok(commerceProductsManifest.adminRouteAliases);
+  assert.equal(commerceProductsManifest.adminRouteAliases?.[0], '/admin/products');
+  assert.equal(typeof commerceProductsManifest.adminPage, 'function');
+});
+
 test('products API list route returns 401 without session', async () => {
   const { handler, setUser } = createApiHarness();
   setUser(null);
@@ -175,7 +182,7 @@ test('products API create route accepts admin request and forwards actor id', as
 
   setUser({
     id: 99,
-    role: 'owner'
+    role: 'admin'
   });
 
   const response = await callApiRoute({
@@ -209,7 +216,7 @@ test('products API create route maps duplicate key to 409', async () => {
 
   setUser({
     id: 1,
-    role: 'owner'
+    role: 'admin'
   });
 
   const response = await callApiRoute({

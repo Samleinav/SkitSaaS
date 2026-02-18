@@ -1,5 +1,6 @@
 export const COMMERCE_PRODUCTS_MODULE_ID = 'mod.commerce.products';
 export const COMMERCE_PRODUCTS_MODULE_VERSION = '0.1.0';
+export const COMMERCE_PRODUCTS_ADMIN_ALIAS = '/admin/products';
 
 export const COMMERCE_PRODUCTS_ROUTES = {
   health: '/health',
