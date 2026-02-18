@@ -18,6 +18,7 @@ test('theme registries expose required frontend routes and backoffice templates'
 
   const backofficeRegistry = THEME_CODE_REGISTRY['theme.first.backoffice'];
   assert.ok(backofficeRegistry);
+  assert.ok(backofficeRegistry.templates['layout.private.shell']);
   assert.ok(backofficeRegistry.templates['layout.admin.shell']);
   assert.ok(backofficeRegistry.templates['layout.admin.app-config.shell']);
   assert.ok(backofficeRegistry.templates['layout.private.header']);
@@ -60,6 +61,7 @@ test('theme registries expose required frontend routes and backoffice templates'
   assert.ok(backofficeRegistry.templates['section.admin.dashboard.overview']);
   assert.ok(backofficeRegistry.templates['section.admin.dashboard.quick-links']);
   assert.ok(backofficeRegistry.templates['section.admin.dashboard.recent-activity']);
+  assert.ok(backofficeRegistry.templates['section.admin.dashboard.module-widget']);
   assert.ok(backofficeRegistry.templates['section.admin.table.users.cell']);
   assert.ok(backofficeRegistry.templates['section.admin.table.orders.cell']);
   assert.ok(backofficeRegistry.templates['section.admin.table.subscriptions.cell']);
@@ -159,9 +161,19 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       expectedSnippet: 'section.admin.dashboard.recent-activity'
     },
     {
+      filePath: 'app/(dashboard)/admin/page.tsx',
+      renderer: 'ThemeCodeTemplate',
+      expectedSnippet: 'section.admin.dashboard.module-widget'
+    },
+    {
       filePath: 'app/(dashboard)/dashboard/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.dashboard.home"'
+    },
+    {
+      filePath: 'app/(dashboard)/private-area-shell.tsx',
+      renderer: 'ThemeTemplate',
+      expectedSnippet: 'id="layout.private.shell"'
     },
     {
       filePath: 'app/(dashboard)/private-area-header.tsx',
@@ -396,6 +408,40 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       fileContents.includes(routeCheck.expectedSnippet),
       `${routeCheck.filePath} missing snippet: ${routeCheck.expectedSnippet}`
     );
+  }
+});
+
+test('module dispatcher routes keep direct runtime handoff contract', () => {
+  const dispatcherChecks: Array<{
+    filePath: string;
+    resolveSnippet: string;
+  }> = [
+    {
+      filePath: 'app/(dashboard)/admin/modules/[moduleId]/[[...slug]]/page.tsx',
+      resolveSnippet: 'resolveModulePage'
+    },
+    {
+      filePath: 'app/(dashboard)/admin/[...moduleAlias]/page.tsx',
+      resolveSnippet: 'resolveModulePageByPath'
+    },
+    {
+      filePath: 'app/(dashboard)/dashboard/modules/[moduleId]/[[...slug]]/page.tsx',
+      resolveSnippet: 'resolveModulePage'
+    },
+    {
+      filePath: 'app/(dashboard)/dashboard/[...moduleAlias]/page.tsx',
+      resolveSnippet: 'resolveModulePageByPath'
+    }
+  ];
+
+  for (const dispatcherCheck of dispatcherChecks) {
+    const fileContents = readFileOrThrow(dispatcherCheck.filePath);
+    assert.ok(fileContents.includes(dispatcherCheck.resolveSnippet));
+    assert.ok(fileContents.includes('if (!content)'));
+    assert.ok(fileContents.includes('notFound()'));
+    assert.ok(fileContents.includes('return content;'));
+    assert.ok(!fileContents.includes('ThemeCodeTemplate'));
+    assert.ok(!fileContents.includes('ThemeTemplate'));
   }
 });
 

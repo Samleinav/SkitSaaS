@@ -1,5 +1,6 @@
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { PrivateAreaHeader } from './private-area-header';
+import { PrivateAreaShell } from './private-area-shell';
 
 export default async function DashboardGroupLayout({
   children
@@ -11,13 +12,22 @@ export default async function DashboardGroupLayout({
     getThemeSelectionForArea('dashboard')
   ]);
 
-  return (
-    <section className="flex min-h-screen flex-col bg-transparent">
+  const layoutContent = (
+    <>
       <PrivateAreaHeader
         adminThemeId={adminThemeSelection.themeKey}
         dashboardThemeId={dashboardThemeSelection.themeKey}
       />
       {children}
-    </section>
+    </>
+  );
+
+  return (
+    <PrivateAreaShell
+      adminThemeId={adminThemeSelection.themeKey}
+      dashboardThemeId={dashboardThemeSelection.themeKey}
+    >
+      {layoutContent}
+    </PrivateAreaShell>
   );
 }

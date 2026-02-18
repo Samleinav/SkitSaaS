@@ -265,20 +265,23 @@ Current usages include:
 
 - `app/(dashboard)/admin/users/create-user-dialog.tsx`
 
-## `layout.private.header` and `ui.user-menu` migration (Sprint 9)
+## `layout.private.shell`, `layout.private.header`, and `ui.user-menu` migration (Sprint 9)
 
 Code-template wrappers:
 
+- shared private shell: `app/(dashboard)/private-area-shell.tsx` with `ThemeTemplate id="layout.private.shell"`
 - shared private header: `app/(dashboard)/private-area-header.tsx` with `ThemeTemplate id="layout.private.header"`
 - user menu control: `app/(dashboard)/private-area-header.tsx` with `ThemeTemplate id="ui.user-menu"`
 
 Theme defaults:
 
+- `themes/first-backoffice/templates/layout.private.shell.tsx`
 - `themes/first-backoffice/templates/layout.private.header.tsx`
 - `themes/first-backoffice/templates/ui.user-menu.tsx`
 
 Current behavior:
 
+- private root shell is now template-driven for both `/admin` and `/dashboard` areas
 - private top header is now template-driven for both `/admin` and `/dashboard` areas
 - active theme selection is resolved by area in the host and applied client-side by pathname
 
@@ -289,12 +292,14 @@ New admin section template ids in host:
 - `section.admin.dashboard.overview`
 - `section.admin.dashboard.quick-links`
 - `section.admin.dashboard.recent-activity`
+- `section.admin.dashboard.module-widget`
 - `section.admin.app-config-nav.panel`
 - `section.admin.app-config-nav.item`
 
 Current host wiring:
 
 - `app/(dashboard)/admin/page.tsx` wraps each core dashboard module section with `ThemeCodeTemplate`.
+- `app/(dashboard)/admin/page.tsx` wraps dynamic external widgets with fallback id `section.admin.dashboard.module-widget`.
 - `app/(dashboard)/admin/app-config/section-nav.client.tsx` wraps nav panel and each item with `ThemeTemplate`.
 
 ## Admin datatable granular cells (Sprint 9 phase 2)

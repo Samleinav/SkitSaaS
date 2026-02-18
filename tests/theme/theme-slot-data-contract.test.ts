@@ -60,6 +60,13 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
+    filePath: 'app/(dashboard)/private-area-shell.tsx',
+    renderer: 'ThemeTemplate',
+    requiredSnippets: ['id="layout.private.shell"'],
+    requiredDataKeys: ['area', 'route'],
+    requiresFallbackProp: true
+  },
+  {
     filePath: 'app/(dashboard)/admin/layout.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: [
@@ -261,9 +268,15 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
       'section.admin.dashboard.overview',
       'section.admin.dashboard.quick-links',
       'section.admin.dashboard.recent-activity',
+      'section.admin.dashboard.module-widget',
       'id="page.admin.home"'
     ],
-    requiredDataKeys: ['title'],
+    requiredDataKeys: [
+      'title',
+      'moduleWidgetId',
+      'moduleWidgetIndex',
+      'moduleWidgetKind'
+    ],
     requiresFallbackProp: true
   },
   {

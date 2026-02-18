@@ -52,6 +52,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/first-backoffice/templates/layout.private.header.tsx"
       },
       {
+        "componentId": "layout.private.shell",
+        "filePath": "themes/first-backoffice/templates/layout.private.shell.tsx"
+      },
+      {
         "componentId": "page.admin.app-config.email",
         "filePath": "themes/first-backoffice/templates/admin/page.admin.app-config.email.tsx"
       },
@@ -178,6 +182,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
       {
         "componentId": "section.admin.breadcrumb",
         "filePath": "themes/first-backoffice/templates/admin/section.admin.breadcrumb.tsx"
+      },
+      {
+        "componentId": "section.admin.dashboard.module-widget",
+        "filePath": "themes/first-backoffice/templates/admin/section.admin.dashboard.module-widget.tsx"
       },
       {
         "componentId": "section.admin.dashboard.overview",

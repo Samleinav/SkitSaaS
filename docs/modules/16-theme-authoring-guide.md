@@ -83,6 +83,7 @@ export default routes;
 
 Backoffice-required component IDs (build enforcement):
 
+- `layout.private.shell`
 - `layout.private.header`
 - `layout.admin.shell`
 - `layout.admin.app-config.shell`
@@ -113,6 +114,7 @@ Backoffice-required component IDs (build enforcement):
 - `section.admin.dashboard.overview`
 - `section.admin.dashboard.quick-links`
 - `section.admin.dashboard.recent-activity`
+- `section.admin.dashboard.module-widget`
 - `section.admin.table.users.cell`
 - `section.admin.table.orders.cell`
 - `section.admin.table.subscriptions.cell`
@@ -161,6 +163,7 @@ The minimum v1 contract is:
 - frontend route `/__layout`: no required keys (`data` can be `{}`).
 - frontend route `/`: `badge`, `heroTitleLine1`, `heroTitleLine2`, `heroDescription`, `viewCodeLabel`, `featureLabel`, `featureHighlightOne`, `featureHighlightTwo`, `featureHighlightThree`, `showcaseTitle`, `securityLabel`, `securityValue`, `billingLabel`, `billingValue`, `ctaTitle`, `ctaDescription`, `pricingLabel`, `viewCodeHref`, `featureCards`.
 - frontend route `/pricing`: `badgeLabel`, `title`, `subtitle`.
+- `layout.private.shell`: `area`, `route`.
 - `layout.admin.shell`: `heading`.
 - `layout.admin.app-config.shell`: `section`.
 - `page.admin.home`: `title`.
@@ -186,6 +189,7 @@ The minimum v1 contract is:
 - `section.admin.breadcrumb`: `title`, `backToAppConfigLabel`.
 - `section.admin.app-config-nav`: `section`.
 - `section.admin.metrics-grid`: `variant`, `columns`.
+- `section.admin.dashboard.module-widget`: `title`, `moduleWidgetId`, `moduleWidgetIndex`, `moduleWidgetKind`.
 - `layout.dashboard.shell`: `heading`.
 - `page.dashboard.home`: `title`.
 - `page.login.user`: `title`.

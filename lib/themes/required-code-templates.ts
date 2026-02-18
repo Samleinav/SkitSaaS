@@ -3,6 +3,7 @@ export type BackofficeTemplateArea = 'admin' | 'dashboard';
 export const BACKOFFICE_BASELINE_THEME_ID = 'theme.first.backoffice';
 
 const ADMIN_REQUIRED_CODE_TEMPLATE_IDS = [
+  'layout.private.shell',
   'layout.private.header',
   'layout.admin.shell',
   'layout.admin.app-config.shell',
@@ -33,6 +34,7 @@ const ADMIN_REQUIRED_CODE_TEMPLATE_IDS = [
   'section.admin.dashboard.overview',
   'section.admin.dashboard.quick-links',
   'section.admin.dashboard.recent-activity',
+  'section.admin.dashboard.module-widget',
   'section.admin.table.users.cell',
   'section.admin.table.orders.cell',
   'section.admin.table.subscriptions.cell',
@@ -54,6 +56,7 @@ const ADMIN_REQUIRED_CODE_TEMPLATE_IDS = [
 ] as const;
 
 const DASHBOARD_REQUIRED_CODE_TEMPLATE_IDS = [
+  'layout.private.shell',
   'layout.private.header',
   'layout.dashboard.shell',
   'page.dashboard.home',

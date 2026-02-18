@@ -78,6 +78,7 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `/admin/users`
   - `/admin/subscriptions`
   - `/admin/suscriptions`
+  - `/admin/products` (module alias from `mod.commerce.products` when enabled)
   - `/admin/payments`
   - `/admin/orders`
   - `/admin/orders/create`
@@ -334,12 +335,14 @@ Default seed user (if not changed in env):
 - Dashboard server-rendered organizations table also exposes `section.dashboard.table.subscriptions.organizations.cell` (`app/(dashboard)/dashboard/subscriptions/page.tsx`).
 - `ui.async-submit-button` CTC pilot uses `components/ui/template-async-submit-button.tsx` + `lib/templates/ui-async-submit-button.ts` (payload keys: `className`, `iconClassName`).
 - `ui.alert-dialog` CTC pilot in server routes uses `components/ui/template-confirm-submit-button.tsx` + `lib/templates/ui-alert-dialog.ts` (payload keys: `triggerClassName`, `contentClassName`, `titleClassName`, `descriptionClassName`, `footerClassName`, `cancelButtonClassName`, `confirmButtonClassName`).
+- Shared private shell wrapper (`app/(dashboard)/private-area-shell.tsx`) is template-driven via `ThemeTemplate id="layout.private.shell"` and resolves theme by active area path (`/admin` vs `/dashboard`).
 - Shared private top header (`app/(dashboard)/private-area-header.tsx`) is template-driven via `ThemeTemplate id="layout.private.header"` and resolves theme by active area path (`/admin` vs `/dashboard`).
 - Private header user menu is template-driven via `ThemeTemplate id="ui.user-menu"` (`themes/first-backoffice/templates/ui.user-menu.tsx`).
 - Admin dashboard core widgets are template-driven via section ids in `app/(dashboard)/admin/page.tsx`:
   - `section.admin.dashboard.overview`
   - `section.admin.dashboard.quick-links`
   - `section.admin.dashboard.recent-activity`
+- Admin dashboard external module widgets are wrapped with `ThemeCodeTemplate id="section.admin.dashboard.module-widget"` in `app/(dashboard)/admin/page.tsx`.
 - App-config root section nav granular wrappers in `app/(dashboard)/admin/app-config/section-nav.client.tsx`:
   - `section.admin.app-config-nav.panel`
   - `section.admin.app-config-nav.item`

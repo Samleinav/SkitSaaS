@@ -1,8 +1,8 @@
 # Plan: Core Admin/Dashboard Theme Template Coverage Audit
 
-Status: In progress
+Status: Completed
 Start date: 2026-02-17
-Current phase: P0 execution (app-config nav parity + direct-render gaps)
+Current phase: Completed
 Last review: 2026-02-17
 
 ## Objective
@@ -18,6 +18,12 @@ Verificar que el core de `admin/dashboard` renderiza mediante templates theme (C
 - Cambios funcionales fuera de cobertura CTC (excepto hotfix visual de paridad en `/admin/app-config`).
 - UI interna de modulos externos (module-owned pages/widgets), salvo su punto de entrada en core.
 
+## Cross-plan alignment (2026-02-17)
+- El plan `plans/checkout-modules-one-time-products-plan.md` (Sprint 6) define backlog UI module-owned para commerce.
+- IDs CTC de commerce UI quedan fuera de este audit de core host y se consideran ownership de modulo:
+  - Admin products: `page.admin.products`, `page.admin.products.create`, `page.admin.products.edit`, `section.admin.products.filters`, `section.admin.products.table`, `section.admin.products.form`
+  - Frontend one-time: `page.frontend.products.catalog`, `page.frontend.products.cart`, `page.frontend.products.order`, `section.frontend.products.catalog.card`, `section.frontend.products.cart.summary`, `section.frontend.products.order.form`
+
 ## Priority Order
 1. P0 - Cerrar huecos de rutas core con render directo sin template.
 2. P1 - Consolidar contrato CTC/docs/tests para evitar regresiones.
@@ -25,8 +31,10 @@ Verificar que el core de `admin/dashboard` renderiza mediante templates theme (C
 
 ## Active Sprint Snapshot
 - [x] P0 - Corregir paridad visual de items en `/admin/app-config` para mantener el patron de widget menu de `/admin`.
-- [ ] P0 - Definir y cerrar estrategia final para wrapper compartido de `app/(dashboard)/layout.tsx`.
-- [ ] P1 - Formalizar excepcion de dispatchers modulares (`return content`) en docs/tests.
+- [x] P0 - Definir y cerrar estrategia final para wrapper compartido de `app/(dashboard)/layout.tsx`.
+- [x] P1 - Formalizar excepcion de dispatchers modulares (`return content`) en docs/tests.
+- [x] P1 - Cubrir widgets admin dinamicos con template host fallback (`section.admin.dashboard.module-widget`).
+- [x] P1 - Endurecer guard de coverage de rutas core + excepciones de dispatcher.
 
 ## Coverage Legend
 - `X`: cubierto por template en core y presente en `themes/first-backoffice`.
@@ -37,7 +45,7 @@ Verificar que el core de `admin/dashboard` renderiza mediante templates theme (C
 
 | Route / Entry | Core file | Template IDs used | Covered |
 | --- | --- | --- | --- |
-| `(dashboard group layout)` | `app/(dashboard)/layout.tsx` | `layout.private.header`, `ui.language-switcher`, `ui.user-menu` (via `PrivateAreaHeader`), pero wrapper principal del layout sin template |  |
+| `(dashboard group layout)` | `app/(dashboard)/layout.tsx`, `app/(dashboard)/private-area-shell.tsx` | `layout.private.shell`, `layout.private.header`, `ui.language-switcher`, `ui.user-menu` | X |
 | `PrivateAreaHeader` (shared) | `app/(dashboard)/private-area-header.tsx` | `layout.private.header`, `ui.language-switcher`, `ui.user-menu` | X |
 | `/admin` layout | `app/(dashboard)/admin/layout.tsx` | `layout.admin.shell`, `section.admin.nav`, `section.admin.breadcrumb`, `ui.theme-toggle`, `ui.language-switcher` | X |
 | `/admin/app-config` layout | `app/(dashboard)/admin/app-config/layout.tsx`, `app/(dashboard)/admin/app-config/section-nav.client.tsx` | `layout.admin.app-config.shell`, `section.admin.app-config-nav`, `section.admin.app-config-nav.panel`, `section.admin.app-config-nav.item` | X |
@@ -87,28 +95,35 @@ Verificar que el core de `admin/dashboard` renderiza mediante templates theme (C
 
 ## Current Findings (Gaps)
 
-### Gap A (P0): shared dashboard-group layout wrapper is not template-driven
-- File: `app/(dashboard)/layout.tsx`
-- Current behavior: retorna `<section>...` directo y solo delega header a template.
-- Impact: el wrapper raiz compartido de areas privadas no puede ser sobreescrito por theme.
-
-### Decision Point B (P1): optional wrapper policy for module dispatcher routes
+### Closed A (P0): shared dashboard-group layout wrapper moved to themed shell
 - Files:
-  - `app/(dashboard)/admin/modules/[moduleId]/[[...slug]]/page.tsx`
-  - `app/(dashboard)/admin/[...moduleAlias]/page.tsx`
-  - `app/(dashboard)/dashboard/modules/[moduleId]/[[...slug]]/page.tsx`
-  - `app/(dashboard)/dashboard/[...moduleAlias]/page.tsx`
-- Current behavior: `return content;` directo desde runtime de modulos.
-- Status: comportamiento intencional del contrato (`ModulePageHandler -> ReactNode | null`).
-- Impact: no es bug de cobertura CTC del core; es una decision de arquitectura entre host shell vs autonomia del modulo.
+  - `app/(dashboard)/layout.tsx`
+  - `app/(dashboard)/private-area-shell.tsx`
+  - `themes/first-backoffice/templates/layout.private.shell.tsx`
+- Resolution: wrapper compartido ahora usa `ThemeTemplate id="layout.private.shell"` con seleccion de theme por area activa (`/admin` vs `/dashboard`).
 
-### Gap C (P1): `/admin` external widget modules may bypass themed section IDs
-- File: `app/(dashboard)/admin/page.tsx`
-- Current behavior: solo `overview/quickLinks/recentActivity` mapean a `section.admin.dashboard.*`; widgets externos retornan fallback directo.
-- Impact: cobertura parcial en dashboard admin cuando hay widgets de modulo dinamico.
+### Closed B (P1): module dispatcher direct-render policy documented and guarded
+- Files:
+  - `docs/modules/02-runtime-routing.md`
+  - `tests/theme/theme-route-smoke.test.ts`
+- Resolution:
+  - `modules/*` y alias en admin/dashboard quedan como excepcion CTC por contrato.
+  - `return content;` se mantiene intencional cuando runtime resuelve page handler de modulo.
+  - `null` se mantiene como señal de `notFound()` en dispatcher.
+
+### Closed C (P1): `/admin` external widget modules now use template fallback ID
+- Files:
+  - `app/(dashboard)/admin/page.tsx`
+  - `themes/first-backoffice/templates/admin/section.admin.dashboard.module-widget.tsx`
+  - `tests/theme/theme-route-smoke.test.ts`
+  - `tests/theme/theme-slot-data-contract.test.ts`
+- Resolution:
+  - widgets externos en `/admin` se envuelven con `ThemeCodeTemplate id="section.admin.dashboard.module-widget"`.
+  - se expone contrato de datos base (`moduleWidgetId`, `moduleWidgetIndex`, `moduleWidgetKind`) para theming.
+  - cobertura smoke/slot contract valida el wrapper y el ID del theme.
 
 ## Template ID Availability Check (first-backoffice)
-- IDs en uso auditados: `56`
+- IDs en uso auditados: `58`
 - IDs faltantes en `themes/first-backoffice/templates`: `0`
 - IDs extra presentes y no usados en este alcance:
   - `page.admin.app-config.theme`
@@ -126,11 +141,11 @@ Cambiar wrappers de layout/dispatcher puede afectar composition con modulos y fa
 - `themes/first-backoffice/templates/*` (nuevos IDs si se aprueba)
 
 ### Checklist
-- [ ] Definir `templateId` para wrapper compartido de `app/(dashboard)` (propuesto: `layout.private.shell`).
+- [x] Definir `templateId` para wrapper compartido de `app/(dashboard)` (`layout.private.shell`).
 
 ### Validation checklist
-- [ ] Las rutas privadas siguen renderizando sin regresion visual/funcional.
-- [ ] No hay renders directos no justificados en archivos de entry route.
+- [x] Las rutas privadas siguen renderizando sin regresion visual/funcional.
+- [x] No hay renders directos no justificados en archivos de entry route.
 
 ### Commands
 - `pnpm themes:prepare`
@@ -154,8 +169,8 @@ Si los wrappers template cambian el flujo de layout (grid item vs inline child),
 - [x] Mantener consistencia de estilo en `quick-links` base de `/admin`.
 
 ### Validation checklist
-- [ ] Verificar visualmente que `/admin/app-config` mantiene cards iguales al widget menu de `/admin`.
-- [ ] Confirmar que `section.admin.app-config-nav.item` sigue activo en runtime (sin romper contrato CTC).
+- [x] Verificar visualmente que `/admin/app-config` mantiene cards iguales al widget menu de `/admin`.
+- [x] Confirmar que `section.admin.app-config-nav.item` sigue activo en runtime (sin romper contrato CTC).
 
 ### Commands
 - `pnpm exec eslint \"app/(dashboard)/admin/app-config/section-nav.client.tsx\" \"themes/first-backoffice/templates/admin/section.admin.app-config-nav.item.tsx\" \"app/(dashboard)/admin/admin-dashboard/modules.tsx\"`
@@ -172,13 +187,13 @@ Si no queda documentado, futuras auditorias pueden marcar falsos positivos de "r
 - (opcional) `tests/theme/<coverage-guard>.test.ts`
 
 ### Checklist
-- [ ] Documentar explicitamente que los dispatchers `modules/*` y alias retornan `ReactNode` de handler de modulo.
-- [ ] Registrar que `null` en handler modulo se interpreta como 404 por dispatcher.
-- [ ] Mantener estas rutas como excepcion valida en checks automaticos de cobertura theme.
+- [x] Documentar explicitamente que los dispatchers `modules/*` y alias retornan `ReactNode` de handler de modulo.
+- [x] Registrar que `null` en handler modulo se interpreta como 404 por dispatcher.
+- [x] Mantener estas rutas como excepcion valida en checks automaticos de cobertura theme.
 
 ### Validation checklist
-- [ ] Checklist de cobertura ya no marca dispatchers modulares como gap.
-- [ ] Documentacion y tests de guardia usan la misma lista de excepciones.
+- [x] Checklist de cobertura ya no marca dispatchers modulares como gap.
+- [x] Documentacion y tests de guardia usan la misma lista de excepciones.
 
 ### Commands
 - `npx tsx --test tests/modules/module-runtime.test.ts`
@@ -195,13 +210,13 @@ Widgets de modulo pueden saltarse secciones theme si no hay contrato template co
 - `tests/theme/theme-slot-data-contract.test.ts`
 
 ### Checklist
-- [ ] Definir estrategia para widgets dinamicos (`section.admin.dashboard.module-widget` o excepcion explicita).
-- [ ] Alinear contrato de datos para widgets en theme.
-- [ ] Documentar expectativa host vs modulo para widgets del dashboard admin.
+- [x] Definir estrategia para widgets dinamicos (`section.admin.dashboard.module-widget` o excepcion explicita).
+- [x] Alinear contrato de datos para widgets en theme.
+- [x] Documentar expectativa host vs modulo para widgets del dashboard admin.
 
 ### Validation checklist
-- [ ] Con widgets externos activos, la ruta `/admin` conserva cobertura CTC definida.
-- [ ] Sin widgets externos, no cambia el comportamiento actual.
+- [x] Con widgets externos activos, la ruta `/admin` conserva cobertura CTC definida.
+- [x] Sin widgets externos, no cambia el comportamiento actual.
 
 ### Commands
 - `pnpm themes:prepare`
@@ -218,13 +233,13 @@ Sin test de guardia, nuevos renders directos pueden reintroducir deuda de temati
 - `docs/modules/16-theme-authoring-guide.md`
 
 ### Checklist
-- [ ] Crear test que inspeccione `app/(dashboard)/admin|dashboard` y exija template wrapper o excepcion permitida.
-- [ ] Registrar lista de excepciones validas (`redirect-only`, `module-dispatcher`, si se mantiene).
-- [ ] Actualizar docs con la regla de auditoria continua.
+- [x] Crear test que inspeccione `app/(dashboard)/admin|dashboard` y exija template wrapper o excepcion permitida.
+- [x] Registrar lista de excepciones validas (`redirect-only`, `module-dispatcher`, si se mantiene).
+- [x] Actualizar docs con la regla de auditoria continua.
 
 ### Validation checklist
-- [ ] El test falla al introducir un nuevo `return` JSX directo no justificado en rutas core.
-- [ ] El test pasa con el estado final acordado.
+- [x] El test falla al introducir un nuevo `return` JSX directo no justificado en rutas core.
+- [x] El test pasa con el estado final acordado.
 
 ### Commands
 - `npx tsx --test tests/theme/<nuevo-archivo>.test.ts`
@@ -232,8 +247,8 @@ Sin test de guardia, nuevos renders directos pueden reintroducir deuda de temati
 - `pnpm exec eslint "tests/theme/<nuevo-archivo>.test.ts"`
 
 ## Closure Criteria
-- [ ] Todas las rutas core con JSX en `app/(dashboard)` usan template wrapper o tienen excepcion aprobada/documentada.
-- [ ] `themes/first-backoffice` cubre todos los `templateId` requeridos por admin/dashboard.
-- [ ] Existe test automatizado para prevenir regresiones de cobertura.
-- [ ] Docs de contrato/theme reflejan el estado final.
+- [x] Todas las rutas core con JSX en `app/(dashboard)` usan template wrapper o tienen excepcion aprobada/documentada.
+- [x] `themes/first-backoffice` cubre todos los `templateId` requeridos por admin/dashboard.
+- [x] Existe test automatizado para prevenir regresiones de cobertura.
+- [x] Docs de contrato/theme reflejan el estado final.
 

@@ -74,6 +74,22 @@ defineModule({
 
 For `/admin/custom/analytics/settings`, `slug` becomes `['settings']`.
 
+## Dispatcher rendering contract (CTC exception)
+
+Core dispatcher entry routes intentionally return module content directly:
+
+- `app/(dashboard)/admin/modules/[moduleId]/[[...slug]]/page.tsx`
+- `app/(dashboard)/admin/[...moduleAlias]/page.tsx`
+- `app/(dashboard)/dashboard/modules/[moduleId]/[[...slug]]/page.tsx`
+- `app/(dashboard)/dashboard/[...moduleAlias]/page.tsx`
+
+Contract:
+
+- host resolves content via `resolveModulePage(...)` or `resolveModulePageByPath(...)`
+- if content is `null`, dispatcher returns `notFound()`
+- if content exists, dispatcher returns `content` directly (`return content;`)
+- these routes are explicit CTC coverage exceptions for theme wrapper audits because the module owns final page render
+
 ## Frontend route access policy
 
 Frontend module routes can declare auth policy in the manifest:

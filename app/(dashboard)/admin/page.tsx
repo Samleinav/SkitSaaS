@@ -13,6 +13,8 @@ import { requireAdminAccess } from './guards';
 
 const CHART_SOURCE_DAYS = 180;
 const RECENT_ACTIVITY_LIMIT = 4;
+const ADMIN_DASHBOARD_FALLBACK_MODULE_TEMPLATE_ID =
+  'section.admin.dashboard.module-widget';
 const ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE: Partial<
   Record<string, string>
 > = {
@@ -49,12 +51,18 @@ export default async function AdminPage() {
 
   const enabledModules = await getEnabledAdminDashboardModules();
   const themeSelection = await getThemeSelectionForArea('admin');
-  const renderedModules = enabledModules.map((moduleItem) => {
+  const renderedModules = enabledModules.map((moduleItem, moduleIndex) => {
     const fallbackModule = <moduleItem.Component key={moduleItem.id} {...moduleProps} />;
+    const hasCoreTemplate = Object.prototype.hasOwnProperty.call(
+      ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE,
+      moduleItem.id
+    );
     const templateId =
-      ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE[moduleItem.id];
+      ADMIN_DASHBOARD_MODULE_TEMPLATE_ID_BY_MODULE[moduleItem.id] ??
+      ADMIN_DASHBOARD_FALLBACK_MODULE_TEMPLATE_ID;
+    const moduleTemplateKind = hasCoreTemplate ? 'core' : 'module';
 
-    if (!templateId || !themeSelection.themeKey) {
+    if (!themeSelection.themeKey) {
       return fallbackModule;
     }
 
@@ -63,6 +71,12 @@ export default async function AdminPage() {
         key={moduleItem.id}
         id={templateId}
         themeId={themeSelection.themeKey}
+        data={{
+          title: messages.layout.title,
+          moduleWidgetId: moduleItem.id,
+          moduleWidgetIndex: moduleIndex,
+          moduleWidgetKind: moduleTemplateKind
+        }}
         fallback={fallbackModule}
       >
         {fallbackModule}
