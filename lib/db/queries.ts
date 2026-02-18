@@ -1616,6 +1616,13 @@ const SUBSCRIPTION_ACTIVITY_EVENT_TYPES: string[] = [
   EVENT_HOOKS.subscriptionAssignmentCanceled
 ];
 
+function getAdminOperationalPaymentOrderWhereClause() {
+  return and(
+    sql`coalesce(${paymentOrders.eventType}, '') not like 'subscription.template.%'`,
+    sql`lower(coalesce(${paymentOrders.message}, '')) not like 'paypal webhook event ignored.%'`
+  );
+}
+
 function getEventBusEventId(metadata: string | null) {
   if (!metadata) {
     return null;
@@ -1696,7 +1703,8 @@ export async function getAdminDashboardMonthlySeries(
         and(
           gte(paymentOrders.createdAt, startDate),
           sql`lower(coalesce(${paymentOrders.status}, '')) = 'received'`,
-          sql`coalesce(${paymentOrders.amount}, 0) > 0`
+          sql`coalesce(${paymentOrders.amount}, 0) > 0`,
+          getAdminOperationalPaymentOrderWhereClause()
         )
       )
   ]);
@@ -1793,9 +1801,7 @@ export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary>
             sql<number>`cast(count(case when lower(coalesce(${paymentOrders.status}, '')) = 'failed' then 1 end) as int)`
         })
         .from(paymentOrders)
-        .where(
-          sql`coalesce(${paymentOrders.eventType}, '') not like 'subscription.template.%'`
-        )
+        .where(getAdminOperationalPaymentOrderWhereClause())
         .then((rows) => rows[0])
     ]);
 

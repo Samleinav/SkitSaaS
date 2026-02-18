@@ -339,10 +339,6 @@ function normalizeQuantity(value: string | null) {
   return Math.min(100, Math.max(1, parsed));
 }
 
-function normalizeProvider(value: string | null) {
-  return value === 'paypal' ? 'paypal' : 'stripe';
-}
-
 function normalizeTargetType(value: string | null) {
   if (value === 'team' || value === 'user') {
     return value;
@@ -389,17 +385,8 @@ function renderCatalogCardTemplate(
   const amountLabel = formatMoney(product.unitAmountCents, product.currency);
   const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
     productId: product.productId,
-    quantity: 1,
-    provider: product.provider || 'stripe'
+    quantity: 1
   });
-  const orderPath = buildPath(
-    `${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/order`,
-    {
-      productId: product.productId,
-      quantity: 1,
-      provider: product.provider || 'stripe'
-    }
-  );
 
   const fallback = (
     <article
@@ -421,12 +408,16 @@ function renderCatalogCardTemplate(
         >
           {messages.catalog.addToCart}
         </Link>
-        <Link
-          href={orderPath}
-          className="inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
-        >
-          {messages.catalog.buyNow}
-        </Link>
+        <form action={startOneTimeProductCheckoutAction}>
+          <input type="hidden" name="productId" value={product.productId} />
+          <input type="hidden" name="quantity" value={1} />
+          <button
+            type="submit"
+            className="inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+          >
+            {messages.catalog.buyNow}
+          </button>
+        </form>
       </div>
     </article>
   );
@@ -528,9 +519,6 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
   const product = productId
     ? await getPublishedOneTimeCatalogProduct(productId)
     : null;
-  const provider = normalizeProvider(
-    readSearchParam(context, 'provider') || product?.provider || null
-  );
 
   if (!product) {
     return (
@@ -624,18 +612,6 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
           />
         </label>
 
-        <label className="block space-y-2 text-sm">
-          <span className="font-medium text-zinc-800">{moduleMessages.cart.providerLabel}</span>
-          <select
-            name="provider"
-            defaultValue={provider}
-            className="h-10 w-full rounded-md border border-zinc-300 px-3"
-          >
-            <option value="stripe">{moduleMessages.common.providerStripe}</option>
-            <option value="paypal">{moduleMessages.common.providerPayPal}</option>
-          </select>
-        </label>
-
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
@@ -682,9 +658,7 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
   const product = productId
     ? await getPublishedOneTimeCatalogProduct(productId)
     : null;
-  const provider = normalizeProvider(
-    readSearchParam(context, 'provider') || product?.provider || null
-  );
+  const provider = product?.provider ?? null;
   const errorMessage = resolveOrderErrorMessage(
     readSearchParam(context, 'error'),
     moduleMessages
@@ -727,7 +701,6 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
   const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
     productId: product.productId,
     quantity,
-    provider,
     targetType: resolvedTargetType
   });
   const themeSelection = await getThemeSelectionForArea('frontend');
@@ -793,18 +766,6 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
           defaultValue={quantity}
           className="h-10 w-full rounded-md border border-zinc-300 px-3"
         />
-      </label>
-
-      <label className="block space-y-2 text-sm">
-        <span className="font-medium text-zinc-800">{moduleMessages.order.providerLabel}</span>
-        <select
-          name="provider"
-          defaultValue={provider}
-          className="h-10 w-full rounded-md border border-zinc-300 px-3"
-        >
-          <option value="stripe">{moduleMessages.common.providerStripe}</option>
-          <option value="paypal">{moduleMessages.common.providerPayPal}</option>
-        </select>
       </label>
 
       {teamId ? (

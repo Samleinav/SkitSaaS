@@ -9,6 +9,7 @@ import {
 import {
   getCheckoutOrderByTokenForUser,
   isCheckoutOrderPayable,
+  listCheckoutOrderLineItems,
   markCheckoutOrderCanceled
 } from '@/lib/payments/checkout-orders';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
@@ -84,6 +85,16 @@ function resolvePlanRelationLabel({
 
   return null;
 }
+
+type OneTimeSummaryLineItem = {
+  key: string;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unitAmount: number;
+  totalAmount: number;
+  currency: string;
+};
 
 export default async function CheckoutPage({
   params,
@@ -161,35 +172,28 @@ export default async function CheckoutPage({
     notFound();
   }
 
-  const [stripeEnabled, payPalEnabled, payPalClientId, payPalCurrency, paymentMethods] =
-    await Promise.all([
-      isStripeConfigured(),
-      isPayPalConfigured(),
-      getPayPalClientId(),
-      getPayPalCurrency(),
-      getCheckoutPaymentMethodRegistry()
-    ]);
+  const [
+    stripeEnabled,
+    payPalEnabled,
+    payPalClientId,
+    payPalCurrency,
+    paymentMethods,
+    persistedOneTimeLineItems
+  ] = await Promise.all([
+    isStripeConfigured(),
+    isPayPalConfigured(),
+    getPayPalClientId(),
+    getPayPalCurrency(),
+    getCheckoutPaymentMethodRegistry(),
+    isSubscriptionOrder
+      ? Promise.resolve([])
+      : listCheckoutOrderLineItems(checkoutOrder.id)
+  ]);
 
   const isPayable = isCheckoutOrderPayable(checkoutOrder);
-  const oneTimeProvider =
-    !isSubscriptionOrder &&
-    typeof checkoutOrder.parsedMetadata?.oneTime?.provider === 'string'
-      ? checkoutOrder.parsedMetadata.oneTime.provider.trim().toLowerCase()
-      : null;
   const availablePaymentMethods = paymentMethods.methods.filter((method) => {
     if (!supportsCheckoutPaymentMethodOrderType(method, checkoutOrder.orderType)) {
       return false;
-    }
-
-    if (oneTimeProvider && method.ownerType === 'module') {
-      const methodProvider =
-        method.metadata &&
-        typeof method.metadata.provider === 'string'
-          ? method.metadata.provider.trim().toLowerCase()
-          : null;
-      if (methodProvider && methodProvider !== oneTimeProvider) {
-        return false;
-      }
     }
 
     if (method.ownerType !== 'core') {
@@ -238,6 +242,70 @@ export default async function CheckoutPage({
     template?.currency ?? checkoutOrder.currency ?? 'USD',
     dateLocale
   );
+  const oneTimeSummaryItems: OneTimeSummaryLineItem[] = !isSubscriptionOrder
+    ? (() => {
+        if (persistedOneTimeLineItems.length > 0) {
+          return persistedOneTimeLineItems.map((item) => ({
+            key: String(item.id),
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            unitAmount: item.unitAmount,
+            totalAmount: item.totalAmount,
+            currency: item.currency
+          }));
+        }
+
+        const oneTimeMetadata = checkoutOrder.parsedMetadata?.oneTime;
+        const oneTimeSnapshot = oneTimeMetadata?.snapshot;
+        const legacyQuantity =
+          typeof oneTimeMetadata?.quantity === 'number' &&
+          Number.isInteger(oneTimeMetadata.quantity) &&
+          oneTimeMetadata.quantity > 0
+            ? oneTimeMetadata.quantity
+            : 1;
+        const legacyAmount = checkoutOrder.amount ?? 0;
+        const snapshotUnitAmount =
+          typeof oneTimeSnapshot?.unitAmountCents === 'number' &&
+          Number.isInteger(oneTimeSnapshot.unitAmountCents) &&
+          oneTimeSnapshot.unitAmountCents >= 0
+            ? oneTimeSnapshot.unitAmountCents
+            : null;
+        const useSnapshotUnitAmount =
+          snapshotUnitAmount !== null &&
+          legacyQuantity * snapshotUnitAmount === legacyAmount;
+        const snapshotName =
+          typeof oneTimeSnapshot?.name === 'string'
+            ? oneTimeSnapshot.name.trim()
+            : '';
+        const snapshotDescription =
+          typeof oneTimeSnapshot?.description === 'string'
+            ? oneTimeSnapshot.description.trim()
+            : '';
+        const fallbackProductKey =
+          typeof oneTimeMetadata?.productKey === 'string'
+            ? oneTimeMetadata.productKey.trim()
+            : '';
+        const fallbackName =
+          snapshotName ||
+          checkoutOrder.planName ||
+          fallbackProductKey ||
+          'One-time product';
+        const fallbackCurrency = checkoutOrder.currency ?? 'USD';
+
+        return [
+          {
+            key: 'legacy',
+            name: fallbackName,
+            description: snapshotDescription || null,
+            quantity: useSnapshotUnitAmount ? legacyQuantity : 1,
+            unitAmount: useSnapshotUnitAmount ? snapshotUnitAmount! : legacyAmount,
+            totalAmount: legacyAmount,
+            currency: fallbackCurrency
+          }
+        ];
+      })()
+    : [];
   const restartHref = isSubscriptionOrder ? '/pricing' : '/products';
 
   const stripeNode = stripeEnabled ? (
@@ -371,6 +439,46 @@ export default async function CheckoutPage({
                 );
               })}
             </ul>
+          ) : (
+            <div className="mt-6 space-y-3">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-400">
+                Items
+              </p>
+              {oneTimeSummaryItems.length > 0 ? (
+                <ul className="space-y-2 text-sm text-zinc-300">
+                  {oneTimeSummaryItems.map((item) => (
+                    <li
+                      key={item.key}
+                      className="rounded-lg border border-white/10 px-3 py-2"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-100">
+                            {item.name}
+                          </p>
+                          {item.description ? (
+                            <p className="mt-1 text-xs text-zinc-400">
+                              {item.description}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-xs text-zinc-500">
+                            Qty {item.quantity} ·{' '}
+                            {formatMoney(item.unitAmount, item.currency, dateLocale)} each
+                          </p>
+                        </div>
+                        <p className="text-sm font-medium text-zinc-100">
+                          {formatMoney(item.totalAmount, item.currency, dateLocale)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-zinc-400">
+                  No line items were found for this order.
+                </p>
+              )}
+            </div>
           ) : null}
         </section>
 

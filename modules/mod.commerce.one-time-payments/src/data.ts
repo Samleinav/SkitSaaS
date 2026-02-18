@@ -17,6 +17,7 @@ import { COMMERCE_ONE_TIME_PAYMENTS_MODULE_ID } from './constants';
 import { resolveOneTimeFulfillmentStatusTransition } from './fulfillment-state';
 import type {
   CreateOneTimeCheckoutIntentInput,
+  OneTimeCheckoutProvider,
   OneTimeFulfillment,
   OneTimeFulfillmentMutationResult,
   OneTimeFulfillmentStatus,
@@ -175,7 +176,11 @@ function mapIntentStatus(status: string): OneTimeIntent['status'] {
 }
 
 function mapProvider(value: string): OneTimeIntent['provider'] {
-  return value === 'paypal' ? 'paypal' : 'stripe';
+  if (value === 'stripe' || value === 'paypal') {
+    return value;
+  }
+
+  return null;
 }
 
 function mapTargetType(value: string): OneTimeIntent['targetType'] {
@@ -379,7 +384,7 @@ async function getIntentRowByProviderIntentId({
   provider,
   providerIntentId
 }: {
-  provider: OneTimeIntent['provider'];
+  provider: OneTimeCheckoutProvider;
   providerIntentId: string;
 }) {
   const db = getOneTimePaymentsDb();
@@ -737,6 +742,30 @@ async function ensureCoreCheckoutForIntent(intent: IntentRow) {
   const snapshot = parseJsonObject(intent.productSnapshot) ?? {};
   const intentMetadata = parseJsonObject(intent.metadata) ?? {};
   const checkoutMetadataSource = normalizeRecord(intentMetadata.checkout) ?? {};
+  const snapshotQuantity = normalizeOptionalPositiveIntFromUnknown(snapshot.quantity);
+  const snapshotUnitAmount =
+    typeof snapshot.unitAmountCents === 'number' &&
+    Number.isInteger(snapshot.unitAmountCents) &&
+    snapshot.unitAmountCents >= 0
+      ? snapshot.unitAmountCents
+      : null;
+  const fallbackQuantity = snapshotQuantity ?? 1;
+  const isSnapshotAmountConsistent =
+    snapshotUnitAmount !== null && fallbackQuantity * snapshotUnitAmount === intent.amount;
+  const lineItemQuantity = isSnapshotAmountConsistent ? fallbackQuantity : 1;
+  const lineItemUnitAmount = isSnapshotAmountConsistent
+    ? snapshotUnitAmount
+    : intent.amount;
+  const lineItemName =
+    typeof snapshot.name === 'string' && snapshot.name.trim()
+      ? snapshot.name.trim()
+      : resolveCoreCheckoutPlanName(intent);
+  const lineItemDescription =
+    typeof snapshot.description === 'string' && snapshot.description.trim()
+      ? snapshot.description.trim()
+      : null;
+  const lineItemProductKey =
+    typeof snapshot.productKey === 'string' ? snapshot.productKey : null;
 
   const checkoutStart = await createOneTimeCheckoutOrderStart({
     moduleId: COMMERCE_ONE_TIME_PAYMENTS_MODULE_ID,
@@ -747,17 +776,30 @@ async function ensureCoreCheckoutForIntent(intent: IntentRow) {
     targetUserId: targetType === 'user' ? intent.targetUserId : null,
     amount: intent.amount,
     currency: intent.currency,
+    lineItems: [
+      {
+        lineOrder: 0,
+        itemType: 'one_time_product',
+        productId: intent.productId,
+        productKey: lineItemProductKey,
+        name: lineItemName,
+        description: lineItemDescription,
+        quantity: lineItemQuantity,
+        unitAmount: lineItemUnitAmount,
+        totalAmount: intent.amount,
+        currency: intent.currency,
+        metadata: snapshot
+      }
+    ],
     planName: resolveCoreCheckoutPlanName(intent),
-    paymentMethodId: intent.provider,
+    paymentMethodId: null,
     idempotencyKey: `otp_core_checkout_intent:${intent.id}`,
     metadata: {
       intentId: intent.id,
       intentKey: intent.intentKey,
       productId: intent.productId,
-      productKey:
-        typeof snapshot.productKey === 'string' ? snapshot.productKey : null,
+      productKey: lineItemProductKey,
       quantity: normalizeOptionalPositiveIntFromUnknown(snapshot.quantity),
-      provider: intent.provider,
       snapshot
     }
   });
@@ -904,7 +946,7 @@ export async function createOneTimeCheckoutIntent(
       .values({
         intentKey: buildIntentKey(),
         productId: productResolution.product.id,
-        provider: input.provider,
+        provider: input.provider ?? 'unbound',
         status: 'pending',
         targetType: input.targetType,
         targetUserId: target.targetUserId,
@@ -1018,7 +1060,7 @@ export async function getOneTimeIntentByProviderIntentId({
   provider,
   providerIntentId
 }: {
-  provider: OneTimeIntent['provider'];
+  provider: OneTimeCheckoutProvider;
   providerIntentId: string;
 }) {
   const normalizedProviderIntentId = providerIntentId.trim();
@@ -1042,7 +1084,7 @@ async function attachProviderSessionToOneTimeIntent({
   expiresAt
 }: {
   intentId: number;
-  provider: OneTimeIntent['provider'];
+  provider: OneTimeCheckoutProvider;
   sessionId: string;
   checkoutUrl: string | null;
   providerIntentId: string | null;
@@ -1066,7 +1108,8 @@ async function attachProviderSessionToOneTimeIntent({
     return mutationError('not_found', 'Intent not found.');
   }
 
-  if (mapProvider(existing.provider) !== provider) {
+  const currentProvider = mapProvider(existing.provider);
+  if (currentProvider && currentProvider !== provider && existing.sessionId) {
     return mutationError(
       'operation_failed',
       'Intent provider does not match checkout session provider.'
@@ -1080,6 +1123,7 @@ async function attachProviderSessionToOneTimeIntent({
     await db
       .update(modCommerceOnetimeIntents)
       .set({
+        provider,
         status: 'session_created',
         sessionId: normalizedSessionId,
         checkoutUrl: checkoutUrl?.trim() || null,

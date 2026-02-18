@@ -59,13 +59,13 @@ function configureCurrentUser() {
 }
 
 function createIntentFixture(
-  provider: 'stripe' | 'paypal',
+  provider: 'stripe' | 'paypal' | null,
   sessionId: string | null = null
 ): OneTimeIntent {
   const now = new Date('2026-02-14T00:00:00.000Z');
   return {
-    id: provider === 'stripe' ? 8001 : 8002,
-    intentKey: `otp_local_${provider}`,
+    id: provider === 'stripe' ? 8001 : provider === 'paypal' ? 8002 : 8003,
+    intentKey: `otp_local_${provider ?? 'unbound'}`,
     productId: 101,
     provider,
     status: sessionId ? 'session_created' : 'pending',
@@ -429,14 +429,38 @@ test('one-time module payment-method Stripe start route returns provider_pending
   assert.equal(attachCalls, 1);
 });
 
-test('one-time module payment-method Stripe start route rejects provider mismatch', async () => {
+test('one-time module payment-method Stripe start route allows unbound intent provider', async () => {
   configureCurrentUser().setUser(null);
+
+  let createSessionCalls = 0;
 
   const handler = createCommerceOneTimePaymentsApiHandler({
     getOneTimeIntentByIdForActor: async () => ({
       ok: true,
-      intent: createIntentFixture('paypal', null),
+      intent: createIntentFixture(null, null),
       fulfillment: null
+    }),
+    createStripeCheckoutSessionForOneTimeIntent: async () => {
+      createSessionCalls += 1;
+      return {
+        ok: true,
+        value: {
+          sessionId: 'cs_unbound_1',
+          checkoutUrl: 'https://checkout.stripe.local/cs_unbound_1',
+          providerIntentId: 'pi_unbound_1',
+          expiresAt: new Date('2026-02-14T01:00:00.000Z')
+        }
+      };
+    },
+    attachStripeSessionToOneTimeIntent: async (input) => ({
+      ok: true,
+      intent: {
+        ...createIntentFixture('stripe', 'cs_unbound_1'),
+        checkoutUrl: input.checkoutUrl,
+        providerIntentId: input.providerIntentId,
+        expiresAt: input.expiresAt
+      },
+      idempotencyReused: false
     })
   });
 
@@ -462,13 +486,14 @@ test('one-time module payment-method Stripe start route rejects provider mismatc
     }
   });
 
-  assert.equal(response.status, 409);
+  assert.equal(response.status, 200);
   const payload = (await response.json()) as {
-    ok: boolean;
-    code: string | null;
+    status: string;
+    providerSessionId: string | null;
   };
-  assert.equal(payload.ok, false);
-  assert.equal(payload.code, 'operation_failed');
+  assert.equal(payload.status, 'provider_pending');
+  assert.equal(payload.providerSessionId, 'cs_unbound_1');
+  assert.equal(createSessionCalls, 1);
 });
 
 test('one-time module payment-method cancel route returns canceled payload with checkout redirect', async () => {
@@ -551,7 +576,6 @@ test('one-time checkout session route supports core checkout mode without provid
     slug: ['checkout-sessions'],
     body: {
       productId: 101,
-      provider: 'stripe',
       checkoutMode: 'core_checkout'
     }
   });

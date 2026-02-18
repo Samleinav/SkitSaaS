@@ -329,6 +329,60 @@ export const checkoutOrders = pgTable(
   })
 );
 
+export const checkoutOrderItems = pgTable(
+  'checkout_order_items',
+  {
+    id: serial('id').primaryKey(),
+    checkoutOrderId: integer('checkout_order_id')
+      .notNull()
+      .references(() => checkoutOrders.id),
+    lineOrder: integer('line_order').notNull().default(0),
+    itemType: varchar('item_type', { length: 30 })
+      .notNull()
+      .default('one_time_product'),
+    productId: integer('product_id'),
+    productKey: varchar('product_key', { length: 160 }),
+    name: varchar('name', { length: 160 }).notNull(),
+    description: text('description'),
+    quantity: integer('quantity').notNull().default(1),
+    unitAmount: integer('unit_amount').notNull(),
+    totalAmount: integer('total_amount').notNull(),
+    currency: varchar('currency', { length: 10 }).notNull().default('USD'),
+    metadata: text('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    checkoutOrderIndex: index('checkout_order_items_checkout_order_idx').on(
+      table.checkoutOrderId
+    ),
+    checkoutOrderLineOrderIndex: index(
+      'checkout_order_items_checkout_order_line_order_idx'
+    ).on(table.checkoutOrderId, table.lineOrder, table.id),
+    productIndex: index('checkout_order_items_product_idx').on(table.productId),
+    itemTypeCheck: check(
+      'checkout_order_items_item_type_chk',
+      sql`${table.itemType} in ('one_time_product')`
+    ),
+    quantityCheck: check(
+      'checkout_order_items_quantity_chk',
+      sql`${table.quantity} > 0`
+    ),
+    unitAmountCheck: check(
+      'checkout_order_items_unit_amount_chk',
+      sql`${table.unitAmount} >= 0`
+    ),
+    totalAmountCheck: check(
+      'checkout_order_items_total_amount_chk',
+      sql`${table.totalAmount} >= 0`
+    ),
+    currencyCheck: check(
+      'checkout_order_items_currency_chk',
+      sql`char_length(${table.currency}) between 3 and 10`
+    ),
+  })
+);
+
 export const appConfigs = pgTable(
   'app_configs',
   {
@@ -948,7 +1002,10 @@ export const paymentOrdersRelations = relations(paymentOrders, ({ one }) => ({
   }),
 }));
 
-export const checkoutOrdersRelations = relations(checkoutOrders, ({ one }) => ({
+export const checkoutOrdersRelations = relations(
+  checkoutOrders,
+  ({ one, many }) => ({
+  items: many(checkoutOrderItems),
   team: one(teams, {
     fields: [checkoutOrders.teamId],
     references: [teams.id],
@@ -957,7 +1014,18 @@ export const checkoutOrdersRelations = relations(checkoutOrders, ({ one }) => ({
     fields: [checkoutOrders.subscriptionTemplateId],
     references: [subscriptionTemplates.id],
   }),
-}));
+  })
+);
+
+export const checkoutOrderItemsRelations = relations(
+  checkoutOrderItems,
+  ({ one }) => ({
+    checkoutOrder: one(checkoutOrders, {
+      fields: [checkoutOrderItems.checkoutOrderId],
+      references: [checkoutOrders.id],
+    }),
+  })
+);
 
 export const sysActivityLogsRelations = relations(sysActivityLogs, ({ one }) => ({
   actorUser: one(users, {
@@ -999,6 +1067,8 @@ export type PaymentOrder = typeof paymentOrders.$inferSelect;
 export type NewPaymentOrder = typeof paymentOrders.$inferInsert;
 export type CheckoutOrder = typeof checkoutOrders.$inferSelect;
 export type NewCheckoutOrder = typeof checkoutOrders.$inferInsert;
+export type CheckoutOrderItem = typeof checkoutOrderItems.$inferSelect;
+export type NewCheckoutOrderItem = typeof checkoutOrderItems.$inferInsert;
 export type PaymentTransaction = typeof paymentTransactions.$inferSelect;
 export type NewPaymentTransaction = typeof paymentTransactions.$inferInsert;
 export type SubscriptionAssignment = typeof subscriptionAssignments.$inferSelect;

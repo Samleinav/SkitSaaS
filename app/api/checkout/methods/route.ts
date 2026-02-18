@@ -45,34 +45,12 @@ export async function GET(request: NextRequest) {
       getPayPalClientId()
     ]);
 
-  const oneTimeProvider =
-    checkoutOrder?.orderType === 'one_time' &&
-    typeof checkoutOrder.parsedMetadata?.oneTime?.provider === 'string'
-      ? checkoutOrder.parsedMetadata.oneTime.provider.trim().toLowerCase()
-      : null;
-
   const methods = registry.methods
     .filter((method) =>
       checkoutOrder
         ? supportsCheckoutPaymentMethodOrderType(method, checkoutOrder.orderType)
         : true
     )
-    .filter((method) => {
-      if (!oneTimeProvider || method.ownerType !== 'module') {
-        return true;
-      }
-
-      const methodProvider =
-        method.metadata &&
-        typeof method.metadata.provider === 'string'
-          ? method.metadata.provider.trim().toLowerCase()
-          : null;
-      if (!methodProvider) {
-        return true;
-      }
-
-      return methodProvider === oneTimeProvider;
-    })
     .filter((method) => {
       if (method.ownerType !== 'core') {
         return true;

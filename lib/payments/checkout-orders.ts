@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
 import { getSubscriptionTemplateById } from '@/lib/db/queries';
 import {
+  checkoutOrderItems,
   checkoutOrders,
   teamMembers,
+  type CheckoutOrderItem,
   type CheckoutOrder,
   type SubscriptionTemplate
 } from '@/lib/db/schema';
@@ -59,6 +61,7 @@ export type CheckoutOrderOneTimeMetadata = {
   productId: number | null;
   productKey: string | null;
   quantity: number | null;
+  itemsCount?: number | null;
   paymentMethodId: string | null;
   provider: string | null;
   snapshot: Record<string, unknown> | null;
@@ -77,6 +80,40 @@ export type CheckoutOrderWithMetadata = CheckoutOrder & {
 export type CheckoutOrderUserAccess = {
   checkoutOrder: CheckoutOrderWithMetadata;
   teamRole: string | null;
+};
+
+export type CheckoutOrderItemType = 'one_time_product';
+
+export type CheckoutOrderLineItem = {
+  id: number;
+  checkoutOrderId: number;
+  lineOrder: number;
+  itemType: CheckoutOrderItemType;
+  productId: number | null;
+  productKey: string | null;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unitAmount: number;
+  totalAmount: number;
+  currency: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type CreateOneTimeCheckoutOrderLineItemInput = {
+  lineOrder?: number | null;
+  itemType?: CheckoutOrderItemType | null;
+  productId?: number | null;
+  productKey?: string | null;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  unitAmount: number;
+  totalAmount?: number | null;
+  currency?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type OneTimeCheckoutOrderStartResult = {
@@ -231,6 +268,196 @@ function normalizeMetadataRecord(metadata: unknown) {
   }
 
   return metadata as Record<string, unknown>;
+}
+
+function normalizeNonNegativeInt(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function parseLineItemMetadata(
+  value: string | null | undefined
+): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return normalizeMetadataRecord(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function serializeLineItemMetadata(
+  value: Record<string, unknown> | null | undefined
+) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.stringify(value).slice(0, 12000);
+  } catch {
+    return null;
+  }
+}
+
+function mapCheckoutOrderLineItem(row: CheckoutOrderItem): CheckoutOrderLineItem {
+  return {
+    id: row.id,
+    checkoutOrderId: row.checkoutOrderId,
+    lineOrder: row.lineOrder,
+    itemType: row.itemType === 'one_time_product' ? 'one_time_product' : 'one_time_product',
+    productId: row.productId,
+    productKey: row.productKey,
+    name: row.name,
+    description: row.description,
+    quantity: row.quantity,
+    unitAmount: row.unitAmount,
+    totalAmount: row.totalAmount,
+    currency: normalizeText(row.currency, 10)?.toUpperCase() ?? 'USD',
+    metadata: parseLineItemMetadata(row.metadata),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
+
+function normalizeOneTimeCheckoutOrderLineItems({
+  lineItems,
+  amount,
+  currency,
+  metadata
+}: {
+  lineItems: CreateOneTimeCheckoutOrderLineItemInput[] | null | undefined;
+  amount: number | null;
+  currency: string | null;
+  metadata: Record<string, unknown> | null;
+}): CreateOneTimeCheckoutOrderLineItemInput[] | null {
+  const normalizedCurrency = normalizeText(currency, 10)?.toUpperCase() ?? null;
+  if (!normalizedCurrency) {
+    return null;
+  }
+
+  const itemsFromInput: CreateOneTimeCheckoutOrderLineItemInput[] = Array.isArray(
+    lineItems
+  )
+    ? lineItems
+    : [];
+  if (itemsFromInput.length > 0) {
+    const normalizedItems: CreateOneTimeCheckoutOrderLineItemInput[] = [];
+    let computedAmount = 0;
+
+    for (let index = 0; index < itemsFromInput.length; index += 1) {
+      const item = itemsFromInput[index];
+      const quantity = normalizePositiveInt(item.quantity);
+      const unitAmount = normalizeNonNegativeInt(item.unitAmount);
+      const itemCurrency: string =
+        normalizeText(item.currency ?? normalizedCurrency, 10)?.toUpperCase() ??
+        normalizedCurrency;
+      const lineOrder =
+        normalizeNonNegativeInt(item.lineOrder ?? index) ?? index;
+      const itemType =
+        item.itemType === 'one_time_product' ? 'one_time_product' : 'one_time_product';
+      const name = normalizeText(item.name, 160);
+      const totalAmount =
+        normalizeNonNegativeInt(item.totalAmount ?? null) ??
+        (quantity !== null && unitAmount !== null ? quantity * unitAmount : null);
+
+      if (
+        !name ||
+        !quantity ||
+        unitAmount === null ||
+        totalAmount === null ||
+        itemCurrency !== normalizedCurrency
+      ) {
+        return null;
+      }
+
+      if (quantity * unitAmount !== totalAmount) {
+        return null;
+      }
+
+      computedAmount += totalAmount;
+      if (!Number.isSafeInteger(computedAmount) || computedAmount > 2_147_483_647) {
+        return null;
+      }
+
+      normalizedItems.push({
+        lineOrder,
+        itemType,
+        productId: normalizePositiveInt(item.productId ?? null),
+        productKey: normalizeText(item.productKey ?? null, 160),
+        name,
+        description: normalizeText(item.description ?? null, 2000),
+        quantity,
+        unitAmount,
+        totalAmount,
+        currency: itemCurrency,
+        metadata: normalizeMetadataRecord(item.metadata) ?? null
+      });
+    }
+
+    if (amount !== null && computedAmount !== amount) {
+      return null;
+    }
+
+    return normalizedItems;
+  }
+
+  const snapshot = normalizeMetadataRecord(metadata?.snapshot);
+  const legacyQuantity =
+    normalizePositiveInt(
+      typeof metadata?.quantity === 'number' ? metadata.quantity : null
+    ) ?? 1;
+  const legacyUnitAmountFromSnapshot =
+    normalizeNonNegativeInt(
+      typeof snapshot?.unitAmountCents === 'number'
+        ? (snapshot.unitAmountCents as number)
+        : null
+    ) ?? null;
+  const legacyName =
+    (typeof snapshot?.name === 'string'
+      ? normalizeText(snapshot.name, 160)
+      : null) ||
+    (typeof metadata?.productKey === 'string'
+      ? normalizeText(metadata.productKey, 160)
+      : null) ||
+    'One-time product';
+  const legacyProductId = normalizePositiveInt(
+    typeof metadata?.productId === 'number' ? metadata.productId : null
+  );
+  const legacyProductKey =
+    typeof metadata?.productKey === 'string'
+      ? normalizeText(metadata.productKey, 160)
+      : null;
+  const legacyAmount = amount ?? 0;
+  const useSnapshotUnit =
+    legacyUnitAmountFromSnapshot !== null &&
+    legacyQuantity * legacyUnitAmountFromSnapshot === legacyAmount;
+
+  return [
+    {
+      lineOrder: 0,
+      itemType: 'one_time_product',
+      productId: legacyProductId,
+      productKey: legacyProductKey,
+      name: legacyName,
+      description:
+        typeof snapshot?.description === 'string'
+          ? normalizeText(snapshot.description, 2000)
+          : null,
+      quantity: useSnapshotUnit ? legacyQuantity : 1,
+      unitAmount: useSnapshotUnit ? legacyUnitAmountFromSnapshot! : legacyAmount,
+      totalAmount: legacyAmount,
+      currency: normalizedCurrency,
+      metadata: snapshot
+    }
+  ];
 }
 
 export async function expireCheckoutOrderIfNeeded(
@@ -416,6 +643,23 @@ export async function getCheckoutOrderByProviderSession({
   }
 
   return expireCheckoutOrderIfNeeded(row);
+}
+
+export async function listCheckoutOrderLineItems(
+  checkoutOrderId: number
+): Promise<CheckoutOrderLineItem[]> {
+  const normalizedCheckoutOrderId = normalizePositiveInt(checkoutOrderId);
+  if (!normalizedCheckoutOrderId) {
+    return [];
+  }
+
+  const rows = await db
+    .select()
+    .from(checkoutOrderItems)
+    .where(eq(checkoutOrderItems.checkoutOrderId, normalizedCheckoutOrderId))
+    .orderBy(asc(checkoutOrderItems.lineOrder), asc(checkoutOrderItems.id));
+
+  return rows.map(mapCheckoutOrderLineItem);
 }
 
 export function isReusableSubscriptionCheckoutOrderForContext({
@@ -941,6 +1185,7 @@ export async function createOneTimeCheckoutOrder({
   targetUserId = null,
   amount,
   currency,
+  lineItems = null,
   planName = null,
   paymentMethodId = null,
   idempotencyKey = null,
@@ -955,6 +1200,7 @@ export async function createOneTimeCheckoutOrder({
   targetUserId?: number | null;
   amount: number;
   currency: string;
+  lineItems?: CreateOneTimeCheckoutOrderLineItemInput[] | null;
   planName?: string | null;
   paymentMethodId?: string | null;
   idempotencyKey?: string | null;
@@ -972,13 +1218,37 @@ export async function createOneTimeCheckoutOrder({
   const normalizedPaymentMethodId = normalizeText(paymentMethodId, 60);
   const normalizedIdempotencyKey = normalizeText(idempotencyKey, 120);
   const normalizedMetadata = normalizeMetadataRecord(metadata);
+  const hasExplicitLineItems = Array.isArray(lineItems) && lineItems.length > 0;
+  const normalizedLineItems = normalizeOneTimeCheckoutOrderLineItems({
+    lineItems,
+    amount: normalizedAmount,
+    currency: normalizedCurrency,
+    metadata: normalizedMetadata
+  });
 
   if (
     !normalizedModuleId ||
     !normalizedTargetType ||
     normalizedAmount === null ||
-    !normalizedCurrency
+    !normalizedCurrency ||
+    !normalizedLineItems ||
+    normalizedLineItems.length === 0
   ) {
+    return null;
+  }
+
+  let normalizedComputedAmount = 0;
+  for (const item of normalizedLineItems) {
+    normalizedComputedAmount += item.totalAmount ?? 0;
+    if (
+      !Number.isSafeInteger(normalizedComputedAmount) ||
+      normalizedComputedAmount > 2_147_483_647
+    ) {
+      return null;
+    }
+  }
+
+  if (normalizedComputedAmount !== normalizedAmount) {
     return null;
   }
 
@@ -1000,6 +1270,24 @@ export async function createOneTimeCheckoutOrder({
   }
 
   const expiresAt = new Date(Date.now() + Math.max(5 * 60 * 1000, expiresInMs));
+  const primaryLineItem =
+    normalizedLineItems.length === 1 ? normalizedLineItems[0] : null;
+  const metadataProductId =
+    typeof normalizedMetadata?.productId === 'number' &&
+    Number.isInteger(normalizedMetadata.productId) &&
+    normalizedMetadata.productId > 0
+      ? normalizedMetadata.productId
+      : null;
+  const metadataProductKey =
+    typeof normalizedMetadata?.productKey === 'string'
+      ? normalizeText(normalizedMetadata.productKey, 160)
+      : null;
+  const metadataQuantity =
+    typeof normalizedMetadata?.quantity === 'number' &&
+    Number.isInteger(normalizedMetadata.quantity) &&
+    normalizedMetadata.quantity > 0
+      ? normalizedMetadata.quantity
+      : null;
   const metadataEnvelope: CheckoutOrderMetadata = {
     ...(normalizedMetadata || {}),
     schemaVersion: CHECKOUT_ORDER_METADATA_VERSION,
@@ -1016,21 +1304,16 @@ export async function createOneTimeCheckoutOrder({
           ? normalizeText(normalizedMetadata.intentKey, 160)
           : null,
       productId:
-        typeof normalizedMetadata?.productId === 'number' &&
-        Number.isInteger(normalizedMetadata.productId) &&
-        normalizedMetadata.productId > 0
-          ? normalizedMetadata.productId
-          : null,
+        hasExplicitLineItems
+          ? primaryLineItem?.productId ?? null
+          : metadataProductId,
       productKey:
-        typeof normalizedMetadata?.productKey === 'string'
-          ? normalizeText(normalizedMetadata.productKey, 160)
-          : null,
+        hasExplicitLineItems
+          ? primaryLineItem?.productKey ?? null
+          : metadataProductKey,
       quantity:
-        typeof normalizedMetadata?.quantity === 'number' &&
-        Number.isInteger(normalizedMetadata.quantity) &&
-        normalizedMetadata.quantity > 0
-          ? normalizedMetadata.quantity
-          : null,
+        hasExplicitLineItems ? primaryLineItem?.quantity ?? null : metadataQuantity,
+      itemsCount: normalizedLineItems.length,
       paymentMethodId: normalizedPaymentMethodId,
       provider:
         typeof normalizedMetadata?.provider === 'string'
@@ -1048,40 +1331,72 @@ export async function createOneTimeCheckoutOrder({
     const checkoutToken = buildCheckoutOrderToken();
 
     try {
-      const [created] = await db
-        .insert(checkoutOrders)
-        .values({
-          checkoutToken,
-          idempotencyKey: normalizedIdempotencyKey,
-          orderType: 'one_time',
-          status: 'ready',
-          source: normalizedSource,
-          moduleId: normalizedModuleId,
-          teamId:
-            normalizedTeamId ??
-            (normalizedTargetType === 'team' ? normalizedTargetTeamId : null),
-          targetType: normalizedTargetType,
-          targetTeamId:
-            normalizedTargetType === 'team' ? normalizedTargetTeamId : null,
-          targetUserId:
-            normalizedTargetType === 'user' ? normalizedTargetUserId : null,
-          subscriptionTemplateId: null,
-          selectedProvider: null,
-          selectedPaymentMethod: null,
-          providerSessionId: null,
-          providerReferenceId: null,
-          amount: normalizedAmount,
-          currency: normalizedCurrency,
-          planName: normalizeText(planName, 100),
-          metadata: serializedMetadata,
-          expiresAt,
-          completedAt: null,
-          canceledAt: null,
-          failedAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
+      const now = new Date();
+      const created = await db.transaction(async (tx) => {
+        const [order] = await tx
+          .insert(checkoutOrders)
+          .values({
+            checkoutToken,
+            idempotencyKey: normalizedIdempotencyKey,
+            orderType: 'one_time',
+            status: 'ready',
+            source: normalizedSource,
+            moduleId: normalizedModuleId,
+            teamId:
+              normalizedTeamId ??
+              (normalizedTargetType === 'team' ? normalizedTargetTeamId : null),
+            targetType: normalizedTargetType,
+            targetTeamId:
+              normalizedTargetType === 'team' ? normalizedTargetTeamId : null,
+            targetUserId:
+              normalizedTargetType === 'user' ? normalizedTargetUserId : null,
+            subscriptionTemplateId: null,
+            selectedProvider: null,
+            selectedPaymentMethod: null,
+            providerSessionId: null,
+            providerReferenceId: null,
+            amount: normalizedComputedAmount,
+            currency: normalizedCurrency,
+            planName: normalizeText(planName, 100),
+            metadata: serializedMetadata,
+            expiresAt,
+            completedAt: null,
+            canceledAt: null,
+            failedAt: null,
+            createdAt: now,
+            updatedAt: now
+          })
+          .returning();
+
+        if (!order) {
+          return null;
+        }
+
+        await tx.insert(checkoutOrderItems).values(
+          normalizedLineItems.map((item, index) => ({
+            checkoutOrderId: order.id,
+            lineOrder: normalizeNonNegativeInt(item.lineOrder ?? index) ?? index,
+            itemType: item.itemType === 'one_time_product' ? 'one_time_product' : 'one_time_product',
+            productId: normalizePositiveInt(item.productId ?? null),
+            productKey: normalizeText(item.productKey ?? null, 160),
+            name: normalizeText(item.name, 160) ?? 'One-time product',
+            description: normalizeText(item.description ?? null, 2000),
+            quantity: normalizePositiveInt(item.quantity) ?? 1,
+            unitAmount: normalizeNonNegativeInt(item.unitAmount) ?? 0,
+            totalAmount: normalizeNonNegativeInt(item.totalAmount) ?? 0,
+            currency:
+              normalizeText(item.currency ?? normalizedCurrency, 10)?.toUpperCase() ??
+              normalizedCurrency,
+            metadata: serializeLineItemMetadata(
+              normalizeMetadataRecord(item.metadata) ?? null
+            ),
+            createdAt: now,
+            updatedAt: now
+          }))
+        );
+
+        return order;
+      });
 
       if (created) {
         return toCheckoutOrderWithMetadata(created);
@@ -1117,6 +1432,7 @@ export async function createOneTimeCheckoutOrderStart({
   targetUserId?: number | null;
   amount: number;
   currency: string;
+  lineItems?: CreateOneTimeCheckoutOrderLineItemInput[] | null;
   planName?: string | null;
   paymentMethodId?: string | null;
   idempotencyKey?: string | null;

@@ -66,6 +66,7 @@ test('one-time checkout validator accepts core checkout mode', () => {
   assert.equal(parsed.ok, true);
   if (parsed.ok) {
     assert.equal(parsed.value.checkoutMode, 'core_checkout');
+    assert.equal(parsed.value.provider, null);
   }
 });
 

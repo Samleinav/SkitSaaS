@@ -22,6 +22,8 @@ type VerifyWebhookResponse = {
   verification_status?: string;
 };
 
+const PAYPAL_IGNORED_WEBHOOK_EVENT_MESSAGE = 'PayPal webhook event ignored.';
+
 export async function POST(request: NextRequest) {
   await logLegacyCheckoutRouteUsage({
     request,
@@ -98,12 +100,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await handlePayPalWebhookEvent(event);
+    const handled = result.handled;
     await recordPayPalCheckoutEvent({
       orderType: 'subscription',
-      status: result.handled
+      status: handled
         ? mapSubscriptionStatusToOrderStatus(result.subscriptionStatus)
-        : 'failed',
-      logStatus: result.handled ? 'success' : 'failed',
+        : 'pending',
+      logStatus: handled ? 'success' : 'failed',
+      persistOrder: handled,
       eventType: event.event_type || 'webhook.event',
       source: 'webhook',
       teamId: result.teamId,
@@ -113,11 +117,12 @@ export async function POST(request: NextRequest) {
       planName: result.planName ?? null,
       providerPlanId: event.resource?.plan_id || null,
       externalPaymentId: event.resource?.id || null,
-      message: result.handled
+      message: handled
         ? 'PayPal webhook event processed.'
-        : 'PayPal webhook event ignored.',
+        : PAYPAL_IGNORED_WEBHOOK_EVENT_MESSAGE,
       metadata: {
-        subscriptionStatus: result.subscriptionStatus
+        subscriptionStatus: result.subscriptionStatus,
+        handled
       },
       providerMetadata: {
         subscriptionId: event.resource?.id || null,
@@ -150,11 +155,16 @@ export async function POST(request: NextRequest) {
     );
     await recordPayPalCheckoutEvent({
       orderType: 'subscription',
-      status: 'failed',
+      status: 'pending',
       logStatus: 'failed',
+      persistOrder: false,
       eventType: event.event_type || 'webhook.event',
       source: 'webhook',
       externalPaymentId: event.resource?.id || null,
+      metadata: {
+        handled: false,
+        reason: 'handler_error'
+      },
       providerMetadata: {
         subscriptionId: event.resource?.id || null,
         webhookEventId: request.headers.get('paypal-transmission-id')

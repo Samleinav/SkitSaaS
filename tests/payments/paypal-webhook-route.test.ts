@@ -306,12 +306,45 @@ if (!hasModuleMock) {
         'PayPal webhook event processed.'
       );
       assert.deepEqual(successCheckout?.metadata, {
-        subscriptionStatus: 'active'
+        subscriptionStatus: 'active',
+        handled: true
       });
       assert.deepEqual(successCheckout?.providerMetadata, {
         subscriptionId: 'I-SUB-2',
         planId: 'P-PLAN-2',
         webhookEventId: 'WH-TRANS-2'
+      });
+
+      resetScenarioDefaults();
+      state.handleResult = {
+        handled: false,
+        teamId: null,
+        subscriptionStatus: null
+      };
+      const ignored = await callRoute({
+        payload: {
+          event_type: 'BILLING.PLAN.CREATED',
+          resource: {
+            id: 'P-PLAN-3'
+          }
+        },
+        headers: {
+          'paypal-transmission-id': 'WH-TRANS-IGNORED'
+        }
+      });
+      assert.equal(ignored.response.status, 200);
+      assert.equal(ignored.body.received, true);
+      assert.equal(state.checkoutCalls.length, 1);
+      assert.equal(state.checkoutCalls[0]?.status, 'pending');
+      assert.equal(state.checkoutCalls[0]?.logStatus, 'failed');
+      assert.equal(state.checkoutCalls[0]?.persistOrder, false);
+      assert.equal(
+        state.checkoutCalls[0]?.message,
+        'PayPal webhook event ignored.'
+      );
+      assert.deepEqual(state.checkoutCalls[0]?.metadata, {
+        subscriptionStatus: null,
+        handled: false
       });
 
       resetScenarioDefaults();
@@ -331,14 +364,19 @@ if (!hasModuleMock) {
       assert.equal(failed.response.status, 500);
       assert.equal(failed.body.error, 'Webhook handling failed.');
       assert.equal(state.checkoutCalls.length, 1);
-      assert.equal(state.checkoutCalls[0]?.status, 'failed');
+      assert.equal(state.checkoutCalls[0]?.status, 'pending');
       assert.equal(state.checkoutCalls[0]?.logStatus, 'failed');
+      assert.equal(state.checkoutCalls[0]?.persistOrder, false);
       assert.equal(state.checkoutCalls[0]?.eventType, 'BILLING.SUBSCRIPTION.CANCELLED');
       assert.equal(consoleErrorMock.mock.calls.length, 1);
       assert.equal(
         state.checkoutCalls[0]?.message,
         'Error handling PayPal webhook event.'
       );
+      assert.deepEqual(state.checkoutCalls[0]?.metadata, {
+        handled: false,
+        reason: 'handler_error'
+      });
       assert.deepEqual(state.checkoutCalls[0]?.providerMetadata, {
         subscriptionId: 'I-SUB-3',
         webhookEventId: 'WH-TRANS-3'

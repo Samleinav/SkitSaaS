@@ -17,7 +17,7 @@ export type OneTimeIntentStatus =
 export type CreateOneTimeCheckoutIntentInput = {
   productId: number;
   quantity: number;
-  provider: OneTimeCheckoutProvider;
+  provider: OneTimeCheckoutProvider | null;
   checkoutMode: OneTimeCheckoutMode;
   targetType: OneTimeIntentTargetType;
   targetTeamId: number | null;
@@ -31,7 +31,7 @@ export type OneTimeIntent = {
   id: number;
   intentKey: string;
   productId: number;
-  provider: OneTimeCheckoutProvider;
+  provider: OneTimeCheckoutProvider | null;
   status: OneTimeIntentStatus;
   targetType: OneTimeIntentTargetType;
   targetUserId: number | null;

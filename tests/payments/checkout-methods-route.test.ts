@@ -82,6 +82,40 @@ if (!hasModuleMock) {
                 webhookPath: null
               },
               metadata: null
+            },
+            {
+              paymentMethodId: 'onetime-stripe',
+              ownerType: 'module',
+              displayName: 'Stripe (One-time)',
+              description: null,
+              order: 110,
+              supportsOrderTypes: ['one_time'],
+              routes: {
+                startPath: '/api/modules/mod.commerce.one-time-payments/payment-methods/stripe/start',
+                cancelPath: '/api/modules/mod.commerce.one-time-payments/payment-methods/stripe/cancel',
+                returnPath: null,
+                webhookPath: null
+              },
+              metadata: {
+                provider: 'stripe'
+              }
+            },
+            {
+              paymentMethodId: 'onetime-paypal',
+              ownerType: 'module',
+              displayName: 'PayPal (One-time)',
+              description: null,
+              order: 120,
+              supportsOrderTypes: ['one_time'],
+              routes: {
+                startPath: '/api/modules/mod.commerce.one-time-payments/payment-methods/paypal/start',
+                cancelPath: '/api/modules/mod.commerce.one-time-payments/payment-methods/paypal/cancel',
+                returnPath: null,
+                webhookPath: null
+              },
+              metadata: {
+                provider: 'paypal'
+              }
             }
           ],
           issues: []
@@ -135,7 +169,11 @@ if (!hasModuleMock) {
         checkoutToken: 'tok_1',
         orderType: 'one_time',
         targetType: 'user',
-        parsedMetadata: null
+        parsedMetadata: {
+          oneTime: {
+            provider: 'stripe'
+          }
+        }
       },
       teamRole: null
     };
@@ -144,6 +182,12 @@ if (!hasModuleMock) {
     );
     assert.equal(response.response.status, 200);
     assert.equal(response.body.ok, true);
+    assert.deepEqual(
+      ((response.body.methods as Array<{ paymentMethodId: string }> | undefined) || []).map(
+        (method) => method.paymentMethodId
+      ),
+      ['stripe', 'onetime-stripe', 'onetime-paypal']
+    );
 
     mock.restoreAll();
   });

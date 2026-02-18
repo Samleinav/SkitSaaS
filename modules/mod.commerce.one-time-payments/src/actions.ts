@@ -8,7 +8,6 @@ import {
 } from '@skitsaas/sdk/server';
 import { COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS } from './constants';
 import { createOneTimeCheckoutIntent, getPrimaryTeamIdForUser } from './data';
-import type { OneTimeCheckoutProvider } from './types';
 
 type OneTimePaymentsSessionUser = {
   id: number;
@@ -19,12 +18,6 @@ type OneTimePaymentsSessionUser = {
 const frontendAction = createServerActionController<OneTimePaymentsSessionUser>({
   requireUser: async () => requireUser<OneTimePaymentsSessionUser>()
 });
-
-function normalizeProvider(value: string) {
-  return value === 'paypal'
-    ? ('paypal' satisfies OneTimeCheckoutProvider)
-    : ('stripe' satisfies OneTimeCheckoutProvider);
-}
 
 function normalizeQuantity(value: number | null) {
   if (!value || !Number.isInteger(value)) {
@@ -46,13 +39,11 @@ function normalizeIdempotencyKey(value: string) {
 function buildOrderPath({
   productId,
   quantity,
-  provider,
   targetType,
   error
 }: {
   productId?: number | null;
   quantity?: number | null;
-  provider?: string | null;
   targetType?: 'team' | 'user' | null;
   error?: string | null;
 }) {
@@ -62,9 +53,6 @@ function buildOrderPath({
   }
   if (quantity && Number.isInteger(quantity) && quantity > 0) {
     params.set('quantity', String(quantity));
-  }
-  if (provider) {
-    params.set('provider', provider);
   }
   if (targetType) {
     params.set('targetType', targetType);
@@ -83,7 +71,6 @@ export const startOneTimeProductCheckoutAction = frontendAction(
   async ({ user, form }) => {
     const productId = form.positiveInt('productId');
     const quantity = normalizeQuantity(form.positiveInt('quantity'));
-    const provider = normalizeProvider(form.lower('provider'));
     const requestedTargetType = form.lower('targetType');
     const idempotencyKey =
       normalizeIdempotencyKey(form.string('idempotencyKey')) ??
@@ -106,7 +93,6 @@ export const startOneTimeProductCheckoutAction = frontendAction(
         buildOrderPath({
           productId,
           quantity,
-          provider,
           targetType,
           error: 'target_team_required'
         })
@@ -117,7 +103,7 @@ export const startOneTimeProductCheckoutAction = frontendAction(
       {
         productId,
         quantity,
-        provider,
+        provider: null,
         checkoutMode: 'core_checkout',
         targetType,
         targetTeamId: targetType === 'team' ? teamId : null,
@@ -138,7 +124,6 @@ export const startOneTimeProductCheckoutAction = frontendAction(
         buildOrderPath({
           productId,
           quantity,
-          provider,
           targetType,
           error: result.code
         })
@@ -151,7 +136,6 @@ export const startOneTimeProductCheckoutAction = frontendAction(
         buildOrderPath({
           productId,
           quantity,
-          provider,
           targetType,
           error: 'operation_failed'
         })

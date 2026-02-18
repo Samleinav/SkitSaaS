@@ -70,10 +70,6 @@ function normalizePositiveInt(value: unknown) {
 }
 
 function normalizeProvider(value: unknown): OneTimeCheckoutProvider | null {
-  if (value === undefined || value === null) {
-    return 'stripe';
-  }
-
   if (typeof value !== 'string') {
     return null;
   }
@@ -182,14 +178,6 @@ export function parseCreateOneTimeCheckoutIntentInput(
     );
   }
 
-  const provider = normalizeProvider(body.provider);
-  if (!provider) {
-    return failure(
-      'invalid_provider',
-      'Field "provider" must be "stripe" or "paypal" when provided.'
-    );
-  }
-
   const checkoutMode = normalizeCheckoutMode(body.checkoutMode);
   if (!checkoutMode) {
     return failure(
@@ -197,6 +185,16 @@ export function parseCreateOneTimeCheckoutIntentInput(
       'Field "checkoutMode" must be "provider_session" or "core_checkout" when provided.'
     );
   }
+
+  const parsedProvider = normalizeProvider(body.provider);
+  if (body.provider !== undefined && body.provider !== null && !parsedProvider) {
+    return failure(
+      'invalid_provider',
+      'Field "provider" must be "stripe" or "paypal" when provided.'
+    );
+  }
+  const provider =
+    checkoutMode === 'provider_session' ? parsedProvider ?? 'stripe' : parsedProvider;
 
   const targetType = normalizeTargetType(body.targetType);
   if (!targetType) {
