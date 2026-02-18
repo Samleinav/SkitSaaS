@@ -58,6 +58,63 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
           }
         }
       }
+    },
+    "es": {
+      "mod.commerce.one-time-payments": {
+        "products": {
+          "common": {
+            "providerStripe": "Stripe",
+            "providerPayPal": "PayPal"
+          },
+          "catalog": {
+            "eyebrow": "Productos de pago unico",
+            "title": "Productos",
+            "description": "Catalogo base para compras de pago unico conectado al checkout core.",
+            "empty": "No hay productos one_time publicados.",
+            "noDescription": "Sin descripcion.",
+            "addToCart": "Agregar al carrito",
+            "buyNow": "Comprar ahora"
+          },
+          "cart": {
+            "title": "Carrito",
+            "missingDescription": "Selecciona un producto del catalogo antes de continuar al pedido.",
+            "browseProducts": "Ver productos",
+            "eyebrow": "Carrito",
+            "unitPriceLabel": "Precio unitario",
+            "quantityLabel": "Cantidad",
+            "totalLabel": "Total",
+            "providerLabel": "Proveedor",
+            "continueToOrder": "Continuar al pedido",
+            "backToProducts": "Volver a productos"
+          },
+          "order": {
+            "title": "Pedido",
+            "missingDescription": "Selecciona un producto antes de crear un pedido.",
+            "browseProducts": "Ver productos",
+            "eyebrow": "Pedido",
+            "description": "Este flujo base crea un intent one_time del modulo y redirige al checkout core.",
+            "unitPriceLabel": "Precio unitario",
+            "quantityLabel": "Cantidad",
+            "totalLabel": "Total",
+            "providerLabel": "Proveedor",
+            "targetLabel": "Destino",
+            "targetTeamLabel": "Equipo",
+            "targetUserLabel": "Usuario",
+            "continueToCheckout": "Continuar al checkout",
+            "backToCart": "Volver al carrito",
+            "oneTimeDescription": "Pedido one_time",
+            "switchedToUserWarning": "No se encontro membresia de equipo para esta cuenta. El destino del checkout cambio automaticamente a usuario.",
+            "errors": {
+              "target_team_required": "Necesitas una membresia activa de equipo antes de iniciar checkout.",
+              "product_not_found": "No se encontro el producto seleccionado.",
+              "product_not_published": "El producto seleccionado no esta publicado.",
+              "product_missing_active_price": "El producto seleccionado no tiene precio activo.",
+              "target_team_forbidden": "No puedes crear un pedido para el equipo seleccionado.",
+              "operation_failed": "No fue posible iniciar checkout para este pedido."
+            }
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -199,6 +256,117 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
       }
     },
     "es": {
+      "mod.commerce.products": {
+        "products": {
+          "page": {
+            "list": {
+              "eyebrow": "Productos commerce",
+              "title": "Productos",
+              "description": "Gestion admin para productos de suscripcion y pago unico.",
+              "createLabel": "Crear producto",
+              "empty": "No hay productos para los filtros actuales."
+            },
+            "create": {
+              "title": "Crear producto",
+              "description": "Crea un producto de catalogo para suscripcion o pago unico.",
+              "submitLabel": "Crear producto",
+              "backLabel": "Volver"
+            },
+            "edit": {
+              "titlePrefix": "Editar producto #",
+              "description": "Actualiza campos del producto y estado de publicacion.",
+              "submitLabel": "Guardar cambios",
+              "backLabel": "Volver"
+            },
+            "notFound": {
+              "title": "Producto no encontrado",
+              "descriptionTemplate": "No se encontro el producto id {productId}.",
+              "backLabel": "Volver a productos"
+            }
+          },
+          "filters": {
+            "kindLabel": "Tipo",
+            "publicationLabel": "Publicacion",
+            "allLabel": "Todos",
+            "subscriptionLabel": "suscripcion",
+            "oneTimeLabel": "one_time",
+            "publishedLabel": "publicado",
+            "draftLabel": "borrador",
+            "applyLabel": "Aplicar",
+            "resetLabel": "Limpiar"
+          },
+          "table": {
+            "idHeader": "Id",
+            "keyHeader": "Clave",
+            "nameHeader": "Nombre",
+            "kindHeader": "Tipo",
+            "priceHeader": "Precio",
+            "stateHeader": "Estado",
+            "updatedHeader": "Actualizado",
+            "actionsHeader": "Acciones",
+            "editLabel": "Editar",
+            "publishLabel": "Publicar",
+            "unpublishLabel": "Despublicar"
+          },
+          "form": {
+            "productKeyLabel": "Clave de producto",
+            "productKeyPlaceholder": "coffee-mug",
+            "nameLabel": "Nombre",
+            "descriptionLabel": "Descripcion",
+            "kindLabel": "Tipo",
+            "subscriptionTemplateIdLabel": "Id plantilla de suscripcion",
+            "subscriptionTemplateIdHint": "Requerido solo cuando el tipo es suscripcion.",
+            "priceCurrencyLabel": "Moneda del precio",
+            "priceAmountLabel": "Monto (centavos)",
+            "priceProviderLabel": "Proveedor de precio",
+            "priceProviderPlaceholder": "stripe | paypal",
+            "providerPriceIdLabel": "Id de precio del proveedor"
+          },
+          "publication": {
+            "title": "Publicacion",
+            "currentStateLabel": "Estado actual"
+          },
+          "kind": {
+            "subscription": "suscripcion",
+            "oneTime": "one_time"
+          },
+          "state": {
+            "published": "publicado",
+            "draft": "borrador"
+          },
+          "feedback": {
+            "status": {
+              "created": "Producto creado correctamente.",
+              "updated": "Producto actualizado correctamente.",
+              "published": "Producto publicado correctamente.",
+              "unpublished": "Producto despublicado correctamente."
+            },
+            "operationFailedTemplate": "Operacion fallida ({code}).",
+            "errors": {
+              "invalid_product_id": "Id de producto invalido.",
+              "invalid_product_key": "La clave de producto es obligatoria y debe ser tipo slug.",
+              "invalid_name": "El nombre del producto es obligatorio.",
+              "invalid_kind": "El tipo debe ser subscription o one_time.",
+              "invalid_subscription_template_id": "El id de plantilla de suscripcion debe ser entero positivo.",
+              "invalid_price": "El payload de precio es invalido.",
+              "invalid_price_currency": "La moneda del precio es invalida.",
+              "invalid_price_amount": "El monto del precio debe ser entero mayor o igual a 0.",
+              "invalid_price_provider": "El proveedor de precio es invalido.",
+              "invalid_price_provider_id": "El id de precio del proveedor es invalido.",
+              "one_time_price_required": "Los productos one_time requieren un precio activo.",
+              "price_not_allowed_for_subscription": "El precio no esta permitido para productos subscription.",
+              "subscription_template_required": "Los productos subscription requieren subscriptionTemplateId.",
+              "subscription_template_not_found": "No se encontro la plantilla de suscripcion.",
+              "subscription_template_not_allowed_for_one_time": "subscriptionTemplateId no esta permitido para one_time.",
+              "duplicate_product_key": "La clave de producto ya esta en uso.",
+              "one_time_product_missing_active_price": "No se puede publicar one_time sin precio activo.",
+              "no_updates_provided": "No se enviaron cambios.",
+              "not_found": "Producto no encontrado.",
+              "operation_failed": "Operacion fallida. Intenta de nuevo."
+            }
+          }
+        }
+      },
       "mod.example.admin": {
         "title": "Admin de Ejemplo",
         "nav": {

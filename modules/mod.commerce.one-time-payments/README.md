@@ -115,6 +115,7 @@ Resolution policy:
 Current file:
 
 - `modules/mod.commerce.one-time-payments/i18n/global/en.json`
+- `modules/mod.commerce.one-time-payments/i18n/global/es.json`
 
 Implemented key namespaces:
 

@@ -1,0 +1,55 @@
+{
+  "products": {
+    "common": {
+      "providerStripe": "Stripe",
+      "providerPayPal": "PayPal"
+    },
+    "catalog": {
+      "eyebrow": "Productos de pago unico",
+      "title": "Productos",
+      "description": "Catalogo base para compras de pago unico conectado al checkout core.",
+      "empty": "No hay productos one_time publicados.",
+      "noDescription": "Sin descripcion.",
+      "addToCart": "Agregar al carrito",
+      "buyNow": "Comprar ahora"
+    },
+    "cart": {
+      "title": "Carrito",
+      "missingDescription": "Selecciona un producto del catalogo antes de continuar al pedido.",
+      "browseProducts": "Ver productos",
+      "eyebrow": "Carrito",
+      "unitPriceLabel": "Precio unitario",
+      "quantityLabel": "Cantidad",
+      "totalLabel": "Total",
+      "providerLabel": "Proveedor",
+      "continueToOrder": "Continuar al pedido",
+      "backToProducts": "Volver a productos"
+    },
+    "order": {
+      "title": "Pedido",
+      "missingDescription": "Selecciona un producto antes de crear un pedido.",
+      "browseProducts": "Ver productos",
+      "eyebrow": "Pedido",
+      "description": "Este flujo base crea un intent one_time del modulo y redirige al checkout core.",
+      "unitPriceLabel": "Precio unitario",
+      "quantityLabel": "Cantidad",
+      "totalLabel": "Total",
+      "providerLabel": "Proveedor",
+      "targetLabel": "Destino",
+      "targetTeamLabel": "Equipo",
+      "targetUserLabel": "Usuario",
+      "continueToCheckout": "Continuar al checkout",
+      "backToCart": "Volver al carrito",
+      "oneTimeDescription": "Pedido one_time",
+      "switchedToUserWarning": "No se encontro membresia de equipo para esta cuenta. El destino del checkout cambio automaticamente a usuario.",
+      "errors": {
+        "target_team_required": "Necesitas una membresia activa de equipo antes de iniciar checkout.",
+        "product_not_found": "No se encontro el producto seleccionado.",
+        "product_not_published": "El producto seleccionado no esta publicado.",
+        "product_missing_active_price": "El producto seleccionado no tiene precio activo.",
+        "target_team_forbidden": "No puedes crear un pedido para el equipo seleccionado.",
+        "operation_failed": "No fue posible iniciar checkout para este pedido."
+      }
+    }
+  }
+}

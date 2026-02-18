@@ -88,6 +88,7 @@ Resolution policy:
 Current file:
 
 - `modules/mod.commerce.products/i18n/admin/en.json`
+- `modules/mod.commerce.products/i18n/admin/es.json`
 
 Implemented key namespaces:
 

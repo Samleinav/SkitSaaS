@@ -23,7 +23,9 @@ Last review: 2026-02-18
 - [x] Workspace validation green after UI changes: `pnpm check`.
 - [x] Module i18n copy migration completed:
   - `modules/mod.commerce.products/i18n/admin/en.json`
+  - `modules/mod.commerce.products/i18n/admin/es.json`
   - `modules/mod.commerce.one-time-payments/i18n/global/en.json`
+  - `modules/mod.commerce.one-time-payments/i18n/global/es.json`
   - `src/pages.tsx` in both modules now consume `getServerMessages(...).mod[moduleId]` with fallback defaults.
 
 ## Objective
@@ -388,7 +390,7 @@ Target files (future implementation scope):
 - `modules/mod.commerce.one-time-payments/src/pages.tsx`
 - `modules/mod.commerce.one-time-payments/src/actions.ts`
 - `modules/mod.commerce.one-time-payments/src/manifest.ts`
-- `modules/mod.commerce.one-time-payments/i18n/frontend/en.json`
+- `modules/mod.commerce.one-time-payments/i18n/global/en.json`
 - `tests/payments/checkout-system-one-time.test.ts`
 
 Checklist:
