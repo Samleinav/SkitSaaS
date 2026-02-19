@@ -1,26 +1,23 @@
+type TemplateData = {
+  message?: string;
+  title?: string;
+};
+
 type TemplateProps = {
-  data?: Record<string, unknown>;
+  data?: TemplateData;
   className?: string;
-  themeId?: string;
 };
 
 export default function SystemNotFoundTemplate({
   data,
   className
 }: TemplateProps) {
-  const title =
-    typeof data?.title === 'string' && data.title.trim().length > 0
-      ? data.title
-      : 'Not Found';
-  const message =
-    typeof data?.message === 'string' && data.message.trim().length > 0
-      ? data.message
-      : 'This backoffice route is not available.';
+  const title = data?.title?.trim() || 'Not Found';
+  const message = data?.message?.trim() || 'This backoffice route is not available.';
 
   return (
     <main
       className={className || 'mx-auto max-w-3xl px-4 py-20'}
-      data-theme-template="system.not-found"
     >
       <section className="theme-first-backoffice-panel rounded-xl p-8 text-center">
         <p className="text-xs tracking-[0.2em] uppercase opacity-70">404</p>
@@ -30,3 +27,4 @@ export default function SystemNotFoundTemplate({
     </main>
   );
 }
+

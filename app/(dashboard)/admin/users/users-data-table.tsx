@@ -23,7 +23,7 @@ export function AdminUsersDataTable({
 }: AdminUsersDataTableProps) {
   return (
     <DataTable
-      columns={getColumns(messages, tableTemplate?.themeId ?? null)}
+      columns={getColumns(messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

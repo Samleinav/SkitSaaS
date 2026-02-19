@@ -402,6 +402,7 @@ Default seed user (if not changed in env):
   - `tests/templates/template-module-pack.test.ts`
   - `tests/templates/template-theme-pack.test.ts`
   - `tests/sdk/server-adapters.test.ts`
+  - `tests/sdk/template-utils.test.ts`
 
 ## Multi-agent coordination
 

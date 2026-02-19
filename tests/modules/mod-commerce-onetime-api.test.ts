@@ -153,6 +153,30 @@ test('one-time checkout session route validates payload before DB layer', async 
   assert.equal(payload.code, 'invalid_product_id');
 });
 
+test('one-time checkout session route rejects invalid lineItems payload before DB layer', async () => {
+  const auth = configureCurrentUser();
+  auth.setUser({
+    id: 17,
+    role: 'member'
+  });
+
+  const response = await callApiRoute({
+    method: 'POST',
+    slug: ['checkout-sessions'],
+    body: {
+      lineItems: []
+    }
+  });
+
+  assert.equal(response.status, 400);
+  const payload = (await response.json()) as {
+    ok: boolean;
+    code: string;
+  };
+  assert.equal(payload.ok, false);
+  assert.equal(payload.code, 'invalid_line_items');
+});
+
 test('one-time intent read route validates intent id format before DB layer', async () => {
   const auth = configureCurrentUser();
   auth.setUser({
@@ -252,7 +276,7 @@ test('one-time PayPal webhook route validates JSON payload', async () => {
   assert.equal(payload.code, 'invalid_json_body');
 });
 
-test('one-time checkout session route simulates end-to-end Stripe flow with configured provider deps', async () => {
+test('one-time checkout session route rejects explicit provider payload', async () => {
   const auth = configureCurrentUser();
   auth.setUser({
     id: 17,
@@ -261,44 +285,13 @@ test('one-time checkout session route simulates end-to-end Stripe flow with conf
   });
 
   let createIntentCalls = 0;
-  let stripeSessionCalls = 0;
-  let attachCalls = 0;
 
   const handler = createCommerceOneTimePaymentsApiHandler({
-    createOneTimeCheckoutIntent: async (_input, actor) => {
+    createOneTimeCheckoutIntent: async () => {
       createIntentCalls += 1;
-      assert.equal(actor.userId, 17);
       return {
         ok: true,
-        intent: createIntentFixture('stripe', null),
-        idempotencyReused: false
-      };
-    },
-    createStripeCheckoutSessionForOneTimeIntent: async (input) => {
-      stripeSessionCalls += 1;
-      assert.equal(input.intent.provider, 'stripe');
-      assert.equal(input.customerEmail, 'member@test.com');
-      return {
-        ok: true,
-        value: {
-          sessionId: 'cs_local_1',
-          checkoutUrl: 'https://checkout.stripe.local/cs_local_1',
-          providerIntentId: 'pi_local_1',
-          expiresAt: new Date('2026-02-14T01:00:00.000Z')
-        }
-      };
-    },
-    attachStripeSessionToOneTimeIntent: async (input) => {
-      attachCalls += 1;
-      assert.equal(input.sessionId, 'cs_local_1');
-      return {
-        ok: true,
-        intent: {
-          ...createIntentFixture('stripe', 'cs_local_1'),
-          checkoutUrl: input.checkoutUrl,
-          providerIntentId: input.providerIntentId,
-          expiresAt: input.expiresAt
-        },
+        intent: createIntentFixture('stripe', 'cs_should_not_run'),
         idempotencyReused: false
       };
     }
@@ -314,20 +307,14 @@ test('one-time checkout session route simulates end-to-end Stripe flow with conf
     }
   });
 
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 400);
   const payload = (await response.json()) as {
     ok: boolean;
-    intent: OneTimeIntent;
-    idempotencyReused: boolean;
+    code: string;
   };
-  assert.equal(payload.ok, true);
-  assert.equal(payload.idempotencyReused, false);
-  assert.equal(payload.intent.provider, 'stripe');
-  assert.equal(payload.intent.sessionId, 'cs_local_1');
-  assert.equal(payload.intent.providerIntentId, 'pi_local_1');
-  assert.equal(createIntentCalls, 1);
-  assert.equal(stripeSessionCalls, 1);
-  assert.equal(attachCalls, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.code, 'invalid_provider');
+  assert.equal(createIntentCalls, 0);
 });
 
 test('one-time module payment-method Stripe start route returns provider_pending payload for checkout dispatcher', async () => {
@@ -429,6 +416,90 @@ test('one-time module payment-method Stripe start route returns provider_pending
   assert.equal(attachCalls, 1);
 });
 
+test('one-time module payment-method Stripe start route rebinds when intent has PayPal session', async () => {
+  configureCurrentUser().setUser(null);
+
+  let createSessionCalls = 0;
+  let attachCalls = 0;
+
+  const existingIntent: OneTimeIntent = {
+    ...createIntentFixture('paypal', 'ORDER-LOCAL-REUSED'),
+    checkoutUrl: 'https://paypal.local/checkout?token=ORDER-LOCAL-REUSED',
+    providerIntentId: 'ORDER-LOCAL-REUSED'
+  };
+
+  const handler = createCommerceOneTimePaymentsApiHandler({
+    getOneTimeIntentByIdForActor: async () => ({
+      ok: true,
+      intent: existingIntent,
+      fulfillment: null
+    }),
+    createStripeCheckoutSessionForOneTimeIntent: async (input) => {
+      createSessionCalls += 1;
+      assert.equal(input.intent.provider, 'paypal');
+      assert.equal(input.intent.sessionId, 'ORDER-LOCAL-REUSED');
+      return {
+        ok: true,
+        value: {
+          sessionId: 'cs_rebind_1',
+          checkoutUrl: 'https://checkout.stripe.local/cs_rebind_1',
+          providerIntentId: 'pi_rebind_1',
+          expiresAt: new Date('2026-02-14T01:00:00.000Z')
+        }
+      };
+    },
+    attachStripeSessionToOneTimeIntent: async (input) => {
+      attachCalls += 1;
+      assert.equal(input.intentId, existingIntent.id);
+      assert.equal(input.sessionId, 'cs_rebind_1');
+      return {
+        ok: true,
+        intent: {
+          ...createIntentFixture('stripe', 'cs_rebind_1'),
+          checkoutUrl: input.checkoutUrl,
+          providerIntentId: input.providerIntentId,
+          expiresAt: input.expiresAt
+        },
+        idempotencyReused: false
+      };
+    }
+  });
+
+  const response = await callApiRoute({
+    handler,
+    method: 'POST',
+    slug: ['payment-methods', 'stripe', 'start'],
+    body: {
+      action: 'start',
+      checkoutOrder: {
+        id: 101,
+        checkoutToken: 'tok_rebind_1',
+        orderType: 'one_time',
+        metadata: {
+          oneTime: {
+            intentId: existingIntent.id
+          }
+        }
+      },
+      actor: {
+        userId: 17
+      }
+    }
+  });
+
+  assert.equal(response.status, 200);
+  const payload = (await response.json()) as {
+    status: string;
+    providerSessionId: string | null;
+    redirectUrl: string | null;
+  };
+  assert.equal(payload.status, 'provider_pending');
+  assert.equal(payload.providerSessionId, 'cs_rebind_1');
+  assert.equal(payload.redirectUrl, 'https://checkout.stripe.local/cs_rebind_1');
+  assert.equal(createSessionCalls, 1);
+  assert.equal(attachCalls, 1);
+});
+
 test('one-time module payment-method Stripe start route allows unbound intent provider', async () => {
   configureCurrentUser().setUser(null);
 
@@ -519,7 +590,7 @@ test('one-time module payment-method cancel route returns canceled payload with 
   assert.equal(payload.redirectUrl, '/checkout/tok_cancel_1');
 });
 
-test('one-time checkout session route supports core checkout mode without provider session creation', async () => {
+test('one-time checkout session route defaults to core checkout without provider session creation', async () => {
   const auth = configureCurrentUser();
   auth.setUser({
     id: 17,
@@ -575,8 +646,7 @@ test('one-time checkout session route supports core checkout mode without provid
     method: 'POST',
     slug: ['checkout-sessions'],
     body: {
-      productId: 101,
-      checkoutMode: 'core_checkout'
+      productId: 101
     }
   });
 
@@ -594,7 +664,7 @@ test('one-time checkout session route supports core checkout mode without provid
   assert.equal(attachCalls, 0);
 });
 
-test('one-time checkout session route simulates end-to-end PayPal flow with configured provider deps', async () => {
+test('one-time checkout session route accepts lineItems payload for multi-item checkout intent', async () => {
   const auth = configureCurrentUser();
   auth.setUser({
     id: 17,
@@ -602,38 +672,29 @@ test('one-time checkout session route simulates end-to-end PayPal flow with conf
     email: 'member@test.com'
   });
 
-  let payPalSessionCalls = 0;
-  let attachCalls = 0;
+  let createIntentCalls = 0;
 
   const handler = createCommerceOneTimePaymentsApiHandler({
-    createOneTimeCheckoutIntent: async () => ({
-      ok: true,
-      intent: createIntentFixture('paypal', null),
-      idempotencyReused: false
-    }),
-    createPayPalCheckoutSessionForOneTimeIntent: async (input) => {
-      payPalSessionCalls += 1;
-      assert.equal(input.intent.provider, 'paypal');
-      return {
-        ok: true,
-        value: {
-          sessionId: 'ORDER-LOCAL-1',
-          checkoutUrl: 'https://paypal.local/checkout?token=ORDER-LOCAL-1',
-          providerIntentId: 'ORDER-LOCAL-1',
-          expiresAt: null
-        }
-      };
-    },
-    attachPayPalSessionToOneTimeIntent: async (input) => {
-      attachCalls += 1;
-      assert.equal(input.sessionId, 'ORDER-LOCAL-1');
+    createOneTimeCheckoutIntent: async (input, actor) => {
+      createIntentCalls += 1;
+      assert.equal(actor.userId, 17);
+      assert.equal(input.productId, null);
+      assert.equal(input.quantity, null);
+      assert.equal(input.checkoutMode, 'core_checkout');
+      assert.equal(input.lineItems?.length, 2);
+      assert.deepEqual(input.lineItems?.[0], {
+        productId: 101,
+        quantity: 2
+      });
+      assert.deepEqual(input.lineItems?.[1], {
+        productId: 202,
+        quantity: 1
+      });
       return {
         ok: true,
         intent: {
-          ...createIntentFixture('paypal', 'ORDER-LOCAL-1'),
-          checkoutUrl: input.checkoutUrl,
-          providerIntentId: input.providerIntentId,
-          expiresAt: input.expiresAt
+          ...createIntentFixture(null, null),
+          checkoutUrl: '/checkout/tok_multi_1'
         },
         idempotencyReused: false
       };
@@ -645,8 +706,10 @@ test('one-time checkout session route simulates end-to-end PayPal flow with conf
     method: 'POST',
     slug: ['checkout-sessions'],
     body: {
-      productId: 101,
-      provider: 'paypal'
+      lineItems: [
+        { productId: 101, quantity: 2 },
+        { productId: 202 }
+      ]
     }
   });
 
@@ -656,11 +719,49 @@ test('one-time checkout session route simulates end-to-end PayPal flow with conf
     intent: OneTimeIntent;
   };
   assert.equal(payload.ok, true);
-  assert.equal(payload.intent.provider, 'paypal');
-  assert.equal(payload.intent.sessionId, 'ORDER-LOCAL-1');
-  assert.equal(payload.intent.providerIntentId, 'ORDER-LOCAL-1');
-  assert.equal(payPalSessionCalls, 1);
-  assert.equal(attachCalls, 1);
+  assert.equal(payload.intent.checkoutUrl, '/checkout/tok_multi_1');
+  assert.equal(createIntentCalls, 1);
+});
+
+test('one-time checkout session route rejects legacy provider_session checkout mode', async () => {
+  const auth = configureCurrentUser();
+  auth.setUser({
+    id: 17,
+    role: 'member',
+    email: 'member@test.com'
+  });
+
+  let createIntentCalls = 0;
+
+  const handler = createCommerceOneTimePaymentsApiHandler({
+    createOneTimeCheckoutIntent: async () => {
+      createIntentCalls += 1;
+      return {
+        ok: true,
+        intent: createIntentFixture('paypal', 'ORDER-SHOULD-NOT-RUN'),
+        idempotencyReused: false
+      };
+    }
+  });
+
+  const response = await callApiRoute({
+    handler,
+    method: 'POST',
+    slug: ['checkout-sessions'],
+    body: {
+      productId: 101,
+      checkoutMode: 'provider_session'
+    }
+  });
+
+  assert.equal(response.status, 400);
+  const payload = (await response.json()) as {
+    ok: boolean;
+    code: string;
+  };
+  assert.equal(payload.ok, false);
+  assert.equal(payload.code, 'invalid_checkout_mode');
+  assert.equal(createIntentCalls, 0);
 });
 
 test('one-time Stripe webhook route simulates configured verification and processing pipeline', async () => {

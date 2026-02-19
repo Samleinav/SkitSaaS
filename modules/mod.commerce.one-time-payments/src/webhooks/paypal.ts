@@ -143,21 +143,21 @@ function isFinalWebhookStatus(
   return status !== 'pending';
 }
 
+type CheckoutOrderByProviderSession = Awaited<
+  ReturnType<typeof getCheckoutOrderByProviderSession>
+>;
+
 async function syncCheckoutOrderStatusForPayPalWebhook({
   deps,
-  providerSessionId,
+  checkoutOrder,
   resolvedStatus,
   externalPaymentId
 }: {
   deps: PayPalWebhookDeps;
-  providerSessionId: string;
+  checkoutOrder: CheckoutOrderByProviderSession;
   resolvedStatus: Exclude<OneTimeFulfillmentStatus, 'pending'>;
   externalPaymentId: string;
 }) {
-  const checkoutOrder = await deps.getCheckoutOrderByProviderSession({
-    provider: 'module',
-    providerSessionId
-  });
   if (!checkoutOrder) {
     return;
   }
@@ -299,10 +299,15 @@ export function createProcessOneTimePayPalWebhookEvent(
     const externalPaymentId = captureId || orderId;
     const amount = resolveAmount(event, intent.amount);
     const currency = resolveCurrency(event, intent.currency);
+    const checkoutOrder = await resolvedDeps.getCheckoutOrderByProviderSession({
+      provider: 'module',
+      providerSessionId: orderId
+    });
 
     const fulfillment =
       await resolvedDeps.registerOneTimeIntentFulfillmentFromWebhook({
         intentId: intent.id,
+        orderId: checkoutOrder?.id ?? null,
         status: mappedStatus,
         providerEventId: eventId,
         externalPaymentId,
@@ -358,7 +363,7 @@ export function createProcessOneTimePayPalWebhookEvent(
 
     await syncCheckoutOrderStatusForPayPalWebhook({
       deps: resolvedDeps,
-      providerSessionId: orderId,
+      checkoutOrder,
       resolvedStatus,
       externalPaymentId
     });

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
+import { mergeClassNames } from '@skitsaas/sdk';
 
-type LayoutAdminShellData = {
-  heading?: unknown;
-  variant?: unknown;
-  mode?: unknown;
+type TemplateData = {
+  variant?: 'basic' | 'pro';
+  mode?: 'compact' | 'adjusted';
   navSlot?: ReactNode;
   breadcrumbSlot?: ReactNode;
   controlsSlot?: ReactNode;
@@ -11,31 +11,18 @@ type LayoutAdminShellData = {
 };
 
 type TemplateProps = {
-  data?: LayoutAdminShellData;
+  data?: TemplateData;
   className?: string;
-  themeId?: string;
   children?: ReactNode;
 };
-
-function toStringOrFallback(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : fallback;
-}
-
-function mergeClassNames(
-  ...values: Array<string | false | null | undefined>
-) {
-  return values.filter(Boolean).join(' ');
-}
 
 export default function LayoutAdminShellTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const variant = toStringOrFallback(data?.variant, 'basic');
-  const mode = toStringOrFallback(data?.mode, 'compact');
+  const variant = data?.variant === 'pro' ? 'pro' : 'basic';
+  const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';
   const isAdjusted = mode === 'adjusted';
   const navSlot = data?.navSlot ?? null;
   const breadcrumbSlot = data?.breadcrumbSlot ?? null;
@@ -50,7 +37,6 @@ export default function LayoutAdminShellTemplate({
     return (
       <section
         className={className || 'theme-first-backoffice-shell min-h-screen bg-background text-foreground'}
-        data-theme-template="layout.admin.shell"
       >
         {children}
       </section>
@@ -64,7 +50,6 @@ export default function LayoutAdminShellTemplate({
           'theme-first-backoffice-shell relative flex min-h-0 flex-1 overflow-hidden bg-slate-100/50 dark:bg-[#0b1222]',
           className
         )}
-        data-theme-template="layout.admin.shell"
         data-shell-variant={variant}
         data-shell-mode={mode}
       >
@@ -117,7 +102,6 @@ export default function LayoutAdminShellTemplate({
         'theme-first-backoffice-shell min-h-screen bg-background text-foreground',
         className
       )}
-      data-theme-template="layout.admin.shell"
       data-shell-variant={variant}
       data-shell-mode={mode}
     >
@@ -148,3 +132,4 @@ export default function LayoutAdminShellTemplate({
     </section>
   );
 }
+

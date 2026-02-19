@@ -44,8 +44,7 @@ function getStatusClassName(status: OrderStatus) {
 }
 
 export function getOrderColumns(
-  messages: AdminMessages,
-  themeId: string | null = null
+  messages: AdminMessages
 ): ColumnDef<AdminOrderRow>[] {
   const table = messages.ordersPage.table;
   const statusLabels: Record<OrderStatus, string> = {
@@ -80,7 +79,6 @@ export function getOrderColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.orders.cell"
-            themeId={themeId}
             slot="header.updated-at.sort"
           >
             {fallbackHeader}
@@ -97,7 +95,6 @@ export function getOrderColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.orders.cell"
-            themeId={themeId}
             slot="cell.updated-at"
           >
             {fallbackCell}
@@ -139,7 +136,6 @@ export function getOrderColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.orders.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.status
@@ -233,7 +229,6 @@ export function getOrderColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.orders.cell"
-            themeId={themeId}
             slot="cell.actions.edit"
             data={{
               orderId: row.original.id
@@ -246,3 +241,5 @@ export function getOrderColumns(
     }
   ];
 }
+
+

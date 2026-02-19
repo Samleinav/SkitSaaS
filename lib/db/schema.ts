@@ -298,6 +298,20 @@ export const checkoutOrders = pgTable(
       table.targetType,
       table.targetUserId
     ),
+    activeSubscriptionTeamScopeUnique: uniqueIndex(
+      'checkout_orders_active_subscription_team_scope_idx'
+    )
+      .on(table.targetTeamId, table.subscriptionTemplateId)
+      .where(
+        sql`${table.orderType} = 'subscription' and ${table.targetType} = 'team' and ${table.targetTeamId} is not null and ${table.subscriptionTemplateId} is not null and ${table.status} in ('ready', 'provider_pending')`
+      ),
+    activeSubscriptionUserScopeUnique: uniqueIndex(
+      'checkout_orders_active_subscription_user_scope_idx'
+    )
+      .on(table.targetUserId, table.subscriptionTemplateId)
+      .where(
+        sql`${table.orderType} = 'subscription' and ${table.targetType} = 'user' and ${table.targetUserId} is not null and ${table.subscriptionTemplateId} is not null and ${table.status} in ('ready', 'provider_pending')`
+      ),
     providerSessionIndex: index('checkout_orders_provider_session_idx').on(
       table.selectedProvider,
       table.providerSessionId

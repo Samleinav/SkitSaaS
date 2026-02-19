@@ -20,7 +20,7 @@ export function AdminLogsDataTable({
 }: AdminLogsDataTableProps) {
   return (
     <DataTable
-      columns={getLogColumns(messages, tableTemplate?.themeId ?? null)}
+      columns={getLogColumns(messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

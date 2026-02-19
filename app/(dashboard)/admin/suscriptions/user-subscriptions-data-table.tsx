@@ -23,7 +23,7 @@ export function AdminUserSubscriptionsDataTable({
 }: AdminUserSubscriptionsDataTableProps) {
   return (
     <DataTable
-      columns={getUserSubscriptionsColumns(messages, tableTemplate?.themeId ?? null)}
+      columns={getUserSubscriptionsColumns(messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

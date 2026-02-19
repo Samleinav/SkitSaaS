@@ -51,12 +51,10 @@ function isActivePath(pathname: string, href: string, exact: boolean = false) {
 }
 
 function DashboardThemeToggle({
-  themeId,
   slot,
   className,
   showLabel = true
 }: {
-  themeId?: string | null;
   slot: string;
   className?: string;
   showLabel?: boolean;
@@ -66,7 +64,6 @@ function DashboardThemeToggle({
   return (
     <ThemeTemplate
       id="ui.theme-toggle"
-      themeId={themeId}
       data={{
         area: 'dashboard',
         slot: slot,
@@ -80,11 +77,9 @@ function DashboardThemeToggle({
 }
 
 function DashboardLanguageSwitcher({
-  themeId,
   slot,
   triggerClassName
 }: {
-  themeId?: string | null;
   slot: string;
   triggerClassName?: string;
 }) {
@@ -98,7 +93,6 @@ function DashboardLanguageSwitcher({
   return (
     <ThemeTemplate
       id="ui.language-switcher"
-      themeId={themeId}
       data={{
         area: 'dashboard',
         slot: slot
@@ -112,12 +106,10 @@ function DashboardLanguageSwitcher({
 
 export default function DashboardLayout({
   children,
-  moduleItems = [],
-  themeId = null
+  moduleItems = []
 }: {
   children: React.ReactNode;
   moduleItems?: Array<{ href: string; label: string; exact?: boolean }>;
-  themeId?: string | null;
 }) {
   const messages = useAreaMessages('dashboard');
   const pathname = usePathname();
@@ -190,13 +182,8 @@ export default function DashboardLayout({
           </Button>
 
           <div className="flex items-center gap-2">
-            <DashboardThemeToggle
-              themeId={themeId}
-              slot="basic.mobile.header"
-              showLabel={false}
-            />
+            <DashboardThemeToggle slot="basic.mobile.header" showLabel={false} />
             <DashboardLanguageSwitcher
-              themeId={themeId}
               slot="basic.mobile.header"
               triggerClassName="rounded-full border-border/70 bg-card/85"
             />
@@ -235,12 +222,10 @@ export default function DashboardLayout({
 
               <div className="relative mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <DashboardThemeToggle
-                  themeId={themeId}
                   slot="basic.sidebar.card"
                   className="justify-between border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
                 />
                 <DashboardLanguageSwitcher
-                  themeId={themeId}
                   slot="basic.sidebar.card"
                   triggerClassName="w-full justify-between rounded-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
                 />
@@ -464,12 +449,10 @@ export default function DashboardLayout({
 
           <div className="mt-auto grid gap-2">
             <DashboardThemeToggle
-              themeId={themeId}
               slot="pro.sidebar.footer"
               className="w-full justify-between border-slate-700 bg-slate-900/80 text-slate-100 hover:bg-slate-800 hover:text-white"
             />
             <DashboardLanguageSwitcher
-              themeId={themeId}
               slot="pro.sidebar.footer"
               triggerClassName="w-full justify-between rounded-full border-slate-700 bg-slate-900/80 text-slate-100 hover:bg-slate-800 hover:text-white"
             />
@@ -513,13 +496,8 @@ export default function DashboardLayout({
             />
 
             <div className="ml-auto flex items-center gap-2 xl:hidden">
-              <DashboardThemeToggle
-                themeId={themeId}
-                slot="pro.mobile.header"
-                showLabel={false}
-              />
+              <DashboardThemeToggle slot="pro.mobile.header" showLabel={false} />
               <DashboardLanguageSwitcher
-                themeId={themeId}
                 slot="pro.mobile.header"
                 triggerClassName="rounded-full border-border/70 bg-card/85"
               />

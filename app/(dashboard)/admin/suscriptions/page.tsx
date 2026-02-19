@@ -258,7 +258,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
               tableTemplate={{
                 componentId: 'ui.table',
                 area: 'admin',
-                themeId: themeSelection?.themeKey ?? null
               }}
             />
           </CardContent>
@@ -424,7 +423,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         </CardContent>
@@ -451,3 +449,4 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
     </ThemeCodeTemplate>
   );
 }
+

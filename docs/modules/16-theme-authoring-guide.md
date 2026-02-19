@@ -81,6 +81,20 @@ export default routes;
 - For recursive files, `componentId` still comes from the filename, not the folder name.
 - Backoffice and login routes render via `ThemeCodeTemplate` and always keep fallback safety.
 
+### Backoffice template style (simplified)
+
+For `first-backoffice`-style packs, default authoring is intentionally simple:
+
+- template files render direct HTML/TSX from received `data`.
+- avoid shell-only wrapper components as mandatory middleware.
+- keep only runtime/CSS-required attributes in production markup.
+- treat template debug attributes as optional diagnostics, not styling dependencies.
+- optional helpers can be imported from SDK (`@skitsaas/sdk`) to avoid repeating local normalizers:
+  - `toStringOrFallback`
+  - `toStringOrNull`
+  - `toNumberOrFallback`
+  - `mergeClassNames`
+
 Backoffice-required component IDs (build enforcement):
 
 - `layout.private.shell`
@@ -185,19 +199,55 @@ The minimum v1 contract is:
 - `page.admin.subscriptions.templates`: `title`, `description`.
 - `page.admin.subscriptions.create`: `title`.
 - `page.admin.subscriptions.edit`: `title`.
-- `section.admin.nav`: `variant`, `mode`, `moduleItemsCount`.
+- `section.admin.nav`: `variant`, `mode`, `moduleItemsCount`, `navItems`.
 - `section.admin.breadcrumb`: `title`, `backToAppConfigLabel`.
 - `section.admin.app-config-nav`: `section`.
 - `section.admin.metrics-grid`: `variant`, `columns`.
 - `section.admin.dashboard.module-widget`: `title`, `moduleWidgetId`, `moduleWidgetIndex`, `moduleWidgetKind`.
 - `layout.dashboard.shell`: `heading`.
 - `page.dashboard.home`: `title`.
+- `layout.private.header`: `area`, `controlsSlot`.
+- `layout.private.shell`: `area`, `route`.
+- `ui.theme-toggle`: `area`, `slot`, optional `showLabel`, optional `variant`, optional `mode`.
+- `ui.language-switcher`: `area`, `slot`, optional `variant`, optional `mode`.
+- `ui.user-menu`: `area`, `slot`, optional `tone`.
+- `ui.table.control`: `area`, `slot` (plus optional slot metadata).
 - `page.login.user`: `title`.
 - `page.login.admin`: `title`.
 - `page.login.signup`: `title`.
 - frontend route `/404` and backoffice `system.not-found`: `title`, `message`.
 
 These contracts are validated by `tests/theme/theme-slot-data-contract.test.ts`.
+
+Typed high-impact contract map (host-side) lives in:
+
+- `lib/themes/template-data-contract.ts`
+
+`ThemeTemplate` and `ThemeCodeTemplate` use this map to type `data` when `id` matches a known key.
+
+### `themeId` resolution rules
+
+Client wrapper (`ThemeTemplate`) behavior:
+
+- if `themeId` prop is provided, it is used as-is.
+- if omitted, it resolves from `ThemeRuntimeProvider` context.
+
+When explicit `themeId` is still mandatory:
+
+- when rendering outside any `ThemeRuntimeProvider`.
+- when intentionally rendering with a non-active area theme.
+- when composing cross-area shell UI where active area is derived manually (for example shared private shell/header).
+
+### Debug metadata policy
+
+`data-template-*` debug attributes are emitted only when debug mode is active:
+
+- `NODE_ENV === 'development'`, or
+- `NEXT_PUBLIC_TEMPLATE_DEBUG_METADATA=1`.
+
+Helper:
+
+- `lib/templates/debug.ts`
 
 ## Theme assets by area (`config.ts` preferred)
 

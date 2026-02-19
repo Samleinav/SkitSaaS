@@ -120,7 +120,6 @@ async function AdminUsersTable() {
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
-              themeId: themeSelection?.themeKey ?? null
             }}
             toolbarActions={
               <AdminCreateUserDialog
@@ -153,3 +152,4 @@ async function AdminUsersTable() {
     </ThemeCodeTemplate>
   );
 }
+

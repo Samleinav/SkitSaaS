@@ -4,7 +4,10 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { getCommerceProductById, listCommerceProducts } from './data';
-import type { CommerceProduct } from './types';
+import {
+  CommerceProductsAdminDataTable,
+  type AdminCommerceProductRow
+} from './admin-products-data-table';
 import {
   createCommerceProductAdminAction,
   publishCommerceProductAdminAction,
@@ -17,8 +20,6 @@ import {
 } from './constants';
 import { parseProductId } from './validators';
 
-type ProductKindFilter = 'all' | 'subscription' | 'one_time';
-type ProductPublicationFilter = 'all' | 'published' | 'draft';
 type ModuleMessageTree = Record<string, unknown>;
 
 type CommerceProductsAdminMessages = {
@@ -27,6 +28,7 @@ type CommerceProductsAdminMessages = {
     title: string;
     description: string;
     createLabel: string;
+    filterPlaceholder: string;
     empty: string;
   };
   create: {
@@ -54,8 +56,6 @@ type CommerceProductsAdminMessages = {
     oneTimeLabel: string;
     publishedLabel: string;
     draftLabel: string;
-    applyLabel: string;
-    resetLabel: string;
   };
   table: {
     idHeader: string;
@@ -112,7 +112,8 @@ const DEFAULT_COMMERCE_PRODUCTS_ADMIN_MESSAGES: CommerceProductsAdminMessages = 
     title: 'Products',
     description: 'Admin management for subscription and one-time catalog products.',
     createLabel: 'Create product',
-    empty: 'No products found for current filters.'
+    filterPlaceholder: 'Search products...',
+    empty: 'No products found.'
   },
   create: {
     title: 'Create Product',
@@ -138,9 +139,7 @@ const DEFAULT_COMMERCE_PRODUCTS_ADMIN_MESSAGES: CommerceProductsAdminMessages = 
     subscriptionLabel: 'subscription',
     oneTimeLabel: 'one_time',
     publishedLabel: 'published',
-    draftLabel: 'draft',
-    applyLabel: 'Apply',
-    resetLabel: 'Reset'
+    draftLabel: 'draft'
   },
   table: {
     idHeader: 'Id',
@@ -164,7 +163,7 @@ const DEFAULT_COMMERCE_PRODUCTS_ADMIN_MESSAGES: CommerceProductsAdminMessages = 
     subscriptionTemplateIdLabel: 'Subscription template id',
     subscriptionTemplateIdHint: 'Required only when kind is subscription.',
     priceCurrencyLabel: 'Price currency',
-    priceAmountLabel: 'Price amount (cents)',
+    priceAmountLabel: 'Price amount',
     priceProviderLabel: 'Price provider',
     priceProviderPlaceholder: 'stripe | paypal',
     providerPriceIdLabel: 'Provider price id'
@@ -261,6 +260,11 @@ function getCommerceProductsAdminMessages(
         'products.page.list.createLabel',
         defaults.list.createLabel
       ),
+      filterPlaceholder: readMessage(
+        tree,
+        'products.page.list.filterPlaceholder',
+        defaults.list.filterPlaceholder
+      ),
       empty: readMessage(tree, 'products.page.list.empty', defaults.list.empty)
     },
     create: {
@@ -339,9 +343,7 @@ function getCommerceProductsAdminMessages(
         tree,
         'products.filters.draftLabel',
         defaults.filters.draftLabel
-      ),
-      applyLabel: readMessage(tree, 'products.filters.applyLabel', defaults.filters.applyLabel),
-      resetLabel: readMessage(tree, 'products.filters.resetLabel', defaults.filters.resetLabel)
+      )
     },
     table: {
       idHeader: readMessage(tree, 'products.table.idHeader', defaults.table.idHeader),
@@ -513,40 +515,6 @@ function readSearchParam(context: ModuleRouteContext, key: string) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function normalizeKindFilter(value: string): ProductKindFilter {
-  if (value === 'subscription' || value === 'one_time') {
-    return value;
-  }
-
-  return 'all';
-}
-
-function normalizePublicationFilter(value: string): ProductPublicationFilter {
-  if (value === 'published' || value === 'draft') {
-    return value;
-  }
-
-  return 'all';
-}
-
-function buildProductsListPath(filters: {
-  kind: ProductKindFilter;
-  publication: ProductPublicationFilter;
-}) {
-  const params = new URLSearchParams();
-  if (filters.kind !== 'all') {
-    params.set('kind', filters.kind);
-  }
-  if (filters.publication !== 'all') {
-    params.set('published', filters.publication);
-  }
-
-  const query = params.toString();
-  return query
-    ? `${COMMERCE_PRODUCTS_ADMIN_ALIAS}?${query}`
-    : COMMERCE_PRODUCTS_ADMIN_ALIAS;
-}
-
 function formatDate(value: Date) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
 }
@@ -562,6 +530,31 @@ function formatMoney(currency: string, amountInCents: number) {
   } catch {
     return `${currency.toUpperCase()} ${(amountInCents / 100).toFixed(2)}`;
   }
+}
+
+const SUPPORTED_PRICE_CURRENCIES = ['USD', 'EUR', 'GBP', 'MXN'] as const;
+
+function buildPriceCurrencyOptions(
+  selectedCurrency?: string | null
+): string[] {
+  const selected = selectedCurrency?.trim().toUpperCase() ?? '';
+  if (!selected) {
+    return [...SUPPORTED_PRICE_CURRENCIES];
+  }
+
+  if (SUPPORTED_PRICE_CURRENCIES.includes(selected as (typeof SUPPORTED_PRICE_CURRENCIES)[number])) {
+    return [...SUPPORTED_PRICE_CURRENCIES];
+  }
+
+  return [selected, ...SUPPORTED_PRICE_CURRENCIES];
+}
+
+function formatPriceAmountInputFromCents(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    return '';
+  }
+
+  return (value / 100).toFixed(2);
 }
 
 function resolveStatusMessage(
@@ -631,217 +624,65 @@ function renderFeedback(
   );
 }
 
-function renderKindLabel(
-  product: CommerceProduct,
-  messages: CommerceProductsAdminMessages
-) {
-  return product.kind === 'subscription'
-    ? messages.kindLabels.subscription
-    : messages.kindLabels.oneTime;
-}
-
-function renderPublicationLabel(
-  product: CommerceProduct,
-  messages: CommerceProductsAdminMessages
-) {
-  if (product.publication?.isPublished) {
-    return messages.stateLabels.published;
-  }
-
-  return messages.stateLabels.draft;
-}
-
-function matchesFilters(
-  product: CommerceProduct,
-  filters: {
-    kind: ProductKindFilter;
-    publication: ProductPublicationFilter;
-  }
-) {
-  if (filters.kind !== 'all' && product.kind !== filters.kind) {
-    return false;
-  }
-
-  if (filters.publication === 'published' && !product.publication?.isPublished) {
-    return false;
-  }
-
-  if (filters.publication === 'draft' && product.publication?.isPublished) {
-    return false;
-  }
-
-  return true;
-}
-
 export async function renderCommerceProductsAdminHomePage(
   context: ModuleRouteContext
 ) {
   const moduleMessages = await getCommerceProductsModuleMessages();
-  const filters = {
-    kind: normalizeKindFilter(readSearchParam(context, 'kind')),
-    publication: normalizePublicationFilter(readSearchParam(context, 'published'))
-  };
-  const currentPath = buildProductsListPath(filters);
-  const products = (await listCommerceProducts({ limit: 300 })).filter((product) =>
-    matchesFilters(product, filters)
-  );
+  const products = await listCommerceProducts({ limit: 300 });
   const themeSelection = await getThemeSelectionForArea('admin');
   const themeId = themeSelection?.themeKey ?? null;
+  const rows: AdminCommerceProductRow[] = products.map((product) => {
+    const isPublished = Boolean(product.publication?.isPublished);
+    const kindLabel =
+      product.kind === 'subscription'
+        ? moduleMessages.kindLabels.subscription
+        : moduleMessages.kindLabels.oneTime;
+    const state = isPublished ? 'published' : 'draft';
+    const stateLabel = isPublished
+      ? moduleMessages.stateLabels.published
+      : moduleMessages.stateLabels.draft;
+    const priceLabel = product.currentPrice
+      ? formatMoney(product.currentPrice.currency, product.currentPrice.unitAmountCents)
+      : '-';
 
-  const filtersFallback = (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
-      <form method="GET" action={COMMERCE_PRODUCTS_ADMIN_ALIAS}>
-        <div className="grid gap-3 md:grid-cols-3">
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.filters.kindLabel}
-            </span>
-            <select
-              name="kind"
-              defaultValue={filters.kind}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            >
-              <option value="all">{moduleMessages.filters.allLabel}</option>
-              <option value="subscription">
-                {moduleMessages.filters.subscriptionLabel}
-              </option>
-              <option value="one_time">{moduleMessages.filters.oneTimeLabel}</option>
-            </select>
-          </label>
-
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.filters.publicationLabel}
-            </span>
-            <select
-              name="published"
-              defaultValue={filters.publication}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            >
-              <option value="all">{moduleMessages.filters.allLabel}</option>
-              <option value="published">
-                {moduleMessages.filters.publishedLabel}
-              </option>
-              <option value="draft">{moduleMessages.filters.draftLabel}</option>
-            </select>
-          </label>
-
-          <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center rounded-md bg-zinc-900 px-4 text-sm text-white"
-            >
-              {moduleMessages.filters.applyLabel}
-            </button>
-            <Link
-              href={COMMERCE_PRODUCTS_ADMIN_ALIAS}
-              className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm text-zinc-700"
-            >
-              {moduleMessages.filters.resetLabel}
-            </Link>
-          </div>
-        </div>
-      </form>
-    </section>
-  );
-  const filtersSection = !themeId ? (
-    filtersFallback
-  ) : (
-    <ThemeCodeTemplate
-      id="section.admin.products.filters"
-      themeId={themeId}
-      data={{
-        hasFilters: filters.kind !== 'all' || filters.publication !== 'all',
-        selectedType: filters.kind,
-        selectedStatus: filters.publication
-      }}
-      fallback={filtersFallback}
-    >
-      {filtersFallback}
-    </ThemeCodeTemplate>
-  );
+    return {
+      id: product.id,
+      productKey: product.productKey,
+      name: product.name,
+      kind: product.kind,
+      kindLabel,
+      priceLabel,
+      state,
+      stateLabel,
+      updatedAt: product.updatedAt.getTime(),
+      updatedAtLabel: formatDate(product.updatedAt),
+      editPath: `${COMMERCE_PRODUCTS_ADMIN_ALIAS}/${product.id}/edit`,
+      isPublished
+    };
+  });
 
   const tableFallback = (
-    <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-      {products.length === 0 ? (
-        <div className="px-4 py-8 text-sm text-zinc-600">
-          {moduleMessages.list.empty}
-        </div>
-      ) : (
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50">
-            <tr className="text-zinc-600">
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.idHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.keyHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.nameHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.kindHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.priceHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.stateHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.updatedHeader}</th>
-              <th className="px-4 py-3 font-medium">{moduleMessages.table.actionsHeader}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => {
-              const isPublished = Boolean(product.publication?.isPublished);
-              const editPath = `${COMMERCE_PRODUCTS_ADMIN_ALIAS}/${product.id}/edit`;
-              const priceLabel = product.currentPrice
-                ? formatMoney(
-                    product.currentPrice.currency,
-                    product.currentPrice.unitAmountCents
-                  )
-                : '-';
-
-              return (
-                <tr
-                  key={product.id}
-                  className="border-b border-zinc-100 text-zinc-800 last:border-0"
-                >
-                  <td className="px-4 py-3 font-mono text-xs">{product.id}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{product.productKey}</td>
-                  <td className="px-4 py-3">{product.name}</td>
-                  <td className="px-4 py-3">
-                    {renderKindLabel(product, moduleMessages)}
-                  </td>
-                  <td className="px-4 py-3">{priceLabel}</td>
-                  <td className="px-4 py-3">
-                    {renderPublicationLabel(product, moduleMessages)}
-                  </td>
-                  <td className="px-4 py-3">{formatDate(product.updatedAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={editPath}
-                        className="inline-flex h-8 items-center rounded-md border border-zinc-300 px-3 text-xs"
-                      >
-                        {moduleMessages.table.editLabel}
-                      </Link>
-                      <form
-                        action={
-                          isPublished
-                            ? unpublishCommerceProductAdminAction
-                            : publishCommerceProductAdminAction
-                        }
-                      >
-                        <input type="hidden" name="productId" value={product.id} />
-                        <input type="hidden" name="returnTo" value={currentPath} />
-                        <button
-                          type="submit"
-                          className="inline-flex h-8 items-center rounded-md border border-zinc-300 px-3 text-xs"
-                        >
-                          {isPublished
-                            ? moduleMessages.table.unpublishLabel
-                            : moduleMessages.table.publishLabel}
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+      <CommerceProductsAdminDataTable
+        data={rows}
+        filterPlaceholder={moduleMessages.list.filterPlaceholder}
+        emptyMessage={moduleMessages.list.empty}
+        tableMessages={moduleMessages.table}
+        filterMessages={moduleMessages.filters}
+        returnTo={COMMERCE_PRODUCTS_ADMIN_ALIAS}
+        publishAction={publishCommerceProductAdminAction}
+        unpublishAction={unpublishCommerceProductAdminAction}
+        tableTemplate={
+          themeId
+            ? {
+                componentId: 'ui.table',
+                controlComponentId: 'ui.table.control',
+                area: 'admin',
+                themeId
+              }
+            : undefined
+        }
+      />
     </section>
   );
   const tableSection = !themeId ? (
@@ -851,9 +692,9 @@ export async function renderCommerceProductsAdminHomePage(
       id="section.admin.products.table"
       themeId={themeId}
       data={{
-        total: products.length,
+        total: rows.length,
         columns: ['id', 'key', 'name', 'kind', 'price', 'state', 'updated', 'actions'],
-        rowCount: products.length
+        rowCount: rows.length
       }}
       fallback={tableFallback}
     >
@@ -880,7 +721,6 @@ export async function renderCommerceProductsAdminHomePage(
       </header>
 
       {renderFeedback(context, moduleMessages)}
-      {filtersSection}
       {tableSection}
     </main>
   );
@@ -912,6 +752,7 @@ export async function renderCommerceProductsAdminCreatePage(
   const moduleMessages = await getCommerceProductsModuleMessages();
   const themeSelection = await getThemeSelectionForArea('admin');
   const themeId = themeSelection?.themeKey ?? null;
+  const createPriceCurrencyOptions = buildPriceCurrencyOptions('USD');
   const formFallback = (
     <section className="rounded-xl border border-zinc-200 bg-white p-5">
       <form action={createCommerceProductAdminAction} className="space-y-4">
@@ -981,45 +822,27 @@ export async function renderCommerceProductsAdminCreatePage(
             <span className="font-medium text-zinc-700">
               {moduleMessages.form.priceCurrencyLabel}
             </span>
-            <input
+            <select
               name="priceCurrency"
               defaultValue="USD"
-              maxLength={10}
               className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
+            >
+              {createPriceCurrencyOptions.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-zinc-700">
               {moduleMessages.form.priceAmountLabel}
             </span>
             <input
-              name="priceUnitAmountCents"
+              name="priceAmount"
               type="number"
               min={0}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
-          </label>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.form.priceProviderLabel}
-            </span>
-            <input
-              name="priceProvider"
-              maxLength={30}
-              placeholder={moduleMessages.form.priceProviderPlaceholder}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.form.providerPriceIdLabel}
-            </span>
-            <input
-              name="priceProviderId"
-              maxLength={255}
+              step="0.01"
               className="h-10 w-full rounded-md border border-zinc-300 px-3"
             />
           </label>
@@ -1051,7 +874,6 @@ export async function renderCommerceProductsAdminCreatePage(
       data={{
         mode: 'create',
         productType: 'one_time',
-        provider: null,
         canPublish: false
       }}
       fallback={formFallback}
@@ -1126,6 +948,9 @@ export async function renderCommerceProductsAdminEditPage({
   const isPublished = Boolean(product.publication?.isPublished);
   const themeSelection = await getThemeSelectionForArea('admin');
   const themeId = themeSelection?.themeKey ?? null;
+  const editPriceCurrencyOptions = buildPriceCurrencyOptions(
+    product.currentPrice?.currency ?? null
+  );
   const formFallback = (
     <section className="rounded-xl border border-zinc-200 bg-white p-5">
       <form action={updateCommerceProductAdminAction} className="space-y-4">
@@ -1197,47 +1022,30 @@ export async function renderCommerceProductsAdminEditPage({
             <span className="font-medium text-zinc-700">
               {moduleMessages.form.priceCurrencyLabel}
             </span>
-            <input
+            <select
               name="priceCurrency"
-              defaultValue={product.currentPrice?.currency || ''}
-              maxLength={10}
+              defaultValue={product.currentPrice?.currency || 'USD'}
               className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
+            >
+              {editPriceCurrencyOptions.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="block space-y-1 text-sm">
             <span className="font-medium text-zinc-700">
               {moduleMessages.form.priceAmountLabel}
             </span>
             <input
-              name="priceUnitAmountCents"
+              name="priceAmount"
               type="number"
               min={0}
-              defaultValue={product.currentPrice?.unitAmountCents || undefined}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
-          </label>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.form.priceProviderLabel}
-            </span>
-            <input
-              name="priceProvider"
-              defaultValue={product.currentPrice?.provider || ''}
-              maxLength={30}
-              className="h-10 w-full rounded-md border border-zinc-300 px-3"
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium text-zinc-700">
-              {moduleMessages.form.providerPriceIdLabel}
-            </span>
-            <input
-              name="priceProviderId"
-              defaultValue={product.currentPrice?.providerPriceId || ''}
-              maxLength={255}
+              step="0.01"
+              defaultValue={formatPriceAmountInputFromCents(
+                product.currentPrice?.unitAmountCents
+              )}
               className="h-10 w-full rounded-md border border-zinc-300 px-3"
             />
           </label>
@@ -1269,7 +1077,6 @@ export async function renderCommerceProductsAdminEditPage({
       data={{
         mode: 'edit',
         productType: product.kind,
-        provider: product.currentPrice?.provider || null,
         canPublish: true
       }}
       fallback={formFallback}

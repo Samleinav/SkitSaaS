@@ -192,7 +192,6 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         ) : emailLogs.length === 0 ? (
@@ -288,3 +287,4 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
     </ThemeCodeTemplate>
   );
 }
+

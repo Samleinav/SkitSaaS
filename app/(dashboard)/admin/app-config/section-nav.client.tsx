@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useThemeRuntime } from '@/components/theme/theme-runtime-provider';
 import { ThemeTemplate } from '@/components/ui/theme-template';
 import { useAreaMessages } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
@@ -75,7 +74,6 @@ export function AppConfigSectionNavClient({
 }: {
   extraItems?: AppConfigSectionExtraItem[];
 }) {
-  const runtime = useThemeRuntime();
   const messages = useAreaMessages('admin');
   const pathname = usePathname();
   const appConfig = messages.appConfig;
@@ -144,7 +142,6 @@ export function AppConfigSectionNavClient({
             <ThemeTemplate
               key={item.href}
               id="section.admin.app-config-nav.item"
-              themeId={runtime?.themeKey ?? null}
               data={{
                 area: 'admin',
                 slot: 'app-config.nav.item',
@@ -164,7 +161,6 @@ export function AppConfigSectionNavClient({
   return (
     <ThemeTemplate
       id="section.admin.app-config-nav.panel"
-      themeId={runtime?.themeKey ?? null}
       data={{
         area: 'admin',
         slot: 'app-config.nav.panel'

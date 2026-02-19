@@ -5,22 +5,13 @@ import type { ReactNode } from 'react';
 import { Building2 } from 'lucide-react';
 
 type LayoutPrivateHeaderData = {
-  area?: unknown;
   controlsSlot?: ReactNode;
 };
 
 type LayoutPrivateHeaderTemplateProps = {
   data?: LayoutPrivateHeaderData;
   className?: string;
-  themeId?: string;
-  children?: ReactNode;
 };
-
-function toStringOrNull(value: unknown) {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
-}
 
 export default function LayoutPrivateHeaderTemplate({
   data,
@@ -32,8 +23,6 @@ export default function LayoutPrivateHeaderTemplate({
         className ||
         'sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl'
       }
-      data-theme-template="layout.private.header"
-      data-theme-area={toStringOrNull(data?.area) ?? undefined}
     >
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-3">

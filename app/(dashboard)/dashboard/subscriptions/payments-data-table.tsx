@@ -65,8 +65,7 @@ function getStatusClassName(status: DashboardSubscriptionPaymentRow['status']) {
 }
 
 function getPaymentColumns(
-  labels: DashboardSubscriptionPaymentsDataTableProps['labels'],
-  themeId: string | null = null
+  labels: DashboardSubscriptionPaymentsDataTableProps['labels']
 ): ColumnDef<DashboardSubscriptionPaymentRow>[] {
   return [
     {
@@ -87,7 +86,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="header.date.sort"
           >
             {fallbackHeader}
@@ -104,7 +102,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.date"
           >
             {fallbackCell}
@@ -125,7 +122,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.scope"
           >
             {fallbackCell}
@@ -146,7 +142,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.provider"
           >
             {fallbackCell}
@@ -172,7 +167,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.status
@@ -196,7 +190,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.event"
           >
             {fallbackCell}
@@ -217,7 +210,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.amount"
           >
             {fallbackCell}
@@ -238,7 +230,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.payment-reference"
           >
             {fallbackCell}
@@ -259,7 +250,6 @@ function getPaymentColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.payments.cell"
-            themeId={themeId}
             slot="cell.order-reference"
           >
             {fallbackCell}
@@ -277,7 +267,7 @@ export function DashboardSubscriptionPaymentsDataTable({
 }: DashboardSubscriptionPaymentsDataTableProps) {
   return (
     <DataTable
-      columns={getPaymentColumns(labels, tableTemplate?.themeId ?? null)}
+      columns={getPaymentColumns(labels)}
       data={data}
       labels={labels.table}
       template={tableTemplate}
@@ -288,3 +278,4 @@ export function DashboardSubscriptionPaymentsDataTable({
     />
   );
 }
+

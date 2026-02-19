@@ -31,6 +31,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { ThemeTemplate } from '@/components/ui/theme-template';
+import { useThemeRuntime } from '@/components/theme/theme-runtime-provider';
 import { cn } from '@/lib/utils';
 
 export type DataTableLabels = {
@@ -127,11 +128,14 @@ export function DataTable<TData, TValue>({
   const hasToolbarControls = Boolean(toolbarActions) || hideableColumns.length > 0;
   const shownRows = table.getRowModel().rows.length;
   const filteredRows = table.getFilteredRowModel().rows.length;
+  const themeRuntime = useThemeRuntime();
+  const resolvedThemeId = template?.themeId ?? themeRuntime?.themeKey ?? null;
+  const resolvedTemplateArea = template?.area ?? themeRuntime?.area ?? null;
   const resolvedTemplateComponentId = (
     template?.componentId ?? 'ui.table'
   ).toLowerCase();
   const hasThemeCodeTemplate =
-    typeof template?.themeId === 'string' && template.themeId.trim().length > 0;
+    typeof resolvedThemeId === 'string' && resolvedThemeId.trim().length > 0;
   const resolvedTemplateId =
     template?.templateId ??
     (hasThemeCodeTemplate ? resolvedTemplateComponentId : null);
@@ -156,9 +160,9 @@ export function DataTable<TData, TValue>({
     return (
       <ThemeTemplate
         id={resolvedControlTemplateId}
-        themeId={template?.themeId ?? null}
+        themeId={resolvedThemeId}
         data={{
-          area: template?.area ?? null,
+          area: resolvedTemplateArea,
           slot,
           componentId: resolvedTemplateComponentId,
           templateId: resolvedTemplateId,
@@ -332,9 +336,9 @@ export function DataTable<TData, TValue>({
   const tableSurface = hasThemeCodeTemplate ? (
     <ThemeTemplate
       id={resolvedTemplateComponentId}
-      themeId={template?.themeId ?? null}
+      themeId={resolvedThemeId}
       data={{
-        area: template?.area ?? null,
+        area: resolvedTemplateArea,
         templateId: resolvedTemplateId,
         templateSource: resolvedTemplateSource,
         frameClassName,

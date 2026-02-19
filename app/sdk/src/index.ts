@@ -83,3 +83,11 @@ export {
   createDataTableTemplateEntries,
   createDataTableCrudApiRouter
 } from './datatables/index.js';
+
+export type { ClassNameValue } from './templates/utils.js';
+export {
+  mergeClassNames,
+  toStringOrNull,
+  toStringOrFallback,
+  toNumberOrFallback
+} from './templates/utils.js';

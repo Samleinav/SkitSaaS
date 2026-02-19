@@ -204,6 +204,37 @@ test('one-time PayPal webhook processor records core one_time order on successfu
   assert.equal(payload.externalPaymentId, 'CAPTURE-123');
 });
 
+test('one-time PayPal webhook processor forwards checkout order id to fulfillment persistence', async () => {
+  let persistedOrderId: number | null = null;
+  let markedCheckoutOrderId: number | null = null;
+
+  const processEvent = createProcessOneTimePayPalWebhookEvent({
+    getOneTimeIntentByProviderIntentId: async () => createIntentFixture(),
+    getCheckoutOrderByProviderSession: async () => ({ id: 8442 } as any),
+    registerOneTimeIntentFulfillmentFromWebhook: async (input) => {
+      persistedOrderId = input.orderId;
+      return createFulfillmentMutationResult();
+    },
+    markCheckoutOrderCompleted: async ({ checkoutOrderId }) => {
+      markedCheckoutOrderId = checkoutOrderId;
+      return null;
+    },
+    recordCheckoutEvent: async () => {},
+    emitEventAsync: async () => ({
+      eventId: 'evt_emitted',
+      handlerCount: 0,
+      mode: 'inline'
+    })
+  });
+
+  const result = await processEvent(createPayPalEvent({ id: 'WH-EVT-LINK' }));
+
+  assert.equal(result.handled, true);
+  assert.equal(result.status, 'paid');
+  assert.equal(persistedOrderId, 8442);
+  assert.equal(markedCheckoutOrderId, 8442);
+});
+
 test('one-time PayPal webhook processor skips order write when transition guard blocks update', async () => {
   let recordCalls = 0;
 

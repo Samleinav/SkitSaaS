@@ -41,8 +41,7 @@ function getStatusClassName(status: string) {
 }
 
 export function getLogColumns(
-  messages: AdminMessages,
-  themeId: string | null = null
+  messages: AdminMessages
 ): ColumnDef<AdminSystemLogRow>[] {
   const table = messages.logsPage.table;
   const statusLabels: Record<string, string> = {
@@ -71,7 +70,6 @@ export function getLogColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.logs.cell"
-            themeId={themeId}
             slot="header.created-at.sort"
           >
             {fallbackHeader}
@@ -88,7 +86,6 @@ export function getLogColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.logs.cell"
-            themeId={themeId}
             slot="cell.created-at"
           >
             {fallbackCell}
@@ -131,7 +128,6 @@ export function getLogColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.logs.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.status
@@ -190,3 +186,5 @@ export function getLogColumns(
     }
   ];
 }
+
+

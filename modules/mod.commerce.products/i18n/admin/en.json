@@ -6,7 +6,8 @@
         "title": "Products",
         "description": "Admin management for subscription and one-time catalog products.",
         "createLabel": "Create product",
-        "empty": "No products found for current filters."
+        "filterPlaceholder": "Search products...",
+        "empty": "No products found."
       },
       "create": {
         "title": "Create Product",
@@ -59,7 +60,7 @@
       "subscriptionTemplateIdLabel": "Subscription template id",
       "subscriptionTemplateIdHint": "Required only when kind is subscription.",
       "priceCurrencyLabel": "Price currency",
-      "priceAmountLabel": "Price amount (cents)",
+      "priceAmountLabel": "Price amount",
       "priceProviderLabel": "Price provider",
       "priceProviderPlaceholder": "stripe | paypal",
       "providerPriceIdLabel": "Provider price id"

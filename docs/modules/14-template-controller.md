@@ -317,13 +317,7 @@ New section ids for admin table cells:
 Current host wiring:
 
 - column builders use `AdminTableSlotTemplate` (`app/(dashboard)/admin/table-slot-template.tsx`)
-- each table passes `themeId` from `DataTableThemeTemplate` into column factories:
-  - `app/(dashboard)/admin/users/users-data-table.tsx`
-  - `app/(dashboard)/admin/orders/orders-data-table.tsx`
-  - `app/(dashboard)/admin/subscriptions/subscriptions-data-table.tsx`
-  - `app/(dashboard)/admin/payments/payments-data-table.tsx`
-  - `app/(dashboard)/admin/logs/logs-data-table.tsx`
-  - `app/(dashboard)/admin/suscriptions/user-subscriptions-data-table.tsx`
+- column factories no longer receive manual `themeId`; runtime resolution happens in `ThemeTemplate` through `ThemeRuntimeProvider` context.
 
 ## Dashboard datatable granular cells (Sprint 9 phase 2 extension)
 
@@ -339,6 +333,7 @@ Current host wiring:
 - dashboard subscriptions table files now wrap key cells/headers with those ids:
   - `app/(dashboard)/dashboard/subscriptions/payments-data-table.tsx`
   - `app/(dashboard)/dashboard/subscriptions/invoices-data-table.tsx`
+- manual `themeId` plumbing in dashboard column factories was removed; runtime context resolves active theme.
 
 ## Datatable control slots (Sprint 9 phase 3)
 
@@ -364,10 +359,59 @@ Current host wiring:
   - `pagination.actions`
   - `pagination.previous`
   - `pagination.next`
+- when `template.themeId` is omitted, `DataTable` resolves theme/area from `ThemeRuntimeProvider` context.
 
 Theme defaults:
 
 - `themes/first-backoffice/templates/ui.table.control.tsx`
+
+## Typed code-template data contracts (Sprint 10)
+
+Runtime wrappers now support `id`-narrowed `data` typing for high-impact IDs.
+
+- contract map: `lib/themes/template-data-contract.ts`
+- wrappers:
+  - `components/ui/theme-template.tsx`
+  - `components/theme/theme-code-template.tsx`
+
+Current typed IDs:
+
+- `section.admin.nav`
+- `layout.private.header`
+- `layout.private.shell`
+- `ui.table.control`
+- `ui.language-switcher`
+- `ui.theme-toggle`
+- `ui.user-menu`
+
+Behavior:
+
+- known IDs get typed `data` from `TemplateDataById`.
+- unknown IDs stay compatible (`data?: unknown`) during migration.
+- explicit `themeId` remains supported in both wrappers.
+- `ThemeTemplate` resolves `themeId` from runtime context when prop is omitted.
+
+## Template debug metadata policy (Sprint 10)
+
+Template tracing attributes are now debug-only by default:
+
+- `data-template-component`
+- `data-template-id`
+- `data-template-source`
+
+Runtime policy:
+
+- helper: `lib/templates/debug.ts`
+- enabled when:
+  - `NODE_ENV === 'development'`, or
+  - `NEXT_PUBLIC_TEMPLATE_DEBUG_METADATA=1`
+- production default emits no debug metadata.
+
+Coverage:
+
+- `components/ui/table.tsx`
+- `components/ui/async-submit-button.tsx`
+- `components/ui/confirm-submit-button.tsx`
 
 ## API surface
 
@@ -411,6 +455,7 @@ Controller options:
 - `tests/templates/template-host-module-theme.integration.test.ts`
 - `tests/templates/template-ui-async-submit-button-payload.test.ts`
 - `tests/templates/template-ui-alert-dialog-payload.test.ts`
+- `tests/templates/template-debug-metadata.test.ts`
 - `tests/modules/module-runtime.test.ts`
 - `tests/modules/modules-prepare.test.ts`
 - `tests/modules/modules-build.test.ts`

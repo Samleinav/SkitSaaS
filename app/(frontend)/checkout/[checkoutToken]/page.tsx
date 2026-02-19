@@ -462,7 +462,7 @@ export default async function CheckoutPage({
                             </p>
                           ) : null}
                           <p className="mt-1 text-xs text-zinc-500">
-                            Qty {item.quantity} ·{' '}
+                            Qty {item.quantity} |{' '}
                             {formatMoney(item.unitAmount, item.currency, dateLocale)} each
                           </p>
                         </div>
@@ -479,7 +479,7 @@ export default async function CheckoutPage({
                 </p>
               )}
             </div>
-          ) : null}
+          )}
         </section>
 
         <section className="marketing-panel rounded-2xl p-6">

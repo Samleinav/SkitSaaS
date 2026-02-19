@@ -1,7 +1,12 @@
 export type OneTimeCheckoutProvider = 'stripe' | 'paypal';
-export type OneTimeCheckoutMode = 'provider_session' | 'core_checkout';
+export type OneTimeCheckoutMode = 'core_checkout';
 
 export type OneTimeIntentTargetType = 'user' | 'team';
+
+export type OneTimeCheckoutLineItemInput = {
+  productId: number;
+  quantity: number;
+};
 
 export type OneTimeFulfillmentStatus =
   | 'pending'
@@ -15,8 +20,9 @@ export type OneTimeIntentStatus =
   | OneTimeFulfillmentStatus;
 
 export type CreateOneTimeCheckoutIntentInput = {
-  productId: number;
-  quantity: number;
+  productId: number | null;
+  quantity: number | null;
+  lineItems: OneTimeCheckoutLineItemInput[] | null;
   provider: OneTimeCheckoutProvider | null;
   checkoutMode: OneTimeCheckoutMode;
   targetType: OneTimeIntentTargetType;
@@ -126,6 +132,7 @@ export type OneTimeIntentValidationErrorCode =
   | 'invalid_intent_id'
   | 'invalid_product_id'
   | 'invalid_quantity'
+  | 'invalid_line_items'
   | 'invalid_provider'
   | 'invalid_checkout_mode'
   | 'invalid_target_type'

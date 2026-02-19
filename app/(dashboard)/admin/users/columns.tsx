@@ -45,8 +45,7 @@ function getStatusLabel(
 }
 
 export function getColumns(
-  messages: AdminMessages,
-  themeId: string | null = null
+  messages: AdminMessages
 ): ColumnDef<AdminUserRow>[] {
   const usersTable = messages.usersTable;
 
@@ -69,7 +68,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="header.user.sort"
           >
             {fallbackHeader}
@@ -89,7 +87,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="cell.user"
             data={{
               userId: row.original.id
@@ -131,7 +128,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.status
@@ -180,7 +176,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="header.created-at.sort"
           >
             {fallbackHeader}
@@ -197,7 +192,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="cell.created-at"
           >
             {fallbackCell}
@@ -220,7 +214,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.users.cell"
-            themeId={themeId}
             slot="cell.actions.manage"
             data={{
               userId: row.original.id
@@ -233,3 +226,5 @@ export function getColumns(
     }
   ];
 }
+
+

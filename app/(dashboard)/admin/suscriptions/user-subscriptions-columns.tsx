@@ -53,8 +53,7 @@ function getStatusLabel(status: AdminUserDisplayStatus, messages: AdminMessages)
 }
 
 export function getUserSubscriptionsColumns(
-  messages: AdminMessages,
-  themeId: string | null = null
+  messages: AdminMessages
 ): ColumnDef<AdminUserSubscriptionRow>[] {
   const usersTable = messages.usersTable;
   const subscriptionsPage = messages.subscriptionsPage;
@@ -78,7 +77,6 @@ export function getUserSubscriptionsColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.suscriptions.user.cell"
-            themeId={themeId}
             slot="header.user.sort"
           >
             {fallbackHeader}
@@ -98,7 +96,6 @@ export function getUserSubscriptionsColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.suscriptions.user.cell"
-            themeId={themeId}
             slot="cell.user"
             data={{
               userId: row.original.id
@@ -136,7 +133,6 @@ export function getUserSubscriptionsColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.suscriptions.user.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.status
@@ -184,7 +180,6 @@ export function getUserSubscriptionsColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.suscriptions.user.cell"
-            themeId={themeId}
             slot="cell.actions.edit"
             data={{
               userId: row.original.id
@@ -197,3 +192,5 @@ export function getUserSubscriptionsColumns(
     }
   ];
 }
+
+

@@ -200,6 +200,38 @@ test('one-time Stripe webhook processor records core one_time order on successfu
   assert.equal(payload.providerPlanId, 'price_abc');
 });
 
+test('one-time Stripe webhook processor forwards checkout order id to fulfillment persistence', async () => {
+  let persistedOrderId: number | null = null;
+  let markedCheckoutOrderId: number | null = null;
+
+  const processEvent = createProcessOneTimeStripeWebhookEvent({
+    getOneTimeIntentBySessionId: async () => createIntentFixture(),
+    getCheckoutOrderByProviderSession: async () =>
+      ({ id: 9123 } as any),
+    registerOneTimeIntentFulfillmentFromWebhook: async (input) => {
+      persistedOrderId = input.orderId;
+      return createFulfillmentMutationResult();
+    },
+    markCheckoutOrderCompleted: async ({ checkoutOrderId }) => {
+      markedCheckoutOrderId = checkoutOrderId;
+      return null;
+    },
+    recordCheckoutEvent: async () => {},
+    emitEventAsync: async () => ({
+      eventId: 'evt_emitted',
+      handlerCount: 0,
+      mode: 'inline'
+    })
+  });
+
+  const result = await processEvent(createStripeEvent({ id: 'evt_order_link_1' }));
+
+  assert.equal(result.handled, true);
+  assert.equal(result.status, 'paid');
+  assert.equal(persistedOrderId, 9123);
+  assert.equal(markedCheckoutOrderId, 9123);
+});
+
 test('one-time Stripe webhook processor skips order write when transition guard blocks update', async () => {
   let recordCalls = 0;
 

@@ -1,19 +1,30 @@
-import { AdminPageShell, type ThemeTemplateProps } from '../../components/admin/page-shell';
+import type { ReactNode } from 'react';
+
+type TemplateData = {
+  description?: string;
+  title?: string;
+};
+
+type TemplateProps = {
+  data?: TemplateData;
+  className?: string;
+  children?: ReactNode;
+};
 
 export default function PageAdminOrdersEditTemplate({
   data,
   className,
   children
-}: ThemeTemplateProps) {
+}: TemplateProps) {
+  const title = data?.title?.trim() || 'Edit Order';
+  const description = data?.description?.trim() || 'Adjust order status, provider metadata, and linkage.';
   return (
-    <AdminPageShell
-      templateId="page.admin.orders.edit"
-      titleFallback="Edit Order"
-      descriptionFallback="Adjust order status, provider metadata, and linkage."
-      data={data}
-      className={className}
-    >
-      {children}
-    </AdminPageShell>
+    <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>
+      <section className="theme-first-backoffice-panel rounded-xl p-6">
+        <h2 className="text-2xl font-semibold">{title}</h2>
+        {description ? <p className="mt-2 text-sm opacity-80">{description}</p> : null}
+        {children ? <div className="mt-4">{children}</div> : null}
+      </section>
+    </main>
   );
 }

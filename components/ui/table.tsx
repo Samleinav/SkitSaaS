@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { getTemplateDebugMetadataAttributes } from "@/lib/templates/debug"
 import { cn } from "@/lib/utils"
 
 type TableProps = React.ComponentProps<"table"> & {
@@ -19,19 +20,21 @@ function Table({
   templateComponentId,
   ...props
 }: TableProps) {
+  const debugMetadataAttrs = getTemplateDebugMetadataAttributes({
+    componentId: templateComponentId,
+    templateId,
+    templateSource,
+  })
+
   return (
     <div
       data-slot="table-container"
-      data-template-component={templateComponentId || undefined}
-      data-template-id={templateId || undefined}
-      data-template-source={templateSource || undefined}
+      {...debugMetadataAttrs}
       className={cn("relative w-full overflow-x-auto", containerClassName)}
     >
       <table
         data-slot="table"
-        data-template-component={templateComponentId || undefined}
-        data-template-id={templateId || undefined}
-        data-template-source={templateSource || undefined}
+        {...debugMetadataAttrs}
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />

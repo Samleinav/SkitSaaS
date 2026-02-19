@@ -808,7 +808,6 @@ export default async function DashboardSubscriptionsPage({
             tableTemplate={{
               componentId: 'ui.table',
               area: 'dashboard',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         </CardContent>
@@ -831,7 +830,6 @@ export default async function DashboardSubscriptionsPage({
             tableTemplate={{
               componentId: 'ui.table',
               area: 'dashboard',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         </CardContent>
@@ -857,3 +855,4 @@ export default async function DashboardSubscriptionsPage({
     </ThemeCodeTemplate>
   );
 }
+

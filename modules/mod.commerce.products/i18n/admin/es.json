@@ -6,7 +6,8 @@
         "title": "Productos",
         "description": "Gestion admin para productos de suscripcion y pago unico.",
         "createLabel": "Crear producto",
-        "empty": "No hay productos para los filtros actuales."
+        "filterPlaceholder": "Buscar productos...",
+        "empty": "No hay productos."
       },
       "create": {
         "title": "Crear producto",
@@ -59,7 +60,7 @@
       "subscriptionTemplateIdLabel": "Id plantilla de suscripcion",
       "subscriptionTemplateIdHint": "Requerido solo cuando el tipo es suscripcion.",
       "priceCurrencyLabel": "Moneda del precio",
-      "priceAmountLabel": "Monto (centavos)",
+      "priceAmountLabel": "Monto",
       "priceProviderLabel": "Proveedor de precio",
       "priceProviderPlaceholder": "stripe | paypal",
       "providerPriceIdLabel": "Id de precio del proveedor"

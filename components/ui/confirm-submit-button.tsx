@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
+import { getTemplateDebugMetadataAttributes } from '@/lib/templates/debug';
 
 type ButtonVariant = React.ComponentProps<typeof Button>['variant'];
 type ButtonSize = React.ComponentProps<typeof Button>['size'];
@@ -62,6 +63,12 @@ export function ConfirmSubmitButton({
   templateSource,
   templateComponentId
 }: ConfirmSubmitButtonProps) {
+  const debugMetadataAttrs = getTemplateDebugMetadataAttributes({
+    componentId: templateComponentId,
+    templateId,
+    templateSource
+  });
+
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -70,18 +77,14 @@ export function ConfirmSubmitButton({
           variant={triggerVariant}
           size={triggerSize}
           disabled={disabled}
-          data-template-component={templateComponentId || undefined}
-          data-template-id={templateId || undefined}
-          data-template-source={templateSource || undefined}
+          {...debugMetadataAttrs}
           className={className}
         >
           {triggerLabel}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent
-        data-template-component={templateComponentId || undefined}
-        data-template-id={templateId || undefined}
-        data-template-source={templateSource || undefined}
+        {...debugMetadataAttrs}
         className={contentClassName}
       >
         <AlertDialogHeader>

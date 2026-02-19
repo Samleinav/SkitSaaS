@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { getTemplateDebugMetadataAttributes } from '@/lib/templates/debug';
 import { cn } from '@/lib/utils';
 
 export type AsyncSubmitButtonProps = Omit<
@@ -65,14 +66,17 @@ export function AsyncSubmitButton({
     : isRecentlySuccessful
       ? (successLabel ?? idleLabel)
       : idleLabel;
+  const debugMetadataAttrs = getTemplateDebugMetadataAttributes({
+    componentId: templateComponentId,
+    templateId,
+    templateSource
+  });
 
   return (
     <Button
       type="submit"
       disabled={isDisabled}
-      data-template-component={templateComponentId || undefined}
-      data-template-id={templateId || undefined}
-      data-template-source={templateSource || undefined}
+      {...debugMetadataAttrs}
       {...props}
     >
       {pending ? (

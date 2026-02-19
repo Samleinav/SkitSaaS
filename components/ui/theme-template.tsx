@@ -6,16 +6,19 @@ import {
   useEffect,
   useState
 } from 'react';
+import { useThemeRuntime } from '@/components/theme/theme-runtime-provider';
 import {
   THEME_CODE_REGISTRY,
   type CodeRegistryThemeEntry
 } from '@/lib/themes/code-registry.generated';
+import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
 
-export type ThemeTemplateProps<TData = unknown> = {
-  id: string;
-  data?: TData;
+export type ThemeTemplateProps<TId extends string = string> = {
+  id: TId;
+  data?: TemplateDataForId<TId>;
   fallback?: ReactNode;
   className?: string;
+  themeId?: string | null;
   children?: ReactNode;
 };
 
@@ -81,7 +84,7 @@ async function loadTemplate(
   return { Component, Provider };
 }
 
-function ThemeTemplateLoader<TData>({
+function ThemeTemplateLoader<TId extends string>({
   registryEntry,
   id,
   data,
@@ -90,8 +93,8 @@ function ThemeTemplateLoader<TData>({
   children
 }: {
   registryEntry: CodeRegistryThemeEntry;
-  id: string;
-  data?: TData;
+  id: TId;
+  data?: TemplateDataForId<TId>;
   fallback?: ReactNode;
   className?: string;
   children?: ReactNode;
@@ -147,20 +150,22 @@ function ThemeTemplateLoader<TData>({
   return rendered;
 }
 
-export function ThemeTemplate<TData = unknown>({
+export function ThemeTemplate<TId extends string>({
   id,
   data,
   fallback,
   className,
   themeId,
   children
-}: ThemeTemplateProps<TData> & { themeId?: string | null }) {
+}: ThemeTemplateProps<TId>) {
+  const themeRuntime = useThemeRuntime();
+  const resolvedThemeId = themeId ?? themeRuntime?.themeKey ?? null;
   const normalizedTemplateId = normalizeId(id);
   if (!normalizedTemplateId) {
     return <>{fallback ?? children ?? null}</>;
   }
 
-  const entry = getRegistryEntry(themeId);
+  const entry = getRegistryEntry(resolvedThemeId);
   if (!entry) {
     return <>{fallback ?? children ?? null}</>;
   }

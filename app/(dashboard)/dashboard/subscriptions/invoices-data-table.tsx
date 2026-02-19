@@ -43,8 +43,7 @@ type DashboardSubscriptionInvoicesDataTableProps = {
 };
 
 function getInvoiceColumns(
-  labels: DashboardSubscriptionInvoicesDataTableProps['labels'],
-  themeId: string | null = null
+  labels: DashboardSubscriptionInvoicesDataTableProps['labels']
 ): ColumnDef<DashboardSubscriptionInvoiceRow>[] {
   return [
     {
@@ -65,7 +64,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="header.date.sort"
             data={{
               sortKey: 'updatedAt'
@@ -85,7 +83,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.date"
           >
             {fallbackCell}
@@ -106,7 +103,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.scope"
           >
             {fallbackCell}
@@ -127,7 +123,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.plan"
           >
             {fallbackCell}
@@ -148,7 +143,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.provider"
           >
             {fallbackCell}
@@ -169,7 +163,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.amount"
           >
             {fallbackCell}
@@ -190,7 +183,6 @@ function getInvoiceColumns(
         return (
           <DashboardTableSlotTemplate
             templateId="section.dashboard.table.subscriptions.invoices.cell"
-            themeId={themeId}
             slot="cell.reference"
           >
             {fallbackCell}
@@ -208,7 +200,7 @@ export function DashboardSubscriptionInvoicesDataTable({
 }: DashboardSubscriptionInvoicesDataTableProps) {
   return (
     <DataTable
-      columns={getInvoiceColumns(labels, tableTemplate?.themeId ?? null)}
+      columns={getInvoiceColumns(labels)}
       data={data}
       labels={labels.table}
       template={tableTemplate}
@@ -219,3 +211,4 @@ export function DashboardSubscriptionInvoicesDataTable({
     />
   );
 }
+

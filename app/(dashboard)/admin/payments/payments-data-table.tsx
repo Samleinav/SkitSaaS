@@ -13,19 +13,17 @@ import type { AdminMessages } from '@/lib/i18n/messages/admin';
 type AdminPaymentsDataTableProps = {
   data: AdminPaymentDataRow[];
   messages: AdminMessages;
-  themeId?: string | null;
   tableTemplate?: DataTableThemeTemplate;
 };
 
 export function AdminPaymentsDataTable({
   data,
   messages,
-  themeId = null,
   tableTemplate
 }: AdminPaymentsDataTableProps) {
   return (
     <DataTable
-      columns={getPaymentDataColumns(messages, { themeId })}
+      columns={getPaymentDataColumns(messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

@@ -3,11 +3,8 @@
 import type { ReactNode } from 'react';
 
 type UiTableControlData = {
-  area?: unknown;
-  slot?: unknown;
-  componentId?: unknown;
-  templateId?: unknown;
-  templateSource?: unknown;
+  area?: 'admin' | 'dashboard' | string | null;
+  slot?: string | null;
 };
 
 type UiTableControlTemplateProps = {
@@ -16,58 +13,27 @@ type UiTableControlTemplateProps = {
   children?: ReactNode;
 };
 
-function toStringOrNull(value: unknown) {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
-}
-
-function normalizeArea(value: unknown) {
-  const area = toStringOrNull(value);
-  if (area === 'dashboard' || area === 'admin') {
-    return area;
-  }
-
-  return 'admin';
-}
-
-function normalizeSlotClassName(slot: string | null) {
-  if (!slot) {
-    return null;
-  }
-
-  return `theme-first-backoffice-table-control-${slot.replace(/[^a-z0-9.-]/gi, '-').replace(/\./g, '-')}`;
-}
-
-function mergeClassNames(
-  ...values: Array<string | null | undefined | false>
-) {
-  return values.filter(Boolean).join(' ');
-}
-
 export default function UiTableControlTemplate({
   data,
   className,
   children
 }: UiTableControlTemplateProps) {
-  const area = normalizeArea(data?.area);
-  const slot = toStringOrNull(data?.slot);
+  const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
+  const slot =
+    typeof data?.slot === 'string' && data.slot.trim().length > 0
+      ? data.slot.trim()
+      : null;
+  const classes = [
+    'contents',
+    'theme-first-backoffice-table-control',
+    'theme-first-backoffice-table-control-area-' + area,
+    className
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div
-      className={mergeClassNames(
-        'contents theme-first-backoffice-table-control',
-        `theme-first-backoffice-table-control-area-${area}`,
-        normalizeSlotClassName(slot),
-        className
-      )}
-      data-theme-template="ui.table.control"
-      data-theme-table-area={area}
-      data-theme-slot={slot ?? undefined}
-      data-theme-component-id={toStringOrNull(data?.componentId) ?? undefined}
-      data-template-id={toStringOrNull(data?.templateId) ?? undefined}
-      data-template-source={toStringOrNull(data?.templateSource) ?? undefined}
-    >
+    <div className={classes} data-theme-slot={slot ?? undefined}>
       {children}
     </div>
   );

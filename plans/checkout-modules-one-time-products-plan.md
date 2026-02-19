@@ -2,8 +2,8 @@
 
 Status: In progress
 Start date: 2026-02-16
-Current phase: Sprint 7 (UI implementation in progress)
-Last review: 2026-02-18
+Current phase: Sprint 8 Task 8.2 in progress (multi-item backend contract)
+Last review: 2026-02-19
 
 ## Sprint 7 progress snapshot (2026-02-18)
 - [x] Frontend one-time pages (`/products`, `/products/cart`, `/products/order`) now render with theme wrappers:
@@ -17,7 +17,6 @@ Last review: 2026-02-18
   - `page.admin.products`
   - `page.admin.products.create`
   - `page.admin.products.edit`
-  - `section.admin.products.filters`
   - `section.admin.products.table`
   - `section.admin.products.form`
 - [x] Workspace validation green after UI changes: `pnpm check`.
@@ -27,6 +26,26 @@ Last review: 2026-02-18
   - `modules/mod.commerce.one-time-payments/i18n/global/en.json`
   - `modules/mod.commerce.one-time-payments/i18n/global/es.json`
   - `src/pages.tsx` in both modules now consume `getServerMessages(...).mod[moduleId]` with fallback defaults.
+- [x] Core one-time checkout now persists explicit line items (`checkout_order_items`) and `/checkout/[checkoutToken]` renders one-time summary from persisted items with legacy metadata fallback.
+- [x] `Buy now` on `/products` now uses direct checkout handoff (`server action -> /checkout/[checkoutToken]`) and keeps error fallback on catalog path (`/products`) without forcing `/products/order`.
+- [x] `/products` now resolves `?error=` and renders a visible error alert for failed `buy_now` attempts.
+- [x] Admin products create/edit forms now use decimal `priceAmount` + `priceCurrency` select and removed provider/providerPriceId fields from UI (server actions convert to cents and persist provider fields as null).
+- [x] Admin products home migrated from manual HTML table to `DataTable` host component:
+  - removed legacy GET filters (`kind`, `published`) from page route.
+  - moved `kind/publication` filtering into datatable toolbar controls.
+- [x] One-time payment-method start routes now apply late provider binding by selected `paymentMethodId` in checkout:
+  - Stripe start creates/rebinds Stripe session when intent has PayPal/unbound prior state.
+  - PayPal start creates/rebinds PayPal session when intent has Stripe/unbound prior state.
+  - intent attach no longer fails on provider mismatch during rebind.
+- [x] One-time intent validator now defaults to `checkoutMode='core_checkout'` when request omits `checkoutMode` and `provider`:
+  - `provider` is no longer required for baseline intent creation.
+  - explicit `provider` and `checkoutMode='provider_session'` payloads are now rejected at API boundary.
+- [x] One-time webhook fulfillment persistence now links `orderId` when checkout order is resolvable by provider session:
+  - `registerOneTimeIntentFulfillmentFromWebhook` persists `orderId` on insert/update.
+  - Stripe/PayPal webhook processors resolve checkout order once and reuse it for fulfillment link + checkout status sync.
+- [x] Checkout metadata parser now applies explicit compatibility normalization:
+  - infers `schemaVersion` for legacy metadata without version.
+  - normalizes/drops invalid `oneTime` envelopes without breaking order reads.
 
 ## Objective
 Implement a clean checkout architecture where **core works with checkout orders** (not direct template IDs in URL), starting with subscriptions, and later enabling `mod.commerce.one-time-payments` to consume the same checkout system for one-time payments.
@@ -259,7 +278,7 @@ Checklist:
 - [x] module sends target + immutable one-time amount/currency snapshot + metadata.
 - [x] core returns `checkoutToken` and canonical checkout URL.
 - [x] Extend core start endpoint/service to accept `orderType='one_time'` from authorized module path.
-- [x] Add optional module request mode `checkoutMode='core_checkout'` while preserving legacy `provider_session` behavior.
+- [x] Add optional module request mode `checkoutMode='core_checkout'` (legacy `provider_session` policy later retired in Sprint 8 Task 8.1).
 - [ ] In `mod.commerce.one-time-payments`, implement/adjust routes:
 - [x] Payment-method dispatcher routes (`/payment-methods/stripe|paypal/{start,cancel}`) and manifest registration.
 - [x] `/products`
@@ -339,7 +358,7 @@ Target files:
 - `lib/templates/catalog.ts` (reference-only during planning)
 
 Checklist:
-- [x] Define admin template IDs (minimum): `page.admin.products`, `page.admin.products.create`, `page.admin.products.edit`, `section.admin.products.filters`, `section.admin.products.table`, `section.admin.products.form`.
+- [x] Define admin template IDs (minimum): `page.admin.products`, `page.admin.products.create`, `page.admin.products.edit`, `section.admin.products.table`, `section.admin.products.form`.
 - [x] Define frontend template IDs (minimum): `page.frontend.products.catalog`, `page.frontend.products.cart`, `page.frontend.products.order`, `section.frontend.products.catalog.card`, `section.frontend.products.cart.summary`, `section.frontend.products.order.form`.
 - [x] Define payload contracts per template ID (data keys and expected shapes).
 - [x] Define precedence policy: theme-first defaults, optional module defaults, explicit override-only when needed.
@@ -396,7 +415,7 @@ Target files (future implementation scope):
 Checklist:
 - [x] Define replacement scope from baseline UI to template-driven + i18n UI.
 - [x] Define product card, cart summary, order form, and error/empty/success states.
-- [x] Define provider selector UX and guardrails by product provider compatibility.
+- [x] Define checkout method selection UX as dynamic at checkout (no provider selector in catalog/cart/order).
 - [x] Define checkout handoff copy and return/cancel user messaging.
 - [x] Define accessibility and responsive acceptance criteria.
 
@@ -431,7 +450,7 @@ Validation checklist:
 
 Acceptance matrix (Sprint 6 locked):
 - Admin products list/create/edit/publish-unpublish covers product types `subscription` and `one_time`.
-- Frontend one-time catalog/cart/order covers empty, invalid product, provider selection, and checkout handoff states.
+- Frontend one-time catalog/cart/order covers empty, invalid product, checkout handoff states, and dynamic payment-method selection only inside checkout.
 - Checkout completion paths validated for both `onetime-stripe` and `onetime-paypal`.
 - Module-on scenario: aliases and module pages resolve normally.
 - Module-off scenario: core checkout/subscriptions stay functional and module aliases fail closed (not-found/dispatcher fallback).
@@ -447,6 +466,141 @@ Commands:
 - `pnpm modules:prepare`
 - `pnpm exec tsc --noEmit`
 - `pnpm check`
+
+---
+
+## Sprint 8 - One-Time Hardening Backlog (post Sprint 7)
+Duration target:
+- 5 working days
+
+Goal:
+- Close the remaining operational gaps before considering one-time checkout flow fully production-hardened.
+
+### Task 8.1 (P0) - Legacy provider contract cleanup (`provider_session` + provider fields)
+Risk:
+- Keeping legacy provider coupling in schema/types/metadata can reintroduce pre-checkout provider-locking and confuse future UI/API behavior.
+
+Target files:
+- `modules/mod.commerce.one-time-payments/src/types.ts`
+- `modules/mod.commerce.one-time-payments/src/validators.ts`
+- `modules/mod.commerce.one-time-payments/src/data.ts`
+- `modules/mod.commerce.one-time-payments/src/api-handler.ts`
+- `modules/mod.commerce.one-time-payments/db/schema.ts`
+- `modules/mod.commerce.one-time-payments/db/migrations/*`
+- `lib/payments/checkout-orders.ts`
+- `tests/modules/mod-commerce-onetime-validation.test.ts`
+- `tests/modules/mod-commerce-onetime-api.test.ts`
+- `tests/payments/checkout-orders.test.ts`
+
+Checklist:
+- [x] Define final compatibility policy for `provider_session` (`remove` vs `feature-flagged fallback`).
+- [x] Remove provider requirement from one-time domain types/contracts where not needed.
+- [x] Ensure one-time intent creation path remains provider-agnostic by default and explicit in docs/tests.
+- [x] Add migration strategy for provider legacy fields (keep/read-only/deprecate/drop) with safe rollout notes.
+- [x] Update module README and plan notes to reflect final policy.
+
+Migration policy (locked):
+- Keep DB provider fields during hardening window for runtime dispatch/webhook correlation.
+- Reject provider preselection at API boundary (`provider`, `provider_session`).
+- Persist new intents as provider-unbound; bind provider only at checkout payment-method start.
+- Treat existing provider-bound intent rows as backward-readable only; schedule DB field drop after explicit runtime dependency audit.
+
+Validation checklist:
+- [x] Creating one-time checkout intent without provider always uses core checkout flow.
+- [x] Explicit legacy provider payloads follow the declared compatibility policy (rejected or controlled fallback).
+- [x] No checkout method filtering or start-path branching depends on preselected provider.
+
+Commands:
+- `npx tsx --test tests/modules/mod-commerce-onetime-validation.test.ts`
+- `npx tsx --test tests/modules/mod-commerce-onetime-api.test.ts`
+- `npx tsx --test tests/payments/checkout-orders.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint modules/mod.commerce.one-time-payments/src lib/payments/checkout-orders.ts`
+
+### Task 8.2 (P0) - Real multi-item one-time cart/order flow (`1 order -> N products`)
+Risk:
+- Without a real cart aggregator before checkout creation, one-time line-item support stays partial and user flow remains limited.
+
+Target files:
+- `modules/mod.commerce.one-time-payments/src/pages.tsx`
+- `modules/mod.commerce.one-time-payments/src/actions.ts`
+- `modules/mod.commerce.one-time-payments/src/data.ts`
+- `modules/mod.commerce.one-time-payments/src/api-handler.ts`
+- `lib/payments/checkout-orders.ts`
+- `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+- `tests/modules/mod-commerce-onetime-pages.test.ts`
+- `tests/modules/mod-commerce-onetime-api.test.ts`
+- `tests/payments/checkout-orders.test.ts`
+
+Checklist:
+- [x] Define cart aggregate contract (how N products are accumulated before checkout order start).
+- [x] Implement one-time checkout order start from multi-item cart payload (`lineItems`) instead of single-product snapshot-only path.
+- [x] Enforce one-time order rules for mixed/invalid item payloads.
+- [x] Ensure checkout summary renders persisted line items first (legacy fallback only for old orders).
+- [x] Add regression coverage for empty cart, mixed invalid payload, and valid N-item checkout creation.
+
+Progress notes (2026-02-19):
+- `POST /checkout-sessions` now accepts `lineItems` and keeps backward-compatible `productId`/`quantity` payloads.
+- One-time intent creation now resolves N products, enforces same-currency totals, stores `schemaVersion: 2` item snapshots, and creates core checkout line items from snapshot data.
+- Frontend cart aggregate contract is now defined and wired:
+  - `/products` appends products into `items` query contract (`productId:quantity,...`).
+  - `/products/cart` and `/products/order` resolve aggregated items and preserve cart state through route transitions.
+  - checkout submit now sends `lineItemsPayload` + `cartItems` to the server action.
+- Added regression anchors for contract-level validation:
+  - validator/API reject invalid empty `lineItems` payloads before data layer.
+  - API accepts valid multi-item `lineItems` payload and keeps core checkout handoff contract.
+  - frontend pages/actions cover empty aggregated cart fallback and mixed-currency submit blocking in order flow.
+- Remaining gap for Task 8.2 is end-to-end persistence verification (`checkout_order_items`) in DB-backed tests.
+
+Validation checklist:
+- [ ] A one-time checkout order can be created from N products and persists `checkout_order_items` consistently.
+- [ ] Checkout page renders totals from persisted line items for new orders.
+- [ ] Legacy single-item metadata orders remain readable/payable during migration window.
+
+Commands:
+- `npx tsx --test tests/modules/mod-commerce-onetime-pages.test.ts`
+- `npx tsx --test tests/modules/mod-commerce-onetime-api.test.ts`
+- `npx tsx --test tests/payments/checkout-orders.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint modules/mod.commerce.one-time-payments/src app/(frontend)/checkout/[checkoutToken]/page.tsx lib/payments/checkout-orders.ts`
+
+### Task 8.3 (P1) - Enforce strict subscription invariant (`1 subscription order = 1 active checkout order`)
+Risk:
+- Relying only on service-layer reuse logic (without stronger invariant controls) can allow race duplicates under concurrency.
+
+Target files:
+- `lib/payments/checkout-orders.ts`
+- `lib/db/schema.ts`
+- `lib/db/migrations/*`
+- `tests/payments/checkout-orders.test.ts`
+- `tests/payments/order-subscription-lifecycle.test.ts`
+
+Checklist:
+- [x] Define invariant scope precisely (target, template, status window, retry/idempotency behavior).
+- [x] Add DB-level guard strategy (partial unique index and/or equivalent constraint) aligned with lifecycle statuses.
+- [x] Align create/reuse services to deterministic behavior under concurrent requests.
+- [x] Add migration/backfill notes for existing duplicated historical records.
+- [ ] Add regression tests for duplicate-start attempts and idempotent reuse.
+
+Progress notes (2026-02-19):
+- Added DB-level partial unique indexes for active subscription checkout scope:
+  - `checkout_orders_active_subscription_team_scope_idx`
+  - `checkout_orders_active_subscription_user_scope_idx`
+- Added migration backfill that expires duplicate active rows per scope before enforcing indexes.
+- `createSubscriptionCheckoutOrder` and `createUserSubscriptionCheckoutOrder` now resolve unique-violation races by returning the existing active scoped order.
+- Added regression guard test in `tests/payments/checkout-orders.test.ts` to assert migration invariant SQL contract.
+- Remaining gap: add a true concurrent duplicate-start runtime test (DB-backed integration) to close the final checklist item.
+
+Validation checklist:
+- [x] Concurrent subscription checkout start attempts cannot create duplicate active checkout orders for same scope.
+- [x] Existing subscription lifecycle projections continue unchanged.
+- [x] One-time order behavior is unaffected by subscription invariant hardening.
+
+Commands:
+- `npx tsx --test tests/payments/checkout-orders.test.ts`
+- `npx tsx --test tests/payments/order-subscription-lifecycle.test.ts`
+- `pnpm exec tsc --noEmit`
+- `pnpm exec eslint lib/payments/checkout-orders.ts lib/db/schema.ts`
 
 ## Dependencies
 - Decision on slug contract for subscription templates (`slug` field or deterministic alias).
@@ -485,4 +639,7 @@ Module tests (Sprint 5):
 - [ ] Core checkout can execute payment methods registered by core or modules through SDK contract.
 - [ ] `/pricing` is simplified to discovery + start checkout.
 - [ ] One-time module consumes new core checkout without coupling core to module internals.
+- [x] Legacy one-time provider contract (`provider_session`/provider preselection) is retired or explicitly gated by policy.
+- [ ] One-time checkout supports N-item cart/order creation path before `/checkout/[checkoutToken]`.
+- [ ] Subscription checkout enforces strict single-active-order invariant for the same target/template scope.
 - [ ] Docs and AGENTS route/action references are updated with finalized routes.

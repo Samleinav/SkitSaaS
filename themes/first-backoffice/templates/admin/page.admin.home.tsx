@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 
+type TemplateData = {
+  title?: string;
+};
+
 type TemplateProps = {
-  data?: Record<string, unknown>;
+  data?: TemplateData;
   className?: string;
-  themeId?: string;
   children?: ReactNode;
 };
 
@@ -12,15 +15,11 @@ export default function PageAdminHomeTemplate({
   className,
   children
 }: TemplateProps) {
-  const title =
-    typeof data?.title === 'string' && data.title.trim().length > 0
-      ? data.title
-      : 'Admin Home';
+  const title = data?.title?.trim() || 'Admin Home';
 
   return (
     <main
       className={className || 'mx-auto max-w-5xl px-4 py-8'}
-      data-theme-template="page.admin.home"
     >
       <section className="theme-first-backoffice-panel rounded-xl p-6">
         <h2 className="text-2xl font-semibold">{title}</h2>
@@ -32,3 +31,4 @@ export default function PageAdminHomeTemplate({
     </main>
   );
 }
+

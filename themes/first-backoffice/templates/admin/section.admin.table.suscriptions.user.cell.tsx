@@ -1,27 +1,15 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AdminTableCellShell } from '../../components/admin/table-cell-shell';
 
 type TemplateProps = {
-  data?: Record<string, unknown>;
   className?: string;
-  themeId?: string;
   children?: ReactNode;
 };
 
 export default function SectionAdminTableSuscriptionsUserCellTemplate({
-  data,
   className,
   children
 }: TemplateProps) {
-  return (
-    <AdminTableCellShell
-      templateId="section.admin.table.suscriptions.user.cell"
-      data={data}
-      className={className}
-    >
-      {children}
-    </AdminTableCellShell>
-  );
+  return <span className={className}>{children}</span>;
 }

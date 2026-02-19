@@ -73,7 +73,6 @@ export default async function DashboardLayout({
   const layoutContent = (
     <DashboardLayoutClient
       moduleItems={navPayload.items}
-      themeId={themeSelection.themeKey}
     >
       {children}
     </DashboardLayoutClient>

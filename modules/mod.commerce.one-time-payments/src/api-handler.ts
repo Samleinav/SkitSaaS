@@ -291,7 +291,12 @@ async function handleStripePaymentMethodStart({
 
   let intent = intentLookup.intent;
 
-  if (!intent.sessionId) {
+  const shouldCreateStripeSession =
+    intent.provider !== 'stripe' ||
+    !intent.sessionId ||
+    !intent.checkoutUrl;
+
+  if (shouldCreateStripeSession) {
     const checkoutPageUrl = buildCheckoutPageUrl(
       request,
       dispatchPayload.checkoutToken
@@ -387,7 +392,12 @@ async function handlePayPalPaymentMethodStart({
 
   let intent = intentLookup.intent;
 
-  if (!intent.sessionId) {
+  const shouldCreatePayPalSession =
+    intent.provider !== 'paypal' ||
+    !intent.sessionId ||
+    !intent.checkoutUrl;
+
+  if (shouldCreatePayPalSession) {
     const checkoutPageUrl = buildCheckoutPageUrl(
       request,
       dispatchPayload.checkoutToken
@@ -511,87 +521,12 @@ export function createCommerceOneTimePaymentsApiHandler(
           );
         }
 
-        let intent = result.intent;
-        const hasCoreCheckoutUrl =
-          typeof intent.checkoutUrl === 'string' &&
-          intent.checkoutUrl.trim().startsWith('/checkout/');
-        const useCoreCheckout =
-          parsedInput.value.checkoutMode === 'core_checkout' || hasCoreCheckoutUrl;
-
-        if (!useCoreCheckout && !intent.sessionId) {
-          if (intent.provider === 'paypal') {
-            const payPalSession =
-              await resolvedDeps.createPayPalCheckoutSessionForOneTimeIntent({
-                intent,
-                successUrl: parsedInput.value.successUrl,
-                cancelUrl: parsedInput.value.cancelUrl
-              });
-            if (!payPalSession.ok) {
-              return jsonError(
-                mapCreateIntentErrorStatus(payPalSession.code),
-                payPalSession.message,
-                payPalSession.code
-              );
-            }
-
-            const updatedIntent = await resolvedDeps.attachPayPalSessionToOneTimeIntent({
-              intentId: intent.id,
-              sessionId: payPalSession.value.sessionId,
-              checkoutUrl: payPalSession.value.checkoutUrl,
-              providerIntentId: payPalSession.value.providerIntentId,
-              expiresAt: payPalSession.value.expiresAt
-            });
-            if (!updatedIntent.ok) {
-              return jsonError(
-                mapCreateIntentErrorStatus(updatedIntent.code),
-                updatedIntent.message,
-                updatedIntent.code
-              );
-            }
-
-            intent = updatedIntent.intent;
-          } else {
-            const stripeSession =
-              await resolvedDeps.createStripeCheckoutSessionForOneTimeIntent({
-                intent,
-                successUrl: parsedInput.value.successUrl,
-                cancelUrl: parsedInput.value.cancelUrl,
-                customerEmail:
-                  typeof user?.email === 'string' ? user.email : null
-              });
-            if (!stripeSession.ok) {
-              return jsonError(
-                mapCreateIntentErrorStatus(stripeSession.code),
-                stripeSession.message,
-                stripeSession.code
-              );
-            }
-
-            const updatedIntent = await resolvedDeps.attachStripeSessionToOneTimeIntent({
-              intentId: intent.id,
-              sessionId: stripeSession.value.sessionId,
-              checkoutUrl: stripeSession.value.checkoutUrl,
-              providerIntentId: stripeSession.value.providerIntentId,
-              expiresAt: stripeSession.value.expiresAt
-            });
-            if (!updatedIntent.ok) {
-              return jsonError(
-                mapCreateIntentErrorStatus(updatedIntent.code),
-                updatedIntent.message,
-                updatedIntent.code
-              );
-            }
-
-            intent = updatedIntent.intent;
-          }
-        }
-
         return Response.json(
           {
             ok: true,
             moduleId: COMMERCE_ONE_TIME_PAYMENTS_MODULE_ID,
             idempotencyReused: result.idempotencyReused,
-            intent
+            intent: result.intent
           },
           { status: result.idempotencyReused ? 200 : 201 }
         );

@@ -74,8 +74,7 @@ function getProviderClassName(provider: string | null) {
 
 export function getColumns(
   _templates: AdminSubscriptionTemplateOption[],
-  messages: AdminMessages,
-  themeId: string | null = null
+  messages: AdminMessages
 ): ColumnDef<AdminSubscriptionRow>[] {
   const table = messages.subscriptionsTable;
   const statusLabels: Record<SubscriptionStatus, string> = {
@@ -105,7 +104,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.cell"
-            themeId={themeId}
             slot="header.team.sort"
           >
             {fallbackHeader}
@@ -125,7 +123,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.cell"
-            themeId={themeId}
             slot="cell.team"
             data={{
               teamId: row.original.id
@@ -161,7 +158,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.cell"
-            themeId={themeId}
             slot="cell.provider"
             data={{
               provider: row.original.paymentProvider
@@ -190,7 +186,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.cell"
-            themeId={themeId}
             slot="cell.status"
             data={{
               status: row.original.subscriptionStatus
@@ -261,7 +256,6 @@ export function getColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.cell"
-            themeId={themeId}
             slot="cell.actions.edit"
             data={{
               teamId: row.original.id
@@ -274,3 +268,5 @@ export function getColumns(
     }
   ];
 }
+
+

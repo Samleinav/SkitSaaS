@@ -20,7 +20,7 @@ export function AdminOrdersDataTable({
 }: AdminOrdersDataTableProps) {
   return (
     <DataTable
-      columns={getOrderColumns(messages, tableTemplate?.themeId ?? null)}
+      columns={getOrderColumns(messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

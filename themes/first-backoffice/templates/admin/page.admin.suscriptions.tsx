@@ -1,34 +1,29 @@
 import type { ReactNode } from 'react';
 
-type TemplateProps = {
-  data?: Record<string, unknown>;
-  className?: string;
-  themeId?: string;
-  children?: ReactNode;
+type TemplateData = {
+  description?: string;
+  scope?: string;
+  title?: string;
 };
 
-function toStringOrFallback(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : fallback;
-}
+type TemplateProps = {
+  data?: TemplateData;
+  className?: string;
+  children?: ReactNode;
+};
 
 export default function PageAdminSuscriptionsTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = toStringOrFallback(data?.title, 'Subscriptions');
-  const description = toStringOrFallback(
-    data?.description,
-    'User and organization subscription operations.'
-  );
-  const scope = toStringOrFallback(data?.scope, 'organization');
+  const title = data?.title?.trim() || 'Subscriptions';
+  const description = data?.description?.trim() || 'User and organization subscription operations.';
+  const scope = data?.scope?.trim() || 'organization';
 
   return (
     <main
       className={className || 'mx-auto max-w-7xl px-4 py-8'}
-      data-theme-template="page.admin.suscriptions"
       data-subscription-scope={scope}
     >
       <section className="theme-first-backoffice-panel rounded-xl p-6">
@@ -39,4 +34,5 @@ export default function PageAdminSuscriptionsTemplate({
     </main>
   );
 }
+
 

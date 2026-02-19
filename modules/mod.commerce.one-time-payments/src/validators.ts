@@ -1,6 +1,7 @@
 import type {
   OneTimeCheckoutMode,
   CreateOneTimeCheckoutIntentInput,
+  OneTimeCheckoutLineItemInput,
   OneTimeCheckoutProvider,
   OneTimeIntentValidationErrorCode,
   OneTimeIntentTargetType,
@@ -85,9 +86,13 @@ function normalizeProvider(value: unknown): OneTimeCheckoutProvider | null {
   return null;
 }
 
-function normalizeCheckoutMode(value: unknown): OneTimeCheckoutMode | null {
+function normalizeCheckoutMode({
+  value
+}: {
+  value: unknown;
+}): OneTimeCheckoutMode | null {
   if (value === undefined || value === null) {
-    return 'provider_session';
+    return 'core_checkout';
   }
 
   if (typeof value !== 'string') {
@@ -95,7 +100,7 @@ function normalizeCheckoutMode(value: unknown): OneTimeCheckoutMode | null {
   }
 
   const normalized = value.trim().toLowerCase();
-  if (normalized === 'provider_session' || normalized === 'core_checkout') {
+  if (normalized === 'core_checkout') {
     return normalized;
   }
 
@@ -135,6 +140,44 @@ function normalizeMetadata(value: unknown) {
   return value;
 }
 
+function normalizeLineItems(
+  value: unknown
+): OneTimeCheckoutLineItemInput[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  if (value.length === 0 || value.length > 100) {
+    return [];
+  }
+
+  const normalized: OneTimeCheckoutLineItemInput[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      return null;
+    }
+
+    const productId = normalizePositiveInt(entry.productId);
+    if (!productId) {
+      return null;
+    }
+
+    const quantity = hasOwn(entry, 'quantity')
+      ? normalizePositiveInt(entry.quantity)
+      : 1;
+    if (!quantity || quantity > 100) {
+      return null;
+    }
+
+    normalized.push({
+      productId,
+      quantity
+    });
+  }
+
+  return normalized;
+}
+
 export function parseOneTimeIntentId(
   value: unknown
 ): OneTimeIntentValidationResult<number> {
@@ -153,37 +196,52 @@ export function parseCreateOneTimeCheckoutIntentInput(
     return failure('invalid_json_body', 'Invalid JSON body.');
   }
 
-  const productId = normalizePositiveInt(body.productId);
-  if (!productId) {
-    return failure(
-      'invalid_product_id',
-      'Field "productId" is required and must be a positive integer.'
-    );
+  let lineItems: OneTimeCheckoutLineItemInput[] | null = null;
+  if (hasOwn(body, 'lineItems')) {
+    const parsedLineItems = normalizeLineItems(body.lineItems);
+    if (!parsedLineItems) {
+      return failure(
+        'invalid_line_items',
+        'Field "lineItems" must be an array of { productId, quantity? } entries.'
+      );
+    }
+    if (parsedLineItems.length === 0) {
+      return failure(
+        'invalid_line_items',
+        'Field "lineItems" must contain 1-100 items when provided.'
+      );
+    }
+
+    lineItems = parsedLineItems;
   }
 
-  const quantity = hasOwn(body, 'quantity')
-    ? normalizePositiveInt(body.quantity)
-    : 1;
-  if (!quantity) {
-    return failure(
-      'invalid_quantity',
-      'Field "quantity" must be a positive integer when provided.'
-    );
-  }
+  let productId: number | null = null;
+  let quantity: number | null = null;
+  if (!lineItems) {
+    productId = normalizePositiveInt(body.productId);
+    if (!productId) {
+      return failure(
+        'invalid_product_id',
+        'Field "productId" is required and must be a positive integer when "lineItems" is not provided.'
+      );
+    }
 
-  if (quantity > 100) {
-    return failure(
-      'invalid_quantity',
-      'Field "quantity" must be <= 100.'
-    );
-  }
+    quantity = hasOwn(body, 'quantity')
+      ? normalizePositiveInt(body.quantity)
+      : 1;
+    if (!quantity) {
+      return failure(
+        'invalid_quantity',
+        'Field "quantity" must be a positive integer when provided.'
+      );
+    }
 
-  const checkoutMode = normalizeCheckoutMode(body.checkoutMode);
-  if (!checkoutMode) {
-    return failure(
-      'invalid_checkout_mode',
-      'Field "checkoutMode" must be "provider_session" or "core_checkout" when provided.'
-    );
+    if (quantity > 100) {
+      return failure(
+        'invalid_quantity',
+        'Field "quantity" must be <= 100.'
+      );
+    }
   }
 
   const parsedProvider = normalizeProvider(body.provider);
@@ -193,8 +251,22 @@ export function parseCreateOneTimeCheckoutIntentInput(
       'Field "provider" must be "stripe" or "paypal" when provided.'
     );
   }
-  const provider =
-    checkoutMode === 'provider_session' ? parsedProvider ?? 'stripe' : parsedProvider;
+  if (parsedProvider) {
+    return failure(
+      'invalid_provider',
+      'Field "provider" is no longer supported. Select payment method during checkout.'
+    );
+  }
+  const checkoutMode = normalizeCheckoutMode({
+    value: body.checkoutMode
+  });
+  if (!checkoutMode) {
+    return failure(
+      'invalid_checkout_mode',
+      'Field "checkoutMode" must be "core_checkout" when provided.'
+    );
+  }
+  const provider = null;
 
   const targetType = normalizeTargetType(body.targetType);
   if (!targetType) {
@@ -271,6 +343,7 @@ export function parseCreateOneTimeCheckoutIntentInput(
   return success({
     productId,
     quantity,
+    lineItems,
     provider,
     checkoutMode,
     targetType,

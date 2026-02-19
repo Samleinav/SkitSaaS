@@ -18,6 +18,7 @@ import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
   readExternalThemeGlobalCssBySelectionFromConfig
 } from '@/lib/themes/assets';
+import type { AdminNavTemplateItem } from '@/lib/themes/template-data-contract';
 import { getExternalThemeTokensCssBySelection } from '@/lib/themes/runtime';
 import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
@@ -86,6 +87,68 @@ export default async function AdminLayout({
   };
   const navVariant = ADMIN_LAYOUT_STYLE === 'layout_basic' ? 'basic' : 'pro';
   const isAdjusted = PRIVATE_LAYOUT_MODE === 'adjusted';
+  const coreNavItemsForTemplate: AdminNavTemplateItem[] = [
+    {
+      href: '/admin',
+      icon: 'layout-dashboard',
+      label: messages.layout.title,
+      exact: true
+    },
+    {
+      href: '/admin/users',
+      icon: 'users',
+      label: messages.nav.users
+    },
+    {
+      href: '/admin/suscriptions',
+      icon: 'layout-template',
+      label: messages.nav.subscriptions,
+      matchPrefixes: ['/admin/subscriptions'],
+      children: [
+        {
+          href: '/admin/suscriptions',
+          label: messages.subscriptionsPage.subscriptionsTitle
+        },
+        {
+          href: '/admin/subscriptions',
+          label: messages.subscriptionsPage.templatesTitle
+        }
+      ]
+    },
+    {
+      href: '/admin/payments',
+      icon: 'receipt-text',
+      label: messages.nav.payments
+    },
+    {
+      href: '/admin/orders',
+      icon: 'shopping-cart',
+      label: messages.nav.orders
+    },
+    {
+      href: '/admin/logs',
+      icon: 'file-text',
+      label: messages.nav.logs
+    }
+  ];
+  const moduleNavItemsForTemplate: AdminNavTemplateItem[] = navPayload.items.map(
+    (item) => ({
+      href: item.href,
+      icon: 'package',
+      label: item.label,
+      exact: item.exact
+    })
+  );
+  const appConfigNavItemForTemplate: AdminNavTemplateItem = {
+    href: '/admin/app-config',
+    icon: 'settings-2',
+    label: messages.nav.appConfig
+  };
+  const navItemsForTemplate: AdminNavTemplateItem[] = [
+    ...coreNavItemsForTemplate,
+    ...moduleNavItemsForTemplate,
+    appConfigNavItemForTemplate
+  ];
   const navFallback = (
     <AdminNav
       variant={navVariant}
@@ -100,7 +163,8 @@ export default async function AdminLayout({
       data={{
         variant: navVariant,
         mode: PRIVATE_LAYOUT_MODE,
-        moduleItemsCount: navPayload.items.length
+        moduleItemsCount: navPayload.items.length,
+        navItems: navItemsForTemplate
       }}
       fallback={navFallback}
     >

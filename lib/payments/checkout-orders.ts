@@ -37,9 +37,14 @@ export type CheckoutOrderPaymentProvider = string;
 const CHECKOUT_ORDER_METADATA_VERSION = 1 as const;
 const DEFAULT_CHECKOUT_ORDER_EXPIRES_IN_MS = 1000 * 60 * 60;
 const CHECKOUT_ORDER_TOKEN_BYTES = 18;
+const ACTIVE_CHECKOUT_ORDER_STATUSES: CheckoutOrderStatus[] = [
+  'ready',
+  'provider_pending'
+];
 
 type CheckoutOrderMetadataBase = {
-  schemaVersion: typeof CHECKOUT_ORDER_METADATA_VERSION;
+  // Keep numeric for backward/forward-compatible parsing.
+  schemaVersion: number;
 };
 
 export type CheckoutOrderSubscriptionMetadata = {
@@ -159,6 +164,18 @@ function normalizeAmount(value: number | null | undefined) {
   return Math.round(value);
 }
 
+function isPgUniqueViolation(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  return (
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string' &&
+    (error as { code: string }).code === '23505'
+  );
+}
+
 function toCheckoutOrderWithMetadata(order: CheckoutOrder): CheckoutOrderWithMetadata {
   return {
     ...order,
@@ -227,6 +244,90 @@ function serializeCheckoutOrderMetadata(metadata: CheckoutOrderMetadata) {
   }
 }
 
+function toMetadataRecord(
+  value: unknown
+): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeCheckoutOrderMetadataSchemaVersion(value: unknown) {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return CHECKOUT_ORDER_METADATA_VERSION;
+}
+
+function normalizeCheckoutOrderOneTimeMetadata(
+  value: unknown
+): CheckoutOrderOneTimeMetadata | undefined {
+  const oneTime = toMetadataRecord(value);
+  if (!oneTime) {
+    return undefined;
+  }
+
+  const normalized: CheckoutOrderOneTimeMetadata = {
+    moduleId: normalizeText(
+      typeof oneTime.moduleId === 'string' ? oneTime.moduleId : null,
+      120
+    ),
+    intentId: normalizePositiveInt(
+      typeof oneTime.intentId === 'number' ? oneTime.intentId : null
+    ),
+    intentKey: normalizeText(
+      typeof oneTime.intentKey === 'string' ? oneTime.intentKey : null,
+      160
+    ),
+    productId: normalizePositiveInt(
+      typeof oneTime.productId === 'number' ? oneTime.productId : null
+    ),
+    productKey: normalizeText(
+      typeof oneTime.productKey === 'string' ? oneTime.productKey : null,
+      160
+    ),
+    quantity: normalizePositiveInt(
+      typeof oneTime.quantity === 'number' ? oneTime.quantity : null
+    ),
+    itemsCount: normalizeNonNegativeInt(
+      typeof oneTime.itemsCount === 'number' ? oneTime.itemsCount : null
+    ),
+    paymentMethodId: normalizeText(
+      typeof oneTime.paymentMethodId === 'string' ? oneTime.paymentMethodId : null,
+      60
+    ),
+    provider: normalizeText(
+      typeof oneTime.provider === 'string' ? oneTime.provider : null,
+      60
+    ),
+    snapshot: toMetadataRecord(oneTime.snapshot)
+  };
+
+  const hasValues =
+    normalized.moduleId !== null ||
+    normalized.intentId !== null ||
+    normalized.intentKey !== null ||
+    normalized.productId !== null ||
+    normalized.productKey !== null ||
+    normalized.quantity !== null ||
+    normalized.itemsCount !== null ||
+    normalized.paymentMethodId !== null ||
+    normalized.provider !== null ||
+    normalized.snapshot !== null;
+
+  return hasValues ? normalized : undefined;
+}
+
 export function parseCheckoutOrderMetadata(
   metadata: string | null | undefined
 ): CheckoutOrderMetadata | null {
@@ -235,12 +336,29 @@ export function parseCheckoutOrderMetadata(
   }
 
   try {
-    const parsed = JSON.parse(metadata) as CheckoutOrderMetadata;
-    if (!parsed || typeof parsed !== 'object') {
+    const parsed = JSON.parse(metadata);
+    const metadataRecord = toMetadataRecord(parsed);
+    if (!metadataRecord) {
       return null;
     }
 
-    return parsed;
+    const normalized: CheckoutOrderMetadata = {
+      ...metadataRecord,
+      schemaVersion: normalizeCheckoutOrderMetadataSchemaVersion(
+        metadataRecord.schemaVersion
+      )
+    };
+
+    const normalizedOneTime = normalizeCheckoutOrderOneTimeMetadata(
+      metadataRecord.oneTime
+    );
+    if (normalizedOneTime) {
+      normalized.oneTime = normalizedOneTime;
+    } else {
+      delete normalized.oneTime;
+    }
+
+    return normalized;
   } catch {
     return null;
   }
@@ -483,7 +601,7 @@ export async function expireCheckoutOrderIfNeeded(
     .where(
       and(
         eq(checkoutOrders.id, order.id),
-        inArray(checkoutOrders.status, ['ready', 'provider_pending'])
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
       )
     )
     .returning();
@@ -801,7 +919,7 @@ async function findReusableTeamSubscriptionCheckoutOrder({
         eq(checkoutOrders.targetType, 'team'),
         eq(checkoutOrders.targetTeamId, normalizedTeamId),
         eq(checkoutOrders.subscriptionTemplateId, normalizedTemplateId),
-        inArray(checkoutOrders.status, ['ready', 'provider_pending'])
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
       )
     )
     .orderBy(desc(checkoutOrders.updatedAt))
@@ -853,7 +971,7 @@ async function findReusableUserSubscriptionCheckoutOrder({
         eq(checkoutOrders.targetType, 'user'),
         eq(checkoutOrders.targetUserId, normalizedUserId),
         eq(checkoutOrders.subscriptionTemplateId, normalizedTemplateId),
-        inArray(checkoutOrders.status, ['ready', 'provider_pending'])
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
       )
     )
     .orderBy(desc(checkoutOrders.updatedAt))
@@ -870,6 +988,87 @@ async function findReusableUserSubscriptionCheckoutOrder({
         scheduledStartTime
       })
     ) {
+      continue;
+    }
+
+    return hydrated;
+  }
+
+  return null;
+}
+
+async function findActiveTeamSubscriptionCheckoutOrderByScope({
+  teamId,
+  templateId
+}: {
+  teamId: number;
+  templateId: number;
+}) {
+  const normalizedTeamId = normalizePositiveInt(teamId);
+  const normalizedTemplateId = normalizePositiveInt(templateId);
+  if (!normalizedTeamId || !normalizedTemplateId) {
+    return null;
+  }
+
+  const rows = await db
+    .select()
+    .from(checkoutOrders)
+    .where(
+      and(
+        eq(checkoutOrders.orderType, 'subscription'),
+        eq(checkoutOrders.teamId, normalizedTeamId),
+        eq(checkoutOrders.targetType, 'team'),
+        eq(checkoutOrders.targetTeamId, normalizedTeamId),
+        eq(checkoutOrders.subscriptionTemplateId, normalizedTemplateId),
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
+      )
+    )
+    .orderBy(desc(checkoutOrders.updatedAt), desc(checkoutOrders.id))
+    .limit(5);
+
+  for (const row of rows) {
+    const hydrated = await expireCheckoutOrderIfNeeded(row);
+    if (!isCheckoutOrderPayable(hydrated)) {
+      continue;
+    }
+
+    return hydrated;
+  }
+
+  return null;
+}
+
+async function findActiveUserSubscriptionCheckoutOrderByScope({
+  userId,
+  templateId
+}: {
+  userId: number;
+  templateId: number;
+}) {
+  const normalizedUserId = normalizePositiveInt(userId);
+  const normalizedTemplateId = normalizePositiveInt(templateId);
+  if (!normalizedUserId || !normalizedTemplateId) {
+    return null;
+  }
+
+  const rows = await db
+    .select()
+    .from(checkoutOrders)
+    .where(
+      and(
+        eq(checkoutOrders.orderType, 'subscription'),
+        eq(checkoutOrders.targetType, 'user'),
+        eq(checkoutOrders.targetUserId, normalizedUserId),
+        eq(checkoutOrders.subscriptionTemplateId, normalizedTemplateId),
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
+      )
+    )
+    .orderBy(desc(checkoutOrders.updatedAt), desc(checkoutOrders.id))
+    .limit(5);
+
+  for (const row of rows) {
+    const hydrated = await expireCheckoutOrderIfNeeded(row);
+    if (!isCheckoutOrderPayable(hydrated)) {
       continue;
     }
 
@@ -1029,6 +1228,16 @@ export async function createSubscriptionCheckoutOrder({
 
       return created ? toCheckoutOrderWithMetadata(created) : null;
     } catch (error) {
+      if (isPgUniqueViolation(error)) {
+        const scopedExisting = await findActiveTeamSubscriptionCheckoutOrderByScope({
+          teamId: normalizedTeamId,
+          templateId: template.id
+        });
+        if (scopedExisting) {
+          return scopedExisting;
+        }
+      }
+
       if (attempt === 4) {
         console.error('Unable to create subscription checkout order:', error);
       }
@@ -1167,6 +1376,18 @@ export async function createUserSubscriptionCheckoutOrder({
 
       return created ? toCheckoutOrderWithMetadata(created) : null;
     } catch (error) {
+      if (isPgUniqueViolation(error)) {
+        const scopedExisting = await findActiveUserSubscriptionCheckoutOrderByScope(
+          {
+            userId: normalizedUserId,
+            templateId: template.id
+          }
+        );
+        if (scopedExisting) {
+          return scopedExisting;
+        }
+      }
+
       if (attempt === 4) {
         console.error('Unable to create user subscription checkout order:', error);
       }
@@ -1462,7 +1683,7 @@ export async function createOneTimeCheckoutOrderStart({
 }
 
 function isCheckoutOrderReusableStatus(status: CheckoutOrderStatus) {
-  return status === 'ready' || status === 'provider_pending';
+  return ACTIVE_CHECKOUT_ORDER_STATUSES.includes(status);
 }
 
 export function isCheckoutOrderPayable(order: CheckoutOrderWithMetadata) {
@@ -1506,7 +1727,7 @@ export async function markCheckoutOrderProviderPending({
     .where(
       and(
         eq(checkoutOrders.id, normalizedCheckoutOrderId),
-        inArray(checkoutOrders.status, ['ready', 'provider_pending'])
+        inArray(checkoutOrders.status, ACTIVE_CHECKOUT_ORDER_STATUSES)
       )
     )
     .returning();

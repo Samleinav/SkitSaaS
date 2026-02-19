@@ -1,12 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useThemeMessages } from '@skitsaas/sdk';
+import { mergeClassNames, useThemeMessages } from '@skitsaas/sdk';
+
+type UiTableArea = 'admin' | 'dashboard';
 
 type UiTableThemeData = {
-  area?: string | null;
-  templateId?: string | null;
-  templateSource?: string | null;
+  area?: UiTableArea | string | null;
   frameClassName?: string | null;
 };
 
@@ -17,32 +17,28 @@ type UiTableThemeTemplateProps = {
   children?: ReactNode;
 };
 
-function mergeClassNames(
-  ...values: Array<string | null | undefined | false>
-) {
-  return values.filter(Boolean).join(' ');
-}
+type UiTableThemeMessages = Partial<
+  Record<
+    UiTableArea,
+    {
+      table?: {
+        surfaceLabel?: string | null;
+      };
+    }
+  >
+>;
 
 function resolveSurfaceLabel(
-  messages: Record<string, unknown>,
-  area: 'admin' | 'dashboard'
+  messages: UiTableThemeMessages,
+  area: UiTableArea
 ) {
-  const areaTree = messages[area];
-  if (!areaTree || typeof areaTree !== 'object') {
+  const label = messages[area]?.table?.surfaceLabel;
+  if (typeof label !== 'string') {
     return null;
   }
 
-  const tableTree = (areaTree as Record<string, unknown>).table;
-  if (!tableTree || typeof tableTree !== 'object') {
-    return null;
-  }
-
-  const label = (tableTree as Record<string, unknown>).surfaceLabel;
-  if (typeof label !== 'string' || label.trim().length === 0) {
-    return null;
-  }
-
-  return label.trim();
+  const normalizedLabel = label.trim();
+  return normalizedLabel.length > 0 ? normalizedLabel : null;
 }
 
 export default function UiTableThemeTemplate({
@@ -51,8 +47,8 @@ export default function UiTableThemeTemplate({
   themeId,
   children
 }: UiTableThemeTemplateProps) {
-  const normalizedArea = data?.area === 'dashboard' ? 'dashboard' : 'admin';
-  const themeMessages = useThemeMessages(themeId) as Record<string, unknown>;
+  const normalizedArea: UiTableArea = data?.area === 'dashboard' ? 'dashboard' : 'admin';
+  const themeMessages = useThemeMessages(themeId) as UiTableThemeMessages;
   const areaClassName =
     normalizedArea === 'dashboard'
       ? 'theme-first-backoffice-table-surface-dashboard'
@@ -63,10 +59,6 @@ export default function UiTableThemeTemplate({
 
   return (
     <div
-      data-theme-template="ui.table"
-      data-theme-table-area={normalizedArea}
-      data-template-id={data?.templateId ?? undefined}
-      data-template-source={data?.templateSource ?? 'theme_code'}
       aria-label={surfaceLabel}
       className={mergeClassNames(
         'theme-first-backoffice-table-surface overflow-hidden rounded-md border',

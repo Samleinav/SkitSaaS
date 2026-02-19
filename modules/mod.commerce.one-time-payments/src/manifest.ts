@@ -17,7 +17,7 @@ const commerceOneTimePaymentsFrontendPage = createModulePageRouter({
   routes: [
     {
       path: '/',
-      handler: () => renderOneTimeProductsCatalogPage()
+      handler: ({ context }) => renderOneTimeProductsCatalogPage(context)
     },
     {
       path: '/cart',

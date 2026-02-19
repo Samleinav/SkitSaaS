@@ -161,7 +161,6 @@ export default async function AdminOrdersPage() {
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         </CardContent>
@@ -188,3 +187,4 @@ export default async function AdminOrdersPage() {
     </ThemeCodeTemplate>
   );
 }
+

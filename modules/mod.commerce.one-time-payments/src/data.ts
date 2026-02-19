@@ -87,6 +87,36 @@ export type OneTimeCatalogProduct = {
   priceMetadata: Record<string, unknown> | null;
 };
 
+type ResolvedCheckoutLineItem = {
+  lineOrder: number;
+  productId: number;
+  productKey: string;
+  name: string;
+  description: string | null;
+  quantity: number;
+  unitAmountCents: number;
+  totalAmountCents: number;
+  currency: string;
+  priceId: number;
+  priceProvider: string | null;
+  providerPriceId: string | null;
+  productMetadata: Record<string, unknown> | null;
+  priceMetadata: Record<string, unknown> | null;
+};
+
+type ResolvedCheckoutIntentLineItemsResult =
+  | {
+      ok: true;
+      lineItems: ResolvedCheckoutLineItem[];
+      amount: number;
+      currency: string;
+    }
+  | {
+      ok: false;
+      code: OneTimeIntentErrorCode;
+      message: string;
+    };
+
 type FulfillmentRow = {
   id: number;
   intentId: number;
@@ -146,6 +176,14 @@ function serializeJsonObject(value: Record<string, unknown> | null) {
 
 function normalizeOptionalPositiveIntFromUnknown(value: unknown) {
   if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+
+  return null;
+}
+
+function normalizeOptionalNonNegativeIntFromUnknown(value: unknown) {
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
     return value;
   }
 
@@ -605,6 +643,86 @@ async function getProductForCheckout(productId: number) {
   };
 }
 
+async function resolveCheckoutIntentLineItems(
+  input: CreateOneTimeCheckoutIntentInput
+): Promise<ResolvedCheckoutIntentLineItemsResult> {
+  const requestedLineItems =
+    Array.isArray(input.lineItems) && input.lineItems.length > 0
+      ? input.lineItems
+      : input.productId && input.quantity
+        ? [
+            {
+              productId: input.productId,
+              quantity: input.quantity
+            }
+          ]
+        : [];
+
+  if (requestedLineItems.length === 0) {
+    return mutationError('operation_failed', 'No line items were provided.');
+  }
+
+  const resolvedLineItems: ResolvedCheckoutLineItem[] = [];
+  let totalAmount = 0;
+  let checkoutCurrency: string | null = null;
+
+  for (let index = 0; index < requestedLineItems.length; index += 1) {
+    const requestedItem = requestedLineItems[index];
+    const productResolution = await getProductForCheckout(requestedItem.productId);
+    if (!productResolution.ok) {
+      return productResolution;
+    }
+
+    const lineCurrency = productResolution.price.currency.trim().toUpperCase();
+    if (!checkoutCurrency) {
+      checkoutCurrency = lineCurrency;
+    } else if (checkoutCurrency !== lineCurrency) {
+      return mutationError(
+        'invalid_amount',
+        'All one-time line items must use the same currency.'
+      );
+    }
+
+    const lineAmount = productResolution.price.unitAmountCents * requestedItem.quantity;
+    if (!Number.isInteger(lineAmount) || lineAmount < 0 || lineAmount > 2_147_483_647) {
+      return mutationError('invalid_amount', 'Invalid computed amount.');
+    }
+
+    totalAmount += lineAmount;
+    if (!Number.isSafeInteger(totalAmount) || totalAmount > 2_147_483_647) {
+      return mutationError('invalid_amount', 'Invalid computed amount.');
+    }
+
+    resolvedLineItems.push({
+      lineOrder: index,
+      productId: productResolution.product.id,
+      productKey: productResolution.product.productKey,
+      name: productResolution.product.name,
+      description: productResolution.product.description,
+      quantity: requestedItem.quantity,
+      unitAmountCents: productResolution.price.unitAmountCents,
+      totalAmountCents: lineAmount,
+      currency: lineCurrency,
+      priceId: productResolution.price.id,
+      priceProvider: productResolution.price.provider?.trim().toLowerCase() ?? null,
+      providerPriceId: productResolution.price.providerPriceId,
+      productMetadata: parseJsonObject(productResolution.product.metadata),
+      priceMetadata: parseJsonObject(productResolution.price.metadata)
+    });
+  }
+
+  if (!checkoutCurrency) {
+    return mutationError('operation_failed', 'Unable to resolve checkout currency.');
+  }
+
+  return {
+    ok: true,
+    lineItems: resolvedLineItems,
+    amount: totalAmount,
+    currency: checkoutCurrency
+  };
+}
+
 export async function listPublishedOneTimeCatalogProducts({
   limit = 24
 }: {
@@ -728,6 +846,11 @@ async function ensureTargetPermissions(
 
 function resolveCoreCheckoutPlanName(intent: IntentRow) {
   const snapshot = parseJsonObject(intent.productSnapshot);
+  const snapshotItems = snapshot && Array.isArray(snapshot.items) ? snapshot.items : null;
+  if (snapshotItems && snapshotItems.length > 1) {
+    return 'One-time order';
+  }
+
   const snapshotName =
     snapshot && typeof snapshot.name === 'string' ? snapshot.name.trim() : '';
   if (snapshotName) {
@@ -739,44 +862,117 @@ function resolveCoreCheckoutPlanName(intent: IntentRow) {
 
 async function ensureCoreCheckoutForIntent(intent: IntentRow) {
   const targetType = mapTargetType(intent.targetType);
+  const normalizedIntentCurrency = intent.currency.trim().toUpperCase();
   const snapshot = parseJsonObject(intent.productSnapshot) ?? {};
   const intentMetadata = parseJsonObject(intent.metadata) ?? {};
   const checkoutMetadataSource = normalizeRecord(intentMetadata.checkout) ?? {};
-  const snapshotQuantity = normalizeOptionalPositiveIntFromUnknown(snapshot.quantity);
-  const snapshotUnitAmount =
-    typeof snapshot.unitAmountCents === 'number' &&
-    Number.isInteger(snapshot.unitAmountCents) &&
-    snapshot.unitAmountCents >= 0
-      ? snapshot.unitAmountCents
-      : null;
-  const fallbackQuantity = snapshotQuantity ?? 1;
-  const isSnapshotAmountConsistent =
-    snapshotUnitAmount !== null && fallbackQuantity * snapshotUnitAmount === intent.amount;
-  const lineItemQuantity = isSnapshotAmountConsistent ? fallbackQuantity : 1;
-  const lineItemUnitAmount = isSnapshotAmountConsistent
-    ? snapshotUnitAmount
-    : intent.amount;
-  const lineItemName =
-    typeof snapshot.name === 'string' && snapshot.name.trim()
-      ? snapshot.name.trim()
-      : resolveCoreCheckoutPlanName(intent);
-  const lineItemDescription =
-    typeof snapshot.description === 'string' && snapshot.description.trim()
-      ? snapshot.description.trim()
-      : null;
-  const lineItemProductKey =
-    typeof snapshot.productKey === 'string' ? snapshot.productKey : null;
+  const snapshotItems = Array.isArray(snapshot.items) ? snapshot.items : [];
+  const normalizedSnapshotLineItems = snapshotItems
+    .map((item, index) => {
+      const normalizedItem = normalizeRecord(item);
+      if (!normalizedItem) {
+        return null;
+      }
 
-  const checkoutStart = await createOneTimeCheckoutOrderStart({
-    moduleId: COMMERCE_ONE_TIME_PAYMENTS_MODULE_ID,
-    source: 'module',
-    teamId: targetType === 'team' ? intent.targetTeamId : null,
-    targetType,
-    targetTeamId: targetType === 'team' ? intent.targetTeamId : null,
-    targetUserId: targetType === 'user' ? intent.targetUserId : null,
-    amount: intent.amount,
-    currency: intent.currency,
-    lineItems: [
+      const quantity = normalizeOptionalPositiveIntFromUnknown(normalizedItem.quantity);
+      const unitAmount = normalizeOptionalNonNegativeIntFromUnknown(
+        normalizedItem.unitAmountCents
+      );
+      const totalAmount = normalizeOptionalNonNegativeIntFromUnknown(
+        normalizedItem.totalAmountCents
+      );
+      const currency =
+        typeof normalizedItem.currency === 'string'
+          ? normalizedItem.currency.trim().toUpperCase()
+          : normalizedIntentCurrency;
+      const name =
+        typeof normalizedItem.name === 'string' && normalizedItem.name.trim()
+          ? normalizedItem.name.trim()
+          : null;
+
+      if (!quantity || unitAmount === null || totalAmount === null || !name) {
+        return null;
+      }
+
+      if (quantity * unitAmount !== totalAmount || currency !== normalizedIntentCurrency) {
+        return null;
+      }
+
+      return {
+        lineOrder: index,
+        itemType: 'one_time_product' as const,
+        productId:
+          normalizeOptionalPositiveIntFromUnknown(normalizedItem.productId) ??
+          intent.productId,
+        productKey:
+          typeof normalizedItem.productKey === 'string'
+            ? normalizedItem.productKey
+            : null,
+        name,
+        description:
+          typeof normalizedItem.description === 'string' &&
+          normalizedItem.description.trim()
+            ? normalizedItem.description.trim()
+            : null,
+        quantity,
+        unitAmount,
+        totalAmount,
+        currency,
+        metadata: normalizedItem
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  let checkoutLineItems:
+    | Array<{
+        lineOrder: number;
+        itemType: 'one_time_product';
+        productId: number;
+        productKey: string | null;
+        name: string;
+        description: string | null;
+        quantity: number;
+        unitAmount: number;
+        totalAmount: number;
+        currency: string;
+        metadata: Record<string, unknown> | null;
+      }>
+    | null = null;
+
+  const normalizedSnapshotAmount = normalizedSnapshotLineItems.reduce(
+    (sum, item) => sum + item.totalAmount,
+    0
+  );
+  if (
+    normalizedSnapshotLineItems.length > 0 &&
+    normalizedSnapshotAmount === intent.amount
+  ) {
+    checkoutLineItems = normalizedSnapshotLineItems;
+  } else {
+    const snapshotQuantity = normalizeOptionalPositiveIntFromUnknown(snapshot.quantity);
+    const snapshotUnitAmount = normalizeOptionalNonNegativeIntFromUnknown(
+      snapshot.unitAmountCents
+    );
+    const fallbackQuantity = snapshotQuantity ?? 1;
+    const isSnapshotAmountConsistent =
+      snapshotUnitAmount !== null &&
+      fallbackQuantity * snapshotUnitAmount === intent.amount;
+    const lineItemQuantity = isSnapshotAmountConsistent ? fallbackQuantity : 1;
+    const lineItemUnitAmount = isSnapshotAmountConsistent
+      ? snapshotUnitAmount
+      : intent.amount;
+    const lineItemName =
+      typeof snapshot.name === 'string' && snapshot.name.trim()
+        ? snapshot.name.trim()
+        : resolveCoreCheckoutPlanName(intent);
+    const lineItemDescription =
+      typeof snapshot.description === 'string' && snapshot.description.trim()
+        ? snapshot.description.trim()
+        : null;
+    const lineItemProductKey =
+      typeof snapshot.productKey === 'string' ? snapshot.productKey : null;
+
+    checkoutLineItems = [
       {
         lineOrder: 0,
         itemType: 'one_time_product',
@@ -787,19 +983,34 @@ async function ensureCoreCheckoutForIntent(intent: IntentRow) {
         quantity: lineItemQuantity,
         unitAmount: lineItemUnitAmount,
         totalAmount: intent.amount,
-        currency: intent.currency,
+        currency: normalizedIntentCurrency,
         metadata: snapshot
       }
-    ],
+    ];
+  }
+
+  const primaryLineItem = checkoutLineItems[0];
+
+  const checkoutStart = await createOneTimeCheckoutOrderStart({
+    moduleId: COMMERCE_ONE_TIME_PAYMENTS_MODULE_ID,
+    source: 'module',
+    teamId: targetType === 'team' ? intent.targetTeamId : null,
+    targetType,
+    targetTeamId: targetType === 'team' ? intent.targetTeamId : null,
+    targetUserId: targetType === 'user' ? intent.targetUserId : null,
+    amount: intent.amount,
+    currency: normalizedIntentCurrency,
+    lineItems: checkoutLineItems,
     planName: resolveCoreCheckoutPlanName(intent),
     paymentMethodId: null,
     idempotencyKey: `otp_core_checkout_intent:${intent.id}`,
     metadata: {
       intentId: intent.id,
       intentKey: intent.intentKey,
-      productId: intent.productId,
-      productKey: lineItemProductKey,
-      quantity: normalizeOptionalPositiveIntFromUnknown(snapshot.quantity),
+      productId: primaryLineItem?.productId ?? intent.productId,
+      productKey: primaryLineItem?.productKey ?? null,
+      quantity: primaryLineItem?.quantity ?? null,
+      itemsCount: checkoutLineItems.length,
       snapshot
     }
   });
@@ -862,25 +1073,17 @@ export async function createOneTimeCheckoutIntent(
           existing.targetTeamId &&
           (await userCanAccessTeam(actor.userId, existing.targetTeamId)))
       ) {
-        if (input.checkoutMode === 'core_checkout') {
-          const ensuredCoreCheckoutIntent = await ensureCoreCheckoutForIntent(existing);
-          if (!ensuredCoreCheckoutIntent) {
-            return mutationError(
-              'operation_failed',
-              'Unable to initialize core checkout order.'
-            );
-          }
-
-          return {
-            ok: true,
-            intent: mapIntentRow(ensuredCoreCheckoutIntent),
-            idempotencyReused: true
-          };
+        const ensuredCoreCheckoutIntent = await ensureCoreCheckoutForIntent(existing);
+        if (!ensuredCoreCheckoutIntent) {
+          return mutationError(
+            'operation_failed',
+            'Unable to initialize core checkout order.'
+          );
         }
 
         return {
           ok: true,
-          intent: mapIntentRow(existing),
+          intent: mapIntentRow(ensuredCoreCheckoutIntent),
           idempotencyReused: true
         };
       }
@@ -897,40 +1100,50 @@ export async function createOneTimeCheckoutIntent(
     return target;
   }
 
-  const productResolution = await getProductForCheckout(input.productId);
-  if (!productResolution.ok) {
-    return productResolution;
+  const resolvedLineItems = await resolveCheckoutIntentLineItems(input);
+  if (!resolvedLineItems.ok) {
+    return resolvedLineItems;
   }
 
-  const amount = productResolution.price.unitAmountCents * input.quantity;
-  if (!Number.isInteger(amount) || amount < 0 || amount > 2_147_483_647) {
-    return mutationError('invalid_amount', 'Invalid computed amount.');
+  const primaryLineItem = resolvedLineItems.lineItems[0];
+  if (!primaryLineItem) {
+    return mutationError('operation_failed', 'Unable to resolve checkout line items.');
   }
 
   const productSnapshot = {
-    schemaVersion: 1,
-    productId: productResolution.product.id,
-    productKey: productResolution.product.productKey,
-    name: productResolution.product.name,
-    description: productResolution.product.description,
-    quantity: input.quantity,
-    unitAmountCents: productResolution.price.unitAmountCents,
-    amount,
-    currency: productResolution.price.currency,
-    price: {
-      id: productResolution.price.id,
-      provider: productResolution.price.provider,
-      providerPriceId: productResolution.price.providerPriceId,
-      metadata: parseJsonObject(productResolution.price.metadata)
-    },
-    productMetadata: parseJsonObject(productResolution.product.metadata)
+    schemaVersion: 2,
+    productId: primaryLineItem.productId,
+    productKey: primaryLineItem.productKey,
+    name: primaryLineItem.name,
+    description: primaryLineItem.description,
+    quantity: primaryLineItem.quantity,
+    unitAmountCents: primaryLineItem.unitAmountCents,
+    amount: resolvedLineItems.amount,
+    currency: resolvedLineItems.currency,
+    itemsCount: resolvedLineItems.lineItems.length,
+    items: resolvedLineItems.lineItems.map((lineItem) => ({
+      productId: lineItem.productId,
+      productKey: lineItem.productKey,
+      name: lineItem.name,
+      description: lineItem.description,
+      quantity: lineItem.quantity,
+      unitAmountCents: lineItem.unitAmountCents,
+      totalAmountCents: lineItem.totalAmountCents,
+      currency: lineItem.currency,
+      price: {
+        id: lineItem.priceId,
+        provider: lineItem.priceProvider,
+        providerPriceId: lineItem.providerPriceId,
+        metadata: lineItem.priceMetadata
+      },
+      productMetadata: lineItem.productMetadata
+    }))
   } satisfies Record<string, unknown>;
 
   const metadata = {
     ...(input.metadata || {}),
     checkout: {
-      mode: input.checkoutMode,
-      provider: input.provider,
+      mode: 'core_checkout',
       successUrl: input.successUrl,
       cancelUrl: input.cancelUrl
     }
@@ -945,14 +1158,14 @@ export async function createOneTimeCheckoutIntent(
       .insert(modCommerceOnetimeIntents)
       .values({
         intentKey: buildIntentKey(),
-        productId: productResolution.product.id,
-        provider: input.provider ?? 'unbound',
+        productId: primaryLineItem.productId,
+        provider: 'unbound',
         status: 'pending',
         targetType: input.targetType,
         targetUserId: target.targetUserId,
         targetTeamId: target.targetTeamId,
-        amount,
-        currency: productResolution.price.currency,
+        amount: resolvedLineItems.amount,
+        currency: resolvedLineItems.currency,
         sessionId: null,
         providerIntentId: null,
         checkoutUrl: null,
@@ -984,25 +1197,17 @@ export async function createOneTimeCheckoutIntent(
     return mutationError('operation_failed', 'Created intent was not found.');
   }
 
-  if (input.checkoutMode === 'core_checkout') {
-    const ensuredCoreCheckoutIntent = await ensureCoreCheckoutForIntent(createdIntent);
-    if (!ensuredCoreCheckoutIntent) {
-      return mutationError(
-        'operation_failed',
-        'Unable to initialize core checkout order.'
-      );
-    }
-
-    return {
-      ok: true,
-      intent: mapIntentRow(ensuredCoreCheckoutIntent),
-      idempotencyReused: false
-    };
+  const ensuredCoreCheckoutIntent = await ensureCoreCheckoutForIntent(createdIntent);
+  if (!ensuredCoreCheckoutIntent) {
+    return mutationError(
+      'operation_failed',
+      'Unable to initialize core checkout order.'
+    );
   }
 
   return {
     ok: true,
-    intent: mapIntentRow(createdIntent),
+    intent: mapIntentRow(ensuredCoreCheckoutIntent),
     idempotencyReused: false
   };
 }
@@ -1108,14 +1313,6 @@ async function attachProviderSessionToOneTimeIntent({
     return mutationError('not_found', 'Intent not found.');
   }
 
-  const currentProvider = mapProvider(existing.provider);
-  if (currentProvider && currentProvider !== provider && existing.sessionId) {
-    return mutationError(
-      'operation_failed',
-      'Intent provider does not match checkout session provider.'
-    );
-  }
-
   const db = getOneTimePaymentsDb();
   const now = new Date();
 
@@ -1206,6 +1403,7 @@ export async function attachPayPalSessionToOneTimeIntent({
 
 export async function registerOneTimeIntentFulfillmentFromWebhook({
   intentId,
+  orderId,
   status,
   providerEventId,
   externalPaymentId,
@@ -1215,6 +1413,7 @@ export async function registerOneTimeIntentFulfillmentFromWebhook({
   metadata
 }: {
   intentId: number;
+  orderId: number | null;
   status: Exclude<OneTimeFulfillmentStatus, 'pending'>;
   providerEventId: string;
   externalPaymentId: string | null;
@@ -1292,6 +1491,7 @@ export async function registerOneTimeIntentFulfillmentFromWebhook({
   const now = new Date();
   const normalizedExternalPaymentId = externalPaymentId?.trim() || null;
   const normalizedCurrency = currency?.trim().toUpperCase() || null;
+  const normalizedOrderId = normalizePositiveInt(orderId);
 
   try {
     await db.transaction(async (tx: any) => {
@@ -1314,6 +1514,7 @@ export async function registerOneTimeIntentFulfillmentFromWebhook({
         await tx
           .update(modCommerceOnetimeFulfillments)
           .set({
+            orderId: normalizedOrderId ?? existingFulfillment.orderId,
             status: transition.nextStatus,
             providerEventId: normalizedEventId,
             externalPaymentId: normalizedExternalPaymentId,
@@ -1328,7 +1529,7 @@ export async function registerOneTimeIntentFulfillmentFromWebhook({
       } else {
         await tx.insert(modCommerceOnetimeFulfillments).values({
           intentId: intent.id,
-          orderId: null,
+          orderId: normalizedOrderId ?? null,
           status: transition.nextStatus,
           providerEventId: normalizedEventId,
           externalPaymentId: normalizedExternalPaymentId,

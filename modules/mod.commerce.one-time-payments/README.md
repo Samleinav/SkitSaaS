@@ -20,9 +20,20 @@ Current implementation:
 
 - creates one-time checkout sessions/intents (Stripe + PayPal)
 - supports optional checkout creation in core order-first flow:
-  - `POST /checkout-sessions` with `checkoutMode: "core_checkout"` returns `intent.checkoutUrl` pointing to `/checkout/[checkoutToken]`
-  - default mode remains `provider_session` for backward compatibility
+  - `POST /checkout-sessions` without `checkoutMode` (and without `provider`) defaults to `core_checkout` and returns `intent.checkoutUrl` pointing to `/checkout/[checkoutToken]`
+  - explicit `provider` payloads and `checkoutMode: "provider_session"` are rejected (`400`) to keep intent creation provider-agnostic
+  - `POST /checkout-sessions` accepts:
+    - legacy-compatible single item payload (`productId`, `quantity`)
+    - multi-item payload (`lineItems: [{ productId, quantity }]`) for one-time cart aggregation
+- core checkout flow does not preselect Stripe/PayPal on `/products*`; provider binding happens when the user selects a checkout payment method.
 - frontend `/products/order` uses module server action to create one-time intent in `core_checkout` mode and redirects to `/checkout/[checkoutToken]`
+- frontend cart/order aggregate contract:
+  - `/products` appends products into `items` query (`productId:quantity,...`)
+  - `/products/cart` and `/products/order` resolve aggregated cart items from `items`
+  - order submit posts `lineItemsPayload` to backend intent creation
+  - order flow blocks checkout submit when cart contains mixed currencies (same-currency checkout invariant)
+- frontend `/products` supports `Buy now` direct handoff to `/checkout/[checkoutToken]` (skips `/products/cart` and `/products/order`)
+- frontend `/products` resolves `?error=` and renders a catalog-level alert for failed `buy_now` attempts
 - frontend order flow supports both checkout targets:
   - `targetType='team'` when the user has a team and selects team checkout
   - `targetType='user'` for user-scoped checkout (including no-team setups)
@@ -32,6 +43,14 @@ Current implementation:
 - verifies Stripe/PayPal webhook signatures and reconciles intent/fulfillment records
 - records one-time orders through core `recordCheckoutEvent(...)`
 - persists module-owned fulfillment state and transition decisions
+
+Legacy provider-field rollout policy (Sprint 8 Task 8.1):
+
+- API contract: `provider` and `checkoutMode: "provider_session"` are deprecated and rejected (`400`).
+- Intent creation write policy: new intents are persisted as provider-unbound (`provider='unbound'`) until checkout payment-method selection.
+- Runtime binding policy: provider is bound/updated only when checkout dispatch starts a concrete method (`onetime-stripe` or `onetime-paypal`).
+- Historical compatibility: existing rows with provider-bound data remain readable; webhook/payment-method flows continue using persisted provider/session references.
+- Drop policy: DB provider columns are retained during the hardening window and should be removed only after migration/audit confirms no runtime dependency outside dispatch/webhook correlation.
 
 Module DB ownership:
 
@@ -69,14 +88,14 @@ Module routes:
 ## Frontend IA backlog (implementation-ready)
 
 - `/products` (catalog):
-  - list published one-time products with provider + price snapshot
+  - list published one-time products with price snapshot
+  - `Buy now` direct checkout handoff (`/products` -> `/checkout/[checkoutToken]`)
   - handle empty catalog state and unavailable product entries
 - `/products/cart`:
   - quantity editor with bounds
-  - provider selection constrained by product/provider compatibility rules
   - target type preselection (`team`/`user`) with guardrails
 - `/products/order`:
-  - order summary + mutable fields (quantity/provider/target)
+  - order summary + mutable fields (quantity/target)
   - create one-time intent with `checkoutMode='core_checkout'`
   - redirect to `/checkout/[checkoutToken]`
   - map backend error codes to localized user-friendly messages
@@ -99,10 +118,10 @@ Current payload keys:
 
 - `page.frontend.products.catalog`: `title`, `description`, `total`, `hasProducts`
 - `page.frontend.products.cart`: `title`, `description`, `productId`, `quantity`
-- `page.frontend.products.order`: `title`, `description`, `provider`, `targetType`
-- `section.frontend.products.catalog.card`: `productId`, `productKey`, `name`, `priceLabel`, `provider`
+- `page.frontend.products.order`: `title`, `description`, `targetType`
+- `section.frontend.products.catalog.card`: `productId`, `productKey`, `name`, `priceLabel`
 - `section.frontend.products.cart.summary`: `productId`, `quantity`, `unitAmount`, `totalAmount`, `currency`
-- `section.frontend.products.order.form`: `productId`, `provider`, `targetType`, `canUseTeamTarget`
+- `section.frontend.products.order.form`: `productId`, `targetType`, `canUseTeamTarget`
 
 Resolution policy:
 
@@ -133,7 +152,7 @@ Implemented key namespaces:
 - Planned UI-focused coverage:
   - route-level render states (`catalog`, `cart`, `order`) with i18n-driven copy
   - error mapping tests from API codes to UI states/messages
-  - provider chooser guardrails for unsupported provider/product combinations
+  - direct `buy_now` handoff contract (`/products` -> `/checkout/[checkoutToken]`)
 
 ## Module-off behavior
 

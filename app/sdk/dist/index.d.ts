@@ -8,3 +8,5 @@ export { ThemeI18nProvider, useThemeMessages, resolveThemeMessages, type ThemeMe
 export { defineThemeConfig, type ThemeConfig, type ThemeAssetsConfig, type ThemeAssetArea, type ThemeAssetPathMap, type ThemeTemplateIdMap, type ThemeHeadConfig, type ThemeProviderProps } from './theme/config.js';
 export type { DataTableTemplateSlot, DataTableTemplateContract, DataTableTemplateEntryFactoryOptions, DataTableCrudOperation, DataTableListResult, DataTableListHandler, DataTableCreateHandler, DataTableUpdateHandler, DataTableDeleteHandler, DataTableCrudPolicy, DataTableCrudPolicies, DataTableCrudRevalidation, DataTableCrudRouterOptions } from './datatables/index.js';
 export { createDataTableTemplateContract, createDataTableTemplateEntries, createDataTableCrudApiRouter } from './datatables/index.js';
+export type { ClassNameValue } from './templates/utils.js';
+export { mergeClassNames, toStringOrNull, toStringOrFallback, toNumberOrFallback } from './templates/utils.js';

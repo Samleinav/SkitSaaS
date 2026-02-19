@@ -15,6 +15,11 @@ type OneTimePaymentsSessionUser = {
   email?: string | null;
 };
 
+type OneTimeCheckoutLineItemPayload = {
+  productId: number;
+  quantity: number;
+};
+
 const frontendAction = createServerActionController<OneTimePaymentsSessionUser>({
   requireUser: async () => requireUser<OneTimePaymentsSessionUser>()
 });
@@ -36,14 +41,106 @@ function normalizeIdempotencyKey(value: string) {
   return normalized.slice(0, 160);
 }
 
+function normalizeCartItemsQueryParam(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, 4000);
+}
+
+function parseLineItemsPayload(value: string): {
+  provided: boolean;
+  ok: boolean;
+  lineItems: OneTimeCheckoutLineItemPayload[] | null;
+} {
+  const normalized = value.trim();
+  if (!normalized) {
+    return {
+      provided: false,
+      ok: true,
+      lineItems: null
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(normalized);
+  } catch {
+    return {
+      provided: true,
+      ok: false,
+      lineItems: null
+    };
+  }
+
+  if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > 100) {
+    return {
+      provided: true,
+      ok: false,
+      lineItems: null
+    };
+  }
+
+  const normalizedLineItems: OneTimeCheckoutLineItemPayload[] = [];
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return {
+        provided: true,
+        ok: false,
+        lineItems: null
+      };
+    }
+
+    const source = entry as Record<string, unknown>;
+    const productId =
+      typeof source.productId === 'number' &&
+      Number.isInteger(source.productId) &&
+      source.productId > 0
+        ? source.productId
+        : null;
+    const quantityValue =
+      source.quantity === undefined || source.quantity === null ? 1 : source.quantity;
+    const quantity =
+      typeof quantityValue === 'number' &&
+      Number.isInteger(quantityValue) &&
+      quantityValue > 0 &&
+      quantityValue <= 100
+        ? quantityValue
+        : null;
+
+    if (!productId || !quantity) {
+      return {
+        provided: true,
+        ok: false,
+        lineItems: null
+      };
+    }
+
+    normalizedLineItems.push({
+      productId,
+      quantity
+    });
+  }
+
+  return {
+    provided: true,
+    ok: true,
+    lineItems: normalizedLineItems
+  };
+}
+
 function buildOrderPath({
   productId,
   quantity,
+  items,
   targetType,
   error
 }: {
   productId?: number | null;
   quantity?: number | null;
+  items?: string | null;
   targetType?: 'team' | 'user' | null;
   error?: string | null;
 }) {
@@ -53,6 +150,9 @@ function buildOrderPath({
   }
   if (quantity && Number.isInteger(quantity) && quantity > 0) {
     params.set('quantity', String(quantity));
+  }
+  if (items) {
+    params.set('items', items);
   }
   if (targetType) {
     params.set('targetType', targetType);
@@ -67,17 +167,83 @@ function buildOrderPath({
     : `${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/order`;
 }
 
+function buildCatalogPath(error?: string | null) {
+  if (!error) {
+    return COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS;
+  }
+
+  const params = new URLSearchParams();
+  params.set('error', error);
+  return `${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}?${params.toString()}`;
+}
+
+function resolveRedirectPath({
+  source,
+  productId,
+  quantity,
+  items,
+  targetType,
+  error
+}: {
+  source: 'buy_now' | 'order';
+  productId?: number | null;
+  quantity?: number | null;
+  items?: string | null;
+  targetType?: 'team' | 'user' | null;
+  error?: string | null;
+}) {
+  if (source === 'buy_now') {
+    return buildCatalogPath(error);
+  }
+
+  return buildOrderPath({
+    productId,
+    quantity,
+    items,
+    targetType,
+    error
+  });
+}
+
 export const startOneTimeProductCheckoutAction = frontendAction(
   async ({ user, form }) => {
-    const productId = form.positiveInt('productId');
-    const quantity = normalizeQuantity(form.positiveInt('quantity'));
+    const parsedLineItemsPayload = parseLineItemsPayload(
+      form.string('lineItemsPayload')
+    );
+    const source =
+      form.lower('checkoutSource') === 'buy_now' ? 'buy_now' : 'order';
+    const cartItemsQueryParam = normalizeCartItemsQueryParam(
+      form.string('cartItems')
+    );
+
+    if (parsedLineItemsPayload.provided && !parsedLineItemsPayload.ok) {
+      redirect(
+        resolveRedirectPath({
+          source,
+          items: cartItemsQueryParam,
+          error: 'invalid_line_items'
+        })
+      );
+    }
+
+    const lineItems = parsedLineItemsPayload.lineItems;
+    const productId = lineItems ? null : form.positiveInt('productId');
+    const quantity = lineItems
+      ? null
+      : normalizeQuantity(form.positiveInt('quantity'));
     const requestedTargetType = form.lower('targetType');
     const idempotencyKey =
       normalizeIdempotencyKey(form.string('idempotencyKey')) ??
       `otp_ui_${randomUUID().replace(/-/g, '')}`;
 
-    if (!productId) {
-      redirect(buildOrderPath({ error: 'invalid_product_id' }));
+    if (!lineItems && !productId) {
+      redirect(
+        resolveRedirectPath({
+          source,
+          items: cartItemsQueryParam,
+          error: 'invalid_product_id'
+        })
+      );
     }
 
     const teamId = await getPrimaryTeamIdForUser(user.id);
@@ -90,9 +256,11 @@ export const startOneTimeProductCheckoutAction = frontendAction(
 
     if (targetType === 'team' && !teamId) {
       redirect(
-        buildOrderPath({
+        resolveRedirectPath({
+          source,
           productId,
           quantity,
+          items: cartItemsQueryParam,
           targetType,
           error: 'target_team_required'
         })
@@ -103,13 +271,17 @@ export const startOneTimeProductCheckoutAction = frontendAction(
       {
         productId,
         quantity,
+        lineItems,
         provider: null,
         checkoutMode: 'core_checkout',
         targetType,
         targetTeamId: targetType === 'team' ? teamId : null,
         idempotencyKey,
         metadata: {
-          source: 'frontend.products.order'
+          source:
+            source === 'buy_now'
+              ? 'frontend.products.buy_now'
+              : 'frontend.products.order'
         },
         successUrl: null,
         cancelUrl: null
@@ -121,9 +293,11 @@ export const startOneTimeProductCheckoutAction = frontendAction(
 
     if (!result.ok) {
       redirect(
-        buildOrderPath({
+        resolveRedirectPath({
+          source,
           productId,
           quantity,
+          items: cartItemsQueryParam,
           targetType,
           error: result.code
         })
@@ -133,9 +307,11 @@ export const startOneTimeProductCheckoutAction = frontendAction(
     const checkoutUrl = result.intent.checkoutUrl?.trim() || '';
     if (!checkoutUrl.startsWith('/checkout/')) {
       redirect(
-        buildOrderPath({
+        resolveRedirectPath({
+          source,
           productId,
           quantity,
+          items: cartItemsQueryParam,
           targetType,
           error: 'operation_failed'
         })

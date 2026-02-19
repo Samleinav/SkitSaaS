@@ -54,13 +54,11 @@ function normalizeSource(
 type PaymentPreviewDialogProps = {
   row: AdminPaymentDataRow;
   messages: AdminMessages;
-  themeId?: string | null;
 };
 
 function PaymentPreviewDialog({
   row,
-  messages,
-  themeId = null
+  messages
 }: PaymentPreviewDialogProps) {
   const table = messages.paymentsPage.table;
   const sourceLabels: Record<PaymentSource, string> = {
@@ -143,7 +141,6 @@ function PaymentPreviewDialog({
   return (
     <ThemeTemplate
       id="ui.alert-dialog"
-      themeId={themeId}
       data={{
         area: 'admin',
         slot: 'admin.payments.preview-dialog'
@@ -156,13 +153,9 @@ function PaymentPreviewDialog({
 }
 
 export function getPaymentDataColumns(
-  messages: AdminMessages,
-  options?: {
-    themeId?: string | null;
-  }
+  messages: AdminMessages
 ): ColumnDef<AdminPaymentDataRow>[] {
   const table = messages.paymentsPage.table;
-  const themeId = options?.themeId ?? null;
   const sourceLabels: Record<PaymentSource, string> = {
     checkout: table.checkout,
     webhook: table.webhook,
@@ -189,7 +182,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="header.paid-at.sort"
           >
             {fallbackHeader}
@@ -206,7 +198,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.paid-at"
           >
             {fallbackCell}
@@ -227,7 +218,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.payer"
             data={{
               paymentId: row.original.id
@@ -251,7 +241,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.reason"
           >
             {fallbackCell}
@@ -277,7 +266,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.source"
             data={{
               source
@@ -301,7 +289,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.payment-type"
           >
             {fallbackCell}
@@ -322,7 +309,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.amount"
           >
             {fallbackCell}
@@ -343,7 +329,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.payment-reference"
           >
             {fallbackCell}
@@ -369,7 +354,6 @@ export function getPaymentDataColumns(
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.purchase-order-reference"
             data={{
               paymentId: row.original.id
@@ -390,14 +374,12 @@ export function getPaymentDataColumns(
           <PaymentPreviewDialog
             row={row.original}
             messages={messages}
-            themeId={themeId}
           />
         );
 
         return (
           <AdminTableSlotTemplate
             templateId="section.admin.table.payments.cell"
-            themeId={themeId}
             slot="cell.actions.preview"
             data={{
               paymentId: row.original.id
@@ -410,3 +392,4 @@ export function getPaymentDataColumns(
     }
   ];
 }
+

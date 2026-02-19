@@ -104,21 +104,21 @@ function isFinalWebhookStatus(
   return status !== 'pending';
 }
 
+type CheckoutOrderByProviderSession = Awaited<
+  ReturnType<typeof getCheckoutOrderByProviderSession>
+>;
+
 async function syncCheckoutOrderStatusForStripeWebhook({
   deps,
-  providerSessionId,
+  checkoutOrder,
   resolvedStatus,
   externalPaymentId
 }: {
   deps: StripeWebhookDeps;
-  providerSessionId: string;
+  checkoutOrder: CheckoutOrderByProviderSession;
   resolvedStatus: Exclude<OneTimeFulfillmentStatus, 'pending'>;
   externalPaymentId: string;
 }) {
-  const checkoutOrder = await deps.getCheckoutOrderByProviderSession({
-    provider: 'module',
-    providerSessionId
-  });
   if (!checkoutOrder) {
     return;
   }
@@ -221,9 +221,14 @@ export function createProcessOneTimeStripeWebhookEvent(
       : sessionId;
   const amount = getSessionAmount(session, intent.amount);
   const currency = getSessionCurrency(session, intent.currency);
+  const checkoutOrder = await resolvedDeps.getCheckoutOrderByProviderSession({
+    provider: 'module',
+    providerSessionId: sessionId
+  });
 
   const fulfillment = await resolvedDeps.registerOneTimeIntentFulfillmentFromWebhook({
     intentId: intent.id,
+    orderId: checkoutOrder?.id ?? null,
     status: mappedStatus,
     providerEventId: event.id,
     externalPaymentId,
@@ -282,7 +287,7 @@ export function createProcessOneTimeStripeWebhookEvent(
 
   await syncCheckoutOrderStatusForStripeWebhook({
     deps: resolvedDeps,
-    providerSessionId: sessionId,
+    checkoutOrder,
     resolvedStatus,
     externalPaymentId
   });

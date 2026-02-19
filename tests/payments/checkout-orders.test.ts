@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import type { CheckoutOrder } from '../../lib/db/schema';
 import {
@@ -67,6 +69,37 @@ test('parseCheckoutOrderMetadata returns parsed object for valid payload', () =>
 
   assert.ok(metadata);
   assert.equal(metadata?.schemaVersion, 1);
+});
+
+test('parseCheckoutOrderMetadata infers schemaVersion for legacy payload without version', () => {
+  const metadata = parseCheckoutOrderMetadata(
+    JSON.stringify({
+      oneTime: {
+        productId: 77,
+        quantity: 2
+      }
+    })
+  );
+
+  assert.ok(metadata);
+  assert.equal(metadata?.schemaVersion, 1);
+  assert.equal(metadata?.oneTime?.productId, 77);
+  assert.equal(metadata?.oneTime?.quantity, 2);
+});
+
+test('parseCheckoutOrderMetadata drops invalid oneTime envelope while keeping metadata object', () => {
+  const metadata = parseCheckoutOrderMetadata(
+    JSON.stringify({
+      schemaVersion: 1,
+      oneTime: 'invalid',
+      source: 'legacy'
+    })
+  );
+
+  assert.ok(metadata);
+  assert.equal(metadata?.schemaVersion, 1);
+  assert.equal(metadata?.source, 'legacy');
+  assert.equal(metadata?.oneTime, undefined);
 });
 
 test('buildCheckoutOrderPath returns encoded checkout route', () => {
@@ -216,5 +249,29 @@ test('isReusableSubscriptionCheckoutOrderForContext rejects non-matching context
       changeMode: 'period_end'
     }),
     false
+  );
+});
+
+test('subscription scope invariant migration defines active unique indexes', () => {
+  const migrationPath = path.join(
+    process.cwd(),
+    'lib',
+    'db',
+    'migrations',
+    '0024_subscription_checkout_scope_invariant.sql'
+  );
+  const migrationSql = fs.readFileSync(migrationPath, 'utf8');
+
+  assert.match(
+    migrationSql,
+    /CREATE UNIQUE INDEX "checkout_orders_active_subscription_team_scope_idx"/
+  );
+  assert.match(
+    migrationSql,
+    /CREATE UNIQUE INDEX "checkout_orders_active_subscription_user_scope_idx"/
+  );
+  assert.match(
+    migrationSql,
+    /"status" IN \('ready', 'provider_pending'\)/
   );
 });

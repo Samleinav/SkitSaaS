@@ -125,19 +125,20 @@ export function AdminNav({
       href: '/admin/logs',
       icon: FileText,
       label: messages.nav.logs
-    },
-    {
-      href: '/admin/app-config',
-      icon: Settings2,
-      label: messages.nav.appConfig
     }
   ];
+  const appConfigItem: AdminNavItem = {
+    href: '/admin/app-config',
+    icon: Settings2,
+    label: messages.nav.appConfig
+  };
   const navItems: AdminNavItem[] = [
     ...coreItems,
     ...moduleItems.map((item) => ({
       ...item,
       icon: Package
-    }))
+    })),
+    appConfigItem
   ];
   const isPro = variant === 'pro';
   const itemPadding = mode === 'adjusted' ? 'px-3.5 py-3.5' : 'px-3 py-3';

@@ -39,10 +39,10 @@ Consolidar en un solo backlog priorizado:
 
 - Checkout core SI es order-first y SI separa `subscription` vs `one_time`.
 - Checkout de suscripcion SI carga features del template antes de pago.
-- El modulo one-time actual esta fuertemente acoplado a `provider` (selector + validacion + filtros), lo cual contradice el objetivo de metodos dinamicos.
+- El acoplamiento principal a `provider` en flujo one-time se redujo (sin selector en UI baseline y sin filtro provider en checkout), pero quedan contratos legacy internos.
 - El modelo actual de orden one-time no representa un carrito real de N productos en tabla de line items; usa snapshot singular en metadata.
-- El `buy now` one-time hoy no es directo: primero lleva a `/products/order` y recien desde ahi redirige a checkout.
-- Admin products usa tabla/filtros manuales y contrato de pricing orientado a proveedor/cents, no a UX operativa de catalogo + checkout dinamico.
+- El `buy now` one-time ya es directo (`/products` -> `/checkout/[checkoutToken]`).
+- Admin products ya usa DataTable y formulario de precio en monto decimal + moneda select; quedan contratos legacy de provider en capas internas.
 
 ## Prioridades (backlog de correccion)
 
@@ -50,33 +50,24 @@ Consolidar en un solo backlog priorizado:
 
 ### Estado actual (evidencia)
 
-- UI cart/order fuerza selector de proveedor:
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:627`
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:630`
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:798`
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:801`
-- Action envia `provider` al crear intent:
-  - `modules/mod.commerce.one-time-payments/src/actions.ts:86`
-  - `modules/mod.commerce.one-time-payments/src/actions.ts:120`
-- Validator exige provider (`stripe|paypal`):
-  - `modules/mod.commerce.one-time-payments/src/validators.ts:185`
-  - `modules/mod.commerce.one-time-payments/src/validators.ts:189`
-- Checkout methods API filtra por `metadata.oneTime.provider`:
-  - `app/api/checkout/methods/route.ts:48`
-  - `app/api/checkout/methods/route.ts:61`
-  - `app/api/checkout/methods/route.ts:74`
-- Checkout page aplica el mismo filtro:
-  - `app/(frontend)/checkout/[checkoutToken]/page.tsx:174`
-  - `app/(frontend)/checkout/[checkoutToken]/page.tsx:184`
-  - `app/(frontend)/checkout/[checkoutToken]/page.tsx:190`
-- Module payment-method start rechaza mismatch por provider:
-  - `modules/mod.commerce.one-time-payments/src/api-handler.ts:293`
-  - `modules/mod.commerce.one-time-payments/src/api-handler.ts:396`
-  - `tests/modules/mod-commerce-onetime-api.test.ts:432`
+- UI baseline one-time ya no expone selector de provider en catalog/order:
+  - `modules/mod.commerce.one-time-payments/src/pages.tsx`
+- Actions frontend crean intent en `core_checkout` con `provider: null`:
+  - `modules/mod.commerce.one-time-payments/src/actions.ts`
+- Validator ya no requiere provider para flujo baseline y defaultea a `core_checkout` cuando no hay `provider/checkoutMode`:
+  - `modules/mod.commerce.one-time-payments/src/validators.ts`
+  - `tests/modules/mod-commerce-onetime-validation.test.ts`
+- Checkout methods API no filtra por `metadata.oneTime.provider`:
+  - `app/api/checkout/methods/route.ts`
+- Checkout page no filtra metodos por provider preseleccionado:
+  - `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+- Start handlers one-time aplican late-binding y rebind por metodo:
+  - `modules/mod.commerce.one-time-payments/src/api-handler.ts`
+  - `tests/modules/mod-commerce-onetime-api.test.ts`
 
 ### Gap vs objetivo
 
-Hoy se elige proveedor antes de checkout. El objetivo requiere NO elegir proveedor; checkout debe decidir metodos disponibles por registro de metodos y `orderType`.
+El bloqueo principal por seleccion previa de provider quedo mitigado en el baseline. Pendiente: remover deuda legacy (`provider_session`/campos provider) para consolidar un modelo totalmente provider-agnostic antes del checkout.
 
 ### Requerimiento real
 
@@ -95,26 +86,21 @@ Hoy se elige proveedor antes de checkout. El objetivo requiere NO elegir proveed
 
 ### Estado actual (evidencia)
 
-- `checkout_orders` guarda snapshot agregado (amount/currency/planName/metadata), sin tabla de items:
-  - `lib/db/schema.ts:247`
-  - `lib/db/schema.ts:270`
-  - `lib/db/schema.ts:273`
-- Metadata one-time es singular (`productId`, `quantity`, etc.):
-  - `lib/payments/checkout-orders.ts:55`
-  - `lib/payments/checkout-orders.ts:59`
-  - `lib/payments/checkout-orders.ts:61`
-- Creacion de one-time order recibe `amount` y `currency` (no line-items):
-  - `lib/payments/checkout-orders.ts:935`
-  - `lib/payments/checkout-orders.ts:942`
-  - `lib/payments/checkout-orders.ts:956`
-- Snapshot one-time serializa un solo producto:
-  - `lib/payments/checkout-orders.ts:1006`
-  - `lib/payments/checkout-orders.ts:1018`
-  - `lib/payments/checkout-orders.ts:1028`
+- Existe tabla dedicada de items por checkout order:
+  - `lib/db/schema.ts:332`
+  - `lib/db/migrations/0023_checkout_order_items.sql`
+- La creacion de one-time order acepta `lineItems` y persiste `checkout_orders` + `checkout_order_items` en transaccion:
+  - `lib/payments/checkout-orders.ts:1179`
+  - `lib/payments/checkout-orders.ts:1331`
+- Checkout one-time ya consume items persistidos para el resumen (con fallback legacy):
+  - `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+- Metadata one-time sigue conservando campos singulares por compatibilidad backward:
+  - `lib/payments/checkout-orders.ts:64`
+  - `lib/payments/checkout-orders.ts:1316`
 
 ### Gap vs objetivo
 
-Tu objetivo requiere `1 order -> N productos` para one-time. El modelo actual no expresa line items en entidad dedicada y opera con snapshot singular.
+El gap principal de persistencia/render de line items quedo cubierto. Falta cerrar el flujo completo de carrito multi-item (acumulacion de N productos antes de crear checkout) y la validacion de reglas de mezcla a nivel de dominio/entrada.
 
 ### Requerimiento real
 
@@ -132,30 +118,22 @@ Tu objetivo requiere `1 order -> N productos` para one-time. El modelo actual no
 
 ### Estado actual (evidencia)
 
-- Form create/edit usa `priceCurrency` como texto libre:
-  - `modules/mod.commerce.products/src/pages.tsx:984`
-  - `modules/mod.commerce.products/src/pages.tsx:1200`
-- Form create/edit usa cents (`priceUnitAmountCents`):
-  - `modules/mod.commerce.products/src/pages.tsx:996`
-  - `modules/mod.commerce.products/src/pages.tsx:1212`
-  - `modules/mod.commerce.products/i18n/admin/en.json:61`
-- Form create/edit expone provider + providerPriceId:
-  - `modules/mod.commerce.products/src/pages.tsx:1010`
-  - `modules/mod.commerce.products/src/pages.tsx:1021`
-  - `modules/mod.commerce.products/src/pages.tsx:1227`
-  - `modules/mod.commerce.products/src/pages.tsx:1238`
-- Actions/validators/schema sostienen ese contrato:
-  - `modules/mod.commerce.products/src/actions.ts:91`
-  - `modules/mod.commerce.products/src/actions.ts:92`
-  - `modules/mod.commerce.products/src/actions.ts:93`
-  - `modules/mod.commerce.products/src/actions.ts:114`
-  - `modules/mod.commerce.products/db/schema.ts:70`
-  - `modules/mod.commerce.products/db/schema.ts:72`
-  - `modules/mod.commerce.products/db/schema.ts:73`
+- Form create/edit ya usa `priceCurrency` con `select`:
+  - `modules/mod.commerce.products/src/pages.tsx`
+- Form create/edit ya usa `priceAmount` decimal (dinero visible) y no `priceUnitAmountCents`:
+  - `modules/mod.commerce.products/src/pages.tsx`
+  - `modules/mod.commerce.products/src/actions.ts`
+- Form create/edit ya no expone `priceProvider` ni `providerPriceId`:
+  - `modules/mod.commerce.products/src/pages.tsx`
+  - `tests/modules/mod-commerce-products-pages.test.ts`
+- Actions convierten `priceAmount` decimal a centavos y fuerzan `provider/providerPriceId` a `null`:
+  - `modules/mod.commerce.products/src/actions.ts`
+- Persistencia mantiene columnas provider/providerPriceId por compatibilidad de esquema:
+  - `modules/mod.commerce.products/db/schema.ts`
 
 ### Gap vs objetivo
 
-Admin hoy define precio por proveedor y en cents. Tu target requiere pricing de producto neutral al proveedor y UX en dolares.
+El gap principal de UX/admin para pricing quedo cubierto (select + monto decimal + sin provider fields en formulario). Pendiente: limpieza de contrato interno legado (`provider/providerPriceId`) en validadores/tipos/API y decision de migracion de columnas.
 
 ### Requerimiento real
 
@@ -177,18 +155,19 @@ Admin hoy define precio por proveedor y en cents. Tu target requiere pricing de 
   - `modules/mod.commerce.one-time-payments/db/schema.ts:37`
   - `modules/mod.commerce.one-time-payments/src/types.ts:20`
   - `modules/mod.commerce.one-time-payments/src/types.ts:34`
-- El validator exige `provider` antes de crear intent:
-  - `modules/mod.commerce.one-time-payments/src/validators.ts:185`
-  - `modules/mod.commerce.one-time-payments/src/validators.ts:189`
+- El validator baseline ya no exige `provider` y defaultea a `core_checkout`:
+  - `modules/mod.commerce.one-time-payments/src/validators.ts`
+  - `tests/modules/mod-commerce-onetime-validation.test.ts`
 - El create intent guarda `provider` en estado inicial:
   - `modules/mod.commerce.one-time-payments/src/data.ts:907`
-- El dispatcher de metodo falla por mismatch de provider en intent:
-  - `modules/mod.commerce.one-time-payments/src/api-handler.ts:293`
-  - `modules/mod.commerce.one-time-payments/src/api-handler.ts:396`
+- Start handlers one-time ya aplican rebind por metodo seleccionado:
+  - `modules/mod.commerce.one-time-payments/src/api-handler.ts`
+  - `modules/mod.commerce.one-time-payments/src/data.ts`
+  - `tests/modules/mod-commerce-onetime-api.test.ts`
 
 ### Gap vs objetivo
 
-Si se elimina selector de provider en UX, el dominio actual queda inconsistente porque exige provider en intent antes de entrar a checkout.
+El bloqueo principal por mismatch en `payment-methods/*/start` y el requisito de provider en entrada baseline quedaron resueltos, pero el modelo sigue cargando campos legacy de `provider` en intent/schema para compatibilidad.
 
 ### Requerimiento real
 
@@ -206,19 +185,20 @@ Si se elimina selector de provider en UX, el dominio actual queda inconsistente 
 
 ### Estado actual (evidencia)
 
-- La card de catalogo construye `orderPath` y enlaza `buy now` a `/products/order`, no a `/checkout/[token]`:
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:395`
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:425`
-- La redireccion a checkout ocurre despues de submit en la pagina `/products/order`:
-  - `modules/mod.commerce.one-time-payments/src/pages.tsx:780`
-  - `modules/mod.commerce.one-time-payments/src/actions.ts:148`
-  - `modules/mod.commerce.one-time-payments/src/actions.ts:161`
+- La card de catalogo ejecuta server action directa para checkout:
+  - `modules/mod.commerce.one-time-payments/src/pages.tsx`
+  - `tests/modules/mod-commerce-onetime-pages.test.ts`
+- `buy_now` ya marca el source explicito en form/action:
+  - `modules/mod.commerce.one-time-payments/src/pages.tsx`
+  - `modules/mod.commerce.one-time-payments/src/actions.ts`
+- En errores del flujo `buy_now`, la redireccion vuelve al catalogo (`/products`) en vez de `/products/order`:
+  - `modules/mod.commerce.one-time-payments/src/actions.ts`
 - En suscripciones, el flujo ya es directo a checkout desde pricing:
   - `lib/payments/actions.ts:271`
 
 ### Gap vs objetivo
 
-El comportamiento actual agrega una pantalla intermedia (`/products/order`) para `buy now`; el objetivo requiere salto directo a checkout tokenizado para one-time (igual que subscriptions, pero con orden one-time).
+El gap funcional principal de `buy_now` directo ya esta cubierto, incluyendo surface de error en `/products` a partir de `?error=` para evitar salto a `/products/order`.
 
 ### Requerimiento real
 
@@ -238,22 +218,20 @@ El comportamiento actual agrega una pantalla intermedia (`/products/order`) para
 
 ### Estado actual (evidencia)
 
-- Lista usa filtros GET y tabla HTML:
-  - `modules/mod.commerce.products/src/pages.tsx:693`
-  - `modules/mod.commerce.products/src/pages.tsx:717`
-  - `modules/mod.commerce.products/src/pages.tsx:771`
-- Filtrado es local en memoria sobre `limit: 300`:
-  - `modules/mod.commerce.products/src/pages.tsx:654`
-  - `modules/mod.commerce.products/src/pages.tsx:685`
+- Home admin products ya usa `DataTable` host:
+  - `modules/mod.commerce.products/src/pages.tsx`
+  - `modules/mod.commerce.products/src/admin-products-data-table.tsx`
+- Filtros manuales GET (`kind/publication`) fueron removidos del page server y ahora viven en toolbar de la tabla (estado cliente).
 - Infra de DataTable ya existe en host:
   - `components/ui/data-table.tsx:58`
   - `components/ui/data-table.tsx:81`
   - `app/(dashboard)/admin/users/users-data-table.tsx:25`
   - `tests/sdk/datatables-crud.test.ts:4`
+- La carga sigue siendo `listCommerceProducts({ limit: 300 })` (sin paginacion server-side aun).
 
 ### Gap vs objetivo
 
-La vista actual no aprovecha DataTable (filtro/sort/paginacion/visibilidad de columnas), y los filtros `kind/publication` quedan fuera de la experiencia estandar.
+El gap principal de UX quedo cubierto (DataTable + filtros en toolbar + sin filtros GET manuales). Pendiente para escalabilidad: paginacion/filtro server-side para datasets > `limit` actual.
 
 ### Requerimiento real
 
@@ -308,20 +286,19 @@ Esta base es compatible con tu direccion de arquitectura. El problema principal 
 
 Si el producto no debe estar acoplado a proveedor, `providerPriceId` pierde sentido funcional en admin product form.
 
-## P1-4: Falta trazabilidad fuerte `intent/fulfillment -> checkout order`
+## P1-4: Trazabilidad `intent/fulfillment -> checkout order` (progreso)
 
 ### Estado actual (evidencia)
 
-- `mod_commerce_onetime_fulfillments` tiene columna `order_id`, pero el alta inicial guarda `null`:
-  - `modules/mod.commerce.one-time-payments/db/schema.ts:121`
-  - `modules/mod.commerce.one-time-payments/src/data.ts:1287`
-- Los webhooks sincronizan estado de checkout por `providerSessionId`, pero no consolidan link persistente de fulfillment con order:
-  - `modules/mod.commerce.one-time-payments/src/webhooks/stripe.ts:118`
-  - `modules/mod.commerce.one-time-payments/src/webhooks/paypal.ts:157`
+- `mod_commerce_onetime_fulfillments` persiste `order_id` cuando el webhook resuelve un checkout order asociado:
+  - `modules/mod.commerce.one-time-payments/src/data.ts`
+  - `modules/mod.commerce.one-time-payments/src/webhooks/stripe.ts`
+  - `modules/mod.commerce.one-time-payments/src/webhooks/paypal.ts`
+- La sincronizacion de estado de checkout y el registro de fulfillment ahora usan la misma resolucion de checkout order (evita correlacion solo por metadata implicita).
 
 ### Gap vs objetivo
 
-Sin link estable `order_id`, soporte operativo/auditoria queda fragmentado (intent, fulfillment y core checkout/order en registros separados sin relacion fuerte).
+El gap principal de persistencia de `order_id` quedo cubierto. Pendiente opcional: exponer una vista/consulta operativa dedicada para navegar `intent -> fulfillment -> checkout_order` sin leer payloads tecnicos.
 
 ### Requerimiento real
 
@@ -337,10 +314,11 @@ Sin link estable `order_id`, soporte operativo/auditoria queda fragmentado (inte
 
 ### Estado actual (evidencia)
 
-- El metadata schema version esta fijo en `1` y se parsea de forma tolerante:
-  - `lib/payments/checkout-orders.ts:35`
-  - `lib/payments/checkout-orders.ts:193`
-  - `lib/payments/checkout-orders.ts:1005`
+- El parser de metadata ahora normaliza compatibilidad explicita:
+  - infiere `schemaVersion` cuando falta en payload legado.
+  - valida/normaliza envelope `oneTime` sin romper lecturas.
+  - `lib/payments/checkout-orders.ts`
+  - `tests/payments/checkout-orders.test.ts`
 - El flujo actual depende de metadata singular one-time (`productId`, `quantity`, `provider`):
   - `lib/payments/checkout-orders.ts:55`
   - `lib/payments/checkout-orders.ts:59`
@@ -348,7 +326,7 @@ Sin link estable `order_id`, soporte operativo/auditoria queda fragmentado (inte
 
 ### Gap vs objetivo
 
-Pasar a line-items y provider late-binding sin estrategia de compatibilidad puede romper checkouts en curso y replays webhook.
+La base de compatibilidad de lectura ya esta aplicada; pendiente definir retiro del formato legado singular y cerrar la ventana de coexistencia por version.
 
 ### Requerimiento real
 
@@ -397,41 +375,39 @@ Ese criterio ya no es valido con la direccion actual ("no elegir Stripe/PayPal a
 
 | Tema | Estado actual | Requerido |
 | --- | --- | --- |
-| Seleccion de provider one-time | Se elige en cart/order | No se elige; checkout decide metodos dinamicos |
-| Entrada one-time `buy now` | `/products` -> `/products/order` -> `/checkout/[token]` | `/products` -> `/checkout/[token]` directo |
+| Seleccion de provider one-time | No se elige en UI baseline (`/products*`); legacy API aun permite `provider_session` | No se elige; checkout decide metodos dinamicos |
+| Entrada one-time `buy now` | `/products` -> `/checkout/[token]` directo (server action) | Mantener directo (`/products` -> `/checkout/[token]`) |
 | Entrada subscription | `/pricing` -> `/checkout/[token]` | Mantener directo (`/pricing` -> `/checkout/[token]`) |
-| Checkout one-time | Filtra metodos por `metadata.oneTime.provider` | Filtra por capacidad/orderType, no por provider fijo |
-| Modelo one-time | Snapshot singular en metadata | N line-items por order |
-| Admin products table | Tabla HTML + filtros GET | DataTable con filtros/sort/paginacion |
-| Currency input | Texto libre | Select controlado |
-| Amount input | Cents en UI | Dolares en UI (conversion interna) |
-| Product-provider fields | `priceProvider` + `providerPriceId` | Remover del flujo admin |
-| Binding de provider one-time | Se define al crear intent | Se define al iniciar metodo de pago en checkout |
-| Trazabilidad fulfillment-order | `orderId` no consolidado | `orderId` persistido y auditable |
+| Checkout one-time | Filtra metodos por capacidad/orderType | Filtra por capacidad/orderType, no por provider fijo |
+| Modelo one-time | Line-items persistidos en `checkout_order_items` + fallback legacy | Completar carrito N-items end-to-end antes de checkout |
+| Admin products table | DataTable host con filtros en toolbar (cliente) | DataTable con filtros/sort/paginacion |
+| Currency input | Select controlado en create/edit | Select controlado |
+| Amount input | Monto decimal visible (`priceAmount`) con conversion interna | Dolares en UI (conversion interna) |
+| Product-provider fields | No se exponen en formulario admin (persisten columnas legacy) | Remover del flujo admin |
+| Binding de provider one-time | Late-binding en `payment-methods/*/start`; intent inicial puede quedar unbound | Se define al iniciar metodo de pago en checkout |
+| Trazabilidad fulfillment-order | `orderId` se persiste cuando existe checkout order enlazada | `orderId` persistido y auditable |
 | Compatibilidad de migracion | Implicita/no declarada | Estrategia versionada y backward compatible |
 
 ## Riesgos de no corregir P0
 
-- Incoherencia funcional: UX promete libertad de metodos pero flujo bloquea por provider.
-- Friccion de compra: `buy now` agrega una pantalla intermedia innecesaria para compras directas.
-- Escalabilidad limitada: no existe base real para carrito de multiples items.
-- Deuda operativa: admin configura campos sin impacto funcional claro (provider/providerPriceId).
-- Riesgo de regresion al quitar provider sin late-binding: intents pueden quedar sin ruta de start valida.
-- Trazabilidad incompleta ante incidentes: dificil correlacion entre webhook, fulfillment y order real.
+- Escalabilidad limitada: no existe aun carrito multi-item end-to-end previo a checkout (aunque line-items ya existen en checkout order).
+- Deuda operativa: contratos internos legacy (`provider_session`, `providerPriceId`) siguen en tipos/metadata.
+- Riesgo de regresion en migracion: limpiar provider legacy sin ventana compat puede romper intents/checkouts en curso.
+- Si no se agrega una vista/consulta operativa dedicada, la correlacion existe pero sigue siendo mas manual de lo ideal para soporte.
 
 ## Orden recomendado de ejecucion (sin codigo en este documento)
 
 1. Cerrar definicion de dominio order/item (P0-2) y reglas de mezcla.
 2. Resolver provider one-time como late-binding en start-payment (P0-4).
 3. Desacoplar provider del flujo one-time en UX y filtros checkout (P0-1).
-4. Implementar handoff directo de `buy now` a checkout tokenizado (P0-5).
+4. `buy_now` directo + surface de error en catalog (`/products`) (P0-5, completado).
 5. Ajustar contrato admin pricing (P0-3).
-6. Consolidar trazabilidad fulfillment -> order (P1-4).
+6. Consolidar trazabilidad fulfillment -> order (P1-4, persistencia ya implementada; queda hardening operativo opcional).
 7. Migrar lista admin products a DataTable y filtros nativos (P1-1).
 8. Ejecutar estrategia de compatibilidad/migracion metadata (P1-5).
 9. Endurecer invariantes subscription-order y actualizar plan base vigente (P2-1, P2-2).
 
 ## Nota de alcance
 
-Este archivo documenta analisis y backlog de correccion.  
-No se realizaron cambios de codigo ni migraciones en esta tarea.
+Este archivo documenta analisis y backlog de correccion y se mantiene actualizado junto con la ejecucion tecnica.
+

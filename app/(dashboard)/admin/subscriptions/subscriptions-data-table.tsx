@@ -26,7 +26,7 @@ export function AdminSubscriptionsDataTable({
 }: AdminSubscriptionsDataTableProps) {
   return (
     <DataTable
-      columns={getColumns(templateOptions, messages, tableTemplate?.themeId ?? null)}
+      columns={getColumns(templateOptions, messages)}
       data={data}
       labels={messages.dataTable}
       template={tableTemplate}

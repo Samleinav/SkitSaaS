@@ -3,17 +3,18 @@ import {
   THEME_CODE_REGISTRY,
   type CodeRegistryThemeEntry
 } from '@/lib/themes/code-registry.generated';
+import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
 
 type ThemeProviderComponent = ComponentType<{ children: ReactNode }>;
-type ThemeTemplateComponent<TData = unknown> = ComponentType<{
-  data?: TData;
+type ThemeTemplateComponent<TId extends string = string> = ComponentType<{
+  data?: TemplateDataForId<TId>;
   className?: string;
   themeId?: string;
   children?: ReactNode;
 }>;
 
-type ResolvedThemeCodeTemplate<TData = unknown> = {
-  Component: ThemeTemplateComponent<TData>;
+type ResolvedThemeCodeTemplate<TId extends string = string> = {
+  Component: ThemeTemplateComponent<TId>;
   Provider: ThemeProviderComponent | null;
 };
 
@@ -24,8 +25,8 @@ type ThemeCodeTemplateResolveFailureReason =
   | 'template_not_registered'
   | 'template_load_failed';
 
-type ThemeCodeTemplateResolution<TData = unknown> = {
-  resolved: ResolvedThemeCodeTemplate<TData> | null;
+type ThemeCodeTemplateResolution<TId extends string = string> = {
+  resolved: ResolvedThemeCodeTemplate<TId> | null;
   componentId: string | null;
   themeId: string | null;
   reason: ThemeCodeTemplateResolveFailureReason | null;
@@ -90,13 +91,13 @@ async function loadThemeProviderComponent(registryEntry: CodeRegistryThemeEntry)
   return provider;
 }
 
-async function resolveThemeCodeTemplate<TData>({
+async function resolveThemeCodeTemplate<TId extends string>({
   themeId,
   componentId
 }: {
   themeId: string | null | undefined;
   componentId: string;
-}): Promise<ThemeCodeTemplateResolution<TData>> {
+}): Promise<ThemeCodeTemplateResolution<TId>> {
   const normalizedComponentId = normalizeId(componentId);
   if (!normalizedComponentId) {
     return {
@@ -147,7 +148,7 @@ async function resolveThemeCodeTemplate<TData>({
 
     return {
       resolved: {
-        Component: Component as ThemeTemplateComponent<TData>,
+        Component: Component as ThemeTemplateComponent<TId>,
         Provider
       },
       componentId: normalizedComponentId,
@@ -185,7 +186,7 @@ function reportMissingThemeCodeTemplate({
   );
 }
 
-export async function ThemeCodeTemplate<TData>({
+export async function ThemeCodeTemplate<TId extends string>({
   id,
   themeId,
   data,
@@ -193,14 +194,14 @@ export async function ThemeCodeTemplate<TData>({
   children,
   fallback
 }: {
-  id: string;
+  id: TId;
   themeId: string | null | undefined;
-  data?: TData;
+  data?: TemplateDataForId<TId>;
   className?: string;
   children?: ReactNode;
   fallback: ReactNode;
 }) {
-  const resolved = await resolveThemeCodeTemplate<TData>({
+  const resolved = await resolveThemeCodeTemplate<TId>({
     themeId,
     componentId: id
   });

@@ -1,22 +1,30 @@
-import {
-  DashboardPageShell,
-  type ThemeTemplateProps
-} from '../../components/dashboard/page-shell';
+import type { ReactNode } from 'react';
+
+type TemplateData = {
+  description?: string;
+  title?: string;
+};
+
+type TemplateProps = {
+  data?: TemplateData;
+  className?: string;
+  children?: ReactNode;
+};
 
 export default function PageDashboardActivityTemplate({
   data,
   className,
   children
-}: ThemeTemplateProps) {
+}: TemplateProps) {
+  const title = data?.title?.trim() || 'Activity';
+  const description = data?.description?.trim() || 'Recent account and team activity.';
   return (
-    <DashboardPageShell
-      templateId="page.dashboard.activity"
-      titleFallback="Activity"
-      descriptionFallback="Recent account and team activity."
-      data={data}
-      className={className}
-    >
-      {children}
-    </DashboardPageShell>
+    <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>
+      <section className="theme-first-backoffice-panel rounded-xl p-6">
+        <h2 className="text-2xl font-semibold">{title}</h2>
+        {description ? <p className="mt-2 text-sm opacity-80">{description}</p> : null}
+        {children ? <div className="mt-4">{children}</div> : null}
+      </section>
+    </main>
   );
 }

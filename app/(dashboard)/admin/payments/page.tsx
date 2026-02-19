@@ -166,11 +166,9 @@ export default async function AdminPaymentsPage() {
           <AdminPaymentsDataTable
             data={rows}
             messages={messages}
-            themeId={themeSelection?.themeKey ?? null}
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
-              themeId: themeSelection?.themeKey ?? null
             }}
           />
         </CardContent>
@@ -196,3 +194,4 @@ export default async function AdminPaymentsPage() {
     </ThemeCodeTemplate>
   );
 }
+

@@ -43,13 +43,15 @@ Backend-first module for commerce product catalog and lifecycle.
 ## Admin IA backlog (implementation-ready)
 
 - `/admin/products`:
-  - list products with product type, provider, published state, active price state
-  - filter by `productType` (`subscription`, `one_time`) and `published` status
+  - list products with DataTable (sort/search/column visibility)
+  - toolbar filters for `kind` and `publication` status
   - row actions: edit, publish, unpublish
 - `/admin/products/create`:
   - create form with type-specific validation:
     - `subscription`: requires `subscriptionTemplateId`, forbids one-time price field
     - `one_time`: requires active price/currency fields, forbids subscription template
+    - one-time price input is decimal money (`priceAmount`, e.g. `19.99`) converted to cents in server actions
+    - no provider/providerPriceId fields in admin form
 - `/admin/products/[productId]/edit`:
   - same contract as create, with optimistic publish/unpublish controls
 
@@ -63,7 +65,6 @@ Page wrappers:
 
 Granular sections:
 
-- `section.admin.products.filters`
 - `section.admin.products.table`
 - `section.admin.products.form`
 
@@ -72,9 +73,8 @@ Current payload keys:
 - `page.admin.products`: `title`, `description`, `createHref`, `createLabel`
 - `page.admin.products.create`: `title`, `description`, `submitLabel`
 - `page.admin.products.edit`: `title`, `description`, `productId`, `submitLabel`
-- `section.admin.products.filters`: `hasFilters`, `selectedType`, `selectedStatus`
 - `section.admin.products.table`: `total`, `columns`, `rowCount`
-- `section.admin.products.form`: `mode`, `productType`, `provider`, `canPublish`
+- `section.admin.products.form`: `mode`, `productType`, `canPublish`
 
 Resolution policy:
 

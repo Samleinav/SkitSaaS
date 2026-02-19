@@ -5,7 +5,6 @@ import { ThemeTemplate } from '@/components/ui/theme-template';
 
 type AdminTableSlotTemplateProps = {
   templateId: string;
-  themeId?: string | null;
   slot: string;
   className?: string;
   data?: Record<string, unknown>;
@@ -14,7 +13,6 @@ type AdminTableSlotTemplateProps = {
 
 export function AdminTableSlotTemplate({
   templateId,
-  themeId = null,
   slot,
   className,
   data,
@@ -25,7 +23,6 @@ export function AdminTableSlotTemplate({
   return (
     <ThemeTemplate
       id={templateId}
-      themeId={themeId}
       data={{
         area: 'admin',
         slot,

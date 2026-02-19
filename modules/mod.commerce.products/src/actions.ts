@@ -39,6 +39,29 @@ function normalizeKind(value: string) {
   return value === 'subscription' ? 'subscription' : 'one_time';
 }
 
+function normalizePriceAmountToCents(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
+    return null;
+  }
+
+  const numeric = Number(normalized);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return null;
+  }
+
+  const cents = Math.round(numeric * 100);
+  if (!Number.isInteger(cents) || cents < 0 || cents > 2_147_483_647) {
+    return null;
+  }
+
+  return cents;
+}
+
 function buildPathWithQuery(
   path: string,
   params: Record<string, string | null | undefined>
@@ -77,6 +100,8 @@ function normalizeReturnPath(value: string, fallback: string) {
 
 function buildCreatePayload(form: FormReader) {
   const kind = normalizeKind(form.lower('kind'));
+  const priceCurrency = form.string('priceCurrency').toUpperCase();
+  const priceAmountInCents = normalizePriceAmountToCents(form.string('priceAmount'));
   const payload: Record<string, unknown> = {
     productKey: form.string('productKey'),
     name: form.string('name'),
@@ -88,10 +113,10 @@ function buildCreatePayload(form: FormReader) {
 
   if (kind === 'one_time') {
     payload.price = {
-      currency: form.string('priceCurrency').toUpperCase(),
-      unitAmountCents: form.integer('priceUnitAmountCents') ?? -1,
-      provider: trimToNull(form.string('priceProvider')),
-      providerPriceId: trimToNull(form.string('priceProviderId'))
+      currency: priceCurrency,
+      unitAmountCents: priceAmountInCents ?? -1,
+      provider: null,
+      providerPriceId: null
     };
   }
 
@@ -100,6 +125,9 @@ function buildCreatePayload(form: FormReader) {
 
 function buildUpdatePayload(form: FormReader) {
   const kind = normalizeKind(form.lower('kind'));
+  const priceCurrency = form.string('priceCurrency').toUpperCase();
+  const rawPriceAmount = form.string('priceAmount');
+  const priceAmountInCents = normalizePriceAmountToCents(rawPriceAmount);
   const payload: Record<string, unknown> = {
     productKey: form.string('productKey'),
     name: form.string('name'),
@@ -110,22 +138,16 @@ function buildUpdatePayload(form: FormReader) {
   };
 
   if (kind === 'one_time') {
-    const priceCurrency = form.string('priceCurrency').toUpperCase();
-    const priceAmount = form.integer('priceUnitAmountCents');
-    const priceProvider = trimToNull(form.string('priceProvider'));
-    const priceProviderId = trimToNull(form.string('priceProviderId'));
     const hasPriceUpdate =
       Boolean(priceCurrency) ||
-      priceAmount !== null ||
-      Boolean(priceProvider) ||
-      Boolean(priceProviderId);
+      Boolean(rawPriceAmount.trim());
 
     if (hasPriceUpdate) {
       payload.price = {
         currency: priceCurrency,
-        unitAmountCents: priceAmount ?? -1,
-        provider: priceProvider,
-        providerPriceId: priceProviderId
+        unitAmountCents: priceAmountInCents ?? -1,
+        provider: null,
+        providerPriceId: null
       };
     }
   }

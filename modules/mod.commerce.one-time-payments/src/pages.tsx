@@ -23,11 +23,17 @@ type OneTimePaymentsSessionUser = {
 };
 type ModuleMessageTree = Record<string, unknown>;
 
+type OneTimeCartLineItem = {
+  productId: number;
+  quantity: number;
+};
+
+type ResolvedOneTimeCartLineItem = {
+  product: OneTimeCatalogProduct;
+  quantity: number;
+};
+
 type OneTimeFrontendMessages = {
-  common: {
-    providerStripe: string;
-    providerPayPal: string;
-  };
   catalog: {
     eyebrow: string;
     title: string;
@@ -45,7 +51,7 @@ type OneTimeFrontendMessages = {
     unitPriceLabel: string;
     quantityLabel: string;
     totalLabel: string;
-    providerLabel: string;
+    mixedCurrencyWarning: string;
     continueToOrder: string;
     backToProducts: string;
   };
@@ -58,23 +64,19 @@ type OneTimeFrontendMessages = {
     unitPriceLabel: string;
     quantityLabel: string;
     totalLabel: string;
-    providerLabel: string;
     targetLabel: string;
     targetTeamLabel: string;
     targetUserLabel: string;
     continueToCheckout: string;
     backToCart: string;
     oneTimeDescription: string;
+    mixedCurrencyWarning: string;
     switchedToUserWarning: string;
     errors: Record<string, string>;
   };
 };
 
 const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
-  common: {
-    providerStripe: 'Stripe',
-    providerPayPal: 'PayPal'
-  },
   catalog: {
     eyebrow: 'One-time products',
     title: 'Products',
@@ -92,7 +94,8 @@ const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
     unitPriceLabel: 'Unit price',
     quantityLabel: 'Quantity',
     totalLabel: 'Total',
-    providerLabel: 'Provider',
+    mixedCurrencyWarning:
+      'Mixed currencies detected in cart. Use one currency per checkout order.',
     continueToOrder: 'Continue to order',
     backToProducts: 'Back to products'
   },
@@ -106,19 +109,23 @@ const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
     unitPriceLabel: 'Unit price',
     quantityLabel: 'Quantity',
     totalLabel: 'Total',
-    providerLabel: 'Provider',
     targetLabel: 'Target',
     targetTeamLabel: 'Team',
     targetUserLabel: 'User',
     continueToCheckout: 'Continue to checkout',
     backToCart: 'Back to cart',
     oneTimeDescription: 'One-time order',
+    mixedCurrencyWarning:
+      'Mixed currencies detected in cart. Remove incompatible products before continuing to checkout.',
     switchedToUserWarning:
       'No team membership found for this account. The checkout target was switched to user automatically.',
     errors: {
+      invalid_product_id: 'The selected product is invalid.',
       target_team_required: 'You need an active team membership before starting checkout.',
       product_not_found: 'The selected product was not found.',
       product_not_published: 'The selected product is not published.',
+      one_time_only_product_required:
+        'The selected product is not available for one-time checkout.',
       product_missing_active_price: 'The selected product has no active price.',
       target_team_forbidden: 'You cannot create an order for the selected team.',
       operation_failed: 'Unable to start checkout for this order.'
@@ -155,18 +162,6 @@ function readMessage(
 function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMessages {
   const defaults = DEFAULT_ONE_TIME_FRONTEND_MESSAGES;
   return {
-    common: {
-      providerStripe: readMessage(
-        tree,
-        'products.common.providerStripe',
-        defaults.common.providerStripe
-      ),
-      providerPayPal: readMessage(
-        tree,
-        'products.common.providerPayPal',
-        defaults.common.providerPayPal
-      )
-    },
     catalog: {
       eyebrow: readMessage(tree, 'products.catalog.eyebrow', defaults.catalog.eyebrow),
       title: readMessage(tree, 'products.catalog.title', defaults.catalog.title),
@@ -208,10 +203,10 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         defaults.cart.quantityLabel
       ),
       totalLabel: readMessage(tree, 'products.cart.totalLabel', defaults.cart.totalLabel),
-      providerLabel: readMessage(
+      mixedCurrencyWarning: readMessage(
         tree,
-        'products.cart.providerLabel',
-        defaults.cart.providerLabel
+        'products.cart.mixedCurrencyWarning',
+        defaults.cart.mixedCurrencyWarning
       ),
       continueToOrder: readMessage(
         tree,
@@ -253,11 +248,6 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         defaults.order.quantityLabel
       ),
       totalLabel: readMessage(tree, 'products.order.totalLabel', defaults.order.totalLabel),
-      providerLabel: readMessage(
-        tree,
-        'products.order.providerLabel',
-        defaults.order.providerLabel
-      ),
       targetLabel: readMessage(tree, 'products.order.targetLabel', defaults.order.targetLabel),
       targetTeamLabel: readMessage(
         tree,
@@ -279,6 +269,11 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         tree,
         'products.order.oneTimeDescription',
         defaults.order.oneTimeDescription
+      ),
+      mixedCurrencyWarning: readMessage(
+        tree,
+        'products.order.mixedCurrencyWarning',
+        defaults.order.mixedCurrencyWarning
       ),
       switchedToUserWarning: readMessage(
         tree,
@@ -347,6 +342,145 @@ function normalizeTargetType(value: string | null) {
   return null;
 }
 
+function normalizeCartLineItems(items: OneTimeCartLineItem[]) {
+  const merged = new Map<number, number>();
+  for (const item of items) {
+    if (!Number.isInteger(item.productId) || item.productId <= 0) {
+      continue;
+    }
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+      continue;
+    }
+
+    const previous = merged.get(item.productId) ?? 0;
+    const nextQuantity = Math.min(100, previous + item.quantity);
+    merged.set(item.productId, nextQuantity);
+  }
+
+  return Array.from(merged.entries())
+    .slice(0, 100)
+    .map(([productId, quantity]) => ({
+      productId,
+      quantity
+    }));
+}
+
+function parseCartItemsQueryParam(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const segments = value
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  if (segments.length === 0) {
+    return null;
+  }
+
+  const parsed: OneTimeCartLineItem[] = [];
+  for (const segment of segments) {
+    const [rawProductId, rawQuantity] = segment.split(':', 2);
+    const productId = parsePositiveInt(rawProductId?.trim() ?? null);
+    const quantity = normalizeQuantity(rawQuantity?.trim() ?? null);
+    if (!productId) {
+      continue;
+    }
+
+    parsed.push({
+      productId,
+      quantity
+    });
+  }
+
+  const normalized = normalizeCartLineItems(parsed);
+  return normalized.length > 0 ? normalized : null;
+}
+
+function serializeCartItemsQueryParam(items: OneTimeCartLineItem[]) {
+  const normalized = normalizeCartLineItems(items);
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return normalized.map((item) => `${item.productId}:${item.quantity}`).join(',');
+}
+
+function appendProductToCartLineItems({
+  items,
+  productId,
+  quantity
+}: {
+  items: OneTimeCartLineItem[];
+  productId: number;
+  quantity: number;
+}) {
+  return normalizeCartLineItems([
+    ...items,
+    {
+      productId,
+      quantity
+    }
+  ]);
+}
+
+function resolveRequestedCartLineItems(context: ModuleRouteContext) {
+  const queryItems = parseCartItemsQueryParam(readSearchParam(context, 'items'));
+  if (queryItems && queryItems.length > 0) {
+    return queryItems;
+  }
+
+  const productId = parsePositiveInt(readSearchParam(context, 'productId'));
+  if (!productId) {
+    return [];
+  }
+
+  return [
+    {
+      productId,
+      quantity: normalizeQuantity(readSearchParam(context, 'quantity'))
+    }
+  ];
+}
+
+function encodeLineItemsPayload(items: OneTimeCartLineItem[]) {
+  const normalized = normalizeCartLineItems(items);
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  try {
+    return JSON.stringify(normalized);
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePublishedCartLineItems(items: OneTimeCartLineItem[]) {
+  const normalized = normalizeCartLineItems(items);
+  if (normalized.length === 0) {
+    return [] as ResolvedOneTimeCartLineItem[];
+  }
+
+  const products = await Promise.all(
+    normalized.map(async (item) => {
+      const product = await getPublishedOneTimeCatalogProduct(item.productId);
+      if (!product) {
+        return null;
+      }
+
+      return {
+        product,
+        quantity: item.quantity
+      } satisfies ResolvedOneTimeCartLineItem;
+    })
+  );
+
+  return products.filter(
+    (item): item is ResolvedOneTimeCartLineItem => Boolean(item)
+  );
+}
+
 function formatMoney(amountInCents: number, currency: string) {
   try {
     return new Intl.NumberFormat('en-US', {
@@ -380,12 +514,20 @@ function buildPath(
 function renderCatalogCardTemplate(
   product: OneTimeCatalogProduct,
   themeId: string | null,
-  messages: OneTimeFrontendMessages
+  messages: OneTimeFrontendMessages,
+  currentCartItems: OneTimeCartLineItem[]
 ) {
   const amountLabel = formatMoney(product.unitAmountCents, product.currency);
-  const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
+  const nextCartItems = appendProductToCartLineItems({
+    items: currentCartItems,
     productId: product.productId,
     quantity: 1
+  });
+  const cartItemsParam = serializeCartItemsQueryParam(nextCartItems);
+  const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
+    items: cartItemsParam,
+    productId: cartItemsParam ? null : product.productId,
+    quantity: cartItemsParam ? null : 1
   });
 
   const fallback = (
@@ -411,6 +553,7 @@ function renderCatalogCardTemplate(
         <form action={startOneTimeProductCheckoutAction}>
           <input type="hidden" name="productId" value={product.productId} />
           <input type="hidden" name="quantity" value={1} />
+          <input type="hidden" name="checkoutSource" value="buy_now" />
           <button
             type="submit"
             className="inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
@@ -434,8 +577,7 @@ function renderCatalogCardTemplate(
         productId: product.productId,
         productKey: product.productKey,
         name: product.name,
-        priceLabel: amountLabel,
-        provider: product.provider
+        priceLabel: amountLabel
       }}
       fallback={fallback}
     >
@@ -458,9 +600,14 @@ function resolveOrderErrorMessage(
   );
 }
 
-export async function renderOneTimeProductsCatalogPage() {
+export async function renderOneTimeProductsCatalogPage(context: ModuleRouteContext) {
   const moduleMessages = await getOneTimeModuleMessages();
   const products = await listPublishedOneTimeCatalogProducts({ limit: 48 });
+  const currentCartItems = resolveRequestedCartLineItems(context);
+  const errorMessage = resolveOrderErrorMessage(
+    readSearchParam(context, 'error'),
+    moduleMessages
+  );
   const themeSelection = await getThemeSelectionForArea('frontend');
   const themeId = themeSelection?.themeKey ?? null;
 
@@ -476,6 +623,12 @@ export async function renderOneTimeProductsCatalogPage() {
         <p className="text-sm text-zinc-600">{moduleMessages.catalog.description}</p>
       </header>
 
+      {errorMessage ? (
+        <section className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {errorMessage}
+        </section>
+      ) : null}
+
       {products.length === 0 ? (
         <section className="rounded-xl border border-dashed border-zinc-300 bg-white p-6 text-sm text-zinc-600">
           {moduleMessages.catalog.empty}
@@ -483,7 +636,12 @@ export async function renderOneTimeProductsCatalogPage() {
       ) : (
         <section className="grid gap-4 md:grid-cols-2">
           {products.map((product) =>
-            renderCatalogCardTemplate(product, themeId, moduleMessages)
+            renderCatalogCardTemplate(
+              product,
+              themeId,
+              moduleMessages,
+              currentCartItems
+            )
           )}
         </section>
       )}
@@ -502,7 +660,8 @@ export async function renderOneTimeProductsCatalogPage() {
         title: moduleMessages.catalog.title,
         description: moduleMessages.catalog.description,
         total: products.length,
-        hasProducts: products.length > 0
+        hasProducts: products.length > 0,
+        hasError: Boolean(errorMessage)
       }}
       fallback={fallback}
     >
@@ -513,14 +672,17 @@ export async function renderOneTimeProductsCatalogPage() {
 
 export async function renderOneTimeProductsCartPage(context: ModuleRouteContext) {
   const moduleMessages = await getOneTimeModuleMessages();
-  const productId = parsePositiveInt(readSearchParam(context, 'productId'));
-  const quantity = normalizeQuantity(readSearchParam(context, 'quantity'));
+  const requestedItems = resolveRequestedCartLineItems(context);
+  const resolvedItems = await resolvePublishedCartLineItems(requestedItems);
+  const cartItems: OneTimeCartLineItem[] = resolvedItems.map((item) => ({
+    productId: item.product.productId,
+    quantity: item.quantity
+  }));
+  const cartItemsParam = serializeCartItemsQueryParam(cartItems);
   const targetType = normalizeTargetType(readSearchParam(context, 'targetType'));
-  const product = productId
-    ? await getPublishedOneTimeCatalogProduct(productId)
-    : null;
+  const firstItem = resolvedItems[0] ?? null;
 
-  if (!product) {
+  if (!firstItem) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
         <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.cart.title}</h1>
@@ -535,30 +697,64 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
     );
   }
 
-  const totalAmount = product.unitAmountCents * quantity;
+  const cartCurrencies = new Set(
+    resolvedItems.map((item) => item.product.currency.toUpperCase())
+  );
+  const hasMixedCurrency = cartCurrencies.size > 1;
+  const totalCurrency = firstItem.product.currency;
+  const totalAmount = resolvedItems.reduce(
+    (sum, item) => sum + item.product.unitAmountCents * item.quantity,
+    0
+  );
   const themeSelection = await getThemeSelectionForArea('frontend');
   const themeId = themeSelection?.themeKey ?? null;
 
   const cartSummaryFallback = (
     <section className="rounded-xl border border-zinc-200 bg-white p-5">
-      <dl className="space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <dt className="text-zinc-500">{moduleMessages.cart.unitPriceLabel}</dt>
-          <dd className="font-medium text-zinc-900">
-            {formatMoney(product.unitAmountCents, product.currency)}
-          </dd>
+      <ul className="space-y-3 text-sm">
+        {resolvedItems.map((item) => {
+          const lineTotal = item.product.unitAmountCents * item.quantity;
+          return (
+            <li
+              key={`${item.product.productId}`}
+              className="flex items-start justify-between gap-4 border-b border-zinc-100 pb-3 last:border-b-0 last:pb-0"
+            >
+              <div className="space-y-1">
+                <p className="font-medium text-zinc-900">{item.product.name}</p>
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.cart.quantityLabel}: {item.quantity}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.cart.unitPriceLabel}
+                </p>
+                <p className="font-medium text-zinc-900">
+                  {formatMoney(item.product.unitAmountCents, item.product.currency)}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.cart.totalLabel}
+                </p>
+                <p className="font-semibold text-zinc-900">
+                  {formatMoney(lineTotal, item.product.currency)}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {!hasMixedCurrency ? (
+        <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3">
+          <p className="text-zinc-500">{moduleMessages.cart.totalLabel}</p>
+          <p className="text-lg font-semibold text-zinc-900">
+            {formatMoney(totalAmount, totalCurrency)}
+          </p>
         </div>
-        <div className="flex items-center justify-between">
-          <dt className="text-zinc-500">{moduleMessages.cart.quantityLabel}</dt>
-          <dd className="font-medium text-zinc-900">{quantity}</dd>
-        </div>
-        <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
-          <dt className="text-zinc-500">{moduleMessages.cart.totalLabel}</dt>
-          <dd className="text-lg font-semibold text-zinc-900">
-            {formatMoney(totalAmount, product.currency)}
-          </dd>
-        </div>
-      </dl>
+      ) : (
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {moduleMessages.cart.mixedCurrencyWarning}
+        </p>
+      )}
     </section>
   );
 
@@ -569,11 +765,12 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
       id="section.frontend.products.cart.summary"
       themeId={themeId}
       data={{
-        productId: product.productId,
-        quantity,
-        unitAmount: product.unitAmountCents,
+        productId: firstItem.product.productId,
+        quantity: firstItem.quantity,
+        unitAmount: firstItem.product.unitAmountCents,
         totalAmount,
-        currency: product.currency
+        currency: totalCurrency,
+        itemsCount: resolvedItems.length
       }}
       fallback={cartSummaryFallback}
     >
@@ -587,7 +784,7 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         <p className="text-xs uppercase tracking-wide text-zinc-500">
           {moduleMessages.cart.eyebrow}
         </p>
-        <h1 className="text-2xl font-semibold text-zinc-900">{product.name}</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.cart.title}</h1>
       </header>
 
       {cartSummary}
@@ -597,20 +794,8 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         method="GET"
         className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5"
       >
-        <input type="hidden" name="productId" value={product.productId} />
+        {cartItemsParam ? <input type="hidden" name="items" value={cartItemsParam} /> : null}
         {targetType ? <input type="hidden" name="targetType" value={targetType} /> : null}
-
-        <label className="block space-y-2 text-sm">
-          <span className="font-medium text-zinc-800">{moduleMessages.cart.quantityLabel}</span>
-          <input
-            name="quantity"
-            type="number"
-            min={1}
-            max={100}
-            defaultValue={quantity}
-            className="h-10 w-full rounded-md border border-zinc-300 px-3"
-          />
-        </label>
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -620,7 +805,9 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
             {moduleMessages.cart.continueToOrder}
           </button>
           <Link
-            href={COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}
+            href={buildPath(COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS, {
+              items: cartItemsParam
+            })}
             className="inline-flex rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800"
           >
             {moduleMessages.cart.backToProducts}
@@ -640,9 +827,10 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
       themeId={themeId}
       data={{
         title: moduleMessages.cart.title,
-        description: product.name,
-        productId: product.productId,
-        quantity
+        description: firstItem.product.name,
+        productId: firstItem.product.productId,
+        quantity: firstItem.quantity,
+        itemsCount: resolvedItems.length
       }}
       fallback={fallback}
     >
@@ -653,18 +841,21 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
 
 export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext) {
   const moduleMessages = await getOneTimeModuleMessages();
-  const productId = parsePositiveInt(readSearchParam(context, 'productId'));
-  const quantity = normalizeQuantity(readSearchParam(context, 'quantity'));
-  const product = productId
-    ? await getPublishedOneTimeCatalogProduct(productId)
-    : null;
-  const provider = product?.provider ?? null;
+  const requestedItems = resolveRequestedCartLineItems(context);
+  const resolvedItems = await resolvePublishedCartLineItems(requestedItems);
+  const cartItems: OneTimeCartLineItem[] = resolvedItems.map((item) => ({
+    productId: item.product.productId,
+    quantity: item.quantity
+  }));
+  const cartItemsParam = serializeCartItemsQueryParam(cartItems);
+  const lineItemsPayload = encodeLineItemsPayload(cartItems);
+  const firstItem = resolvedItems[0] ?? null;
   const errorMessage = resolveOrderErrorMessage(
     readSearchParam(context, 'error'),
     moduleMessages
   );
 
-  if (!product) {
+  if (!firstItem || !lineItemsPayload) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
         <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.order.title}</h1>
@@ -697,10 +888,17 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
   const resolvedTargetType =
     targetType === 'team' && !teamId ? 'user' : targetType;
   const idempotencyKey = `otp_ui_${randomUUID().replace(/-/g, '')}`;
-  const totalAmount = product.unitAmountCents * quantity;
+  const totalAmount = resolvedItems.reduce(
+    (sum, item) => sum + item.product.unitAmountCents * item.quantity,
+    0
+  );
+  const orderCurrencies = new Set(
+    resolvedItems.map((item) => item.product.currency.toUpperCase())
+  );
+  const hasMixedCurrency = orderCurrencies.size > 1;
+  const totalCurrency = firstItem.product.currency;
   const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
-    productId: product.productId,
-    quantity,
+    items: cartItemsParam,
     targetType: resolvedTargetType
   });
   const themeSelection = await getThemeSelectionForArea('frontend');
@@ -708,24 +906,50 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
 
   const orderSummaryFallback = (
     <section className="rounded-xl border border-zinc-200 bg-white p-5">
-      <dl className="space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <dt className="text-zinc-500">{moduleMessages.order.unitPriceLabel}</dt>
-          <dd className="font-medium text-zinc-900">
-            {formatMoney(product.unitAmountCents, product.currency)}
-          </dd>
+      <ul className="space-y-3 text-sm">
+        {resolvedItems.map((item) => {
+          const lineTotal = item.product.unitAmountCents * item.quantity;
+          return (
+            <li
+              key={`${item.product.productId}`}
+              className="flex items-start justify-between gap-4 border-b border-zinc-100 pb-3 last:border-b-0 last:pb-0"
+            >
+              <div className="space-y-1">
+                <p className="font-medium text-zinc-900">{item.product.name}</p>
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.order.quantityLabel}: {item.quantity}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.order.unitPriceLabel}
+                </p>
+                <p className="font-medium text-zinc-900">
+                  {formatMoney(item.product.unitAmountCents, item.product.currency)}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {moduleMessages.order.totalLabel}
+                </p>
+                <p className="font-semibold text-zinc-900">
+                  {formatMoney(lineTotal, item.product.currency)}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {!hasMixedCurrency ? (
+        <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3">
+          <p className="text-zinc-500">{moduleMessages.order.totalLabel}</p>
+          <p className="text-lg font-semibold text-zinc-900">
+            {formatMoney(totalAmount, totalCurrency)}
+          </p>
         </div>
-        <div className="flex items-center justify-between">
-          <dt className="text-zinc-500">{moduleMessages.order.quantityLabel}</dt>
-          <dd className="font-medium text-zinc-900">{quantity}</dd>
-        </div>
-        <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
-          <dt className="text-zinc-500">{moduleMessages.order.totalLabel}</dt>
-          <dd className="text-lg font-semibold text-zinc-900">
-            {formatMoney(totalAmount, product.currency)}
-          </dd>
-        </div>
-      </dl>
+      ) : (
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          {moduleMessages.order.mixedCurrencyWarning}
+        </p>
+      )}
     </section>
   );
 
@@ -736,11 +960,12 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
       id="section.frontend.products.cart.summary"
       themeId={themeId}
       data={{
-        productId: product.productId,
-        quantity,
-        unitAmount: product.unitAmountCents,
+        productId: firstItem.product.productId,
+        quantity: firstItem.quantity,
+        unitAmount: firstItem.product.unitAmountCents,
         totalAmount,
-        currency: product.currency
+        currency: totalCurrency,
+        itemsCount: resolvedItems.length
       }}
       fallback={orderSummaryFallback}
     >
@@ -753,20 +978,10 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
       action={startOneTimeProductCheckoutAction}
       className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5"
     >
-      <input type="hidden" name="productId" value={product.productId} />
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
-
-      <label className="block space-y-2 text-sm">
-        <span className="font-medium text-zinc-800">{moduleMessages.order.quantityLabel}</span>
-        <input
-          name="quantity"
-          type="number"
-          min={1}
-          max={100}
-          defaultValue={quantity}
-          className="h-10 w-full rounded-md border border-zinc-300 px-3"
-        />
-      </label>
+      <input type="hidden" name="checkoutSource" value="order" />
+      <input type="hidden" name="lineItemsPayload" value={lineItemsPayload} />
+      {cartItemsParam ? <input type="hidden" name="cartItems" value={cartItemsParam} /> : null}
 
       {teamId ? (
         <label className="block space-y-2 text-sm">
@@ -787,7 +1002,12 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
       <div className="flex flex-wrap gap-2">
         <button
           type="submit"
-          className="inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+          disabled={hasMixedCurrency}
+          className={`inline-flex rounded-md px-3 py-2 text-sm text-white ${
+            hasMixedCurrency
+              ? 'cursor-not-allowed bg-zinc-400'
+              : 'bg-zinc-900'
+          }`}
         >
           {moduleMessages.order.continueToCheckout}
         </button>
@@ -798,6 +1018,9 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
           {moduleMessages.order.backToCart}
         </Link>
       </div>
+      {hasMixedCurrency ? (
+        <p className="text-xs text-amber-700">{moduleMessages.order.mixedCurrencyWarning}</p>
+      ) : null}
     </form>
   );
 
@@ -808,10 +1031,11 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
       id="section.frontend.products.order.form"
       themeId={themeId}
       data={{
-        productId: product.productId,
-        provider,
+        productId: firstItem.product.productId,
         targetType: resolvedTargetType,
-        canUseTeamTarget: Boolean(teamId)
+        canUseTeamTarget: Boolean(teamId),
+        itemsCount: resolvedItems.length,
+        hasMixedCurrency
       }}
       fallback={orderFormFallback}
     >
@@ -825,7 +1049,7 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
         <p className="text-xs uppercase tracking-wide text-zinc-500">
           {moduleMessages.order.eyebrow}
         </p>
-        <h1 className="text-2xl font-semibold text-zinc-900">{product.name}</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.order.title}</h1>
         <p className="text-sm text-zinc-600">{moduleMessages.order.description}</p>
       </header>
 
@@ -855,10 +1079,11 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
       id="page.frontend.products.order"
       themeId={themeId}
       data={{
-        title: product.name,
+        title: moduleMessages.order.title,
         description: moduleMessages.order.oneTimeDescription,
-        provider,
-        targetType: resolvedTargetType
+        targetType: resolvedTargetType,
+        itemsCount: resolvedItems.length,
+        hasMixedCurrency
       }}
       fallback={fallback}
     >
