@@ -1,23 +1,13 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  description?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminAppConfigPaymentMethodsTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Payment Methods';
-  const description = data?.description?.trim() || 'Provider credentials and payment processing configuration.';
+  const title = toStringOrFallback(data?.title, 'Payment Methods');
+  const description = toStringOrFallback(data?.description, 'Provider credentials and payment processing configuration.');
   return (
     <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>
       <section className="theme-first-backoffice-panel rounded-xl p-6">

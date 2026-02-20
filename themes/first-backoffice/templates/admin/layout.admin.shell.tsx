@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { mergeClassNames } from '@skitsaas/sdk';
+import type {
+  TemplateData as BaseTemplateData,
+  TemplateProps
+} from '../template-types';
 
-type TemplateData = {
+type AdminShellTemplateData = BaseTemplateData & {
   variant?: 'basic' | 'pro';
   mode?: 'compact' | 'adjusted';
   navSlot?: ReactNode;
@@ -10,17 +14,11 @@ type TemplateData = {
   contentSlot?: ReactNode;
 };
 
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
-
 export default function LayoutAdminShellTemplate({
   data,
   className,
   children
-}: TemplateProps) {
+}: TemplateProps<AdminShellTemplateData>) {
   const variant = data?.variant === 'pro' ? 'pro' : 'basic';
   const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';
   const isAdjusted = mode === 'adjusted';

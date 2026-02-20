@@ -1,23 +1,13 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  description?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminSuscriptionsOrganizationEditTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Edit Organization Subscription';
-  const description = data?.description?.trim() || 'Manage organization subscription provider and status.';
+  const title = toStringOrFallback(data?.title, 'Edit Organization Subscription');
+  const description = toStringOrFallback(data?.description, 'Manage organization subscription provider and status.');
   return (
     <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>
       <section className="theme-first-backoffice-panel rounded-xl p-6">

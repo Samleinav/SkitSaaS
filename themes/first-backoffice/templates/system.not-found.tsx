@@ -1,19 +1,12 @@
-type TemplateData = {
-  message?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from './template-types';
 
 export default function SystemNotFoundTemplate({
   data,
   className
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Not Found';
-  const message = data?.message?.trim() || 'This backoffice route is not available.';
+  const title = toStringOrFallback(data?.title, 'Not Found');
+  const message = toStringOrFallback(data?.message, 'This backoffice route is not available.');
 
   return (
     <main

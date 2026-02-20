@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { mergeClassNames } from '@skitsaas/sdk';
+import type {
+  TemplateData as BaseTemplateData,
+  TemplateProps
+} from '../template-types';
 import {
   ChevronRight,
   FileText,
@@ -33,14 +37,10 @@ type TemplateNavItem = {
   children?: TemplateNavChildItem[];
 };
 
-type TemplateProps = {
-  data?: {
-    variant?: 'basic' | 'pro';
-    mode?: 'compact' | 'adjusted';
-    navItems?: TemplateNavItem[];
-  };
-  className?: string;
-  children?: ReactNode;
+type AdminNavTemplateData = BaseTemplateData & {
+  variant?: 'basic' | 'pro';
+  mode?: 'compact' | 'adjusted';
+  navItems?: TemplateNavItem[];
 };
 
 const iconMap: Record<string, LucideIcon> = {
@@ -106,7 +106,7 @@ export default function SectionAdminNavTemplate({
   data,
   className,
   children
-}: TemplateProps) {
+}: TemplateProps<AdminNavTemplateData>) {
   const pathname = usePathname();
   const variant = data?.variant === 'pro' ? 'pro' : 'basic';
   const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';

@@ -35,6 +35,52 @@ test('catalog page reads error search param and renders error state from route c
   );
 });
 
+test('catalog page exposes cart CTA and count when items query is present', () => {
+  const pagesSource = readFile('modules/mod.commerce.one-time-payments/src/pages.tsx');
+
+  assert.match(
+    pagesSource,
+    /const cartItemsParam = serializeCartItemsQueryParam\(currentCartItems\)/
+  );
+  assert.match(
+    pagesSource,
+    /const cartItemsCount = currentCartItems\.reduce/
+  );
+  assert.match(
+    pagesSource,
+    /const hasCartItems = cartItemsCount > 0/
+  );
+  assert.match(
+    pagesSource,
+    /moduleMessages\.catalog\.viewCart/
+  );
+  assert.match(
+    pagesSource,
+    /href=\{cartPath\}/
+  );
+});
+
+test('catalog cards render in-cart state using current cart items', () => {
+  const pagesSource = readFile('modules/mod.commerce.one-time-payments/src/pages.tsx');
+
+  assert.match(
+    pagesSource,
+    /currentCartItems\.find\(\(item\) => item\.productId === product\.productId\)/
+  );
+  assert.match(
+    pagesSource,
+    /const inCartQuantity = existingCartItem\?\.quantity \?\? 0/
+  );
+  assert.match(
+    pagesSource,
+    /const isInCart = inCartQuantity > 0/
+  );
+  assert.match(
+    pagesSource,
+    /messages\.catalog\.inCartLabel/
+  );
+});
+
 test('order flow keeps checkout action with explicit order source marker', () => {
   const pagesSource = readFile('modules/mod.commerce.one-time-payments/src/pages.tsx');
 
@@ -83,6 +129,37 @@ test('order page blocks checkout submit when cart contains mixed currency items'
   assert.match(
     pagesSource,
     /moduleMessages\.order\.mixedCurrencyWarning/
+  );
+});
+
+test('cart page blocks continue action when cart contains mixed currency items', () => {
+  const pagesSource = readFile('modules/mod.commerce.one-time-payments/src/pages.tsx');
+
+  assert.match(pagesSource, /const hasMixedCurrency = cartCurrencies\.size > 1/);
+  assert.match(
+    pagesSource,
+    /<button[\s\S]*type="submit"[\s\S]*disabled=\{hasMixedCurrency\}/
+  );
+  assert.match(
+    pagesSource,
+    /moduleMessages\.cart\.mixedCurrencyWarning/
+  );
+});
+
+test('cart and order pages surface unavailable-item warning when requested items are dropped', () => {
+  const pagesSource = readFile('modules/mod.commerce.one-time-payments/src/pages.tsx');
+
+  assert.match(
+    pagesSource,
+    /const hasUnavailableItems = requestedItems\.length > resolvedItems\.length/
+  );
+  assert.match(
+    pagesSource,
+    /moduleMessages\.cart\.unavailableItemsWarning/
+  );
+  assert.match(
+    pagesSource,
+    /moduleMessages\.order\.unavailableItemsWarning/
   );
 });
 

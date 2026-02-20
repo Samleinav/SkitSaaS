@@ -2,8 +2,8 @@
 
 Status: In progress
 Start date: 2026-02-16
-Current phase: Sprint 8 Task 8.2 in progress (multi-item backend contract)
-Last review: 2026-02-19
+Current phase: Sprint 8 Task 8.4 in progress (core `theme -> module -> error` code-template fallback)
+Last review: 2026-02-20
 
 ## Sprint 7 progress snapshot (2026-02-18)
 - [x] Frontend one-time pages (`/products`, `/products/cart`, `/products/order`) now render with theme wrappers:
@@ -29,10 +29,14 @@ Last review: 2026-02-19
 - [x] Core one-time checkout now persists explicit line items (`checkout_order_items`) and `/checkout/[checkoutToken]` renders one-time summary from persisted items with legacy metadata fallback.
 - [x] `Buy now` on `/products` now uses direct checkout handoff (`server action -> /checkout/[checkoutToken]`) and keeps error fallback on catalog path (`/products`) without forcing `/products/order`.
 - [x] `/products` now resolves `?error=` and renders a visible error alert for failed `buy_now` attempts.
+- [x] Frontend cart/order UX now hardens invalid cart states:
+  - `/products/cart` disables "continue to order" when mixed currencies are present.
+  - `/products/cart` and `/products/order` show warning when requested items are no longer published/available and were dropped.
+- [x] `/products` catalog now exposes cart CTA with item counter when `items` query is present (keeps cart contract visible and recoverable from catalog).
 - [x] Admin products create/edit forms now use decimal `priceAmount` + `priceCurrency` select and removed provider/providerPriceId fields from UI (server actions convert to cents and persist provider fields as null).
 - [x] Admin products home migrated from manual HTML table to `DataTable` host component:
   - removed legacy GET filters (`kind`, `published`) from page route.
-  - moved `kind/publication` filtering into datatable toolbar controls.
+  - removed custom `kind/publication` toolbar filters to avoid duplicated/manual filtering logic; DataTable now uses native search/sort/pagination controls.
 - [x] One-time payment-method start routes now apply late provider binding by selected `paymentMethodId` in checkout:
   - Stripe start creates/rebinds Stripe session when intent has PayPal/unbound prior state.
   - PayPal start creates/rebinds PayPal session when intent has Stripe/unbound prior state.
@@ -580,7 +584,7 @@ Checklist:
 - [x] Add DB-level guard strategy (partial unique index and/or equivalent constraint) aligned with lifecycle statuses.
 - [x] Align create/reuse services to deterministic behavior under concurrent requests.
 - [x] Add migration/backfill notes for existing duplicated historical records.
-- [ ] Add regression tests for duplicate-start attempts and idempotent reuse.
+- [x] Add regression tests for duplicate-start attempts and idempotent reuse.
 
 Progress notes (2026-02-19):
 - Added DB-level partial unique indexes for active subscription checkout scope:
@@ -588,8 +592,10 @@ Progress notes (2026-02-19):
   - `checkout_orders_active_subscription_user_scope_idx`
 - Added migration backfill that expires duplicate active rows per scope before enforcing indexes.
 - `createSubscriptionCheckoutOrder` and `createUserSubscriptionCheckoutOrder` now resolve unique-violation races by returning the existing active scoped order.
-- Added regression guard test in `tests/payments/checkout-orders.test.ts` to assert migration invariant SQL contract.
-- Remaining gap: add a true concurrent duplicate-start runtime test (DB-backed integration) to close the final checklist item.
+- Added regression guard tests in `tests/payments/checkout-orders.test.ts`:
+  - migration invariant SQL contract assertion
+  - concurrent duplicate-start path (`23505` unique conflict -> scoped active order reuse)
+  - idempotent reuse path (second start reuses active checkout order without new insert)
 
 Validation checklist:
 - [x] Concurrent subscription checkout start attempts cannot create duplicate active checkout orders for same scope.
@@ -601,6 +607,54 @@ Commands:
 - `npx tsx --test tests/payments/order-subscription-lifecycle.test.ts`
 - `pnpm exec tsc --noEmit`
 - `pnpm exec eslint lib/payments/checkout-orders.ts lib/db/schema.ts`
+
+### Task 8.4 (P1) - Core `ThemeCodeTemplate` fallback pipeline (`theme -> module -> strict missing`)
+Risk:
+- Keeping fallback JSX resolution in module pages adds noise and bypasses a reusable core template contract.
+
+Target files:
+- `plans/checkout-modules-one-time-products-plan.md`
+- `components/theme/theme-code-template.tsx`
+- `scripts/modules-prepare.ts`
+- `lib/templates/module-code-registry.generated.ts`
+- `modules/mod.commerce.products/src/pages.tsx`
+- `modules/mod.commerce.products/src/templates/module-code-templates.tsx`
+- `tests/modules/mod-commerce-products-pages.test.ts`
+- `tests/modules/modules-prepare.test.ts`
+- `tests/theme/theme-code-template.test.tsx`
+
+Checklist:
+- [x] Add module code template registry for required admin template IDs (`page.*` + `section.*`).
+- [x] Generate `lib/templates/module-code-registry.generated.ts` from `modules:prepare` (no manual hardcoded module map).
+- [x] Extend `ThemeCodeTemplate` to resolve `theme -> module -> strict missing` when `moduleId` is provided.
+- [x] Wire products admin pages to use only `ThemeCodeTemplate` with `moduleId` (remove local fallback renderer calls in `pages.tsx`).
+- [x] Enforce strict error when requested module template id is missing in module renderer.
+- [ ] Continue extracting remaining inline fallback blocks into module template components to reduce `pages.tsx` size further.
+- [ ] Evaluate reusable helper for `mod.commerce.one-time-payments` after products stabilization.
+
+Progress notes (2026-02-20):
+- Core runtime now resolves missing theme code templates through module renderers when `moduleId` is provided.
+- `modules:prepare` now generates `lib/templates/module-code-registry.generated.ts` by detecting `src/templates/module-code-templates.*` per module.
+- `mod.commerce.products` moved module templates to:
+  - `modules/mod.commerce.products/src/templates/module-code-templates.tsx`
+- Products admin pages now use `ThemeCodeTemplate` wrappers only, passing `moduleId={COMMERCE_PRODUCTS_MODULE_ID}`.
+- Added regression coverage for:
+  - core module fallback path in `ThemeCodeTemplate`
+  - generated module-code registry output in `modules:prepare`
+  - products page usage of core module fallback path
+
+Validation checklist:
+- [x] Missing theme template still renders module-defined fallback template.
+- [x] Missing module template id throws explicit module-scoped error.
+- [ ] Products admin behavior remains unchanged (list/create/edit/publish) after fallback extraction.
+
+Commands:
+- `npx tsx --test tests/modules/mod-commerce-products-pages.test.ts`
+- `npx tsx --test tests/modules/mod-commerce-products-api.test.ts`
+- `npx tsx --test tests/modules/modules-prepare.test.ts`
+- `npx tsx --test tests/theme/theme-code-template.test.tsx`
+- `pnpm exec eslint components/theme/theme-code-template.tsx scripts/modules-prepare.ts modules/mod.commerce.products/src/pages.tsx modules/mod.commerce.products/src/templates/module-code-templates.tsx tests/modules/mod-commerce-products-pages.test.ts tests/modules/modules-prepare.test.ts tests/theme/theme-code-template.test.tsx`
+- `pnpm exec tsc --noEmit`
 
 ## Dependencies
 - Decision on slug contract for subscription templates (`slug` field or deterministic alias).

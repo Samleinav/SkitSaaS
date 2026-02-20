@@ -1,6 +1,9 @@
 export function mergeClassNames(...values) {
     return values.filter(Boolean).join(' ');
 }
+export function readString(data, key, fallback = '') {
+    return toStringOrFallback(data?.[key], fallback);
+}
 export function toStringOrNull(value) {
     if (typeof value !== 'string') {
         return null;

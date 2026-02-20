@@ -1,23 +1,13 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  description?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminOrdersTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Orders';
-  const description = data?.description?.trim() || 'Operational payment orders and statuses.';
+  const title = toStringOrFallback(data?.title, 'Orders');
+  const description = toStringOrFallback(data?.description, 'Operational payment orders and statuses.');
 
   return (
     <main
@@ -31,5 +21,4 @@ export default function PageAdminOrdersTemplate({
     </main>
   );
 }
-
 

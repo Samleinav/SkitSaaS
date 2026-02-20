@@ -1,23 +1,13 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  description?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminLogsTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Logs';
-  const description = data?.description?.trim() || 'System and email delivery logs.';
+  const title = toStringOrFallback(data?.title, 'Logs');
+  const description = toStringOrFallback(data?.description, 'System and email delivery logs.');
   return (
     <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>
       <section className="theme-first-backoffice-panel rounded-xl p-6">

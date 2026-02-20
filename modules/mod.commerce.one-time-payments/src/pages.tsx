@@ -40,8 +40,10 @@ type OneTimeFrontendMessages = {
     description: string;
     empty: string;
     noDescription: string;
+    inCartLabel: string;
     addToCart: string;
     buyNow: string;
+    viewCart: string;
   };
   cart: {
     title: string;
@@ -52,6 +54,7 @@ type OneTimeFrontendMessages = {
     quantityLabel: string;
     totalLabel: string;
     mixedCurrencyWarning: string;
+    unavailableItemsWarning: string;
     continueToOrder: string;
     backToProducts: string;
   };
@@ -71,6 +74,7 @@ type OneTimeFrontendMessages = {
     backToCart: string;
     oneTimeDescription: string;
     mixedCurrencyWarning: string;
+    unavailableItemsWarning: string;
     switchedToUserWarning: string;
     errors: Record<string, string>;
   };
@@ -83,8 +87,10 @@ const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
     description: 'Baseline storefront for one-time purchases connected to core checkout.',
     empty: 'No published one-time products are available.',
     noDescription: 'No description.',
+    inCartLabel: 'In cart',
     addToCart: 'Add to cart',
-    buyNow: 'Buy now'
+    buyNow: 'Buy now',
+    viewCart: 'View cart'
   },
   cart: {
     title: 'Cart',
@@ -96,6 +102,8 @@ const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
     totalLabel: 'Total',
     mixedCurrencyWarning:
       'Mixed currencies detected in cart. Use one currency per checkout order.',
+    unavailableItemsWarning:
+      'Some cart items are no longer available and were removed automatically.',
     continueToOrder: 'Continue to order',
     backToProducts: 'Back to products'
   },
@@ -117,6 +125,8 @@ const DEFAULT_ONE_TIME_FRONTEND_MESSAGES: OneTimeFrontendMessages = {
     oneTimeDescription: 'One-time order',
     mixedCurrencyWarning:
       'Mixed currencies detected in cart. Remove incompatible products before continuing to checkout.',
+    unavailableItemsWarning:
+      'Some cart items are no longer available and were removed automatically.',
     switchedToUserWarning:
       'No team membership found for this account. The checkout target was switched to user automatically.',
     errors: {
@@ -176,8 +186,14 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         'products.catalog.noDescription',
         defaults.catalog.noDescription
       ),
+      inCartLabel: readMessage(
+        tree,
+        'products.catalog.inCartLabel',
+        defaults.catalog.inCartLabel
+      ),
       addToCart: readMessage(tree, 'products.catalog.addToCart', defaults.catalog.addToCart),
-      buyNow: readMessage(tree, 'products.catalog.buyNow', defaults.catalog.buyNow)
+      buyNow: readMessage(tree, 'products.catalog.buyNow', defaults.catalog.buyNow),
+      viewCart: readMessage(tree, 'products.catalog.viewCart', defaults.catalog.viewCart)
     },
     cart: {
       title: readMessage(tree, 'products.cart.title', defaults.cart.title),
@@ -207,6 +223,11 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         tree,
         'products.cart.mixedCurrencyWarning',
         defaults.cart.mixedCurrencyWarning
+      ),
+      unavailableItemsWarning: readMessage(
+        tree,
+        'products.cart.unavailableItemsWarning',
+        defaults.cart.unavailableItemsWarning
       ),
       continueToOrder: readMessage(
         tree,
@@ -274,6 +295,11 @@ function getOneTimeFrontendMessages(tree: ModuleMessageTree): OneTimeFrontendMes
         tree,
         'products.order.mixedCurrencyWarning',
         defaults.order.mixedCurrencyWarning
+      ),
+      unavailableItemsWarning: readMessage(
+        tree,
+        'products.order.unavailableItemsWarning',
+        defaults.order.unavailableItemsWarning
       ),
       switchedToUserWarning: readMessage(
         tree,
@@ -518,6 +544,10 @@ function renderCatalogCardTemplate(
   currentCartItems: OneTimeCartLineItem[]
 ) {
   const amountLabel = formatMoney(product.unitAmountCents, product.currency);
+  const existingCartItem =
+    currentCartItems.find((item) => item.productId === product.productId) ?? null;
+  const inCartQuantity = existingCartItem?.quantity ?? 0;
+  const isInCart = inCartQuantity > 0;
   const nextCartItems = appendProductToCartLineItems({
     items: currentCartItems,
     productId: product.productId,
@@ -542,6 +572,11 @@ function renderCatalogCardTemplate(
       <p className="mt-1 text-sm text-zinc-600">
         {product.description || messages.catalog.noDescription}
       </p>
+      {isInCart ? (
+        <p className="mt-2 inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+          {messages.catalog.inCartLabel} x{inCartQuantity}
+        </p>
+      ) : null}
       <p className="mt-3 text-xl font-semibold">{amountLabel}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
@@ -577,7 +612,9 @@ function renderCatalogCardTemplate(
         productId: product.productId,
         productKey: product.productKey,
         name: product.name,
-        priceLabel: amountLabel
+        priceLabel: amountLabel,
+        isInCart,
+        inCartQuantity
       }}
       fallback={fallback}
     >
@@ -604,6 +641,15 @@ export async function renderOneTimeProductsCatalogPage(context: ModuleRouteConte
   const moduleMessages = await getOneTimeModuleMessages();
   const products = await listPublishedOneTimeCatalogProducts({ limit: 48 });
   const currentCartItems = resolveRequestedCartLineItems(context);
+  const cartItemsParam = serializeCartItemsQueryParam(currentCartItems);
+  const cartItemsCount = currentCartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+  const hasCartItems = cartItemsCount > 0;
+  const cartPath = buildPath(`${COMMERCE_ONE_TIME_PAYMENTS_FRONTEND_ALIAS}/cart`, {
+    items: cartItemsParam
+  });
   const errorMessage = resolveOrderErrorMessage(
     readSearchParam(context, 'error'),
     moduleMessages
@@ -613,14 +659,27 @@ export async function renderOneTimeProductsCatalogPage(context: ModuleRouteConte
 
   const fallback = (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          {moduleMessages.catalog.eyebrow}
-        </p>
-        <h1 className="text-3xl font-semibold text-zinc-900">
-          {moduleMessages.catalog.title}
-        </h1>
-        <p className="text-sm text-zinc-600">{moduleMessages.catalog.description}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-wide text-zinc-500">
+            {moduleMessages.catalog.eyebrow}
+          </p>
+          <h1 className="text-3xl font-semibold text-zinc-900">
+            {moduleMessages.catalog.title}
+          </h1>
+          <p className="text-sm text-zinc-600">{moduleMessages.catalog.description}</p>
+        </div>
+        {hasCartItems ? (
+          <Link
+            href={cartPath}
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-800"
+          >
+            {moduleMessages.catalog.viewCart}
+            <span className="inline-flex min-w-6 justify-center rounded bg-zinc-900 px-2 py-0.5 text-xs text-white">
+              {cartItemsCount}
+            </span>
+          </Link>
+        ) : null}
       </header>
 
       {errorMessage ? (
@@ -661,7 +720,9 @@ export async function renderOneTimeProductsCatalogPage(context: ModuleRouteConte
         description: moduleMessages.catalog.description,
         total: products.length,
         hasProducts: products.length > 0,
-        hasError: Boolean(errorMessage)
+        hasError: Boolean(errorMessage),
+        hasCartItems,
+        cartItemsCount
       }}
       fallback={fallback}
     >
@@ -674,6 +735,8 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
   const moduleMessages = await getOneTimeModuleMessages();
   const requestedItems = resolveRequestedCartLineItems(context);
   const resolvedItems = await resolvePublishedCartLineItems(requestedItems);
+  const hasUnavailableItems = requestedItems.length > resolvedItems.length;
+  const unavailableItemsCount = Math.max(0, requestedItems.length - resolvedItems.length);
   const cartItems: OneTimeCartLineItem[] = resolvedItems.map((item) => ({
     productId: item.product.productId,
     quantity: item.quantity
@@ -770,7 +833,10 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         unitAmount: firstItem.product.unitAmountCents,
         totalAmount,
         currency: totalCurrency,
-        itemsCount: resolvedItems.length
+        itemsCount: resolvedItems.length,
+        hasMixedCurrency,
+        hasUnavailableItems,
+        unavailableItemsCount
       }}
       fallback={cartSummaryFallback}
     >
@@ -787,6 +853,12 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.cart.title}</h1>
       </header>
 
+      {hasUnavailableItems ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {moduleMessages.cart.unavailableItemsWarning}
+        </section>
+      ) : null}
+
       {cartSummary}
 
       <form
@@ -800,7 +872,12 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
-            className="inline-flex rounded-md bg-zinc-900 px-3 py-2 text-sm text-white"
+            disabled={hasMixedCurrency}
+            className={`inline-flex rounded-md px-3 py-2 text-sm text-white ${
+              hasMixedCurrency
+                ? 'cursor-not-allowed bg-zinc-400'
+                : 'bg-zinc-900'
+            }`}
           >
             {moduleMessages.cart.continueToOrder}
           </button>
@@ -813,6 +890,9 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
             {moduleMessages.cart.backToProducts}
           </Link>
         </div>
+        {hasMixedCurrency ? (
+          <p className="text-xs text-amber-700">{moduleMessages.cart.mixedCurrencyWarning}</p>
+        ) : null}
       </form>
     </main>
   );
@@ -830,7 +910,10 @@ export async function renderOneTimeProductsCartPage(context: ModuleRouteContext)
         description: firstItem.product.name,
         productId: firstItem.product.productId,
         quantity: firstItem.quantity,
-        itemsCount: resolvedItems.length
+        itemsCount: resolvedItems.length,
+        hasMixedCurrency,
+        hasUnavailableItems,
+        unavailableItemsCount
       }}
       fallback={fallback}
     >
@@ -843,6 +926,8 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
   const moduleMessages = await getOneTimeModuleMessages();
   const requestedItems = resolveRequestedCartLineItems(context);
   const resolvedItems = await resolvePublishedCartLineItems(requestedItems);
+  const hasUnavailableItems = requestedItems.length > resolvedItems.length;
+  const unavailableItemsCount = Math.max(0, requestedItems.length - resolvedItems.length);
   const cartItems: OneTimeCartLineItem[] = resolvedItems.map((item) => ({
     productId: item.product.productId,
     quantity: item.quantity
@@ -965,7 +1050,10 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
         unitAmount: firstItem.product.unitAmountCents,
         totalAmount,
         currency: totalCurrency,
-        itemsCount: resolvedItems.length
+        itemsCount: resolvedItems.length,
+        hasMixedCurrency,
+        hasUnavailableItems,
+        unavailableItemsCount
       }}
       fallback={orderSummaryFallback}
     >
@@ -1035,7 +1123,9 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
         targetType: resolvedTargetType,
         canUseTeamTarget: Boolean(teamId),
         itemsCount: resolvedItems.length,
-        hasMixedCurrency
+        hasMixedCurrency,
+        hasUnavailableItems,
+        unavailableItemsCount
       }}
       fallback={orderFormFallback}
     >
@@ -1065,6 +1155,12 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
         </section>
       ) : null}
 
+      {hasUnavailableItems ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {moduleMessages.order.unavailableItemsWarning}
+        </section>
+      ) : null}
+
       {orderSummary}
       {orderForm}
     </main>
@@ -1083,7 +1179,9 @@ export async function renderOneTimeProductsOrderPage(context: ModuleRouteContext
         description: moduleMessages.order.oneTimeDescription,
         targetType: resolvedTargetType,
         itemsCount: resolvedItems.length,
-        hasMixedCurrency
+        hasMixedCurrency,
+        hasUnavailableItems,
+        unavailableItemsCount
       }}
       fallback={fallback}
     >

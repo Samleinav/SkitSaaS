@@ -4,6 +4,14 @@ export function mergeClassNames(...values: ClassNameValue[]) {
   return values.filter(Boolean).join(' ');
 }
 
+export function readString(
+  data: Record<string, unknown> | null | undefined,
+  key: string,
+  fallback = ''
+) {
+  return toStringOrFallback(data?.[key], fallback);
+}
+
 export function toStringOrNull(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null;

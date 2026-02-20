@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   mergeClassNames,
+  readString,
   toNumberOrFallback,
   toStringOrFallback,
   toStringOrNull
@@ -15,6 +16,10 @@ test('template SDK utils normalize string and number values deterministically', 
   assert.equal(toStringOrFallback('  pro  ', 'basic'), 'pro');
   assert.equal(toStringOrFallback('   ', 'basic'), 'basic');
   assert.equal(toStringOrFallback(undefined, 'basic'), 'basic');
+
+  assert.equal(readString({ title: '  Hello  ' }, 'title'), 'Hello');
+  assert.equal(readString({ title: 42 }, 'title', 'fallback'), 'fallback');
+  assert.equal(readString(undefined, 'title', 'fallback'), 'fallback');
 
   assert.equal(toNumberOrFallback(4, 2), 4);
   assert.equal(toNumberOrFallback(Number.NaN, 2), 2);

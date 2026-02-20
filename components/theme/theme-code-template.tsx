@@ -3,6 +3,10 @@ import {
   THEME_CODE_REGISTRY,
   type CodeRegistryThemeEntry
 } from '@/lib/themes/code-registry.generated';
+import {
+  MODULE_CODE_TEMPLATE_REGISTRY,
+  type ModuleCodeRegistryEntry
+} from '@/lib/templates/module-code-registry.generated';
 import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
 
 type ThemeProviderComponent = ComponentType<{ children: ReactNode }>;
@@ -34,6 +38,7 @@ type ThemeCodeTemplateResolution<TId extends string = string> = {
 
 const loadedTemplateComponents = new Map<string, ThemeTemplateComponent>();
 const loadedProviderComponents = new Map<string, ThemeProviderComponent | null>();
+const loadedModuleTemplateComponents = new Map<string, ThemeTemplateComponent>();
 
 function normalizeId(value: string | null | undefined) {
   const normalized = String(value ?? '')
@@ -168,11 +173,13 @@ async function resolveThemeCodeTemplate<TId extends string>({
 function reportMissingThemeCodeTemplate({
   reason,
   componentId,
-  themeId
+  themeId,
+  moduleId
 }: {
   reason: ThemeCodeTemplateResolveFailureReason | null;
   componentId: string | null;
   themeId: string | null;
+  moduleId: string | null;
 }) {
   if (process.env.NODE_ENV !== 'development' || !reason) {
     return;
@@ -182,13 +189,101 @@ function reportMissingThemeCodeTemplate({
     `[theme-code-template] template_not_found` +
       ` reason="${reason}"` +
       ` componentId="${componentId ?? 'unknown'}"` +
-      ` themeId="${themeId ?? 'none'}"`
+      ` themeId="${themeId ?? 'none'}"` +
+      ` moduleId="${moduleId ?? 'none'}"`
+  );
+}
+
+function resolveModuleCodeRegistryEntry(
+  moduleId: string | null | undefined
+): ModuleCodeRegistryEntry | null {
+  const normalizedModuleId = normalizeId(moduleId);
+  if (!normalizedModuleId) {
+    return null;
+  }
+
+  return MODULE_CODE_TEMPLATE_REGISTRY[normalizedModuleId] ?? null;
+}
+
+async function loadModuleTemplateComponent({
+  registryEntry,
+  componentId
+}: {
+  registryEntry: ModuleCodeRegistryEntry;
+  componentId: string;
+}) {
+  const templateLoader = registryEntry.templates[componentId];
+  if (!templateLoader) {
+    return null;
+  }
+
+  const cacheKey = `${registryEntry.moduleId}::${componentId}`;
+  const cached = loadedModuleTemplateComponents.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const templateModule = await templateLoader();
+  const templateComponent = templateModule.default as ThemeTemplateComponent;
+  loadedModuleTemplateComponents.set(cacheKey, templateComponent);
+  return templateComponent;
+}
+
+async function renderModuleCodeTemplate({
+  moduleId,
+  templateId,
+  data,
+  className,
+  themeId,
+  children
+}: {
+  moduleId: string;
+  templateId: string;
+  data?: Record<string, unknown>;
+  className?: string;
+  themeId?: string;
+  children?: ReactNode;
+}) {
+  const registryEntry = resolveModuleCodeRegistryEntry(moduleId);
+  if (!registryEntry) {
+    throw new Error(
+      `[theme-code-template] Missing module code template registry ` +
+        `moduleId="${moduleId}" componentId="${templateId}".`
+    );
+  }
+
+  let component: ThemeTemplateComponent | null = null;
+  try {
+    component = await loadModuleTemplateComponent({
+      registryEntry,
+      componentId: templateId
+    });
+  } catch {
+    throw new Error(
+      `[theme-code-template] Failed loading module code template ` +
+        `moduleId="${moduleId}" componentId="${templateId}".`
+    );
+  }
+
+  if (!component) {
+    throw new Error(
+      `[theme-code-template] Missing module code template ` +
+        `moduleId="${moduleId}" componentId="${templateId}".`
+    );
+  }
+
+  const ModuleComponent = component;
+  return (
+    <ModuleComponent data={data} className={className} themeId={themeId}>
+      {children}
+    </ModuleComponent>
   );
 }
 
 export async function ThemeCodeTemplate<TId extends string>({
   id,
   themeId,
+  moduleId,
   data,
   className,
   children,
@@ -196,23 +291,43 @@ export async function ThemeCodeTemplate<TId extends string>({
 }: {
   id: TId;
   themeId: string | null | undefined;
+  moduleId?: string | null;
   data?: TemplateDataForId<TId>;
   className?: string;
   children?: ReactNode;
-  fallback: ReactNode;
+  fallback?: ReactNode;
 }) {
+  const normalizedTemplateId = normalizeId(id);
+  if (!normalizedTemplateId) {
+    throw new Error('[theme-code-template] Missing or invalid component id.');
+  }
+  const normalizedModuleId = normalizeId(moduleId);
   const resolved = await resolveThemeCodeTemplate<TId>({
     themeId,
-    componentId: id
+    componentId: normalizedTemplateId
   });
 
   if (!resolved.resolved) {
     reportMissingThemeCodeTemplate({
       reason: resolved.reason,
       componentId: resolved.componentId,
-      themeId: resolved.themeId
+      themeId: resolved.themeId,
+      moduleId: normalizedModuleId
     });
-    return <>{fallback}</>;
+
+    if (normalizedModuleId) {
+      const renderedModuleTemplate = await renderModuleCodeTemplate({
+        moduleId: normalizedModuleId,
+        templateId: normalizedTemplateId,
+        data: data as Record<string, unknown> | undefined,
+        className,
+        themeId: normalizeId(themeId) ?? undefined,
+        children
+      });
+      return <>{renderedModuleTemplate}</>;
+    }
+
+    return <>{fallback ?? children ?? null}</>;
   }
 
   const renderedTemplate = (

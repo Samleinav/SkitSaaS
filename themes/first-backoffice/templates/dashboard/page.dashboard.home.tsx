@@ -1,21 +1,12 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageDashboardHomeTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Dashboard Home';
+  const title = toStringOrFallback(data?.title, 'Dashboard Home');
 
   return (
     <main

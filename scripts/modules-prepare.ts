@@ -37,11 +37,17 @@ type ResolvedModuleTemplatePack = {
   contractRange?: string;
 };
 
+type ModuleCodeTemplateEntry = {
+  componentId: string;
+  importPath: string;
+};
+
 export type ResolvedModule = {
   moduleId: string;
   entryPath: string;
   importPath: string;
   importName: string;
+  moduleCodeTemplates: ModuleCodeTemplateEntry[];
   mode: ModuleMode;
   sdkRange: string | null;
   sdkCompatible: boolean | null;
@@ -79,6 +85,14 @@ const DEFAULT_SOURCE_ENTRY_CANDIDATES = [
   'src/manifest.js',
   'src/manifest.mjs'
 ];
+
+const MODULE_CODE_TEMPLATE_ENTRY_CANDIDATES = [
+  'templates',
+  'src/templates',
+  'dist/templates'
+];
+
+const MODULE_CODE_TEMPLATE_EXTENSIONS = new Set(['.tsx', '.jsx']);
 
 const SEMVER_REGEX =
   /^v?(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?(?:-(?<prerelease>[0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -486,6 +500,93 @@ function resolveModuleTemplatePackConfig({
     ...(overrideEntryPath ? { overrideEntryPath } : {}),
     ...(contractRange ? { contractRange } : {})
   };
+}
+
+function resolveModuleCodeTemplates({
+  rootDir,
+  moduleDir,
+  moduleMode
+}: {
+  rootDir: string;
+  moduleDir: string;
+  moduleMode: ModuleMode;
+}) {
+  const resolveTemplateDirCandidates = () => {
+    if (moduleMode === 'source-host') {
+      return ['src/templates', 'templates', 'dist/templates'];
+    }
+
+    if (moduleMode === 'source-package' || moduleMode === 'prebuilt') {
+      return ['dist/templates', 'templates', 'src/templates'];
+    }
+
+    return MODULE_CODE_TEMPLATE_ENTRY_CANDIDATES;
+  };
+
+  const templateDirCandidates = resolveTemplateDirCandidates();
+  let templateDir: string | null = null;
+  for (const candidate of templateDirCandidates) {
+    const absoluteCandidate = path.join(moduleDir, candidate);
+    if (fs.existsSync(absoluteCandidate)) {
+      templateDir = absoluteCandidate;
+      break;
+    }
+  }
+
+  if (!templateDir) {
+    return [] as ModuleCodeTemplateEntry[];
+  }
+
+  const entries: ModuleCodeTemplateEntry[] = [];
+  const componentIds = new Map<string, string>();
+  const scanDir = (dirPath: string) => {
+    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+
+    for (const file of files) {
+      const absolutePath = path.join(dirPath, file.name);
+
+      if (file.isDirectory()) {
+        scanDir(absolutePath);
+        continue;
+      }
+
+      if (!file.isFile()) {
+        continue;
+      }
+
+      const ext = path.extname(file.name);
+      if (!MODULE_CODE_TEMPLATE_EXTENSIONS.has(ext)) {
+        continue;
+      }
+
+      const componentId = file.name
+        .slice(0, -ext.length)
+        .trim()
+        .toLowerCase();
+      if (!componentId) {
+        continue;
+      }
+
+      const importPath = resolveImportPath(rootDir, absolutePath);
+      const existing = componentIds.get(componentId);
+      if (existing) {
+        throw new Error(
+          `[modules-prepare] duplicate module code template id "${componentId}" in module ` +
+            `"${path.basename(moduleDir)}": "${existing}" and "${importPath}".`
+        );
+      }
+
+      componentIds.set(componentId, importPath);
+      entries.push({
+        componentId,
+        importPath
+      });
+    }
+  };
+
+  scanDir(templateDir);
+  entries.sort((a, b) => a.componentId.localeCompare(b.componentId));
+  return entries;
 }
 
 function toImportName(moduleId: string) {
@@ -1011,6 +1112,11 @@ export function runModulesPrepare(
         entryPath: resolved.entryPath,
         importPath: resolveImportPath(rootDir, resolved.entryPath),
         importName: toImportName(moduleJson.moduleId),
+        moduleCodeTemplates: resolveModuleCodeTemplates({
+          rootDir,
+          moduleDir,
+          moduleMode: resolved.mode
+        }),
         mode: resolved.mode,
         sdkRange: compatibility.sdkRange,
         sdkCompatible: compatibility.sdkCompatible,
@@ -1073,6 +1179,53 @@ export function runModulesPrepare(
 
   ensureOutputDir(outputPath);
   fs.writeFileSync(outputPath, fileBody, 'utf8');
+
+  const moduleCodeRegistryOutputPath = path.join(
+    rootDir,
+    'lib',
+    'templates',
+    'module-code-registry.generated.ts'
+  );
+  const modulesWithCodeTemplates = resolvedModules.filter(
+    (mod) => mod.moduleCodeTemplates.length > 0
+  );
+  const moduleCodeRegistryEntries = modulesWithCodeTemplates
+    .map((mod) => {
+      const templateEntries = mod.moduleCodeTemplates
+        .map(
+          (template) =>
+            `      ${JSON.stringify(template.componentId)}: () => import(${JSON.stringify(template.importPath)}),`
+        )
+        .join('\n');
+
+      return (
+        `  ${JSON.stringify(mod.moduleId)}: {\n` +
+        `    moduleId: ${JSON.stringify(mod.moduleId)},\n` +
+        '    templates: {\n' +
+        `${templateEntries}\n` +
+        '    }\n' +
+        '  }'
+      );
+    })
+    .join(',\n');
+
+  const moduleCodeRegistryFileBody = `import type { ComponentType } from 'react';
+
+export type ModuleCodeRegistryEntry = {
+  moduleId: string;
+  templates: Record<string, () => Promise<{ default: ComponentType<any> }>>;
+};
+
+export const MODULE_CODE_TEMPLATE_REGISTRY: Record<
+  string,
+  ModuleCodeRegistryEntry
+> = {
+${moduleCodeRegistryEntries}
+};
+`;
+
+  ensureOutputDir(moduleCodeRegistryOutputPath);
+  fs.writeFileSync(moduleCodeRegistryOutputPath, moduleCodeRegistryFileBody, 'utf8');
 
   if (warnings.length && options.logWarnings !== false) {
     console.warn('[modules-prepare] warnings:');

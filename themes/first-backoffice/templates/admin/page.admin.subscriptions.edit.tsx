@@ -1,21 +1,12 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminSubscriptionsEditTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Edit Subscription Template';
+  const title = toStringOrFallback(data?.title, 'Edit Subscription Template');
 
   return (
     <main className={className || 'mx-auto max-w-7xl px-4 py-8'}>

@@ -32,8 +32,11 @@ Current implementation:
   - `/products/cart` and `/products/order` resolve aggregated cart items from `items`
   - order submit posts `lineItemsPayload` to backend intent creation
   - order flow blocks checkout submit when cart contains mixed currencies (same-currency checkout invariant)
+  - cart/order surfaces warning when requested items are unavailable and dropped during published-product resolution
 - frontend `/products` supports `Buy now` direct handoff to `/checkout/[checkoutToken]` (skips `/products/cart` and `/products/order`)
 - frontend `/products` resolves `?error=` and renders a catalog-level alert for failed `buy_now` attempts
+- frontend `/products` now shows a direct cart CTA when `items` are present, with visible cart item count, preserving cart query contract.
+- frontend `/products` cards now show in-cart state (`in cart xN`) when item quantity already exists in `items`.
 - frontend order flow supports both checkout targets:
   - `targetType='team'` when the user has a team and selects team checkout
   - `targetType='user'` for user-scoped checkout (including no-team setups)

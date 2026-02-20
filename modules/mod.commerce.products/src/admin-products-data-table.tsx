@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import Link from 'next/link';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
@@ -39,16 +38,6 @@ type AdminCommerceProductsTableMessages = {
   unpublishLabel: string;
 };
 
-type AdminCommerceProductsFilterMessages = {
-  kindLabel: string;
-  publicationLabel: string;
-  allLabel: string;
-  subscriptionLabel: string;
-  oneTimeLabel: string;
-  publishedLabel: string;
-  draftLabel: string;
-};
-
 type ProductAdminAction = (formData: FormData) => Promise<void> | void;
 
 type CommerceProductsAdminDataTableProps = {
@@ -56,7 +45,6 @@ type CommerceProductsAdminDataTableProps = {
   filterPlaceholder: string;
   emptyMessage: string;
   tableMessages: AdminCommerceProductsTableMessages;
-  filterMessages: AdminCommerceProductsFilterMessages;
   returnTo: string;
   publishAction: ProductAdminAction;
   unpublishAction: ProductAdminAction;
@@ -183,66 +171,11 @@ export function CommerceProductsAdminDataTable({
   filterPlaceholder,
   emptyMessage,
   tableMessages,
-  filterMessages,
   returnTo,
   publishAction,
   unpublishAction,
   tableTemplate
 }: CommerceProductsAdminDataTableProps) {
-  const [kindFilter, setKindFilter] = React.useState<
-    'all' | 'subscription' | 'one_time'
-  >('all');
-  const [publicationFilter, setPublicationFilter] = React.useState<
-    'all' | 'published' | 'draft'
-  >('all');
-
-  const filteredData = React.useMemo(() => {
-    return data.filter((row) => {
-      if (kindFilter !== 'all' && row.kind !== kindFilter) {
-        return false;
-      }
-
-      if (publicationFilter !== 'all' && row.state !== publicationFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [data, kindFilter, publicationFilter]);
-
-  const toolbarActions = (
-    <div className="flex flex-wrap items-center gap-2">
-      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>{filterMessages.kindLabel}</span>
-        <select
-          value={kindFilter}
-          onChange={(event) =>
-            setKindFilter(event.target.value as 'all' | 'subscription' | 'one_time')
-          }
-          className="h-8 rounded-md border border-zinc-300 bg-transparent px-2 text-xs text-foreground"
-        >
-          <option value="all">{filterMessages.allLabel}</option>
-          <option value="subscription">{filterMessages.subscriptionLabel}</option>
-          <option value="one_time">{filterMessages.oneTimeLabel}</option>
-        </select>
-      </label>
-      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>{filterMessages.publicationLabel}</span>
-        <select
-          value={publicationFilter}
-          onChange={(event) =>
-            setPublicationFilter(event.target.value as 'all' | 'published' | 'draft')
-          }
-          className="h-8 rounded-md border border-zinc-300 bg-transparent px-2 text-xs text-foreground"
-        >
-          <option value="all">{filterMessages.allLabel}</option>
-          <option value="published">{filterMessages.publishedLabel}</option>
-          <option value="draft">{filterMessages.draftLabel}</option>
-        </select>
-      </label>
-    </div>
-  );
-
   return (
     <DataTable
       columns={getColumns({
@@ -251,13 +184,12 @@ export function CommerceProductsAdminDataTable({
         publishAction,
         unpublishAction
       })}
-      data={filteredData}
+      data={data}
       template={tableTemplate}
       filterColumn="name"
       filterPlaceholder={filterPlaceholder}
       emptyMessage={emptyMessage}
       tableClassName="min-w-[1220px]"
-      toolbarActions={toolbarActions}
     />
   );
 }

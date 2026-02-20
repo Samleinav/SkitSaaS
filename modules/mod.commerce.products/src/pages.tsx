@@ -48,15 +48,6 @@ type CommerceProductsAdminMessages = {
     descriptionTemplate: string;
     backLabel: string;
   };
-  filters: {
-    kindLabel: string;
-    publicationLabel: string;
-    allLabel: string;
-    subscriptionLabel: string;
-    oneTimeLabel: string;
-    publishedLabel: string;
-    draftLabel: string;
-  };
   table: {
     idHeader: string;
     keyHeader: string;
@@ -131,15 +122,6 @@ const DEFAULT_COMMERCE_PRODUCTS_ADMIN_MESSAGES: CommerceProductsAdminMessages = 
     title: 'Product Not Found',
     descriptionTemplate: 'Product id {productId} was not found.',
     backLabel: 'Back to products'
-  },
-  filters: {
-    kindLabel: 'Kind',
-    publicationLabel: 'Publication',
-    allLabel: 'All',
-    subscriptionLabel: 'subscription',
-    oneTimeLabel: 'one_time',
-    publishedLabel: 'published',
-    draftLabel: 'draft'
   },
   table: {
     idHeader: 'Id',
@@ -314,35 +296,6 @@ function getCommerceProductsAdminMessages(
         tree,
         'products.page.notFound.backLabel',
         defaults.notFound.backLabel
-      )
-    },
-    filters: {
-      kindLabel: readMessage(tree, 'products.filters.kindLabel', defaults.filters.kindLabel),
-      publicationLabel: readMessage(
-        tree,
-        'products.filters.publicationLabel',
-        defaults.filters.publicationLabel
-      ),
-      allLabel: readMessage(tree, 'products.filters.allLabel', defaults.filters.allLabel),
-      subscriptionLabel: readMessage(
-        tree,
-        'products.filters.subscriptionLabel',
-        defaults.filters.subscriptionLabel
-      ),
-      oneTimeLabel: readMessage(
-        tree,
-        'products.filters.oneTimeLabel',
-        defaults.filters.oneTimeLabel
-      ),
-      publishedLabel: readMessage(
-        tree,
-        'products.filters.publishedLabel',
-        defaults.filters.publishedLabel
-      ),
-      draftLabel: readMessage(
-        tree,
-        'products.filters.draftLabel',
-        defaults.filters.draftLabel
       )
     },
     table: {
@@ -661,14 +614,22 @@ export async function renderCommerceProductsAdminHomePage(
     };
   });
 
-  const tableFallback = (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4">
+  const tableSection = (
+    <ThemeCodeTemplate
+      id="section.admin.products.table"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
+      themeId={themeId}
+      data={{
+        total: rows.length,
+        columns: ['id', 'key', 'name', 'kind', 'price', 'state', 'updated', 'actions'],
+        rowCount: rows.length
+      }}
+    >
       <CommerceProductsAdminDataTable
         data={rows}
         filterPlaceholder={moduleMessages.list.filterPlaceholder}
         emptyMessage={moduleMessages.list.empty}
         tableMessages={moduleMessages.table}
-        filterMessages={moduleMessages.filters}
         returnTo={COMMERCE_PRODUCTS_ADMIN_ALIAS}
         publishAction={publishCommerceProductAdminAction}
         unpublishAction={unpublishCommerceProductAdminAction}
@@ -683,65 +644,26 @@ export async function renderCommerceProductsAdminHomePage(
             : undefined
         }
       />
-    </section>
-  );
-  const tableSection = !themeId ? (
-    tableFallback
-  ) : (
-    <ThemeCodeTemplate
-      id="section.admin.products.table"
-      themeId={themeId}
-      data={{
-        total: rows.length,
-        columns: ['id', 'key', 'name', 'kind', 'price', 'state', 'updated', 'actions'],
-        rowCount: rows.length
-      }}
-      fallback={tableFallback}
-    >
-      {tableFallback}
     </ThemeCodeTemplate>
   );
-
-  const fallbackPage = (
-    <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">
-            {moduleMessages.list.eyebrow}
-          </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.list.title}</h1>
-          <p className="text-sm text-zinc-600">{moduleMessages.list.description}</p>
-        </div>
-        <Link
-          href={`${COMMERCE_PRODUCTS_ADMIN_ALIAS}/create`}
-          className="inline-flex h-10 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white"
-        >
-          {moduleMessages.list.createLabel}
-        </Link>
-      </header>
-
-      {renderFeedback(context, moduleMessages)}
-      {tableSection}
-    </main>
-  );
-
-  if (!themeId) {
-    return fallbackPage;
-  }
 
   return (
     <ThemeCodeTemplate
       id="page.admin.products"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
       themeId={themeId}
       data={{
+        eyebrow: moduleMessages.list.eyebrow,
         title: moduleMessages.list.title,
         description: moduleMessages.list.description,
         createHref: `${COMMERCE_PRODUCTS_ADMIN_ALIAS}/create`,
         createLabel: moduleMessages.list.createLabel
       }}
-      fallback={fallbackPage}
     >
-      {fallbackPage}
+      <>
+        {renderFeedback(context, moduleMessages)}
+        {tableSection}
+      </>
     </ThemeCodeTemplate>
   );
 }
@@ -753,8 +675,17 @@ export async function renderCommerceProductsAdminCreatePage(
   const themeSelection = await getThemeSelectionForArea('admin');
   const themeId = themeSelection?.themeKey ?? null;
   const createPriceCurrencyOptions = buildPriceCurrencyOptions('USD');
-  const formFallback = (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5">
+  const formSection = (
+    <ThemeCodeTemplate
+      id="section.admin.products.form"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
+      themeId={themeId}
+      data={{
+        mode: 'create',
+        productType: 'one_time',
+        canPublish: false
+      }}
+    >
       <form action={createCommerceProductAdminAction} className="space-y-4">
         <label className="block space-y-1 text-sm">
           <span className="font-medium text-zinc-700">
@@ -863,55 +794,25 @@ export async function renderCommerceProductsAdminCreatePage(
           </Link>
         </div>
       </form>
-    </section>
-  );
-  const formSection = !themeId ? (
-    formFallback
-  ) : (
-    <ThemeCodeTemplate
-      id="section.admin.products.form"
-      themeId={themeId}
-      data={{
-        mode: 'create',
-        productType: 'one_time',
-        canPublish: false
-      }}
-      fallback={formFallback}
-    >
-      {formFallback}
     </ThemeCodeTemplate>
   );
-  const fallbackPage = (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-      <header className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          {moduleMessages.list.eyebrow}
-        </p>
-        <h1 className="text-2xl font-semibold text-zinc-900">{moduleMessages.create.title}</h1>
-        <p className="text-sm text-zinc-600">{moduleMessages.create.description}</p>
-      </header>
-
-      {renderFeedback(context, moduleMessages)}
-      {formSection}
-    </main>
-  );
-
-  if (!themeId) {
-    return fallbackPage;
-  }
 
   return (
     <ThemeCodeTemplate
       id="page.admin.products.create"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
       themeId={themeId}
       data={{
+        eyebrow: moduleMessages.list.eyebrow,
         title: moduleMessages.create.title,
         description: moduleMessages.create.description,
         submitLabel: moduleMessages.create.submitLabel
       }}
-      fallback={fallbackPage}
     >
-      {fallbackPage}
+      <>
+        {renderFeedback(context, moduleMessages)}
+        {formSection}
+      </>
     </ThemeCodeTemplate>
   );
 }
@@ -951,8 +852,17 @@ export async function renderCommerceProductsAdminEditPage({
   const editPriceCurrencyOptions = buildPriceCurrencyOptions(
     product.currentPrice?.currency ?? null
   );
-  const formFallback = (
-    <section className="rounded-xl border border-zinc-200 bg-white p-5">
+  const formSection = (
+    <ThemeCodeTemplate
+      id="section.admin.products.form"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
+      themeId={themeId}
+      data={{
+        mode: 'edit',
+        productType: product.kind,
+        canPublish: true
+      }}
+    >
       <form action={updateCommerceProductAdminAction} className="space-y-4">
         <input type="hidden" name="productId" value={product.id} />
 
@@ -1066,91 +976,58 @@ export async function renderCommerceProductsAdminEditPage({
           </Link>
         </div>
       </form>
-    </section>
-  );
-  const formSection = !themeId ? (
-    formFallback
-  ) : (
-    <ThemeCodeTemplate
-      id="section.admin.products.form"
-      themeId={themeId}
-      data={{
-        mode: 'edit',
-        productType: product.kind,
-        canPublish: true
-      }}
-      fallback={formFallback}
-    >
-      {formFallback}
     </ThemeCodeTemplate>
   );
-  const fallbackPage = (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
-      <header className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">
-          {moduleMessages.list.eyebrow}
-        </p>
-        <h1 className="text-2xl font-semibold text-zinc-900">
-          {moduleMessages.edit.titlePrefix}
-          {product.id}
-        </h1>
-        <p className="text-sm text-zinc-600">{moduleMessages.edit.description}</p>
-      </header>
-
-      {renderFeedback(context, moduleMessages)}
-      {formSection}
-
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="text-base font-semibold text-zinc-900">
-          {moduleMessages.publication.title}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          {moduleMessages.publication.currentStateLabel}:{' '}
-          {isPublished
-            ? moduleMessages.stateLabels.published
-            : moduleMessages.stateLabels.draft}
-        </p>
-        <div className="mt-3 flex gap-2">
-          <form
-            action={
-              isPublished
-                ? unpublishCommerceProductAdminAction
-                : publishCommerceProductAdminAction
-            }
-          >
-            <input type="hidden" name="productId" value={product.id} />
-            <input type="hidden" name="returnTo" value={editPath} />
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm text-zinc-800"
-            >
-              {isPublished
-                ? moduleMessages.table.unpublishLabel
-                : moduleMessages.table.publishLabel}
-            </button>
-          </form>
-        </div>
-      </section>
-    </main>
-  );
-
-  if (!themeId) {
-    return fallbackPage;
-  }
 
   return (
     <ThemeCodeTemplate
       id="page.admin.products.edit"
+      moduleId={COMMERCE_PRODUCTS_MODULE_ID}
       themeId={themeId}
       data={{
+        eyebrow: moduleMessages.list.eyebrow,
         title: `${moduleMessages.edit.titlePrefix}${product.id}`,
         description: moduleMessages.edit.description,
         productId: product.id,
         submitLabel: moduleMessages.edit.submitLabel
       }}
-      fallback={fallbackPage}
     >
-      {fallbackPage}
+      <>
+        {renderFeedback(context, moduleMessages)}
+        {formSection}
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-900">
+            {moduleMessages.publication.title}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            {moduleMessages.publication.currentStateLabel}:{' '}
+            {isPublished
+              ? moduleMessages.stateLabels.published
+              : moduleMessages.stateLabels.draft}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <form
+              action={
+                isPublished
+                  ? unpublishCommerceProductAdminAction
+                  : publishCommerceProductAdminAction
+              }
+            >
+              <input type="hidden" name="productId" value={product.id} />
+              <input type="hidden" name="returnTo" value={editPath} />
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm text-zinc-800"
+              >
+                {isPublished
+                  ? moduleMessages.table.unpublishLabel
+                  : moduleMessages.table.publishLabel}
+              </button>
+            </form>
+          </div>
+        </section>
+      </>
     </ThemeCodeTemplate>
   );
 }

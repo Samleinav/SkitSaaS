@@ -1,25 +1,14 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  description?: string;
-  scope?: string;
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminSuscriptionsTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Subscriptions';
-  const description = data?.description?.trim() || 'User and organization subscription operations.';
-  const scope = data?.scope?.trim() || 'organization';
+  const title = toStringOrFallback(data?.title, 'Subscriptions');
+  const description = toStringOrFallback(data?.description, 'User and organization subscription operations.');
+  const scope = toStringOrFallback(data?.scope, 'organization');
 
   return (
     <main
@@ -34,5 +23,4 @@ export default function PageAdminSuscriptionsTemplate({
     </main>
   );
 }
-
 

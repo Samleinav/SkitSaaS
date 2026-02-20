@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import test from 'node:test';
-import type { CheckoutOrder } from '../../lib/db/schema';
+import test, { mock } from 'node:test';
+import { db } from '../../lib/db/drizzle';
+import type { CheckoutOrder, SubscriptionTemplate } from '../../lib/db/schema';
 import {
   buildCheckoutOrderPath,
   buildCheckoutOrderUrl,
+  createSubscriptionCheckoutOrder,
   isReusableSubscriptionCheckoutOrderForContext,
   isCheckoutOrderPayable,
   parseCheckoutOrderMetadata,
@@ -47,6 +49,32 @@ function buildCheckoutOrder(
   return {
     ...baseOrder,
     parsedMetadata: null,
+    ...patch
+  };
+}
+
+function buildSubscriptionTemplate(
+  patch: Partial<SubscriptionTemplate> = {}
+): SubscriptionTemplate {
+  const now = new Date();
+  return {
+    id: 200,
+    name: 'Starter',
+    targetScope: 'organization',
+    categoryKey: 'pricing.starter',
+    hierarchyRank: 0,
+    billingInterval: 'monthly',
+    priceCents: 1000,
+    compareAtPriceCents: null,
+    currency: 'USD',
+    trialPeriodDays: 0,
+    paypalProductId: null,
+    paypalPlanId: null,
+    paypalPlanFingerprint: null,
+    paypalPlanIdNoTrial: null,
+    paypalPlanFingerprintNoTrial: null,
+    createdAt: now,
+    updatedAt: now,
     ...patch
   };
 }
@@ -274,4 +302,221 @@ test('subscription scope invariant migration defines active unique indexes', () 
     migrationSql,
     /"status" IN \('ready', 'provider_pending'\)/
   );
+});
+
+test('createSubscriptionCheckoutOrder returns scoped active order after concurrent unique conflict', async () => {
+  const template = buildSubscriptionTemplate();
+  const createdRow: CheckoutOrder = {
+    id: 901,
+    checkoutToken: 'tok_sub_concurrent_1',
+    idempotencyKey: 'sub:10:7:200:created',
+    orderType: 'subscription',
+    status: 'ready',
+    source: 'pricing',
+    moduleId: null,
+    teamId: 10,
+    targetType: 'team',
+    targetTeamId: 10,
+    targetUserId: null,
+    subscriptionTemplateId: template.id,
+    selectedProvider: null,
+    selectedPaymentMethod: null,
+    providerSessionId: null,
+    providerReferenceId: null,
+    amount: 1000,
+    currency: 'USD',
+    planName: 'Starter',
+    metadata: JSON.stringify({ schemaVersion: 1 }),
+    expiresAt: new Date(Date.now() + 60_000),
+    completedAt: null,
+    canceledAt: null,
+    failedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const selectResponses: CheckoutOrder[][] = [[], [], [createdRow]];
+  let insertAttempts = 0;
+
+  const selectMock = mock.method(
+    db as unknown as {
+      select: () => {
+        from: () => {
+          where: () => {
+            orderBy: () => { limit: () => Promise<CheckoutOrder[]> };
+            limit: () => Promise<CheckoutOrder[]>;
+          };
+        };
+      };
+    },
+    'select',
+    () => ({
+      from: () => ({
+        where: () => ({
+          orderBy: () => ({
+            limit: async () => selectResponses.shift() ?? []
+          }),
+          limit: async () => selectResponses.shift() ?? []
+        })
+      })
+    })
+  );
+
+  const insertMock = mock.method(
+    db as unknown as {
+      insert: () => {
+        values: () => {
+          returning: () => Promise<CheckoutOrder[]>;
+        };
+      };
+    },
+    'insert',
+    () => ({
+      values: () => ({
+        returning: async () => {
+          insertAttempts += 1;
+          if (insertAttempts === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 15));
+            return [createdRow];
+          }
+
+          throw { code: '23505' };
+        }
+      })
+    })
+  );
+
+  try {
+    const [resultA, resultB] = await Promise.all([
+      createSubscriptionCheckoutOrder({
+        teamId: 10,
+        userId: 7,
+        template
+      }),
+      createSubscriptionCheckoutOrder({
+        teamId: 10,
+        userId: 7,
+        template
+      })
+    ]);
+
+    assert.ok(resultA);
+    assert.ok(resultB);
+    assert.equal(resultA?.id, createdRow.id);
+    assert.equal(resultB?.id, createdRow.id);
+    assert.equal(resultA?.checkoutToken, createdRow.checkoutToken);
+    assert.equal(resultB?.checkoutToken, createdRow.checkoutToken);
+    assert.equal(insertAttempts, 2);
+  } finally {
+    insertMock.mock.restore();
+    selectMock.mock.restore();
+  }
+});
+
+test('createSubscriptionCheckoutOrder reuses active checkout order idempotently', async () => {
+  const template = buildSubscriptionTemplate();
+  const createdRow: CheckoutOrder = {
+    id: 902,
+    checkoutToken: 'tok_sub_reuse_1',
+    idempotencyKey: 'sub:10:7:200:created',
+    orderType: 'subscription',
+    status: 'ready',
+    source: 'pricing',
+    moduleId: null,
+    teamId: 10,
+    targetType: 'team',
+    targetTeamId: 10,
+    targetUserId: null,
+    subscriptionTemplateId: template.id,
+    selectedProvider: null,
+    selectedPaymentMethod: null,
+    providerSessionId: null,
+    providerReferenceId: null,
+    amount: 1000,
+    currency: 'USD',
+    planName: 'Starter',
+    metadata: JSON.stringify({
+      schemaVersion: 1,
+      subscription: {
+        changeMode: null,
+        scheduledStartTime: null
+      }
+    }),
+    expiresAt: new Date(Date.now() + 60_000),
+    completedAt: null,
+    canceledAt: null,
+    failedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const selectResponses: CheckoutOrder[][] = [[], [createdRow]];
+  let insertAttempts = 0;
+
+  const selectMock = mock.method(
+    db as unknown as {
+      select: () => {
+        from: () => {
+          where: () => {
+            orderBy: () => { limit: () => Promise<CheckoutOrder[]> };
+            limit: () => Promise<CheckoutOrder[]>;
+          };
+        };
+      };
+    },
+    'select',
+    () => ({
+      from: () => ({
+        where: () => ({
+          orderBy: () => ({
+            limit: async () => selectResponses.shift() ?? []
+          }),
+          limit: async () => selectResponses.shift() ?? []
+        })
+      })
+    })
+  );
+
+  const insertMock = mock.method(
+    db as unknown as {
+      insert: () => {
+        values: () => {
+          returning: () => Promise<CheckoutOrder[]>;
+        };
+      };
+    },
+    'insert',
+    () => ({
+      values: () => ({
+        returning: async () => {
+          insertAttempts += 1;
+          return [createdRow];
+        }
+      })
+    })
+  );
+
+  try {
+    const first = await createSubscriptionCheckoutOrder({
+      teamId: 10,
+      userId: 7,
+      template
+    });
+    const second = await createSubscriptionCheckoutOrder({
+      teamId: 10,
+      userId: 7,
+      template
+    });
+
+    assert.ok(first);
+    assert.ok(second);
+    assert.equal(first?.id, createdRow.id);
+    assert.equal(second?.id, createdRow.id);
+    assert.equal(first?.checkoutToken, createdRow.checkoutToken);
+    assert.equal(second?.checkoutToken, createdRow.checkoutToken);
+    assert.equal(insertAttempts, 1);
+  } finally {
+    insertMock.mock.restore();
+    selectMock.mock.restore();
+  }
 });

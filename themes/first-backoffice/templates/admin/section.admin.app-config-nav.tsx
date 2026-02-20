@@ -1,21 +1,12 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  section?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function SectionAdminAppConfigNavTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const section = data?.section?.trim() || 'app-config';
+  const section = toStringOrFallback(data?.section, 'app-config');
 
   return (
     <div
@@ -26,5 +17,4 @@ export default function SectionAdminAppConfigNavTemplate({
     </div>
   );
 }
-
 

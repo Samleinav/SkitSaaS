@@ -1,31 +1,27 @@
 import type { ReactNode } from 'react';
+import { toStringOrNull } from '@skitsaas/sdk';
+import type {
+  TemplateData as BaseTemplateData,
+  TemplateProps
+} from '../template-types';
 
-type TemplateData = {
-  heading?: string;
-  layoutStyle?: string;
-  mode?: string;
+type DashboardShellTemplateData = BaseTemplateData & {
   contentSlot?: ReactNode;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
 };
 
 export default function LayoutDashboardShellTemplate({
   data,
   className,
   children
-}: TemplateProps) {
+}: TemplateProps<DashboardShellTemplateData>) {
   const content = data?.contentSlot ?? children;
 
   return (
     <section
       className={className || 'theme-first-backoffice-shell min-h-screen bg-background text-foreground'}
-      data-layout-style={data?.layoutStyle?.trim() || undefined}
-      data-layout-mode={data?.mode?.trim() || undefined}
-      data-layout-heading={data?.heading?.trim() || undefined}
+      data-layout-style={toStringOrNull(data?.layoutStyle) ?? undefined}
+      data-layout-mode={toStringOrNull(data?.mode) ?? undefined}
+      data-layout-heading={toStringOrNull(data?.heading) ?? undefined}
     >
       {content}
     </section>

@@ -1,11 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
-type TemplateProps = {
-  className?: string;
-  children?: ReactNode;
-};
+import type { TemplateProps } from '../template-types';
 
 export default function SectionAdminTableSuscriptionsUserCellTemplate({
   className,

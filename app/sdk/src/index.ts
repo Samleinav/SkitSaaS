@@ -87,6 +87,7 @@ export {
 export type { ClassNameValue } from './templates/utils.js';
 export {
   mergeClassNames,
+  readString,
   toStringOrNull,
   toStringOrFallback,
   toNumberOrFallback

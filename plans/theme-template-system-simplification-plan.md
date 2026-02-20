@@ -366,7 +366,14 @@ Large surface migration; type mismatch can block builds across many files.
 
 Progress note:
 - migrated current `themes/first-backoffice/templates/**` entries to local typed `TemplateData` (no `data?: Record<string, unknown>` in active templates).
-- removed repeated `toStringOrFallback`/`toStringOrNull`/`toNumberOrFallback` in migrated files; templates now consume `data` directly with inline defaults.
+- standardized repeated fallback/normalization in templates through SDK helpers (`@skitsaas/sdk`):
+  - `toStringOrFallback`
+  - `toStringOrNull`
+  - `toNumberOrFallback`
+  - `mergeClassNames`
+- introduced shared template base types in theme pack (`themes/first-backoffice/templates/template-types.ts`) and adopted them across `templates/dashboard/*` to reduce repeated `TemplateData`/`TemplateProps` boilerplate.
+- expanded shared template base types adoption to `templates/admin/*`, keeping explicit typed extensions only where behavior requires stricter contracts (`layout.admin.shell`, `section.admin.nav`).
+- completed shared template types adoption for root templates (`page.login.*`, `system.not-found`), leaving `TemplateData`/`TemplateProps` declarations centralized in `template-types.ts`.
 - removed unused `themeId` prop from templates that do not consume it.
 
 ## Task 7 (P2): Flatten Theme Wrapper Components and Dead Abstractions

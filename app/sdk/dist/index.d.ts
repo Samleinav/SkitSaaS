@@ -9,4 +9,4 @@ export { defineThemeConfig, type ThemeConfig, type ThemeAssetsConfig, type Theme
 export type { DataTableTemplateSlot, DataTableTemplateContract, DataTableTemplateEntryFactoryOptions, DataTableCrudOperation, DataTableListResult, DataTableListHandler, DataTableCreateHandler, DataTableUpdateHandler, DataTableDeleteHandler, DataTableCrudPolicy, DataTableCrudPolicies, DataTableCrudRevalidation, DataTableCrudRouterOptions } from './datatables/index.js';
 export { createDataTableTemplateContract, createDataTableTemplateEntries, createDataTableCrudApiRouter } from './datatables/index.js';
 export type { ClassNameValue } from './templates/utils.js';
-export { mergeClassNames, toStringOrNull, toStringOrFallback, toNumberOrFallback } from './templates/utils.js';
+export { mergeClassNames, readString, toStringOrNull, toStringOrFallback, toNumberOrFallback } from './templates/utils.js';

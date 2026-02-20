@@ -1,21 +1,12 @@
-import type { ReactNode } from 'react';
-
-type TemplateData = {
-  title?: string;
-};
-
-type TemplateProps = {
-  data?: TemplateData;
-  className?: string;
-  children?: ReactNode;
-};
+import { toStringOrFallback } from '@skitsaas/sdk';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminUsersTemplate({
   data,
   className,
   children
 }: TemplateProps) {
-  const title = data?.title?.trim() || 'Users';
+  const title = toStringOrFallback(data?.title, 'Users');
 
   return (
     <main
@@ -28,5 +19,4 @@ export default function PageAdminUsersTemplate({
     </main>
   );
 }
-
 

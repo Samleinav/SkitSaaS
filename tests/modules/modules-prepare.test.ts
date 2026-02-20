@@ -28,6 +28,16 @@ test('modules:prepare generates imports without extensions', () => {
     path.join(modulesDir, 'mod.alpha', 'src', 'manifest.ts'),
     "export default { moduleId: 'mod.alpha', version: '1.0.0', displayName: 'Alpha' };"
   );
+  writeFile(
+    path.join(
+      modulesDir,
+      'mod.alpha',
+      'src',
+      'templates',
+      'ui.table.tsx'
+    ),
+    'export default function UiTableTemplate() { return null; }'
+  );
 
   writeFile(
     path.join(modulesDir, 'mod.beta', 'module.json'),
@@ -56,7 +66,14 @@ test('modules:prepare generates imports without extensions', () => {
     'modules',
     'external.generated.ts'
   );
+  const moduleCodeRegistryPath = path.join(
+    tempRoot,
+    'lib',
+    'templates',
+    'module-code-registry.generated.ts'
+  );
   const output = fs.readFileSync(outputPath, 'utf8');
+  const moduleCodeRegistryOutput = fs.readFileSync(moduleCodeRegistryPath, 'utf8');
 
   assert.match(
     output,
@@ -65,6 +82,12 @@ test('modules:prepare generates imports without extensions', () => {
   assert.match(output, /from '@\/modules\/mod\.beta\/dist\/manifest';/);
   assert.ok(!output.includes('manifest.ts'));
   assert.ok(!output.includes('manifest.js'));
+  assert.match(moduleCodeRegistryOutput, /"mod\.alpha":/);
+  assert.match(
+    moduleCodeRegistryOutput,
+    /"ui\.table": \(\) => import\("@\/modules\/mod\.alpha\/src\/templates\/ui\.table"\)/
+  );
+  assert.ok(!moduleCodeRegistryOutput.includes('ui.table.tsx'));
   assert.equal(result.resolvedModules[0]?.mode, 'source-host');
   assert.equal(result.resolvedModules[1]?.mode, 'prebuilt');
 });
