@@ -91,6 +91,7 @@ async function AdminUsersTable() {
   );
   const metricsSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="section.admin.metrics-grid"
       data={{
         variant: 'users',
@@ -125,6 +126,7 @@ async function AdminUsersTable() {
                 messages={messages}
                 userTemplateOptions={userTemplateOptions}
                 locale={dateLocale}
+                themeId={themeSelection.themeKey}
               />
             }
           />
@@ -139,6 +141,7 @@ async function AdminUsersTable() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.users"
       data={{
         title: messages.usersPage.title

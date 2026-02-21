@@ -1,24 +1,12 @@
-import { createContext, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 export type ThemeCodeRuntimeContextValue = {
   themeId: string | null;
 };
 
-export const ThemeCodeRuntimeContext =
-  createContext<ThemeCodeRuntimeContextValue>({
-    themeId: null
-  });
-
-export function ThemeCodeRuntimeProvider({
-  themeId,
-  children
-}: {
+export function ThemeCodeRuntimeProvider(props: {
   themeId: string | null;
   children: ReactNode;
 }) {
-  return (
-    <ThemeCodeRuntimeContext.Provider value={{ themeId }}>
-      {children}
-    </ThemeCodeRuntimeContext.Provider>
-  );
+  return <>{props.children}</>;
 }

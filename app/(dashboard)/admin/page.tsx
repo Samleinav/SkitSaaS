@@ -68,6 +68,7 @@ export default async function AdminPage() {
 
     return (
       <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
         key={moduleItem.id}
         id={templateId}
         data={{
@@ -103,6 +104,7 @@ export default async function AdminPage() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.home"
       data={{
         title: messages.layout.title

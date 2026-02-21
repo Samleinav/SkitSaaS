@@ -33,6 +33,7 @@ export default async function AdminNotFound() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id={templateId}
       data={{
         title: notFound.title,

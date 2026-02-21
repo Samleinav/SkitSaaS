@@ -457,6 +457,7 @@ export default async function AdminUserDetailsPage({
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.user.detail"
       data={{
         title: usersDetail.title,

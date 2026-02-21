@@ -23,12 +23,14 @@ type AdminCreateUserDialogProps = {
   messages: AdminMessages;
   userTemplateOptions: UserTemplateOption[];
   locale: string;
+  themeId: string | null;
 };
 
 export async function AdminCreateUserDialog({
   messages,
   userTemplateOptions,
-  locale
+  locale,
+  themeId
 }: AdminCreateUserDialogProps) {
   const fallbackDialog = (
     <Dialog>
@@ -51,6 +53,7 @@ export async function AdminCreateUserDialog({
 
   return (
     <ThemeCodeTemplate
+      themeId={themeId}
       id="ui.dialog"
       data={{
         area: 'admin',

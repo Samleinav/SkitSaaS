@@ -164,6 +164,7 @@ export default async function ActivityPage() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.dashboard.activity"
       data={{
         title: activity.title,

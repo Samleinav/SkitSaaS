@@ -38,6 +38,7 @@ export default async function AdminCreateSubscriptionTemplatePage() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.subscriptions.create"
       data={{
         title: subscriptionsPage.createTitle

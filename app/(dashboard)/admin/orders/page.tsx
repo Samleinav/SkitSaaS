@@ -126,6 +126,7 @@ export default async function AdminOrdersPage() {
   );
   const metricsSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="section.admin.metrics-grid"
       data={{
         variant: 'orders',
@@ -173,6 +174,7 @@ export default async function AdminOrdersPage() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.orders"
       data={{
         title: ordersPage.title,

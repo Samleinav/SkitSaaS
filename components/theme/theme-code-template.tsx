@@ -1,4 +1,3 @@
-import { use } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import {
   THEME_CODE_REGISTRY,
@@ -9,27 +8,9 @@ import {
   type ModuleCodeRegistryEntry
 } from '@/lib/templates/module-code-registry.generated';
 import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
-import { ThemeCodeRuntimeContext } from './theme-code-runtime-context';
 
-/**
- * Resolves themeId from server runtime context.
- * Explicit `themeId` always wins over context-provided value.
- *
- * Note:
- * ThemeCodeTemplate is sometimes invoked directly in tests (outside React render).
- * In that case, reading context via `use()` throws; we safely return null.
- */
-function resolveThemeIdFromContext(explicitThemeId: string | null | undefined): string | null {
-  if (explicitThemeId !== undefined && explicitThemeId !== null) {
-    return explicitThemeId;
-  }
-
-  try {
-    const context = use(ThemeCodeRuntimeContext);
-    return context.themeId;
-  } catch {
-    return null;
-  }
+function resolveThemeId(explicitThemeId: string | null | undefined): string | null {
+  return explicitThemeId ?? null;
 }
 
 /**
@@ -375,23 +356,17 @@ async function renderModuleCodeTemplate({
 }
 
 /**
- * ThemeCodeTemplate - Renders themed templates with automatic theme resolution.
+ * ThemeCodeTemplate - Renders themed templates with explicit theme resolution.
  *
  * Usage:
  * ```tsx
- * // With explicit themeId (backward compatible)
+ * // With explicit themeId
  * <ThemeCodeTemplate id="page.admin.products" themeId="theme.first.backoffice">
- *   <Content />
- * </ThemeCodeTemplate>
- *
- * // Without themeId - resolved from ThemeCodeRuntimeProvider context
- * <ThemeCodeTemplate id="page.admin.products">
  *   <Content />
  * </ThemeCodeTemplate>
  * ```
  *
  * Note: This is an async component to support React Server Components.
- * Use ThemeCodeRuntimeProvider near area layouts to avoid passing themeId repeatedly.
  */
 export async function ThemeCodeTemplate<TId extends string>({
   id,
@@ -410,8 +385,7 @@ export async function ThemeCodeTemplate<TId extends string>({
   children?: ReactNode;
   fallback?: ReactNode;
 }) {
-  // Use hook to get themeId from context if not explicitly provided
-  const resolvedThemeId = resolveThemeIdFromContext(themeId);
+  const resolvedThemeId = resolveThemeId(themeId);
 
   return resolveTemplate({
     id,

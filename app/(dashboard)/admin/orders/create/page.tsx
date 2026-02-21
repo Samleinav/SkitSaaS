@@ -64,6 +64,7 @@ export default async function AdminCreateOrderPage({ searchParams }: PageProps) 
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.orders.create"
       data={{
         title: ordersPage.createTitle,

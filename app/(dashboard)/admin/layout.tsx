@@ -159,6 +159,7 @@ export default async function AdminLayout({
   );
   const navSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="section.admin.nav"
       data={{
         variant: navVariant,
@@ -182,6 +183,7 @@ export default async function AdminLayout({
   );
   const breadcrumbSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="section.admin.breadcrumb"
       data={{
         title: messages.layout.title,
@@ -197,6 +199,7 @@ export default async function AdminLayout({
   const basicThemeToggleFallback = <ThemeToggle className="justify-between" />;
   const basicThemeToggle = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="ui.theme-toggle"
       data={{
         area: 'admin',
@@ -219,6 +222,7 @@ export default async function AdminLayout({
   );
   const basicLanguageSwitcher = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="ui.language-switcher"
       data={{
         area: 'admin',
@@ -240,6 +244,7 @@ export default async function AdminLayout({
   );
   const proThemeToggle = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="ui.theme-toggle"
       data={{
         area: 'admin',
@@ -262,6 +267,7 @@ export default async function AdminLayout({
   );
   const proLanguageSwitcher = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="ui.language-switcher"
       data={{
         area: 'admin',
@@ -318,6 +324,7 @@ export default async function AdminLayout({
 
   const themedLayoutContent = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="layout.admin.shell"
       data={{
         heading: messages.layout.title,

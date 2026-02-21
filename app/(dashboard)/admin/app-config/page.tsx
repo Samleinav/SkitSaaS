@@ -23,6 +23,7 @@ export default async function AdminAppConfigPage() {
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.admin.app-config.home"
       data={{
         title: messages.appConfig.title,

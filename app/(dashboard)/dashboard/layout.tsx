@@ -80,6 +80,7 @@ export default async function DashboardLayout({
   );
   const themedLayoutContent = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="layout.dashboard.shell"
       data={{
         heading: 'Dashboard',

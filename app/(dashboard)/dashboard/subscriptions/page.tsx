@@ -326,6 +326,7 @@ export default async function DashboardSubscriptionsPage({
 
     return (
       <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
         id="section.dashboard.table.subscriptions.organizations.cell"
         data={{
           slot,
@@ -842,6 +843,7 @@ export default async function DashboardSubscriptionsPage({
 
   return (
     <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
       id="page.dashboard.subscriptions"
       data={{
         title: subscriptions.title,
