@@ -1,7 +1,0 @@
-{
-    "pilotTable": {
-        "title": "Tabla Piloto Admin",
-        "noData": "No hay datos disponibles en esta tabla piloto",
-        "rowsCount": "{count} filas"
-    }
-}
