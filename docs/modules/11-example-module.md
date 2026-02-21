@@ -25,7 +25,7 @@ Create module-owned DB folder:
 modules/mod.analytics/db/migrations
 ```
 
-Declare DB metadata in `modules/mod.analytics/module.json`:
+Declare DB metadata in `modules/<moduleId>/module.json`:
 
 ```json
 {

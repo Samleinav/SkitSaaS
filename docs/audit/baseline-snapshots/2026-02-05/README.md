@@ -1,4 +1,10 @@
-# Baseline snapshots (2026-02-05)
+---
+title: Baseline Snapshots (2026-02-05)
+sidebar_position: 1
+description: Pre-sprint UI snapshot inventory used as baseline evidence.
+---
+
+# Baseline Snapshots (2026-02-05)
 
 Pre-sprint baseline captures for the restructure rollout checklist.
 

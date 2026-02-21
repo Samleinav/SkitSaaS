@@ -130,7 +130,6 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
   return (
     <ThemeCodeTemplate
       id="page.admin.suscriptions.user.edit"
-      themeId={themeSelection.themeKey}
       data={{
         title: messages.userDetailPage.profileSubscriptionLabel,
         description: messages.userDetailPage.profileDescription,

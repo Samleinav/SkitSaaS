@@ -44,7 +44,6 @@ export default async function AdminSubscriptionsPage() {
     return (
       <ThemeCodeTemplate
         id="section.admin.table.subscriptions.templates.cell"
-        themeId={themeSelection.themeKey}
         data={{
           slot,
           ...(data ?? {})
@@ -248,7 +247,6 @@ export default async function AdminSubscriptionsPage() {
   return (
     <ThemeCodeTemplate
       id="page.admin.subscriptions.templates"
-      themeId={themeSelection.themeKey}
       data={{
         title: subscriptionsPage.templatesTitle,
         description: subscriptionsPage.templatesDescription

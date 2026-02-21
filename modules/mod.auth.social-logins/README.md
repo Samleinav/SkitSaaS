@@ -2,6 +2,12 @@
 
 Social OAuth authentication module over the Auth Provider SPI.
 
+## Scope
+
+- OAuth provider start/callback for `google`, `github`, and `x`.
+- OAuth state/PKCE lifecycle and profile mapping.
+- Provider identity linking with fail-closed access behavior.
+
 Supported providers in this module:
 
 - `google`
@@ -140,7 +146,17 @@ This module also reads/writes shared core identity table:
 - `setSessionForUser`
 - `parseJsonBody`
 
+## Templates and CTC ids
+
+This module does not provide CTC template IDs. Login UI and provider listing are rendered by host/core login templates.
+
 ## Validation
 
 - `npx tsx --test tests/modules/auth-modules-scaffold.test.ts`
 - `pnpm check`
+
+## Troubleshooting
+
+- Provider missing in login: verify `social` is enabled for the area and provider is allow-listed in `AUTH_{AREA}_SOCIAL_PROVIDERS`.
+- Callback rejected/state invalid: check state TTL and callback base URL configuration.
+- `provider_not_ready`: confirm provider `client_id`/`client_secret` and endpoint keys are present.

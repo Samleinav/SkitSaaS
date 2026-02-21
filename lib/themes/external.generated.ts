@@ -371,5 +371,42 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
     "themeConfigImportPath": "themes/pilot-admin/config",
     "hasFrontendRoutes": false,
     "frontendRoutesImportPath": null
+  },
+  {
+    "themeId": "theme.shadcn.dashboard.frontend",
+    "version": "1.0.0",
+    "areas": [
+      "frontend"
+    ],
+    "mode": "tokens",
+    "entryTokens": "tokens.css",
+    "themeRange": "^1.0.0",
+    "packDir": "themes/shadcn-dashboard-frontend",
+    "entryTokensPath": "themes/shadcn-dashboard-frontend/tokens.css",
+    "entryTemplatesPath": "themes/shadcn-dashboard-frontend/templates.json",
+    "entryAssetsPath": null,
+    "themeCompatible": true,
+    "codeTemplates": [
+      {
+        "componentId": "layout.frontend.shell",
+        "filePath": "themes/shadcn-dashboard-frontend/templates/layout.frontend.shell.tsx"
+      },
+      {
+        "componentId": "page.frontend.home",
+        "filePath": "themes/shadcn-dashboard-frontend/templates/page.frontend.home.tsx"
+      },
+      {
+        "componentId": "page.frontend.pricing",
+        "filePath": "themes/shadcn-dashboard-frontend/templates/page.frontend.pricing.tsx"
+      },
+      {
+        "componentId": "system.not-found",
+        "filePath": "themes/shadcn-dashboard-frontend/templates/system.not-found.tsx"
+      }
+    ],
+    "hasThemeConfig": true,
+    "themeConfigImportPath": "themes/shadcn-dashboard-frontend/config",
+    "hasFrontendRoutes": true,
+    "frontendRoutesImportPath": "themes/shadcn-dashboard-frontend/routes"
   }
 ];

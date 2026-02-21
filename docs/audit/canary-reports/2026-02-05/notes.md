@@ -1,3 +1,9 @@
+---
+title: Canary Evidence Notes (2026-02-05)
+sidebar_position: 1
+description: Summary of canary execution evidence and follow-up actions.
+---
+
 # Canary Evidence Notes
 
 - Environment: local (`http://localhost:3000`)

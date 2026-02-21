@@ -1,6 +1,6 @@
 ---
 title: Theme Build-Time Only ADR
-sidebar_position: 9
+sidebar_position: 5
 ---
 
 # ADR: Theme Build-Time Only Simplification
@@ -93,3 +93,4 @@ Benefits:
 Tradeoff:
 
 - no dynamic theme switching without rebuild
+

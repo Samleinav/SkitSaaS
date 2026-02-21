@@ -1,3 +1,4 @@
+import { use } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import {
   THEME_CODE_REGISTRY,
@@ -8,6 +9,99 @@ import {
   type ModuleCodeRegistryEntry
 } from '@/lib/templates/module-code-registry.generated';
 import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
+import { ThemeCodeRuntimeContext } from './theme-code-runtime-context';
+
+/**
+ * Resolves themeId from server runtime context.
+ * Explicit `themeId` always wins over context-provided value.
+ *
+ * Note:
+ * ThemeCodeTemplate is sometimes invoked directly in tests (outside React render).
+ * In that case, reading context via `use()` throws; we safely return null.
+ */
+function resolveThemeIdFromContext(explicitThemeId: string | null | undefined): string | null {
+  if (explicitThemeId !== undefined && explicitThemeId !== null) {
+    return explicitThemeId;
+  }
+
+  try {
+    const context = use(ThemeCodeRuntimeContext);
+    return context.themeId;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Internal async function that does the actual template resolution.
+ * Exported for testing and reuse.
+ */
+async function resolveTemplate<TId extends string>({
+  id,
+  themeId,
+  moduleId,
+  data,
+  className,
+  children,
+  fallback
+}: {
+  id: TId;
+  themeId: string | null;
+  moduleId?: string | null;
+  data?: TemplateDataForId<TId>;
+  className?: string;
+  children?: ReactNode;
+  fallback?: ReactNode;
+}) {
+  const normalizedTemplateId = normalizeId(id);
+  if (!normalizedTemplateId) {
+    throw new Error('[theme-code-template] Missing or invalid component id.');
+  }
+  const normalizedModuleId = normalizeId(moduleId);
+  const resolved = await resolveThemeCodeTemplate<TId>({
+    themeId,
+    componentId: normalizedTemplateId
+  });
+
+  if (!resolved.resolved) {
+    reportMissingThemeCodeTemplate({
+      reason: resolved.reason,
+      componentId: resolved.componentId,
+      themeId: resolved.themeId,
+      moduleId: normalizedModuleId
+    });
+
+    if (normalizedModuleId) {
+      const renderedModuleTemplate = await renderModuleCodeTemplate({
+        moduleId: normalizedModuleId,
+        templateId: normalizedTemplateId,
+        data: data as Record<string, unknown> | undefined,
+        className,
+        themeId: themeId ?? undefined,
+        children
+      });
+      return <>{renderedModuleTemplate}</>;
+    }
+
+    return <>{fallback ?? children ?? null}</>;
+  }
+
+  const renderedTemplate = (
+    <resolved.resolved.Component
+      data={data}
+      className={className}
+      themeId={themeId ?? undefined}
+    >
+      {children}
+    </resolved.resolved.Component>
+  );
+
+  if (resolved.resolved.Provider) {
+    return <resolved.resolved.Provider>{renderedTemplate}</resolved.resolved.Provider>;
+  }
+
+  return renderedTemplate;
+}
 
 type ThemeProviderComponent = ComponentType<{ children: ReactNode }>;
 type ThemeTemplateComponent<TId extends string = string> = ComponentType<{
@@ -280,6 +374,25 @@ async function renderModuleCodeTemplate({
   );
 }
 
+/**
+ * ThemeCodeTemplate - Renders themed templates with automatic theme resolution.
+ *
+ * Usage:
+ * ```tsx
+ * // With explicit themeId (backward compatible)
+ * <ThemeCodeTemplate id="page.admin.products" themeId="theme.first.backoffice">
+ *   <Content />
+ * </ThemeCodeTemplate>
+ *
+ * // Without themeId - resolved from ThemeCodeRuntimeProvider context
+ * <ThemeCodeTemplate id="page.admin.products">
+ *   <Content />
+ * </ThemeCodeTemplate>
+ * ```
+ *
+ * Note: This is an async component to support React Server Components.
+ * Use ThemeCodeRuntimeProvider near area layouts to avoid passing themeId repeatedly.
+ */
 export async function ThemeCodeTemplate<TId extends string>({
   id,
   themeId,
@@ -290,59 +403,23 @@ export async function ThemeCodeTemplate<TId extends string>({
   fallback
 }: {
   id: TId;
-  themeId: string | null | undefined;
+  themeId?: string | null;
   moduleId?: string | null;
   data?: TemplateDataForId<TId>;
   className?: string;
   children?: ReactNode;
   fallback?: ReactNode;
 }) {
-  const normalizedTemplateId = normalizeId(id);
-  if (!normalizedTemplateId) {
-    throw new Error('[theme-code-template] Missing or invalid component id.');
-  }
-  const normalizedModuleId = normalizeId(moduleId);
-  const resolved = await resolveThemeCodeTemplate<TId>({
-    themeId,
-    componentId: normalizedTemplateId
+  // Use hook to get themeId from context if not explicitly provided
+  const resolvedThemeId = resolveThemeIdFromContext(themeId);
+
+  return resolveTemplate({
+    id,
+    themeId: resolvedThemeId,
+    moduleId,
+    data,
+    className,
+    children,
+    fallback
   });
-
-  if (!resolved.resolved) {
-    reportMissingThemeCodeTemplate({
-      reason: resolved.reason,
-      componentId: resolved.componentId,
-      themeId: resolved.themeId,
-      moduleId: normalizedModuleId
-    });
-
-    if (normalizedModuleId) {
-      const renderedModuleTemplate = await renderModuleCodeTemplate({
-        moduleId: normalizedModuleId,
-        templateId: normalizedTemplateId,
-        data: data as Record<string, unknown> | undefined,
-        className,
-        themeId: normalizeId(themeId) ?? undefined,
-        children
-      });
-      return <>{renderedModuleTemplate}</>;
-    }
-
-    return <>{fallback ?? children ?? null}</>;
-  }
-
-  const renderedTemplate = (
-    <resolved.resolved.Component
-      data={data}
-      className={className}
-      themeId={normalizeId(themeId) ?? undefined}
-    >
-      {children}
-    </resolved.resolved.Component>
-  );
-
-  if (resolved.resolved.Provider) {
-    return <resolved.resolved.Provider>{renderedTemplate}</resolved.resolved.Provider>;
-  }
-
-  return renderedTemplate;
 }

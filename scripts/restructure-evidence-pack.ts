@@ -175,7 +175,7 @@ function writeNotesTemplate(filePath: string) {
 
 async function run() {
   const tasks = parseTasks();
-  const evidenceDir = process.env.EVIDENCE_DIR?.trim() || 'docs/canary-reports';
+  const evidenceDir = process.env.EVIDENCE_DIR?.trim() || 'docs/audit/canary-reports';
   const dateFolder = process.env.EVIDENCE_DATE?.trim() || formatDate(new Date());
   const outputDir = join(evidenceDir, dateFolder);
   const label =

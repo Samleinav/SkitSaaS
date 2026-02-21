@@ -43,7 +43,7 @@ Use SDK contract imports for manifest and shared types:
 import { defineModule, type ModuleManifest } from '@skitsaas/sdk';
 ```
 
-Avoid importing host copies from `lib/modules/manifest` or other internal paths.
+Avoid importing host copies from `lib/modules/manifest.ts` or other internal paths.
 
 ## 3. Replace Server Capability Imports
 
@@ -109,7 +109,7 @@ source-package`):
 - keep `react`, `react-dom`, `next`, `@skitsaas/sdk` as peer dependencies
 - declare `buildCommand` in `module.json`
 - optionally declare `testCommand` in `module.json` to run module tests in `modules:build`
-- prefer `@skitsaas/sdk/build` in `scripts/build.mjs` for `src -> dist` transpile/copy
+- prefer `@skitsaas/sdk/build` in `<module-root>/scripts/build.mjs` for `src -> dist` transpile/copy
 - prefer `@skitsaas/sdk/testing` in `tests/` to combine SDK checks with module-specific checks
 - publish/ship compiled runtime entry (`dist/manifest.js` or equivalent)
 - keep `sdkRange` aligned with host SDK version policy

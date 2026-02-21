@@ -1,6 +1,7 @@
 ---
 title: SDK Overview
 sidebar_position: 0
+description: Public SDK surface for module contracts, server adapters, build helpers, and testing utilities.
 ---
 
 # SDK Overview
@@ -144,7 +145,7 @@ Rules:
 
 - `modules:build` runs `buildCommand` from `module.json`.
 - if `testCommand` is declared, `modules:build` runs it after successful build.
-- modules can use `@skitsaas/sdk/build` to keep `scripts/build.mjs` minimal.
+- modules can use `@skitsaas/sdk/build` to keep `<module-root>/scripts/build.mjs` minimal.
 - `modules:prepare` resolves only compiled `entry` for this mode.
 - No fallback to `sourceEntry` is allowed for `source-package`.
 

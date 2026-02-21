@@ -1,6 +1,6 @@
 ---
 title: Ops Canary Pack
-sidebar_position: 13
+sidebar_position: 7
 ---
 
 # Ops Canary Pack
@@ -41,7 +41,7 @@ Example with evidence:
 ```
 CANARY_LABEL=prod-2026-02-05 \
 CANARY_WINDOW_DAYS=7 \
-CANARY_OUTPUT_FILE=docs/canary-reports/2026-02-05/prod-canary.json \
+CANARY_OUTPUT_FILE=docs/audit/canary-reports/2026-02-05/prod-canary.json \
 pnpm restructure:canary
 ```
 
@@ -59,14 +59,14 @@ Save output as evidence:
 SMOKE_BASE_URL=https://staging.example.com \
 SMOKE_AUTH_COOKIE="session=..." \
 pnpm restructure:admin-smoke \
-> docs/canary-reports/2026-02-05/staging-admin-smoke.json
+> docs/audit/canary-reports/2026-02-05/staging-admin-smoke.json
 ```
 
 ## 5) Module runtime check (DB + manifest parity)
 
 ```
 pnpm restructure:module-runtime \
-> docs/canary-reports/2026-02-05/prod-module-runtime.json
+> docs/audit/canary-reports/2026-02-05/prod-module-runtime.json
 ```
 
 ## 6) Evidence folder convention
@@ -74,7 +74,7 @@ pnpm restructure:module-runtime \
 Create a dated folder per run:
 
 ```
-docs/canary-reports/YYYY-MM-DD/
+docs/audit/canary-reports/YYYY-MM-DD/
 ```
 
 Store:
@@ -95,15 +95,15 @@ pnpm restructure:evidence
 
 This creates:
 
-- `docs/canary-reports/YYYY-MM-DD/canary.json`
-- `docs/canary-reports/YYYY-MM-DD/admin-smoke.json`
-- `docs/canary-reports/YYYY-MM-DD/module-runtime.json`
-- `docs/canary-reports/YYYY-MM-DD/manifest.json`
-- `docs/canary-reports/YYYY-MM-DD/notes.md`
+- `docs/audit/canary-reports/YYYY-MM-DD/canary.json`
+- `docs/audit/canary-reports/YYYY-MM-DD/admin-smoke.json`
+- `docs/audit/canary-reports/YYYY-MM-DD/module-runtime.json`
+- `docs/audit/canary-reports/YYYY-MM-DD/manifest.json`
+- `docs/audit/canary-reports/YYYY-MM-DD/notes.md`
 
 Optional env:
 
-- `EVIDENCE_DIR` (default `docs/canary-reports`)
+- `EVIDENCE_DIR` (default `docs/audit/canary-reports`)
 - `EVIDENCE_DATE` (default `YYYY-MM-DD`)
 - `EVIDENCE_LABEL` (override label)
 - `EVIDENCE_TASKS` (`canary,smoke,module` or `all`)
@@ -143,3 +143,4 @@ Notes:
 
 - If no `SMOKE_BASE_URL` or `SMOKE_AUTH_COOKIE` is provided, the workflow runs `canary,module` by default.
 - Artifacts are uploaded as `canary-evidence-YYYY-MM-DD` (retention 30 days).
+

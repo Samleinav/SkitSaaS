@@ -5,7 +5,8 @@ sidebar_position: 1
 
 # Manifest and Registry
 
-The module contract lives in `lib/modules/manifest.ts`. The registry is a static list in `lib/modules/registry.ts`.
+The canonical module contract is exported from `@skitsaas/sdk` and re-exported by `lib/modules/manifest.ts`.
+The host registry is static and generated/merged into `lib/modules/registry.ts` and `lib/modules/external.generated.ts`.
 
 ## Manifest fields
 
@@ -18,12 +19,18 @@ Minimal required fields:
 Optional fields:
 
 - `description`
-- `i18n` (optional inline messages, file-based is preferred)
-- `adminNavItems` / `dashboardNavItems`
-- `adminRouteAliases` / `dashboardRouteAliases` (custom page aliases)
+- `i18n`
+- `adminNavItems` / `dashboardNavItems` / `frontendNavItems`
+- `adminRouteAliases` / `dashboardRouteAliases` / `frontendRouteAliases`
+- `frontendRouteAccess` (`public` | `user` | `admin`)
+- `frontendSlots`
 - `adminDashboardWidgets` / `dashboardWidgets`
-- `adminPage` / `dashboardPage`
+- `adminPage` / `dashboardPage` / `frontendPage`
 - `apiHandler`
+- `eventHandlers`
+- `templatePack` (`defaults` / `overrides`)
+- `authProviders`
+- `paymentMethods`
 
 Type reference: `ModuleManifest`.
 
@@ -43,7 +50,7 @@ Keep it stable. It is used as:
 
 ## Registry example
 
-Add your module to `lib/modules/registry.ts`:
+Register module manifest with `defineModule(...)`:
 
 ```ts
 defineModule({
@@ -52,6 +59,13 @@ defineModule({
   displayName: 'Analytics',
   description: 'Basic metrics module',
   adminRouteAliases: ['/admin/custom/analytics'],
+  dashboardRouteAliases: ['/dashboard/custom/analytics'],
+  frontendRouteAliases: ['/analytics'],
+  frontendRouteAccess: 'public',
+  eventHandlers: [],
+  templatePack: {
+    defaults: [{ componentId: 'ui.table', templateId: 'mod.analytics.table.default' }]
+  },
   adminNavItems: [
     {
       id: 'mod.analytics.nav',
@@ -73,14 +87,25 @@ defineModule({
     }
     return Response.json({ ok: true });
   }
-})
+});
 ```
 
 ## Validation
 
-`validateModuleManifest` only checks required fields. You should still:
+`validateModuleManifest` enforces more than required fields:
 
-- ensure custom alias paths are declared in `adminRouteAliases` / `dashboardRouteAliases`
-- avoid alias collisions with core routes (`/admin/users`, `/dashboard/security`, etc.)
-- ensure handlers return `null` to signal 404 when content is missing
-- avoid heavy DB queries in `adminPage`/`dashboardPage` without caching
+- alias format and duplicate checks (`admin`/`dashboard`/`frontend`)
+- `frontendRouteAccess` enum validation
+- `frontendSlots` (`slotId` format/duplicates + handler function)
+- `templatePack.defaults/overrides` component ID format + duplicate checks
+- `authProviders` (`providerId`, `kind`, `flow`, routes) validation
+- `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`) validation
+
+Host runtime additionally enforces alias collisions against core routes and other modules during module registry load/prepare.
+
+## Source of truth files
+
+- contract type surface: `app/sdk/src/modules/manifest.ts`
+- host re-export: `lib/modules/manifest.ts`
+- static host registry: `lib/modules/registry.ts`
+- generated external registry: `lib/modules/external.generated.ts`

@@ -9,7 +9,7 @@ Transition status (2026-02-14): build-time-only selection is active for host ren
 
 Canonical target contract and migration decisions:
 
-- [Theme Build-Time Only ADR](../theme-build-time-only-adr.md)
+- [Theme Build-Time Only ADR](../core/theme-build-time-only-adr.md)
 
 Theme runtime is powered by:
 
@@ -62,6 +62,12 @@ Active themes are resolved during `pnpm themes:prepare` from ENV and emitted to:
 
 Runtime selection no longer reads active rows from `app_themes`.
 
+Example frontend switch:
+
+```bash
+THEME_FRONTEND=theme.shadcn.dashboard.frontend pnpm themes:prepare
+```
+
 ## External theme packs
 
 Each pack lives in `themes/<themeId>/` and must declare `theme.json`:
@@ -76,6 +82,15 @@ Each pack lives in `themes/<themeId>/` and must declare `theme.json`:
   "themeRange": "^1.0.0"
 }
 ```
+
+Current local frontend examples:
+
+- `theme.first.frontend` -> `themes/first-frontend`
+- `theme.frontend.sandbox` -> `themes/frontend-sandbox`
+- `theme.shadcn.dashboard.frontend` -> `themes/shadcn-dashboard-frontend`
+  - inspired by `templateShadcn/shadcn-dashboard/nextjs-version`
+  - provides route templates for `/`, `/pricing`, `/404`, and `/__layout`
+  - includes `config.ts` assets (`global.css`, `favicon`, area not-found template)
 
 Prepare registry:
 

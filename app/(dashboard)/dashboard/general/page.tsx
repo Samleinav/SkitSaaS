@@ -15,7 +15,6 @@ export default async function GeneralPage() {
   return (
     <ThemeCodeTemplate
       id="page.dashboard.general"
-      themeId={themeSelection.themeKey}
       data={{
         title: messages.general.title,
         description: messages.general.accountInformation

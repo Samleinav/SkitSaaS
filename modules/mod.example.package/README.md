@@ -2,6 +2,8 @@
 
 Complete source-package example module.
 
+## Scope
+
 This module demonstrates:
 
 - `moduleMode: source-package` with own `package.json`
@@ -13,6 +15,35 @@ This module demonstrates:
 - module-owned DB tables and migrations
 - module actions using SDK server adapters
 - module-owned JS and CSS UI primitives (`src/ui/*`)
+
+## Module metadata
+
+- `moduleId`: `mod.example.package`
+- `moduleMode`: `source-package`
+- runtime entry: `dist/manifest.js` (declared in `module.json`)
+
+## Routes and endpoints
+
+- Admin alias: `/admin/custom/example-package`
+- Dashboard alias: `/dashboard/custom/example-package`
+- API base: `/api/modules/mod.example.package/*`
+
+## Runtime config and env
+
+- No dedicated env matrix is required for this example module.
+- Runtime options are resolved from module config and defaults in module source.
+
+## Database and migrations
+
+- Module-owned schema and migrations live under `modules/mod.example.package/db/*`.
+- Apply with module migration pipeline (`pnpm modules:migrate`).
+
+## Templates and CTC ids
+
+- This example can expose module UI through module pages/widgets and optional template pack artifacts if configured.
+- No locked template ID matrix is required in this baseline example.
+
+## Tests and validation
 
 ## Build and prepare
 
@@ -30,13 +61,8 @@ pnpm build
 pnpm test:module
 ```
 
-## Module routes
-
-- Admin: `/admin/custom/example-package`
-- Dashboard: `/dashboard/custom/example-package`
-- API: `/api/modules/mod.example.package/*`
-
-## Notes
+## Troubleshooting
 
 - Runtime consumes `dist/manifest.js` (no fallback to source for this mode).
+- If module fails to load, run `pnpm modules:build -- --module=mod.example.package` and verify generated `dist/*` files exist.
 - Build script can compile `.ts/.tsx` sources from `src/` into `dist/`.

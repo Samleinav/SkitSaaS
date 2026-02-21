@@ -96,7 +96,7 @@ If `templatePack` is declared:
 - `next`
 - `@skitsaas/sdk`
 
-## `scripts/build.mjs` template
+## `<module-root>/scripts/build.mjs` template
 
 ```js
 import { buildSourcePackageModule } from '@skitsaas/sdk/build';
@@ -113,7 +113,7 @@ This helper:
 - validates that `dist/manifest.js` exists
 - works best with extensionless local imports (for example `./data` instead of `./data.ts`)
 
-## `tests/module-contract.test.mjs` template
+## `<module-root>/tests/module-contract.test.mjs` template
 
 ```js
 import test from 'node:test';

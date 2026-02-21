@@ -1,6 +1,6 @@
 ---
 title: Events and Hooks
-sidebar_position: 11
+sidebar_position: 4
 ---
 
 # Events and Hooks
@@ -91,3 +91,4 @@ All emits/handlers are logged to `sys_activity_logs` with:
 - metadata: `eventId`, `moduleId`, `handlerId`, `durationMs`, `error`
 
 Logs are visible in `/admin/logs`.
+

@@ -2,6 +2,12 @@
 
 Enterprise SSO module for tenant-scoped OIDC and SAML providers over the Auth Provider SPI.
 
+## Scope
+
+- Tenant-scoped enterprise SSO providers (`enterprise-oidc`, `enterprise-saml`).
+- OIDC/SAML start and callback orchestration through the provider SPI.
+- Enterprise identity linking and claim mapping with fail-closed behavior.
+
 ## Ownership boundary
 
 - Module owns:
@@ -171,7 +177,17 @@ This module also reads/writes shared core identity table:
 - `setSessionForUser`
 - `parseJsonBody`
 
+## Templates and CTC ids
+
+This module does not register template IDs or CTC UI surfaces. Login UI rendering stays in host/core theme templates.
+
 ## Validation
 
 - `npx tsx --test tests/modules/auth-enterprise-sso-module.test.ts`
 - `pnpm check`
+
+## Troubleshooting
+
+- `tenant_not_resolved`: verify tenant/domain mapping in `mod.auth.enterprise-sso.config`.
+- `provider_not_ready`: verify required OIDC/SAML config keys and provider enable flags.
+- Login button not visible: confirm `social` is enabled in `AUTH_{AREA}_LOGIN_METHODS` and provider is allow-listed for the area.

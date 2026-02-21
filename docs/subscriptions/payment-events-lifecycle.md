@@ -1,6 +1,6 @@
 ---
 title: Payment Events and Subscription Lifecycle
-sidebar_position: 6
+sidebar_position: 2
 ---
 
 # Payment Events and Subscription Lifecycle
@@ -149,15 +149,15 @@ Lifecycle executor closes the active subscription assignment so feature/quota lo
 - team: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
 - user: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
 
-### Example E: Module one-time webhook (`mod.commerce.one-time-payments`)
+### Example E: Extension module one-time webhook
 
-1. `POST /api/modules/mod.commerce.one-time-payments/webhooks/stripe` or `POST /api/modules/mod.commerce.one-time-payments/webhooks/paypal` verifies signature and resolves intent by provider reference
-2. Module fulfillment projection updates with transition guards (`pending/session_created -> paid/failed/canceled`)
-3. Module writes core order evidence through `recordCheckoutEvent(...)` with:
-   - `orderType='one_time'`
-   - `moduleId='mod.commerce.one-time-payments'`
-4. Core settlement transaction write-through is still applied (`payment_transactions`)
-5. Subscription lifecycle projector is skipped because order type is not `subscription`
+1. A module webhook handler under `app/api/modules/[moduleId]/[[...slug]]` verifies provider signature and resolves module intent state.
+2. The module applies fulfillment transition guards (`pending/session_created -> paid/failed/canceled`).
+3. The module writes core order evidence through `recordCheckoutEvent(...)` with `orderType='one_time'`.
+4. Core settlement transaction write-through is still applied (`payment_transactions`).
+5. Subscription lifecycle projector is skipped because order type is not `subscription`.
+
+Module-specific implementation details must stay in the module's own documentation (`modules/<moduleId>/README.md`).
 
 ## Admin subscriptions visibility
 
@@ -190,3 +190,4 @@ Routes:
 - `app/api/stripe/webhook/route.ts`
 - `app/api/paypal/webhook/route.ts`
 - `app/(dashboard)/admin/orders/actions.ts`
+

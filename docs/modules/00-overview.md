@@ -1,6 +1,7 @@
 ---
 title: Modules Overview
 sidebar_position: 0
+description: Host-side overview of module registry, runtime dispatch, and operational lifecycle.
 ---
 
 # Modules Overview
@@ -66,7 +67,7 @@ Events/hooks integration:
 
 - Modules can register `eventHandlers` in `ModuleManifest`.
 - Handlers are filtered by hook and executed in priority order.
-- See `docs/events-hooks.md` for usage details.
+- See `docs/operations/events-hooks.md` for usage details.
 
 What is in scope:
 

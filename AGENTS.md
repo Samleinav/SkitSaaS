@@ -51,7 +51,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - The `docs/` directory is used for product/architecture documentation in Docusaurus.
 - When adding or changing features/quotas, also update the docs under `docs/`.
 - Use `docs/` for core developer-facing technical documentation (host implementation details, extension points, runtime behavior, and maintenance notes).
-- For subscription features, use `docs/features.md` as the base guide (do not use it for module-specific feature docs).
+- For subscription features, use `docs/subscriptions/features-and-quotas.md` as the base guide (do not use it for module-specific feature docs).
 - Keep docs technical by default: explain how something works and how developers should use/extend it.
 - If docs are specifically for dashboard end users, place them under `docs/users/`.
 - Module-owned documentation must stay in each module directory:
@@ -59,10 +59,11 @@ Quick guide for agents working in this repository (`saas-starter`).
   - optional: `modules/<moduleId>/docs/*`
 - Do not expand core docs with module-specific runtime config matrices, provider-specific env keys, or module operational runbooks; link to the module README/docs instead.
 - Core technical references:
-  - `docs/platform-capabilities.md`
-  - `docs/architecture-routing-actions.md`
-  - `docs/database-model.md`
-  - `docs/env-variables.md`
+  - `docs/core/platform-capabilities.md`
+  - `docs/core/architecture-routing-actions.md`
+  - `docs/core/database-model.md`
+  - `docs/core/env-variables.md`
+  - `docs/subscriptions/features-and-quotas.md`
   - `docs/modules/*` (host-side module contracts/runtime only)
 
 ## Planning files

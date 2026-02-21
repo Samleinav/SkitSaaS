@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
+import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
 import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
@@ -159,7 +160,6 @@ export default async function AdminLayout({
   const navSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="section.admin.nav"
-      themeId={themeSelection.themeKey}
       data={{
         variant: navVariant,
         mode: PRIVATE_LAYOUT_MODE,
@@ -183,7 +183,6 @@ export default async function AdminLayout({
   const breadcrumbSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="section.admin.breadcrumb"
-      themeId={themeSelection.themeKey}
       data={{
         title: messages.layout.title,
         backToAppConfigLabel: messages.appConfig.backToAppConfig
@@ -199,7 +198,6 @@ export default async function AdminLayout({
   const basicThemeToggle = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="ui.theme-toggle"
-      themeId={themeSelection.themeKey}
       data={{
         area: 'admin',
         slot: 'controls.basic',
@@ -222,7 +220,6 @@ export default async function AdminLayout({
   const basicLanguageSwitcher = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="ui.language-switcher"
-      themeId={themeSelection.themeKey}
       data={{
         area: 'admin',
         slot: 'controls.basic',
@@ -244,7 +241,6 @@ export default async function AdminLayout({
   const proThemeToggle = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="ui.theme-toggle"
-      themeId={themeSelection.themeKey}
       data={{
         area: 'admin',
         slot: 'controls.pro',
@@ -267,7 +263,6 @@ export default async function AdminLayout({
   const proLanguageSwitcher = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="ui.language-switcher"
-      themeId={themeSelection.themeKey}
       data={{
         area: 'admin',
         slot: 'controls.pro',
@@ -324,7 +319,6 @@ export default async function AdminLayout({
   const themedLayoutContent = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="layout.admin.shell"
-      themeId={themeSelection.themeKey}
       data={{
         heading: messages.layout.title,
         variant: navVariant,
@@ -343,28 +337,30 @@ export default async function AdminLayout({
   );
 
   return (
-    <ThemeRuntimeProvider
-      area="admin"
-      initialMode={themeSelection.mode}
-      initialThemeKey={themeSelection.themeKey}
-      initialTokensCss={themeTokensCss}
-      allowUserOverride={themeSelection.allowUserOverride}
-    >
-      {themeTokensCss ? (
-        <ThemeTokensStyle
-          area="admin"
-          themeKey={themeSelection.themeKey}
-          tokensCss={themeTokensCss}
-        />
-      ) : null}
-      {themeGlobalCss ? (
-        <ThemeGlobalStyle
-          area="admin"
-          themeKey={themeSelection.themeKey}
-          globalCss={themeGlobalCss}
-        />
-      ) : null}
-      {themedLayoutContent}
-    </ThemeRuntimeProvider>
+    <ThemeCodeRuntimeProvider themeId={themeSelection.themeKey}>
+      <ThemeRuntimeProvider
+        area="admin"
+        initialMode={themeSelection.mode}
+        initialThemeKey={themeSelection.themeKey}
+        initialTokensCss={themeTokensCss}
+        allowUserOverride={themeSelection.allowUserOverride}
+      >
+        {themeTokensCss ? (
+          <ThemeTokensStyle
+            area="admin"
+            themeKey={themeSelection.themeKey}
+            tokensCss={themeTokensCss}
+          />
+        ) : null}
+        {themeGlobalCss ? (
+          <ThemeGlobalStyle
+            area="admin"
+            themeKey={themeSelection.themeKey}
+            globalCss={themeGlobalCss}
+          />
+        ) : null}
+        {themedLayoutContent}
+      </ThemeRuntimeProvider>
+    </ThemeCodeRuntimeProvider>
   );
 }

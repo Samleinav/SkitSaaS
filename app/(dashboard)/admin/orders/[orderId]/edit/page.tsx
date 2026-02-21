@@ -293,7 +293,6 @@ export default async function AdminEditOrderPage({
   return (
     <ThemeCodeTemplate
       id="page.admin.orders.edit"
-      themeId={themeSelection.themeKey}
       data={{
         title: ordersPage.editTitle,
         description: ordersPage.editDescription,

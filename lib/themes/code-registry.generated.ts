@@ -97,4 +97,15 @@ export const THEME_CODE_REGISTRY: Record<string, CodeRegistryThemeEntry> = {
       "ui.table": () => import("../../themes/pilot-admin/templates/ui.table"),
     },
   },
+  "theme.shadcn.dashboard.frontend": {
+    themeId: "theme.shadcn.dashboard.frontend",
+    configImport: () => import("../../themes/shadcn-dashboard-frontend/config"),
+    providerImport: () => import("../../themes/shadcn-dashboard-frontend/config").then(m => ({ default: m.default?.Provider ?? (({ children }: any) => children) })),
+    templates: {
+      "layout.frontend.shell": () => import("../../themes/shadcn-dashboard-frontend/templates/layout.frontend.shell"),
+      "page.frontend.home": () => import("../../themes/shadcn-dashboard-frontend/templates/page.frontend.home"),
+      "page.frontend.pricing": () => import("../../themes/shadcn-dashboard-frontend/templates/page.frontend.pricing"),
+      "system.not-found": () => import("../../themes/shadcn-dashboard-frontend/templates/system.not-found"),
+    },
+  },
 };

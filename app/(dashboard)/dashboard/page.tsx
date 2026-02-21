@@ -43,7 +43,6 @@ export default async function DashboardHomePage() {
   return (
     <ThemeCodeTemplate
       id="page.dashboard.home"
-      themeId={themeSelection.themeKey}
       data={{
         title: 'Dashboard'
       }}

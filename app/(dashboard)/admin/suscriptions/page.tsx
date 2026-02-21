@@ -222,7 +222,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
     const metricsSlot = themeSelection?.themeKey ? (
       <ThemeCodeTemplate
         id="section.admin.metrics-grid"
-        themeId={themeSelection.themeKey}
         data={{
           variant: 'suscriptions.user',
           columns: 4
@@ -272,7 +271,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
     return (
       <ThemeCodeTemplate
         id="page.admin.suscriptions"
-        themeId={themeSelection.themeKey}
         data={{
           title: subscriptionsPage.subscriptionsTitle,
           description: messages.userDetailPage.relationshipsDescription,
@@ -386,7 +384,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
   const metricsSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="section.admin.metrics-grid"
-      themeId={themeSelection.themeKey}
       data={{
         variant: 'suscriptions.organization',
         columns: 4
@@ -437,7 +434,6 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
   return (
     <ThemeCodeTemplate
       id="page.admin.suscriptions"
-      themeId={themeSelection.themeKey}
       data={{
         title: subscriptionsPage.subscriptionsTitle,
         description: billingPage.description,

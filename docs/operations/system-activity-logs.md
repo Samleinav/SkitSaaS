@@ -1,6 +1,6 @@
 ---
 title: System Activity Logs
-sidebar_position: 9
+sidebar_position: 2
 ---
 
 # System Activity Logs
@@ -40,4 +40,5 @@ Email logs reference:
 
 For payment/subscription event architecture (adapters, metadata envelope, lifecycle executor, and extension examples), see:
 
-- [`Payment Events and Subscription Lifecycle`](./payment-events.md)
+- [`Payment Events and Subscription Lifecycle`](../subscriptions/payment-events-lifecycle.md)
+

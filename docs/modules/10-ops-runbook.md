@@ -67,5 +67,5 @@ Suggested checks:
 
 Use canary packs for periodic evidence:
 
-- `docs/ops-canary-pack.md`
+- `docs/operations/ops-canary-pack.md`
 - `pnpm restructure:evidence`

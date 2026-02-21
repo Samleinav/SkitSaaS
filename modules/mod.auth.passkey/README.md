@@ -2,6 +2,12 @@
 
 Passkey/WebAuthn authentication module over the Auth Provider SPI.
 
+## Scope
+
+- Passkey provider integration (`passkey`) over Auth Provider SPI.
+- WebAuthn challenge lifecycle and credential persistence.
+- Passkey login policy integration across admin/dashboard areas.
+
 ## Ownership boundary
 
 - Module owns:
@@ -86,7 +92,17 @@ To enable passkey in an area, include `passkey` in that area's method list.
 - `setSessionForUser`
 - `parseJsonBody`
 
+## Templates and CTC ids
+
+This module does not register CTC template IDs. Passkey provider visibility is controlled by host login policy and host-rendered login templates.
+
 ## Validation
 
 - `npx tsx --test tests/modules/auth-modules-scaffold.test.ts`
 - `pnpm check`
+
+## Troubleshooting
+
+- `passkey_provider_not_ready`: verify `mod.auth.passkey.config` values (`rp_id`, `expected_origin`, `enabled`).
+- Browser registration/auth failures: confirm RP ID and origin match the active host.
+- Passkey option not visible in login: include `passkey` in `AUTH_{AREA}_LOGIN_METHODS`.

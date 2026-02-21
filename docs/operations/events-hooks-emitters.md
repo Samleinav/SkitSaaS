@@ -1,6 +1,6 @@
 ---
 title: Events and Hooks Emitters Checklist
-sidebar_position: 15
+sidebar_position: 5
 ---
 
 # Events and Hooks Emitters 
@@ -104,3 +104,4 @@ Check the box after the emitter is added.
 - [x] `email.smtp.before_send` -> `lib/email/smtp.ts` -> `sendSmtpEmail`
 - [x] `email.smtp.sent` -> `lib/email/smtp.ts` -> `sendSmtpEmail`
 - [x] `email.smtp.failed` -> `lib/email/smtp.ts` -> `sendSmtpEmail`
+

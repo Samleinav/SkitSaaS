@@ -1,0 +1,105 @@
+.theme-shadcn-dashboard-root {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 8% 12%,
+      rgba(245, 158, 11, 0.2),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 85% 18%,
+      rgba(14, 165, 233, 0.18),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(248, 250, 252, 0.97) 52%,
+      rgba(255, 255, 255, 1) 100%
+    );
+}
+
+.dark .theme-shadcn-dashboard-root {
+  background:
+    radial-gradient(
+      circle at 12% 11%,
+      rgba(245, 158, 11, 0.2),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 84% 14%,
+      rgba(14, 165, 233, 0.16),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 12, 25, 0.98) 0%,
+      rgba(10, 16, 33, 0.98) 48%,
+      rgba(6, 10, 21, 1) 100%
+    );
+}
+
+.theme-shadcn-dashboard-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.theme-shadcn-dashboard-panel {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 22px 45px -34px rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.dark .theme-shadcn-dashboard-panel {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.58);
+  box-shadow: 0 22px 45px -30px rgba(2, 6, 23, 0.72);
+}
+
+.theme-shadcn-dashboard-title-gradient {
+  background: linear-gradient(
+    110deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--accent-foreground)) 46%,
+    hsl(var(--chart-2)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.theme-shadcn-dashboard-kicker {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+@keyframes theme-shadcn-dashboard-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes theme-shadcn-dashboard-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}

@@ -34,7 +34,6 @@ export default async function AdminNotFound() {
   return (
     <ThemeCodeTemplate
       id={templateId}
-      themeId={themeId}
       data={{
         title: notFound.title,
         message: notFound.description

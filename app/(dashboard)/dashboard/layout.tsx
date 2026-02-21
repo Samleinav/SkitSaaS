@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import DashboardLayoutClient from './layout-client';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
+import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
 import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
 import { getEnabledModuleNavItems } from '@/lib/modules/runtime';
 import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
@@ -80,7 +81,6 @@ export default async function DashboardLayout({
   const themedLayoutContent = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="layout.dashboard.shell"
-      themeId={themeSelection.themeKey}
       data={{
         heading: 'Dashboard',
         layoutStyle: DASHBOARD_LAYOUT_STYLE,
@@ -96,28 +96,30 @@ export default async function DashboardLayout({
   );
 
   return (
-    <ThemeRuntimeProvider
-      area="dashboard"
-      initialMode={themeSelection.mode}
-      initialThemeKey={themeSelection.themeKey}
-      initialTokensCss={themeTokensCss}
-      allowUserOverride={themeSelection.allowUserOverride}
-    >
-      {themeTokensCss ? (
-        <ThemeTokensStyle
-          area="dashboard"
-          themeKey={themeSelection.themeKey}
-          tokensCss={themeTokensCss}
-        />
-      ) : null}
-      {themeGlobalCss ? (
-        <ThemeGlobalStyle
-          area="dashboard"
-          themeKey={themeSelection.themeKey}
-          globalCss={themeGlobalCss}
-        />
-      ) : null}
-      {themedLayoutContent}
-    </ThemeRuntimeProvider>
+    <ThemeCodeRuntimeProvider themeId={themeSelection.themeKey}>
+      <ThemeRuntimeProvider
+        area="dashboard"
+        initialMode={themeSelection.mode}
+        initialThemeKey={themeSelection.themeKey}
+        initialTokensCss={themeTokensCss}
+        allowUserOverride={themeSelection.allowUserOverride}
+      >
+        {themeTokensCss ? (
+          <ThemeTokensStyle
+            area="dashboard"
+            themeKey={themeSelection.themeKey}
+            tokensCss={themeTokensCss}
+          />
+        ) : null}
+        {themeGlobalCss ? (
+          <ThemeGlobalStyle
+            area="dashboard"
+            themeKey={themeSelection.themeKey}
+            globalCss={themeGlobalCss}
+          />
+        ) : null}
+        {themedLayoutContent}
+      </ThemeRuntimeProvider>
+    </ThemeCodeRuntimeProvider>
   );
 }

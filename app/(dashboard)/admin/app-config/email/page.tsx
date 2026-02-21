@@ -106,7 +106,6 @@ export default async function AdminAppConfigEmailPage() {
   return (
     <ThemeCodeTemplate
       id="page.admin.app-config.email"
-      themeId={themeSelection.themeKey}
       data={{
         title: appConfig.sections.email,
         description: emailMessages.description,

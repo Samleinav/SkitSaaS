@@ -1,6 +1,7 @@
 ---
 title: Admin Dashboard Modules
-sidebar_position: 8
+sidebar_position: 1
+description: Core admin dashboard widget architecture and operational visibility controls.
 ---
 
 # Admin Dashboard Modules
@@ -49,5 +50,6 @@ If `ADMIN_DASHBOARD_ENABLED_MODULES` is set, it overrides default visibility fla
 
 For periodic production/staging evidence packs and artifacts, see:
 
-- `docs/ops-canary-pack.md`
+- `docs/operations/ops-canary-pack.md`
+
 

@@ -15,7 +15,6 @@ export default async function SecurityPage() {
   return (
     <ThemeCodeTemplate
       id="page.dashboard.security"
-      themeId={themeSelection.themeKey}
       data={{
         title: messages.security.title,
         description: messages.security.passwordTitle

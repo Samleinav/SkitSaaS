@@ -109,7 +109,6 @@ export default async function AdminAppConfigGeneralPage() {
   return (
     <ThemeCodeTemplate
       id="page.admin.app-config.general"
-      themeId={themeSelection.themeKey}
       data={{
         title: appConfig.sections.general,
         description: appConfig.description

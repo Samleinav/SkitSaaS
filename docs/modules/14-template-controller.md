@@ -63,12 +63,21 @@ Catalog:
 
 ## Resolution precedence
 
-`resolveTemplate(componentId, context)` uses:
+Default (`flags.templatePriority` omitted or `theme`):
 
 1. `module_override`
 2. `theme_area_override`
 3. `theme_global_override`
 4. `module_default`
+5. `core_default`
+6. `fallback` (none)
+
+Alternative (`flags.templatePriority = 'module'`):
+
+1. `module_override`
+2. `module_default`
+3. `theme_area_override`
+4. `theme_global_override`
 5. `core_default`
 6. `fallback` (none)
 
@@ -80,6 +89,7 @@ Catalog:
 - `route`
 - `data`
 - `flags.adminForceOverride`
+- `flags.templatePriority` (`theme` | `module`)
 
 ## lockTemplate policy
 

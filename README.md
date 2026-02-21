@@ -83,14 +83,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 - Scheduled canary evidence pack runs via GitHub Actions.
 - Latest artifacts live under the `Canary Evidence` workflow.
-- Runbook: `docs/ops-canary-pack.md`.
+- Runbook: `docs/operations/ops-canary-pack.md`.
 
 ## Technical Documentation
 
-- Platform capabilities overview: `docs/platform-capabilities.md`
-- Routing and actions architecture: `docs/architecture-routing-actions.md`
-- Database model overview: `docs/database-model.md`
-- Environment variables: `docs/env-variables.md`
+- Platform capabilities overview: `docs/core/platform-capabilities.md`
+- Routing and actions architecture: `docs/core/architecture-routing-actions.md`
+- Database model overview: `docs/core/database-model.md`
+- Environment variables: `docs/core/env-variables.md`
 - Module development (full series): `docs/modules/*`
 
 ## Quality Gate

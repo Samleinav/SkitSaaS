@@ -140,7 +140,6 @@ export default async function AdminAppConfigPaymentMethodsPage({
   return (
     <ThemeCodeTemplate
       id="page.admin.app-config.payment-methods"
-      themeId={themeSelection.themeKey}
       data={{
         title: appConfig.sections.paymentMethods,
         description: appConfig.description,

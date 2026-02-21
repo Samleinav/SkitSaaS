@@ -1,11 +1,22 @@
 ---
-title: Module Development Index
-sidebar_position: 14
+title: Extensions Index
+sidebar_position: 1
+description: Navigation entrypoint for module runtime contracts and SDK extension surfaces.
 ---
 
-# Module Development Index
+# Extensions Index
 
-Complete technical documentation for building modules and themes lives in `docs/modules/`.
+Use this section to navigate host extension surfaces (modules + SDK).
+
+Ownership rule:
+
+- Host/runtime contracts stay under `docs/modules/*` and `docs/sdk/*`.
+- Module-specific implementation and operational docs stay in each module directory (`modules/<moduleId>/README.md`, optional `modules/<moduleId>/docs/*`).
+
+Primary references:
+
+- `docs/modules/00-overview.md`
+- `docs/sdk/00-overview.md`
 
 Recommended reading order:
 
@@ -22,3 +33,8 @@ Recommended reading order:
 11. `docs/modules/10-ops-runbook.md`
 12. `docs/modules/11-example-module.md`
 13. `docs/modules/12-i18n.md`
+14. `docs/modules/13-source-package-template.md`
+15. `docs/modules/14-template-controller.md`
+16. `docs/modules/15-commerce-products.md`
+17. `docs/modules/16-commerce-one-time-payments.md`
+18. `docs/modules/16-theme-authoring-guide.md`

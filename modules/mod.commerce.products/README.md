@@ -25,6 +25,11 @@ Backend-first module for commerce product catalog and lifecycle.
 - Create page: `/admin/products/create`
 - Edit page: `/admin/products/:productId/edit`
 
+## Runtime config and env
+
+- This module currently has no dedicated `MOD_COMMERCE_PRODUCTS_*` env override matrix.
+- Runtime behavior is driven by persisted product data and host-level module enable/disable state.
+
 ## Database assets
 
 - schema: `db/schema.ts`
@@ -116,3 +121,9 @@ Implemented key namespaces:
 
 - If module is disabled/uninstalled, `/admin/products*` aliases must fail closed via module dispatcher fallback.
 - Core admin and checkout routes remain operational without this module.
+
+## Troubleshooting
+
+- Product list empty: verify module is enabled and at least one product exists in module tables.
+- Publish/unpublish action rejected: confirm admin auth/session and product ownership state.
+- Type mismatch (`subscription` vs `one_time`): validate form payload matches server-side type constraints.

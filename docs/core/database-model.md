@@ -1,6 +1,7 @@
 ---
 title: Database Model Overview
 sidebar_position: 3
+description: Core relational model summary for auth, subscriptions, payments, themes, modules, and audit trails.
 ---
 
 # Database Model Overview

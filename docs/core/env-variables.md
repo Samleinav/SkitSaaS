@@ -1,6 +1,7 @@
 ---
 title: Environment Variables and Runtime Config
 sidebar_position: 4
+description: Canonical env variable reference with runtime fallback behavior and operational notes.
 ---
 
 # Environment Variables and Runtime Config
@@ -210,7 +211,7 @@ Theme pack prepare/build helpers:
 | `CANARY_OUTPUT_FILE` | Canary report output path | empty |
 | `CANARY_FAIL_ON_WARNING` | Exit non-zero when status is warning | `false` |
 | `EVIDENCE_ENV` | Evidence label prefix (prod/staging/local) | empty |
-| `EVIDENCE_DIR` | Evidence root directory | `docs/canary-reports` |
+| `EVIDENCE_DIR` | Evidence root directory | `docs/audit/canary-reports` |
 | `EVIDENCE_DATE` | Evidence date folder (`YYYY-MM-DD`) | current date |
 | `EVIDENCE_LABEL` | Explicit evidence label override | empty |
 | `EVIDENCE_TASKS` | Evidence tasks (`canary,smoke,module` or `all`) | `all` |

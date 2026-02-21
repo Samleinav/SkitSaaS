@@ -1,6 +1,6 @@
 ---
 title: Ops Validation Pack
-sidebar_position: 12
+sidebar_position: 6
 ---
 
 # Ops Validation Pack
@@ -38,7 +38,7 @@ Optional parity safety check:
 
 ## 4) UI route checklist (manual)
 
-Compare against baseline snapshots in `docs/baseline-snapshots/2026-02-05`.
+Compare against baseline snapshots in `docs/audit/baseline-snapshots/2026-02-05`.
 
 Validate routes (authenticated admin user):
 
@@ -112,3 +112,4 @@ Related env vars:
 - `SMOKE_AUTH_COOKIE` (optional)
 - `SMOKE_ALLOW_UNAUTH` (default `true`)
 - `SMOKE_MODULE_ID` (optional)
+

@@ -140,7 +140,6 @@ export default async function AdminPaymentsPage() {
   const metricsSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="section.admin.metrics-grid"
-      themeId={themeSelection.themeKey}
       data={{
         variant: 'payments',
         columns: 4
@@ -183,7 +182,6 @@ export default async function AdminPaymentsPage() {
   return (
     <ThemeCodeTemplate
       id="page.admin.payments"
-      themeId={themeSelection.themeKey}
       data={{
         title: paymentsPage.title,
         description: paymentsPage.description

@@ -1,6 +1,7 @@
 ---
 title: Routing and Actions Architecture
 sidebar_position: 2
+description: Route layout and action/controller structure for frontend, dashboard, admin, and API surfaces.
 ---
 
 # Routing and Actions Architecture

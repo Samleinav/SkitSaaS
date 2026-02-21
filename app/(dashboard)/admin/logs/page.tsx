@@ -275,7 +275,6 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
   return (
     <ThemeCodeTemplate
       id="page.admin.logs"
-      themeId={themeSelection.themeKey}
       data={{
         title: logsPage.title,
         description: logsPage.description,

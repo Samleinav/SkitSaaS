@@ -31,6 +31,16 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
   - `global.css` (declared in `config.ts`)
   - template placeholders (`layout.admin.shell`, `page.admin.home`, `layout.dashboard.shell`, `page.dashboard.home`, login pages, `system.not-found`)
 
+5. `theme.shadcn.dashboard.frontend` (`themes/shadcn-dashboard-frontend`)
+- Area: `frontend`
+- Purpose: shadcn dashboard inspired frontend visual variant.
+- Includes:
+  - `tokens.css`
+  - `global.css` (declared in `config.ts`)
+  - `routes.ts` for frontend route-driven dispatch
+  - route templates (`/__layout`, `/`, `/pricing`, `/404`)
+  - area assets (`assets/favicon-frontend.svg`)
+
 ## File layout per pack
 
 - `theme.json`: manifest used by `themes:prepare`.

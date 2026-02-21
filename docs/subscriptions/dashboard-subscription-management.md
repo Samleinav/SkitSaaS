@@ -1,6 +1,6 @@
 ---
 title: Dashboard Subscription Management
-sidebar_position: 7
+sidebar_position: 3
 ---
 
 # Dashboard Subscription Management
@@ -25,7 +25,6 @@ Expose a user-facing subscription control panel where users can:
   - `manageOrganizationSubscriptionAction`
   - `cancelUserSubscriptionAction`
 - Client datatables:
-  - `app/(dashboard)/dashboard/subscriptions/data-table.tsx`
   - `app/(dashboard)/dashboard/subscriptions/payments-data-table.tsx`
   - `app/(dashboard)/dashboard/subscriptions/invoices-data-table.tsx`
 
@@ -67,3 +66,4 @@ Payment/order scope resolution relies on explicit target columns:
 ## Related test
 
 - `tests/payments/order-subscription-lifecycle.test.ts`
+

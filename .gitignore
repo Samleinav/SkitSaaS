@@ -16,6 +16,7 @@ app/sdk/node_modules
 modules\mod.commerce.one-time-payments
 #app/sdk/src
 examplemodules
+templateShadcn
 # testing
 /coverage
 # next.js

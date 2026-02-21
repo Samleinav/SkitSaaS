@@ -1,6 +1,7 @@
 ---
 title: Platform Technical Capabilities
 sidebar_position: 1
+description: Current host capabilities mapped to implementation files, routes, APIs, and runtime systems.
 ---
 
 # Platform Technical Capabilities
@@ -11,7 +12,7 @@ This document maps current platform capabilities to implementation files and dat
 
 - Email/password auth with server sessions.
 - Entry routes: `app/(login)/*` (`/login`, `/admin/login`, `/sign-up`, legacy `/sign-in`).
-- Local bootstrap includes a seed user with role `owner` (admin-capable). In shared/prod environments, rotate or replace default credentials.
+- Local bootstrap includes a seed user with role `admin`. In shared/prod environments, rotate or replace default credentials.
 - Guards:
   - Admin: `app/(dashboard)/admin/guards.ts` (`requireAdminAccess`)
   - Dashboard: `lib/auth/middleware.ts` (`withTeam`, `getUser`)
@@ -233,7 +234,7 @@ Helpers:
 - `pnpm restructure:evidence`
 - `pnpm subscriptions:change-requests`
 
-Related guide: `docs/ops-canary-pack.md`.
+Related guide: `docs/operations/ops-canary-pack.md`.
 
 ## 16) Component Template Controller (CTC)
 

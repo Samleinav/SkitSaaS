@@ -2,7 +2,9 @@
 
 One-time payment module scaffold with frontend catalog/order pages and checkout orchestration.
 
-Current scope in this scaffold:
+## Scope
+
+Current scope:
 
 - module registration and runtime wiring
 - module-owned DB schema and migrations for one-time intents/fulfillment
@@ -55,12 +57,14 @@ Legacy provider-field rollout policy (Sprint 8 Task 8.1):
 - Historical compatibility: existing rows with provider-bound data remain readable; webhook/payment-method flows continue using persisted provider/session references.
 - Drop policy: DB provider columns are retained during the hardening window and should be removed only after migration/audit confirms no runtime dependency outside dispatch/webhook correlation.
 
-Module DB ownership:
+## Database and migrations
 
 - `mod_commerce_onetime_intents`
 - `mod_commerce_onetime_fulfillments`
 
-Module routes:
+DB assets are owned by this module under `modules/mod.commerce.one-time-payments/db/*` and managed through module migration pipeline.
+
+## Routes and endpoints
 
 - Frontend alias routes:
   - `/products`
@@ -76,6 +80,12 @@ Module routes:
   - `/api/modules/mod.commerce.one-time-payments/payment-methods/paypal/cancel`
 - Stripe webhook endpoint: `/api/modules/mod.commerce.one-time-payments/webhooks/stripe`
 - PayPal webhook endpoint: `/api/modules/mod.commerce.one-time-payments/webhooks/paypal`
+
+## Runtime config and env
+
+- This module currently runs without a dedicated `MOD_COMMERCE_ONETIME_*` env matrix.
+- Runtime behavior is resolved from module config storage and host payment runtime configuration.
+- Stripe/PayPal operational credentials remain host-level payment configuration inputs (see core docs and payment provider setup).
 
 ## UI planning decisions (Sprint 6, 2026-02-17)
 
@@ -161,3 +171,9 @@ Implemented key namespaces:
 
 - If module is disabled/uninstalled, `/products*` aliases fail closed via module dispatcher fallback.
 - Core subscription checkout and core `/checkout/[checkoutToken]` remain operational.
+
+## Troubleshooting
+
+- `mixed currency` checkout block: cart currently requires same currency for all selected products.
+- Missing `checkoutUrl` in intent response: verify intent was created in `core_checkout` mode and payload uses supported fields.
+- Webhook lifecycle mismatch: validate payment-method dispatch completed and provider/session references were persisted before webhook reconciliation.

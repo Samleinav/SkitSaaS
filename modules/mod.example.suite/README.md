@@ -2,6 +2,8 @@
 
 Comprehensive reference module for the host runtime.
 
+## Scope
+
 This module demonstrates, in a single module:
 
 - admin routes with subpages (`home`, `create`, `edit/:id`, `settings`)
@@ -95,6 +97,24 @@ From `/admin/custom/example-suite/settings`:
 
 The API handler and dashboard create flow read these values at runtime.
 
+## Runtime config and env
+
+- Runtime options are persisted in module settings (`mod_example_suite_settings`).
+- No dedicated env override matrix is required for this reference module.
+
+## Templates and CTC ids
+
+- This module can render module pages and widgets without requiring fixed CTC template IDs.
+- If a template pack is added later, document IDs in this section and keep host docs module-agnostic.
+
+## Tests and validation
+
+- Run module build/prepare flow and validate alias/API routes.
+- Recommended checks:
+  - `pnpm modules:build -- --module=mod.example.suite`
+  - `pnpm modules:prepare`
+  - `pnpm check`
+
 ## Registering and enabling
 
 1. Make sure the module folder exists under `modules/mod.example.suite`.
@@ -111,3 +131,9 @@ The API handler and dashboard create flow read these values at runtime.
    - `pnpm dev`
 
 Once synced, module status is tracked in `app_modules`.
+
+## Troubleshooting
+
+- Alias route not resolving: run `pnpm modules:prepare` and verify module is enabled in runtime registry.
+- Settings changes not reflected: confirm module sync/migration status and persisted settings rows.
+- API writes blocked: check `api_write_mode` and current user role/session.

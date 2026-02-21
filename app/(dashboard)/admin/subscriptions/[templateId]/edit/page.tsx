@@ -104,7 +104,6 @@ export default async function AdminEditSubscriptionTemplatePage({
   return (
     <ThemeCodeTemplate
       id="page.admin.subscriptions.edit"
-      themeId={themeSelection.themeKey}
       data={{
         title: subscriptionsPage.editTitle
       }}

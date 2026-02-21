@@ -14,7 +14,6 @@ export default async function AdminAppConfigLayout({
   const navSlot = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       id="section.admin.app-config-nav"
-      themeId={themeSelection.themeKey}
       data={{
         section: 'app-config'
       }}
@@ -40,7 +39,6 @@ export default async function AdminAppConfigLayout({
   return (
     <ThemeCodeTemplate
       id="layout.admin.app-config.shell"
-      themeId={themeSelection.themeKey}
       data={{
         section: 'app-config'
       }}

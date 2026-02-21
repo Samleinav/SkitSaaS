@@ -1,6 +1,6 @@
 ---
 title: Email System (SMTP)
-sidebar_position: 10
+sidebar_position: 3
 ---
 
 # Email System (SMTP)
@@ -57,3 +57,4 @@ Template pricing updates trigger notification emails through:
 Source file:
 
 - `lib/payments/checkout-system.ts`
+
