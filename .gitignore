@@ -13,7 +13,7 @@ modules/mod.auth.enterprise-sso
 modules/mod.auth.passkey
 modules/mod.auth.social-logins
 modules/mod.commerce.products
-
+modulesprivate
 #app/sdk/src
 examplemodules
 templateShadcn

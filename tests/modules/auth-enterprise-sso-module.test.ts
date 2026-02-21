@@ -5,7 +5,7 @@ import {
   configureDatabase,
   configureModuleConfig
 } from '@skitsaas/sdk/server';
-import enterpriseSsoManifest from '../../modules/mod.auth.enterprise-sso/src/manifest';
+import enterpriseSsoManifest from '../../modulesprivate/mod.auth.enterprise-sso/src/manifest';
 
 type ConfigStore = Map<string, string | null>;
 

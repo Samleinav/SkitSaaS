@@ -5,8 +5,8 @@ import {
   configureDatabase,
   configureModuleConfig
 } from '@skitsaas/sdk/server';
-import passkeyModuleManifest from '../../modules/mod.auth.passkey/src/manifest';
-import socialLoginsModuleManifest from '../../modules/mod.auth.social-logins/src/manifest';
+import passkeyModuleManifest from '../../modulesprivate/mod.auth.passkey/src/manifest';
+import socialLoginsModuleManifest from '../../modulesprivate/mod.auth.social-logins/src/manifest';
 
 type ConfigStore = Map<string, string | null>;
 type SocialSelectRow = Record<string, unknown> | null;

@@ -1,7 +1,7 @@
 import type { ModuleManifest } from './manifest';
-import mod_mod_auth_enterprise_sso from '@/modules/mod.auth.enterprise-sso/src/manifest';
-import mod_mod_auth_passkey from '@/modules/mod.auth.passkey/src/manifest';
-import mod_mod_auth_social_logins from '@/modules/mod.auth.social-logins/src/manifest';
+import mod_mod_auth_enterprise_sso from '@/modulesprivate/mod.auth.enterprise-sso/src/manifest';
+import mod_mod_auth_passkey from '@/modulesprivate/mod.auth.passkey/src/manifest';
+import mod_mod_auth_social_logins from '@/modulesprivate/mod.auth.social-logins/src/manifest';
 import mod_mod_commerce_one_time_payments from '@/modules/mod.commerce.one-time-payments/src/manifest';
 import mod_mod_commerce_products from '@/modules/mod.commerce.products/src/manifest';
 import mod_mod_example_admin from '@/modules/mod.example.admin/src/manifest';
