@@ -97,7 +97,7 @@ export function ThemeTab({
           </Button>
         </div>
 
-        <Select value={selectedTheme} onValueChange={(value) => {
+        <Select value={selectedTheme} onValueChange={(value: string) => {
           setSelectedTheme(value)
           setSelectedTweakcnTheme("") // Clear tweakcn selection
           setBrandColorsValues({}) // Clear brand colors state
@@ -151,7 +151,7 @@ export function ThemeTab({
           </Button>
         </div>
 
-        <Select value={selectedTweakcnTheme} onValueChange={(value) => {
+        <Select value={selectedTweakcnTheme} onValueChange={(value: string) => {
           setSelectedTweakcnTheme(value)
           setSelectedTheme("") // Clear shadcn selection
           setBrandColorsValues({}) // Clear brand colors state
