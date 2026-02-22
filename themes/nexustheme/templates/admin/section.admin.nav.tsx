@@ -2,12 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
 import { mergeClassNames } from '@skitsaas/sdk';
-import type {
-  TemplateData as BaseTemplateData,
-  TemplateProps
-} from '../template-types';
+import type { TemplateData as BaseTemplateData, TemplateProps } from '../template-types';
 import {
   ChevronRight,
   FileText,
@@ -39,8 +35,17 @@ type TemplateNavItem = {
 
 type AdminNavTemplateData = BaseTemplateData & {
   variant?: 'basic' | 'pro';
-  mode?: 'compact' | 'adjusted';
   navItems?: TemplateNavItem[];
+};
+
+type NavGroupKey = 'dashboards' | 'apps' | 'settings' | 'modules';
+
+const NAV_GROUP_ORDER: NavGroupKey[] = ['dashboards', 'apps', 'settings', 'modules'];
+const NAV_GROUP_LABEL: Record<NavGroupKey, string> = {
+  dashboards: 'Dashboards',
+  apps: 'Apps',
+  settings: 'Settings',
+  modules: 'Modules'
 };
 
 const iconMap: Record<string, LucideIcon> = {
@@ -102,6 +107,22 @@ function isNavItemActive(pathname: string, item: TemplateNavItem) {
   return item.children?.some((child) => isChildItemActive(pathname, child)) ?? false;
 }
 
+function resolveNavGroup(item: TemplateNavItem): NavGroupKey {
+  if (item.href === '/admin') {
+    return 'dashboards';
+  }
+
+  if (item.href.startsWith('/admin/app-config')) {
+    return 'settings';
+  }
+
+  if (item.icon === 'package' || item.href.startsWith('/admin/modules')) {
+    return 'modules';
+  }
+
+  return 'apps';
+}
+
 export default function SectionAdminNavTemplate({
   data,
   className,
@@ -109,116 +130,177 @@ export default function SectionAdminNavTemplate({
 }: TemplateProps<AdminNavTemplateData>) {
   const pathname = usePathname();
   const variant = data?.variant === 'pro' ? 'pro' : 'basic';
-  const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';
+  const isPro = variant === 'pro';
   const navItems = Array.isArray(data?.navItems)
     ? data.navItems.filter(isTemplateNavItem)
     : [];
-  const isPro = variant === 'pro';
-  const itemPadding = mode === 'adjusted' ? 'px-3.5 py-3.5' : 'px-3 py-3';
-  const iconSize = mode === 'adjusted' ? 'h-8 w-8' : 'h-7 w-7';
 
   if (navItems.length === 0) {
     return <>{children ?? null}</>;
   }
 
+  const groupedItems: Record<NavGroupKey, TemplateNavItem[]> = {
+    dashboards: [],
+    apps: [],
+    settings: [],
+    modules: []
+  };
+
+  for (const item of navItems) {
+    groupedItems[resolveNavGroup(item)].push(item);
+  }
+
   return (
     <nav
       className={mergeClassNames(
+        'flex h-full min-h-0 flex-col rounded-xl border p-2.5',
         isPro
-          ? 'rounded-2xl border border-slate-800/80 bg-slate-950/75 p-2 shadow-xl backdrop-blur-sm'
-          : 'rounded-2xl border border-border/70 bg-card/85 p-2 shadow-sm backdrop-blur-sm',
+          ? 'border-zinc-800 bg-zinc-950/70 text-zinc-100'
+          : 'border-border/70 bg-card/70 text-foreground',
         className
       )}
     >
-      <div className="space-y-1">
-        {navItems.map((item) => {
-          const Icon = iconMap[item.icon ?? ''] ?? Package;
-          const isActive = isNavItemActive(pathname, item);
-          const childrenItems = Array.isArray(item.children)
-            ? item.children.filter(isTemplateNavChildItem)
-            : [];
+      <Link
+        href="/admin"
+        className={mergeClassNames(
+          'mb-3 flex items-center gap-3 rounded-lg border px-2.5 py-2',
+          isPro
+            ? 'border-zinc-700 bg-zinc-900/80'
+            : 'border-border/70 bg-background/80'
+        )}
+      >
+        <span
+          className={mergeClassNames(
+            'flex size-8 items-center justify-center rounded-md border',
+            isPro
+              ? 'border-zinc-600 bg-zinc-800 text-zinc-100'
+              : 'border-border bg-background text-foreground'
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold leading-tight">SkitSaaS</p>
+          <p
+            className={mergeClassNames(
+              'truncate text-xs',
+              isPro ? 'text-zinc-400' : 'text-muted-foreground'
+            )}
+          >
+            Admin Dashboard
+          </p>
+        </div>
+      </Link>
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        {NAV_GROUP_ORDER.map((groupKey) => {
+          const items = groupedItems[groupKey];
+          if (!items.length) {
+            return null;
+          }
 
           return (
-            <div key={item.href} className="space-y-1">
-              <Link
-                href={item.href}
-                aria-current={isActive ? 'page' : undefined}
+            <section key={groupKey} className="space-y-1.5">
+              <p
                 className={mergeClassNames(
-                  'group flex items-center gap-3 rounded-xl border text-sm transition-colors',
-                  itemPadding,
-                  isActive
-                    ? isPro
-                      ? 'border-blue-400/30 bg-blue-500/15 text-slate-50 shadow-sm'
-                      : 'border-primary/25 bg-primary/10 text-foreground shadow-sm'
-                    : isPro
-                      ? 'border-transparent text-slate-300/90 hover:border-slate-700 hover:bg-slate-800/70 hover:text-white'
-                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent/70 hover:text-foreground'
+                  'px-2 text-[11px] font-semibold tracking-[0.14em] uppercase',
+                  isPro ? 'text-zinc-500' : 'text-muted-foreground'
                 )}
               >
-                <span
-                  className={mergeClassNames(
-                    'flex items-center justify-center rounded-md border',
-                    iconSize,
-                    isActive
-                      ? isPro
-                        ? 'border-blue-300/35 bg-blue-500/20 text-blue-100'
-                        : 'border-primary/25 bg-background text-primary'
-                      : isPro
-                        ? 'border-slate-700 bg-slate-900/80 text-slate-400 group-hover:border-slate-500 group-hover:text-slate-100'
-                        : 'border-border/60 bg-background/80 text-muted-foreground group-hover:text-foreground'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="flex-1 font-medium">{item.label}</span>
-                <ChevronRight
-                  className={mergeClassNames(
-                    'h-4 w-4 transition-opacity',
-                    isPro ? 'text-slate-500' : 'text-muted-foreground/70',
-                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  )}
-                />
-              </Link>
+                {NAV_GROUP_LABEL[groupKey]}
+              </p>
 
-              {childrenItems.length ? (
-                <div className="space-y-1 pl-11">
-                  {childrenItems.map((child) => {
-                    const isChildActive = isChildItemActive(pathname, child);
-                    return (
+              <div className="space-y-1">
+                {items.map((item) => {
+                  const Icon = iconMap[item.icon ?? ''] ?? Package;
+                  const isActive = isNavItemActive(pathname, item);
+                  const childrenItems = Array.isArray(item.children)
+                    ? item.children.filter(isTemplateNavChildItem)
+                    : [];
+
+                  return (
+                    <div key={item.href} className="space-y-1">
                       <Link
-                        key={child.href}
-                        href={child.href}
-                        aria-current={isChildActive ? 'page' : undefined}
+                        href={item.href}
+                        aria-current={isActive ? 'page' : undefined}
                         className={mergeClassNames(
-                          'group/sub flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors',
-                          isChildActive
+                          'group flex items-center gap-2.5 rounded-lg border px-2.5 py-2.5 text-sm transition-colors',
+                          isActive
                             ? isPro
-                              ? 'border-blue-400/25 bg-blue-500/12 text-slate-100'
-                              : 'border-primary/20 bg-primary/10 text-foreground'
+                              ? 'border-zinc-600 bg-zinc-800 text-zinc-50'
+                              : 'border-border bg-accent/80 text-foreground'
                             : isPro
-                              ? 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800/60 hover:text-slate-100'
-                              : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-accent/50 hover:text-foreground'
+                              ? 'border-transparent text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/70 hover:text-zinc-50'
+                              : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent/60 hover:text-foreground'
                         )}
                       >
                         <span
                           className={mergeClassNames(
-                            'h-1.5 w-1.5 rounded-full',
-                            isChildActive
+                            'flex size-8 items-center justify-center rounded-md border',
+                            isActive
                               ? isPro
-                                ? 'bg-blue-200'
-                                : 'bg-primary'
+                                ? 'border-zinc-500 bg-zinc-700 text-zinc-50'
+                                : 'border-border bg-background text-foreground'
                               : isPro
-                                ? 'bg-slate-500 group-hover/sub:bg-slate-300'
-                                : 'bg-muted-foreground/60 group-hover/sub:bg-foreground/80'
+                                ? 'border-zinc-700 bg-zinc-900/80 text-zinc-400 group-hover:text-zinc-100'
+                                : 'border-border/70 bg-background text-muted-foreground group-hover:text-foreground'
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
+                        <ChevronRight
+                          className={mergeClassNames(
+                            'h-4 w-4 transition-opacity',
+                            isPro ? 'text-zinc-500' : 'text-muted-foreground',
+                            isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                           )}
                         />
-                        <span className="truncate">{child.label}</span>
                       </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
+
+                      {childrenItems.length ? (
+                        <div className="ml-11 space-y-1">
+                          {childrenItems.map((child) => {
+                            const isChildActive = isChildItemActive(pathname, child);
+                            return (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                aria-current={isChildActive ? 'page' : undefined}
+                                className={mergeClassNames(
+                                  'group/sub flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors',
+                                  isChildActive
+                                    ? isPro
+                                      ? 'border-zinc-600 bg-zinc-800 text-zinc-100'
+                                      : 'border-border bg-accent/70 text-foreground'
+                                    : isPro
+                                      ? 'border-transparent text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800/70 hover:text-zinc-100'
+                                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-accent/50 hover:text-foreground'
+                                )}
+                              >
+                                <span
+                                  className={mergeClassNames(
+                                    'h-1.5 w-1.5 rounded-full',
+                                    isChildActive
+                                      ? isPro
+                                        ? 'bg-zinc-200'
+                                        : 'bg-foreground'
+                                      : isPro
+                                        ? 'bg-zinc-500 group-hover/sub:bg-zinc-300'
+                                        : 'bg-muted-foreground group-hover/sub:bg-foreground/80'
+                                  )}
+                                />
+                                <span className="truncate">{child.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </div>

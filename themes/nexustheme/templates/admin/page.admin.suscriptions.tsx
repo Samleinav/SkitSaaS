@@ -12,7 +12,7 @@ export default function PageAdminSuscriptionsTemplate({
 
   return (
     <main
-      className={className || 'mx-auto max-w-7xl px-4 py-8'}
+      className={className || 'w-full px-0 py-0'}
       data-subscription-scope={scope}
     >
       <section className="rounded-xl border border-border/70 bg-card/80 p-6 text-card-foreground shadow-sm">
@@ -23,4 +23,5 @@ export default function PageAdminSuscriptionsTemplate({
     </main>
   );
 }
+
 
