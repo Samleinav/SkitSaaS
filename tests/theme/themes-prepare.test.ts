@@ -124,9 +124,9 @@ function clearThemeEnv() {
   }
 }
 
-function withThemeEnv(
+async function withThemeEnv(
   values: Partial<Record<(typeof THEME_ENV_KEYS)[number], string>>,
-  run: () => void
+  run: () => void | Promise<void>
 ) {
   const previous = Object.fromEntries(
     THEME_ENV_KEYS.map((key) => [key, process.env[key]])
@@ -138,7 +138,7 @@ function withThemeEnv(
   }
 
   try {
-    run();
+    await run();
   } finally {
     clearThemeEnv();
     for (const [key, value] of Object.entries(previous)) {
@@ -162,7 +162,7 @@ test.after(() => {
   }
 });
 
-test('themes:prepare generates deterministic registry sorted by themeId', () => {
+test('themes:prepare generates deterministic registry sorted by themeId', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -191,14 +191,14 @@ test('themes:prepare generates deterministic registry sorted by themeId', () => 
     areas: ['admin', 'dashboard']
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.alpha.admin',
       THEME_DASHBOARD: 'theme.zeta.dashboard',
       THEME_FRONTEND: 'theme.front.frontend'
     },
-    () => {
-      const result = runThemesPrepare({
+    async () => {
+      const result = await runThemesPrepare({
         rootDir: tempRoot,
         themesDir,
         hostThemeVersion: '1.0.0',
@@ -228,11 +228,37 @@ test('themes:prepare generates deterministic registry sorted by themeId', () => 
       const selectionOutput = fs.readFileSync(result.selectionOutputPath, 'utf8');
       assert.match(selectionOutput, /THEME_SELECTION_BY_AREA/);
       assert.match(selectionOutput, /THEME_TEMPLATE_PRIORITY/);
+
+      const assetsOutputPath = path.join(
+        tempRoot,
+        'lib',
+        'themes',
+        'assets.generated.ts'
+      );
+      const assetsOutput = fs.readFileSync(assetsOutputPath, 'utf8');
+      assert.match(assetsOutput, /CORE_ASSETS_BY_AREA/);
+      assert.match(assetsOutput, /THEME_ASSETS_BY_THEME_ID/);
+      assert.match(assetsOutput, /theme\.alpha\.admin/);
+
+      const generatedCoreAssetsDir = path.join(
+        tempRoot,
+        'public',
+        '.generated',
+        'core-assets'
+      );
+      const generatedThemeAssetsDir = path.join(
+        tempRoot,
+        'public',
+        '.generated',
+        'theme-assets'
+      );
+      assert.equal(fs.existsSync(generatedCoreAssetsDir), true);
+      assert.equal(fs.existsSync(generatedThemeAssetsDir), true);
     }
   );
 });
 
-test('themes:prepare rejects invalid manifests', () => {
+test('themes:prepare rejects invalid manifests', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -248,19 +274,18 @@ test('themes:prepare rejects invalid manifests', () => {
   );
   writeFile(path.join(themesDir, 'invalid', 'tokens.css'), ':root{}');
 
-  assert.throws(
-    () =>
-      runThemesPrepare({
-        rootDir: tempRoot,
-        themesDir,
-        strictCompatibility: true,
-        logWarnings: false
-      }),
+  await assert.rejects(
+    runThemesPrepare({
+      rootDir: tempRoot,
+      themesDir,
+      strictCompatibility: true,
+      logWarnings: false
+    }),
     /theme manifest validation failed/
   );
 });
 
-test('themes:prepare rejects duplicated themeId values', () => {
+test('themes:prepare rejects duplicated themeId values', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -277,19 +302,18 @@ test('themes:prepare rejects duplicated themeId values', () => {
     areas: ['admin']
   });
 
-  assert.throws(
-    () =>
-      runThemesPrepare({
-        rootDir: tempRoot,
-        themesDir,
-        strictCompatibility: true,
-        logWarnings: false
-      }),
+  await assert.rejects(
+    runThemesPrepare({
+      rootDir: tempRoot,
+      themesDir,
+      strictCompatibility: true,
+      logWarnings: false
+    }),
     /duplicate themeId/
   );
 });
 
-test('themes:prepare strict mode rejects incompatible themeRange', () => {
+test('themes:prepare strict mode rejects incompatible themeRange', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -301,20 +325,19 @@ test('themes:prepare strict mode rejects incompatible themeRange', () => {
     themeRange: '^2.0.0'
   });
 
-  assert.throws(
-    () =>
-      runThemesPrepare({
-        rootDir: tempRoot,
-        themesDir,
-        hostThemeVersion: '1.0.0',
-        strictCompatibility: true,
-        logWarnings: false
-      }),
+  await assert.rejects(
+    runThemesPrepare({
+      rootDir: tempRoot,
+      themesDir,
+      hostThemeVersion: '1.0.0',
+      strictCompatibility: true,
+      logWarnings: false
+    }),
     /strict theme compatibility failed/
   );
 });
 
-test('themes:prepare warning mode keeps incompatible unselected pack and reports warning', () => {
+test('themes:prepare warning mode keeps incompatible unselected pack and reports warning', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -350,14 +373,14 @@ test('themes:prepare warning mode keeps incompatible unselected pack and reports
     areas: ['admin', 'dashboard']
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.admin.ok',
       THEME_DASHBOARD: 'theme.dashboard.ok',
       THEME_FRONTEND: 'theme.frontend.ok'
     },
-    () => {
-      const result = runThemesPrepare({
+    async () => {
+      const result = await runThemesPrepare({
         rootDir: tempRoot,
         themesDir,
         hostThemeVersion: '1.0.0',
@@ -378,7 +401,7 @@ test('themes:prepare warning mode keeps incompatible unselected pack and reports
   );
 });
 
-test('themes:prepare builds theme i18n registry by locale and area', () => {
+test('themes:prepare builds theme i18n registry by locale and area', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -424,14 +447,14 @@ test('themes:prepare builds theme i18n registry by locale and area', () => {
     })
   );
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.pilot.admin',
       THEME_DASHBOARD: 'theme.pilot.dashboard',
       THEME_FRONTEND: 'theme.pilot.frontend'
     },
-    () => {
-      runThemesPrepare({
+    async () => {
+      await runThemesPrepare({
         rootDir: tempRoot,
         themesDir,
         hostThemeVersion: '1.0.0',
@@ -475,7 +498,7 @@ test('themes:prepare builds theme i18n registry by locale and area', () => {
   assert.equal(sharedMessages?.confirm, 'Confirm');
 });
 
-test('themes:prepare fails when selected theme is missing', () => {
+test('themes:prepare fails when selected theme is missing', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -498,29 +521,28 @@ test('themes:prepare fails when selected theme is missing', () => {
     areas: ['frontend']
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.missing.admin',
       THEME_DASHBOARD: 'theme.only.dashboard',
       THEME_FRONTEND: 'theme.only.frontend'
     },
-    () => {
-      assert.throws(
-        () =>
-          runThemesPrepare({
-            rootDir: tempRoot,
-            themesDir,
-            hostThemeVersion: '1.0.0',
-            strictCompatibility: true,
-            logWarnings: false
-          }),
+    async () => {
+      await assert.rejects(
+        runThemesPrepare({
+          rootDir: tempRoot,
+          themesDir,
+          hostThemeVersion: '1.0.0',
+          strictCompatibility: true,
+          logWarnings: false
+        }),
         /theme selection validation failed/
       );
     }
   );
 });
 
-test('themes:prepare fails when selected backoffice theme misses required host templates', () => {
+test('themes:prepare fails when selected backoffice theme misses required host templates', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -550,22 +572,21 @@ test('themes:prepare fails when selected backoffice theme misses required host t
     areas: ['frontend']
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.admin.missing',
       THEME_DASHBOARD: 'theme.dashboard.ok',
       THEME_FRONTEND: 'theme.frontend.ok'
     },
-    () => {
-      assert.throws(
-        () =>
-          runThemesPrepare({
-            rootDir: tempRoot,
-            themesDir,
-            hostThemeVersion: '1.0.0',
-            strictCompatibility: true,
-            logWarnings: false
-          }),
+    async () => {
+      await assert.rejects(
+        runThemesPrepare({
+          rootDir: tempRoot,
+          themesDir,
+          hostThemeVersion: '1.0.0',
+          strictCompatibility: true,
+          logWarnings: false
+        }),
         (error) => {
           const message = String((error as Error).message ?? '');
           assert.match(message, /area "admin"/);
@@ -578,7 +599,7 @@ test('themes:prepare fails when selected backoffice theme misses required host t
   );
 });
 
-test('themes:prepare fails when selected frontend theme misses routes.ts', () => {
+test('themes:prepare fails when selected frontend theme misses routes.ts', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -596,29 +617,28 @@ test('themes:prepare fails when selected frontend theme misses routes.ts', () =>
     includeRequiredFrontendRoutes: false
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: BACKOFFICE_BASELINE_THEME_ID,
       THEME_DASHBOARD: BACKOFFICE_BASELINE_THEME_ID,
       THEME_FRONTEND: 'theme.frontend.missing.routes'
     },
-    () => {
-      assert.throws(
-        () =>
-          runThemesPrepare({
-            rootDir: tempRoot,
-            themesDir,
-            hostThemeVersion: '1.0.0',
-            strictCompatibility: true,
-            logWarnings: false
-          }),
+    async () => {
+      await assert.rejects(
+        runThemesPrepare({
+          rootDir: tempRoot,
+          themesDir,
+          hostThemeVersion: '1.0.0',
+          strictCompatibility: true,
+          logWarnings: false
+        }),
         /routes\.ts\[x\] is missing/
       );
     }
   );
 });
 
-test('themes:prepare fails when baseline backoffice theme misses required templates', () => {
+test('themes:prepare fails when baseline backoffice theme misses required templates', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -649,22 +669,21 @@ test('themes:prepare fails when baseline backoffice theme misses required templa
     areas: ['frontend']
   });
 
-  withThemeEnv(
+  await withThemeEnv(
     {
       THEME_ADMIN: 'theme.admin.ok',
       THEME_DASHBOARD: 'theme.dashboard.ok',
       THEME_FRONTEND: 'theme.frontend.ok'
     },
-    () => {
-      assert.throws(
-        () =>
-          runThemesPrepare({
-            rootDir: tempRoot,
-            themesDir,
-            hostThemeVersion: '1.0.0',
-            strictCompatibility: true,
-            logWarnings: false
-          }),
+    async () => {
+      await assert.rejects(
+        runThemesPrepare({
+          rootDir: tempRoot,
+          themesDir,
+          hostThemeVersion: '1.0.0',
+          strictCompatibility: true,
+          logWarnings: false
+        }),
         /Baseline backoffice theme/
       );
     }

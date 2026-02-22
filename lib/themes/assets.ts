@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ThemeArea } from '@/lib/theme';
 import type { ThemeConfig } from '@/lib/themes/config';
+import {
+  CORE_ASSETS_BY_AREA,
+  THEME_ASSETS_BY_THEME_ID
+} from '@/lib/themes/assets.generated';
 import { THEME_CODE_REGISTRY } from '@/lib/themes/code-registry.generated';
 import {
   EXTERNAL_THEME_PACKS,
@@ -12,11 +16,19 @@ import { resolveExternalThemePackBySelection } from '@/lib/themes/runtime';
 type ThemeAssetArea = 'admin' | 'dashboard' | 'frontend' | 'global';
 
 type ThemeAreaAssetMap = Partial<Record<ThemeAssetArea, string>>;
+type ThemeAreaAssetListMap = Partial<
+  Record<ThemeAssetArea, string | string[]>
+>;
+type ThemeAreaBooleanMap = Partial<Record<ThemeAssetArea, boolean>>;
 type ThemeAreaTemplateMap = Partial<Record<ThemeAssetArea, string>>;
 
 export type ThemePackAssetsManifest = {
   globalCssByArea?: ThemeAreaAssetMap;
   scriptByArea?: ThemeAreaAssetMap;
+  additionalCssByArea?: ThemeAreaAssetListMap;
+  additionalScriptByArea?: ThemeAreaAssetListMap;
+  ignoreCoreCssByArea?: ThemeAreaBooleanMap;
+  ignoreCoreScriptByArea?: ThemeAreaBooleanMap;
   faviconByArea?: ThemeAreaAssetMap;
   notFoundTemplateByArea?: ThemeAreaTemplateMap;
   loginThemeAreaByPath?: Record<string, 'admin' | 'dashboard'>;
@@ -52,6 +64,19 @@ const configAssetsManifestCache = new Map<
 >();
 const globalCssCache = new Map<string, string | null>();
 const faviconDataUrlCache = new Map<string, string | null>();
+
+export type ResolvedAreaAssetHrefs = {
+  area: 'admin' | 'dashboard' | 'frontend';
+  themeId: string | null;
+  ignoreCoreCss: boolean;
+  ignoreCoreScript: boolean;
+  coreCssHref: string | null;
+  coreScriptHref: string | null;
+  themeCssHrefs: string[];
+  themeScriptHrefs: string[];
+  cssHrefs: string[];
+  scriptHrefs: string[];
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -96,6 +121,67 @@ function normalizeAreaAssetMap(value: unknown): ThemeAreaAssetMap | undefined {
     }
 
     normalized[area as ThemeAssetArea] = assetPath;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeAreaAssetListMap(
+  value: unknown
+): ThemeAreaAssetListMap | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const normalized: ThemeAreaAssetListMap = {};
+  for (const [rawArea, rawPaths] of Object.entries(value)) {
+    const area = rawArea.trim().toLowerCase();
+    if (!THEME_ASSET_AREAS.has(area as ThemeAssetArea)) {
+      continue;
+    }
+
+    if (typeof rawPaths === 'string') {
+      const assetPath = rawPaths.trim();
+      if (assetPath) {
+        normalized[area as ThemeAssetArea] = assetPath;
+      }
+      continue;
+    }
+
+    if (!Array.isArray(rawPaths)) {
+      continue;
+    }
+
+    const paths = rawPaths
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+
+    if (paths.length > 0) {
+      normalized[area as ThemeAssetArea] = paths;
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeAreaBooleanMap(value: unknown): ThemeAreaBooleanMap | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const normalized: ThemeAreaBooleanMap = {};
+  for (const [rawArea, rawValue] of Object.entries(value)) {
+    const area = rawArea.trim().toLowerCase();
+    if (!THEME_ASSET_AREAS.has(area as ThemeAssetArea)) {
+      continue;
+    }
+
+    if (typeof rawValue !== 'boolean') {
+      continue;
+    }
+
+    normalized[area as ThemeAssetArea] = rawValue;
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;
@@ -160,9 +246,71 @@ function normalizeThemeAssetsManifest(raw: unknown): ThemePackAssetsManifest {
   return {
     globalCssByArea: normalizeAreaAssetMap(raw.globalCssByArea),
     scriptByArea: normalizeAreaAssetMap(raw.scriptByArea),
+    additionalCssByArea: normalizeAreaAssetListMap(raw.additionalCssByArea),
+    additionalScriptByArea: normalizeAreaAssetListMap(raw.additionalScriptByArea),
+    ignoreCoreCssByArea: normalizeAreaBooleanMap(raw.ignoreCoreCssByArea),
+    ignoreCoreScriptByArea: normalizeAreaBooleanMap(raw.ignoreCoreScriptByArea),
     faviconByArea: normalizeAreaAssetMap(raw.faviconByArea),
     notFoundTemplateByArea: normalizeAreaTemplateMap(raw.notFoundTemplateByArea),
     loginThemeAreaByPath: normalizeLoginThemeAreaByPath(raw.loginThemeAreaByPath)
+  };
+}
+
+function normalizeSelectionArea(area: ThemeArea): 'admin' | 'dashboard' | 'frontend' {
+  if (area === 'admin' || area === 'dashboard' || area === 'frontend') {
+    return area;
+  }
+
+  return 'frontend';
+}
+
+export function resolveAreaAssetHrefsBySelection({
+  themeId,
+  area,
+  packs = EXTERNAL_THEME_PACKS
+}: {
+  themeId: string | null | undefined;
+  area: ThemeArea;
+  packs?: ExternalThemePack[];
+}): ResolvedAreaAssetHrefs {
+  const normalizedArea = normalizeSelectionArea(area);
+  const coreBundle = CORE_ASSETS_BY_AREA[normalizedArea] ?? {
+    cssHref: null,
+    scriptHref: null
+  };
+  const pack = resolveExternalThemePackBySelection({ themeId, area, packs });
+  const themeBundle = pack
+    ? THEME_ASSETS_BY_THEME_ID[pack.themeId]?.[normalizedArea] ?? null
+    : null;
+
+  const ignoreCoreCss = themeBundle?.ignoreCoreCss ?? false;
+  const ignoreCoreScript = themeBundle?.ignoreCoreScript ?? false;
+  const themeCssHrefs = themeBundle?.cssHrefs ?? [];
+  const themeScriptHrefs = themeBundle?.scriptHrefs ?? [];
+
+  const cssHrefs: string[] = [];
+  if (!ignoreCoreCss && coreBundle.cssHref) {
+    cssHrefs.push(coreBundle.cssHref);
+  }
+  cssHrefs.push(...themeCssHrefs);
+
+  const scriptHrefs: string[] = [];
+  if (!ignoreCoreScript && coreBundle.scriptHref) {
+    scriptHrefs.push(coreBundle.scriptHref);
+  }
+  scriptHrefs.push(...themeScriptHrefs);
+
+  return {
+    area: normalizedArea,
+    themeId: pack?.themeId ?? null,
+    ignoreCoreCss,
+    ignoreCoreScript,
+    coreCssHref: coreBundle.cssHref,
+    coreScriptHref: coreBundle.scriptHref,
+    themeCssHrefs,
+    themeScriptHrefs,
+    cssHrefs,
+    scriptHrefs
   };
 }
 

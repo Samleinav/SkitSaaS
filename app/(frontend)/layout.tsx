@@ -6,16 +6,14 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { UserMenu } from '@/components/layout/user-menu';
+import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeFrontendRoute } from '@/components/theme/theme-frontend-route';
-import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
-import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
-  readExternalThemeGlobalCssBySelectionFromConfig
+  resolveAreaAssetHrefsBySelection
 } from '@/lib/themes/assets';
-import { getExternalThemeTokensCssBySelection } from '@/lib/themes/runtime';
 import { isFrontendEnabled } from '@/lib/config/runtime-surface';
 import { cn } from '@/lib/utils';
 
@@ -146,18 +144,10 @@ export default async function FrontendLayout({
   }
 
   const themeSelection = await getThemeSelectionForArea('frontend');
-  const themeTokensCss = themeSelection
-    ? getExternalThemeTokensCssBySelection({
-        themeId: themeSelection.themeKey,
-        area: 'frontend'
-      })
-    : null;
-  const themeGlobalCss = themeSelection
-    ? await readExternalThemeGlobalCssBySelectionFromConfig({
-        themeId: themeSelection.themeKey,
-        area: 'frontend'
-      })
-    : null;
+  const areaAssets = resolveAreaAssetHrefsBySelection({
+    themeId: themeSelection.themeKey,
+    area: 'frontend'
+  });
   const layoutBody = (
     <>
       <PublicBackground />
@@ -185,20 +175,12 @@ export default async function FrontendLayout({
 
   return (
     <>
-      {themeTokensCss ? (
-        <ThemeTokensStyle
-          area="frontend"
-          themeKey={themeSelection.themeKey}
-          tokensCss={themeTokensCss}
-        />
-      ) : null}
-      {themeGlobalCss ? (
-        <ThemeGlobalStyle
-          area="frontend"
-          themeKey={themeSelection.themeKey}
-          globalCss={themeGlobalCss}
-        />
-      ) : null}
+      <ThemeAreaAssets
+        area="frontend"
+        themeId={themeSelection.themeKey}
+        cssHrefs={areaAssets.cssHrefs}
+        scriptHrefs={areaAssets.scriptHrefs}
+      />
       <ThemeFrontendRoute
         path="/__layout"
         themeId={themeSelection.themeKey}

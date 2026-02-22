@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import DashboardLayoutClient from './layout-client';
+import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
-import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
 import { getEnabledModuleNavItems } from '@/lib/modules/runtime';
-import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
 import { ThemeRuntimeProvider } from '@/components/theme/theme-runtime-provider';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
@@ -14,9 +13,8 @@ import {
 } from '@/lib/layout/private-area';
 import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
-  readExternalThemeGlobalCssBySelectionFromConfig
+  resolveAreaAssetHrefsBySelection
 } from '@/lib/themes/assets';
-import { getExternalThemeTokensCssBySelection } from '@/lib/themes/runtime';
 import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
@@ -62,11 +60,7 @@ export default async function DashboardLayout({
     { source: '/dashboard/layout' }
   );
   const themeSelection = await getThemeSelectionForArea('dashboard');
-  const themeTokensCss = getExternalThemeTokensCssBySelection({
-    themeId: themeSelection.themeKey,
-    area: 'dashboard'
-  });
-  const themeGlobalCss = await readExternalThemeGlobalCssBySelectionFromConfig({
+  const areaAssets = resolveAreaAssetHrefsBySelection({
     themeId: themeSelection.themeKey,
     area: 'dashboard'
   });
@@ -102,23 +96,15 @@ export default async function DashboardLayout({
         area="dashboard"
         initialMode={themeSelection.mode}
         initialThemeKey={themeSelection.themeKey}
-        initialTokensCss={themeTokensCss}
+        initialTokensCss={null}
         allowUserOverride={themeSelection.allowUserOverride}
       >
-        {themeTokensCss ? (
-          <ThemeTokensStyle
-            area="dashboard"
-            themeKey={themeSelection.themeKey}
-            tokensCss={themeTokensCss}
-          />
-        ) : null}
-        {themeGlobalCss ? (
-          <ThemeGlobalStyle
-            area="dashboard"
-            themeKey={themeSelection.themeKey}
-            globalCss={themeGlobalCss}
-          />
-        ) : null}
+        <ThemeAreaAssets
+          area="dashboard"
+          themeId={themeSelection.themeKey}
+          cssHrefs={areaAssets.cssHrefs}
+          scriptHrefs={areaAssets.scriptHrefs}
+        />
         {themedLayoutContent}
       </ThemeRuntimeProvider>
     </ThemeCodeRuntimeProvider>

@@ -177,8 +177,32 @@ export function parseSqlStatements(fileContents: string) {
     .filter(Boolean);
 }
 
-function computeChecksum(value: string) {
+function hashChecksum(value: string) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function normalizeMigrationLineEndings(value: string) {
+  return value.replace(/\r\n?/g, '\n');
+}
+
+export function computeMigrationChecksum(value: string) {
+  return hashChecksum(normalizeMigrationLineEndings(value));
+}
+
+export function isMigrationChecksumCompatible(
+  storedChecksum: string,
+  migrationContents: string
+) {
+  const normalized = normalizeMigrationLineEndings(migrationContents);
+  const canonicalChecksum = hashChecksum(normalized);
+  const rawChecksum = hashChecksum(migrationContents);
+  const crlfChecksum = hashChecksum(normalized.replace(/\n/g, '\r\n'));
+
+  return (
+    storedChecksum === canonicalChecksum ||
+    storedChecksum === rawChecksum ||
+    storedChecksum === crlfChecksum
+  );
 }
 
 function resolveTimeoutMs(options?: ModulesMigrateOptions) {
@@ -273,7 +297,7 @@ async function applyModuleMigration({
   dryRun: boolean;
 }) {
   const migrationContents = fs.readFileSync(migrationFileAbsolute, 'utf8');
-  const checksum = computeChecksum(migrationContents);
+  const checksum = computeMigrationChecksum(migrationContents);
   const existing = await withTimeout(
     sql<{ checksum: string }>`
       SELECT checksum
@@ -289,6 +313,26 @@ async function applyModuleMigration({
   if (existing.length > 0) {
     const currentChecksum = existing[0]?.checksum;
     if (currentChecksum !== checksum) {
+      if (
+        currentChecksum &&
+        isMigrationChecksumCompatible(currentChecksum, migrationContents)
+      ) {
+        if (!dryRun) {
+          await withTimeout(
+            sql`
+              UPDATE app_module_migrations
+              SET checksum = ${checksum}
+              WHERE module_id = ${moduleId}
+                AND migration_name = ${migrationName}
+                AND checksum = ${currentChecksum}
+            `,
+            timeoutMs,
+            `normalizing migration checksum for ${moduleId}:${migrationName}`
+          );
+        }
+        return 'skipped' as const;
+      }
+
       throw new Error(
         `Migration checksum mismatch for ${moduleId}:${migrationName}.`
       );

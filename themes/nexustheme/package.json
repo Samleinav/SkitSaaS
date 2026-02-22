@@ -1,0 +1,14 @@
+{
+  "name": "@themes/nexustheme",
+  "private": true,
+  "version": "1.0.0",
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "^16.0.0",
+    "@skitsaas/sdk": "*"
+  },
+  "devDependencies": {
+    "@skitsaas/sdk": "workspace:*"
+  }
+}

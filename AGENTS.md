@@ -322,9 +322,10 @@ Default seed user (if not changed in env):
   - `lib/themes/selection.generated.ts`
   - `lib/themes/code-registry.generated.ts`
   - `lib/themes/frontend-routes.generated.ts`
+  - `lib/themes/assets.generated.ts`
   (runs in `predev`/`prebuild`).
-- Area assets (`globalCss`, `favicon`, `notFoundTemplateByArea`) resolve from `ThemeConfig.assets` in `config.ts`.
-- Area token CSS is injected server-side through `components/theme/theme-tokens-style.tsx`; `/admin/login` must follow `admin` area theme and `/login`/`/sign-up` must follow `dashboard` area theme.
+- Area assets (`globalCss`, `script`, `additionalCss`, `additionalScript`, `ignoreCoreCss`, `ignoreCoreScript`, `favicon`, `notFoundTemplateByArea`) resolve from `ThemeConfig.assets` in `config.ts`.
+- Area CSS/JS bundles are injected server-side through `components/theme/theme-area-assets.tsx`; `/admin/login` must follow `admin` area theme and `/login`/`/sign-up` must follow `dashboard` area theme.
 - Theme `entryTemplates` are loaded by CTC runtime from `lib/templates/theme-pack.ts`; duplicate `componentId` per area is rejected.
 - Module template packs are loaded by CTC runtime from `ModuleManifest.templatePack` (`lib/templates/module-pack.ts`) when `context.moduleId` is resolved.
 - `ui.table` CTC pilot uses `components/ui/template-table.tsx` + `lib/templates/ui-table.ts` (payload keys: `containerClassName`, `tableClassName`).

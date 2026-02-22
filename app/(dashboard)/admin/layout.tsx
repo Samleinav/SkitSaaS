@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
-import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
 import { ThemeRuntimeProvider } from '@/components/theme/theme-runtime-provider';
 import { getServerMessages } from '@/lib/i18n/server';
 import {
@@ -17,10 +16,9 @@ import { getEnabledModuleNavItems } from '@/lib/modules/runtime';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
-  readExternalThemeGlobalCssBySelectionFromConfig
+  resolveAreaAssetHrefsBySelection
 } from '@/lib/themes/assets';
 import type { AdminNavTemplateItem } from '@/lib/themes/template-data-contract';
-import { getExternalThemeTokensCssBySelection } from '@/lib/themes/runtime';
 import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isAdminEnabled } from '@/lib/config/runtime-surface';
@@ -70,11 +68,7 @@ export default async function AdminLayout({
     { source: '/admin/layout' }
   );
   const themeSelection = await getThemeSelectionForArea('admin');
-  const themeTokensCss = getExternalThemeTokensCssBySelection({
-    themeId: themeSelection.themeKey,
-    area: 'admin'
-  });
-  const themeGlobalCss = await readExternalThemeGlobalCssBySelectionFromConfig({
+  const areaAssets = resolveAreaAssetHrefsBySelection({
     themeId: themeSelection.themeKey,
     area: 'admin'
   });
@@ -349,23 +343,15 @@ export default async function AdminLayout({
         area="admin"
         initialMode={themeSelection.mode}
         initialThemeKey={themeSelection.themeKey}
-        initialTokensCss={themeTokensCss}
+        initialTokensCss={null}
         allowUserOverride={themeSelection.allowUserOverride}
       >
-        {themeTokensCss ? (
-          <ThemeTokensStyle
-            area="admin"
-            themeKey={themeSelection.themeKey}
-            tokensCss={themeTokensCss}
-          />
-        ) : null}
-        {themeGlobalCss ? (
-          <ThemeGlobalStyle
-            area="admin"
-            themeKey={themeSelection.themeKey}
-            globalCss={themeGlobalCss}
-          />
-        ) : null}
+        <ThemeAreaAssets
+          area="admin"
+          themeId={themeSelection.themeKey}
+          cssHrefs={areaAssets.cssHrefs}
+          scriptHrefs={areaAssets.scriptHrefs}
+        />
         {themedLayoutContent}
       </ThemeRuntimeProvider>
     </ThemeCodeRuntimeProvider>

@@ -15,22 +15,16 @@ export const THEME_I18N_REGISTRY: ThemeI18nRegistry = {
       }
     }
   },
-  "theme.pilot.admin": {
-    "en": {
-      "admin": {
-        "pilotTable": {
-          "title": "Pilot Admin Table",
-          "noData": "No data available in this pilot table",
-          "rowsCount": "{count} rows"
+  "theme.nexus": {
+    "fr": {
+      "dashboard": {
+        "table": {
+          "surfaceLabel": "Tableau du dashboard"
         }
-      }
-    },
-    "es": {
+      },
       "admin": {
-        "pilotTable": {
-          "title": "Tabla Piloto Admin",
-          "noData": "No hay datos disponibles en esta tabla piloto",
-          "rowsCount": "{count} filas"
+        "table": {
+          "surfaceLabel": "Tableau d'administration"
         }
       }
     }

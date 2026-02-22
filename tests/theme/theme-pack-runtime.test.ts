@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { EXTERNAL_THEME_PACKS } from '../../lib/themes/external.generated';
 import type { ExternalThemePack } from '../../lib/themes/external.generated';
+import {
+  CORE_ASSETS_BY_AREA,
+  THEME_ASSETS_BY_THEME_ID
+} from '../../lib/themes/assets.generated';
+import { resolveAreaAssetHrefsBySelection } from '../../lib/themes/assets';
 import {
   getExternalThemeTokensCssBySelection,
   resolveExternalThemePackBySelection
@@ -135,4 +141,30 @@ test('getExternalThemeTokensCssBySelection returns null when pack or file is mis
 
   assert.equal(missingFileCss, null);
   assert.equal(missingPackCss, null);
+});
+
+test('resolveAreaAssetHrefsBySelection merges core and theme asset bundles', () => {
+  const frontendPack = EXTERNAL_THEME_PACKS.find(
+    (pack) => pack.areas.includes('frontend') || pack.areas.includes('global')
+  );
+  assert.ok(frontendPack);
+
+  const themeId = frontendPack.themeId;
+  const frontendBundle = THEME_ASSETS_BY_THEME_ID[themeId]?.frontend;
+  assert.ok(frontendBundle);
+
+  const resolved = resolveAreaAssetHrefsBySelection({
+    themeId,
+    area: 'frontend'
+  });
+
+  assert.equal(resolved.themeId, themeId);
+  assert.deepEqual(resolved.themeCssHrefs, frontendBundle.cssHrefs);
+  assert.deepEqual(resolved.themeScriptHrefs, frontendBundle.scriptHrefs);
+  assert.equal(resolved.ignoreCoreCss, frontendBundle.ignoreCoreCss);
+  assert.equal(resolved.ignoreCoreScript, frontendBundle.ignoreCoreScript);
+
+  if (!frontendBundle.ignoreCoreCss && CORE_ASSETS_BY_AREA.frontend.cssHref) {
+    assert.equal(resolved.cssHrefs[0], CORE_ASSETS_BY_AREA.frontend.cssHref);
+  }
 });

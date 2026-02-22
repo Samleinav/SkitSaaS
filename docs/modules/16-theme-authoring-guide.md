@@ -261,6 +261,18 @@ export default defineThemeConfig({
     globalCssByArea: {
       frontend: 'global.css'
     },
+    additionalCssByArea: {
+      frontend: ['styles/landing.css']
+    },
+    additionalScriptByArea: {
+      frontend: ['scripts/landing.js']
+    },
+    ignoreCoreCssByArea: {
+      frontend: true
+    },
+    ignoreCoreScriptByArea: {
+      frontend: true
+    },
     faviconByArea: {
       frontend: 'assets/favicon.svg'
     },
@@ -276,6 +288,7 @@ Rules:
 - paths are resolved relative to the theme pack root
 - paths escaping the theme directory are rejected
 - missing assets do not crash runtime; host fallback remains active
+- if `ignoreCoreCssByArea` is enabled for an area, that theme must provide compatible CSS for that area
 
 ## `config.ts`
 

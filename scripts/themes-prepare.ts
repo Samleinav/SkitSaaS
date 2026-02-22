@@ -1,6 +1,9 @@
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import postcss from 'postcss';
+import tailwindPostcss from '@tailwindcss/postcss';
 import {
   THEME_RUNTIME_CONTRACT_VERSION,
   validateThemePackManifest,
@@ -82,6 +85,37 @@ export type ThemesPrepareResult = {
 
 type ThemeSelectionArea = 'admin' | 'dashboard' | 'frontend';
 type ThemeSelectionSource = 'env' | 'legacy_env' | 'default';
+type ThemeAssetArea = ThemeSelectionArea | 'global';
+type ThemeAreaAssetMap = Partial<Record<ThemeAssetArea, string>>;
+type ThemeAreaAssetListMap = Partial<
+  Record<ThemeAssetArea, string | string[]>
+>;
+type ThemeAreaBooleanMap = Partial<Record<ThemeAssetArea, boolean>>;
+
+type ThemeAssetsManifestForBuild = {
+  globalCssByArea?: ThemeAreaAssetMap;
+  scriptByArea?: ThemeAreaAssetMap;
+  additionalCssByArea?: ThemeAreaAssetListMap;
+  additionalScriptByArea?: ThemeAreaAssetListMap;
+  ignoreCoreCssByArea?: ThemeAreaBooleanMap;
+  ignoreCoreScriptByArea?: ThemeAreaBooleanMap;
+};
+
+type ThemeAreaAssetsBundle = {
+  cssHrefs: string[];
+  scriptHrefs: string[];
+  ignoreCoreCss: boolean;
+  ignoreCoreScript: boolean;
+};
+
+type ThemeAssetsBundlesByArea = Record<ThemeSelectionArea, ThemeAreaAssetsBundle>;
+
+type CoreAreaAssetsBundle = {
+  cssHref: string | null;
+  scriptHref: string | null;
+};
+
+type CoreAssetsByArea = Record<ThemeSelectionArea, CoreAreaAssetsBundle>;
 
 type ResolvedThemeSelection = {
   area: ThemeSelectionArea;
@@ -96,6 +130,20 @@ const THEME_SELECTION_AREAS: readonly ThemeSelectionArea[] = [
   'dashboard',
   'frontend'
 ];
+const THEME_ASSET_AREAS = new Set<ThemeAssetArea>([
+  ...THEME_SELECTION_AREAS,
+  'global'
+]);
+const CORE_CSS_SOURCE_BY_AREA: Record<ThemeSelectionArea, string> = {
+  admin: 'app/assets/admin/core.css',
+  dashboard: 'app/assets/dashboard/core.css',
+  frontend: 'app/assets/frontend/core.css'
+};
+const CORE_SCRIPT_SOURCE_BY_AREA: Record<ThemeSelectionArea, string | null> = {
+  admin: null,
+  dashboard: null,
+  frontend: null
+};
 
 const THEME_SELECTION_DEFAULTS: Record<ThemeSelectionArea, string> = {
   admin: 'theme.first.backoffice',
@@ -156,6 +204,157 @@ function parseBooleanFlag(value: string | undefined, fallback: boolean) {
 function trimToNull(value: string | null | undefined) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeAreaAssetMap(value: unknown): ThemeAreaAssetMap | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const normalized: ThemeAreaAssetMap = {};
+  for (const [rawArea, rawPath] of Object.entries(value)) {
+    const area = rawArea.trim().toLowerCase();
+    if (!THEME_ASSET_AREAS.has(area as ThemeAssetArea)) {
+      continue;
+    }
+
+    if (typeof rawPath !== 'string') {
+      continue;
+    }
+
+    const assetPath = rawPath.trim();
+    if (!assetPath) {
+      continue;
+    }
+
+    normalized[area as ThemeAssetArea] = assetPath;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeAreaAssetListMap(
+  value: unknown
+): ThemeAreaAssetListMap | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const normalized: ThemeAreaAssetListMap = {};
+  for (const [rawArea, rawPaths] of Object.entries(value)) {
+    const area = rawArea.trim().toLowerCase();
+    if (!THEME_ASSET_AREAS.has(area as ThemeAssetArea)) {
+      continue;
+    }
+
+    if (typeof rawPaths === 'string') {
+      const assetPath = rawPaths.trim();
+      if (assetPath) {
+        normalized[area as ThemeAssetArea] = assetPath;
+      }
+      continue;
+    }
+
+    if (!Array.isArray(rawPaths)) {
+      continue;
+    }
+
+    const paths = rawPaths
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+
+    if (paths.length > 0) {
+      normalized[area as ThemeAssetArea] = paths;
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeAreaBooleanMap(value: unknown): ThemeAreaBooleanMap | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const normalized: ThemeAreaBooleanMap = {};
+  for (const [rawArea, rawBoolean] of Object.entries(value)) {
+    const area = rawArea.trim().toLowerCase();
+    if (!THEME_ASSET_AREAS.has(area as ThemeAssetArea)) {
+      continue;
+    }
+
+    if (typeof rawBoolean !== 'boolean') {
+      continue;
+    }
+
+    normalized[area as ThemeAssetArea] = rawBoolean;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeThemeAssetsManifestForBuild(
+  raw: unknown
+): ThemeAssetsManifestForBuild {
+  if (!isObject(raw)) {
+    return {};
+  }
+
+  return {
+    globalCssByArea: normalizeAreaAssetMap(raw.globalCssByArea),
+    scriptByArea: normalizeAreaAssetMap(raw.scriptByArea),
+    additionalCssByArea: normalizeAreaAssetListMap(raw.additionalCssByArea),
+    additionalScriptByArea: normalizeAreaAssetListMap(raw.additionalScriptByArea),
+    ignoreCoreCssByArea: normalizeAreaBooleanMap(raw.ignoreCoreCssByArea),
+    ignoreCoreScriptByArea: normalizeAreaBooleanMap(raw.ignoreCoreScriptByArea)
+  };
+}
+
+function resolveAreaAssetPath(
+  assetsByArea: ThemeAreaAssetMap | undefined,
+  area: ThemeSelectionArea
+) {
+  if (!assetsByArea) {
+    return null;
+  }
+
+  return assetsByArea[area] ?? assetsByArea.global ?? null;
+}
+
+function resolveAreaAssetListPaths(
+  assetsByArea: ThemeAreaAssetListMap | undefined,
+  area: ThemeSelectionArea
+) {
+  if (!assetsByArea) {
+    return [];
+  }
+
+  const value = assetsByArea[area] ?? assetsByArea.global;
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return [value];
+}
+
+function resolveAreaBooleanFlag(
+  flagsByArea: ThemeAreaBooleanMap | undefined,
+  area: ThemeSelectionArea
+) {
+  if (!flagsByArea) {
+    return false;
+  }
+
+  return flagsByArea[area] ?? flagsByArea.global ?? false;
 }
 
 function resolveThemeTemplatePriority(warnings: string[]) {
@@ -276,6 +475,490 @@ function pushThemeError(
   error: ThemePrepareError
 ) {
   errors.push(error);
+}
+
+function toPublicHref({
+  rootDir,
+  absolutePath
+}: {
+  rootDir: string;
+  absolutePath: string;
+}) {
+  const publicDir = path.join(rootDir, 'public');
+  const relativePath = path.relative(publicDir, absolutePath);
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error(
+      `[themes-prepare] Output path escaped public directory: ${absolutePath}`
+    );
+  }
+
+  return `/${toPosixPath(relativePath)}`;
+}
+
+function ensureCleanDir(dirPath: string) {
+  fs.rmSync(dirPath, { recursive: true, force: true });
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function readThemeConfigFilePath({
+  rootDir,
+  pack
+}: {
+  rootDir: string;
+  pack: ResolvedThemePack;
+}) {
+  if (!pack.hasThemeConfig || !pack.themeConfigImportPath) {
+    return null;
+  }
+
+  const candidateExtensions = ['.ts', '.tsx', '.js', '.mjs', '.cjs'] as const;
+  for (const extension of candidateExtensions) {
+    const candidatePath = path.join(
+      rootDir,
+      `${pack.themeConfigImportPath}${extension}`
+    );
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return null;
+}
+
+async function readThemeAssetsManifestFromThemeConfig({
+  rootDir,
+  pack,
+  warnings
+}: {
+  rootDir: string;
+  pack: ResolvedThemePack;
+  warnings: string[];
+}): Promise<ThemeAssetsManifestForBuild> {
+  const configFilePath = readThemeConfigFilePath({ rootDir, pack });
+  if (!configFilePath) {
+    return {};
+  }
+
+  try {
+    const configModule = await import(pathToFileURL(configFilePath).href);
+    const config = configModule?.default;
+    if (!isObject(config)) {
+      return {};
+    }
+
+    return normalizeThemeAssetsManifestForBuild(config.assets);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'unknown config import error';
+    warnings.push(
+      `Theme ${pack.themeId}: failed loading config assets (${message}).`
+    );
+    return {};
+  }
+}
+
+function resolveThemeScopedAbsolutePath({
+  rootDir,
+  pack,
+  relativePath,
+  warnings,
+  field
+}: {
+  rootDir: string;
+  pack: ResolvedThemePack;
+  relativePath: string;
+  warnings: string[];
+  field: string;
+}) {
+  const normalizedRelativePath = relativePath.trim();
+  if (!normalizedRelativePath || path.isAbsolute(normalizedRelativePath)) {
+    warnings.push(
+      `Theme ${pack.themeId}: invalid ${field} path "${relativePath}".`
+    );
+    return null;
+  }
+
+  const packRoot = path.resolve(rootDir, pack.packDir);
+  const absolutePath = path.resolve(packRoot, normalizedRelativePath);
+  const relativeToPack = path.relative(packRoot, absolutePath);
+  if (relativeToPack.startsWith('..') || path.isAbsolute(relativeToPack)) {
+    warnings.push(
+      `Theme ${pack.themeId}: ignored unsafe ${field} path "${relativePath}".`
+    );
+    return null;
+  }
+
+  if (!fs.existsSync(absolutePath)) {
+    warnings.push(
+      `Theme ${pack.themeId}: missing ${field} path "${relativePath}".`
+    );
+    return null;
+  }
+
+  return absolutePath;
+}
+
+async function compileCssAssetToPublicHref({
+  rootDir,
+  sourceAbsolutePath,
+  outputDirAbsolute,
+  outputLabel
+}: {
+  rootDir: string;
+  sourceAbsolutePath: string;
+  outputDirAbsolute: string;
+  outputLabel: string;
+}) {
+  const inputCss = fs.readFileSync(sourceAbsolutePath, 'utf8');
+  const compiled = await postcss([tailwindPostcss()]).process(inputCss, {
+    from: sourceAbsolutePath
+  });
+  const hash = crypto
+    .createHash('sha256')
+    .update(compiled.css)
+    .digest('hex')
+    .slice(0, 12);
+  const outputFileName = `${outputLabel}-${hash}.css`;
+  const outputAbsolutePath = path.join(outputDirAbsolute, outputFileName);
+  fs.mkdirSync(outputDirAbsolute, { recursive: true });
+  fs.writeFileSync(outputAbsolutePath, compiled.css, 'utf8');
+  return toPublicHref({ rootDir, absolutePath: outputAbsolutePath });
+}
+
+function copyScriptAssetToPublicHref({
+  rootDir,
+  sourceAbsolutePath,
+  outputDirAbsolute,
+  outputLabel
+}: {
+  rootDir: string;
+  sourceAbsolutePath: string;
+  outputDirAbsolute: string;
+  outputLabel: string;
+}) {
+  const sourceBuffer = fs.readFileSync(sourceAbsolutePath);
+  const hash = crypto
+    .createHash('sha256')
+    .update(sourceBuffer)
+    .digest('hex')
+    .slice(0, 12);
+  const sourceExtension = path.extname(sourceAbsolutePath) || '.js';
+  const outputFileName = `${outputLabel}-${hash}${sourceExtension}`;
+  const outputAbsolutePath = path.join(outputDirAbsolute, outputFileName);
+  fs.mkdirSync(outputDirAbsolute, { recursive: true });
+  fs.writeFileSync(outputAbsolutePath, sourceBuffer);
+  return toPublicHref({ rootDir, absolutePath: outputAbsolutePath });
+}
+
+async function compileCoreAssetsByArea({
+  rootDir,
+  warnings
+}: {
+  rootDir: string;
+  warnings: string[];
+}): Promise<CoreAssetsByArea> {
+  const bundles: CoreAssetsByArea = {
+    admin: { cssHref: null, scriptHref: null },
+    dashboard: { cssHref: null, scriptHref: null },
+    frontend: { cssHref: null, scriptHref: null }
+  };
+
+  for (const area of THEME_SELECTION_AREAS) {
+    const cssSourceRelative = CORE_CSS_SOURCE_BY_AREA[area];
+    const cssSourceAbsolute = path.join(rootDir, cssSourceRelative);
+    if (fs.existsSync(cssSourceAbsolute)) {
+      bundles[area].cssHref = await compileCssAssetToPublicHref({
+        rootDir,
+        sourceAbsolutePath: cssSourceAbsolute,
+        outputDirAbsolute: path.join(
+          rootDir,
+          'public',
+          '.generated',
+          'core-assets',
+          area
+        ),
+        outputLabel: 'core'
+      });
+    }
+
+    const scriptSourceRelative = CORE_SCRIPT_SOURCE_BY_AREA[area];
+    if (scriptSourceRelative) {
+      const scriptSourceAbsolute = path.join(rootDir, scriptSourceRelative);
+      if (fs.existsSync(scriptSourceAbsolute)) {
+        bundles[area].scriptHref = copyScriptAssetToPublicHref({
+          rootDir,
+          sourceAbsolutePath: scriptSourceAbsolute,
+          outputDirAbsolute: path.join(
+            rootDir,
+            'public',
+            '.generated',
+            'core-assets',
+            area
+          ),
+          outputLabel: 'core'
+        });
+      } else {
+        warnings.push(
+          `Core asset missing for area "${area}": ${scriptSourceRelative}`
+        );
+      }
+    }
+  }
+
+  return bundles;
+}
+
+function dedupeAbsolutePaths(paths: Array<string | null>) {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const entry of paths) {
+    if (!entry || seen.has(entry)) {
+      continue;
+    }
+
+    seen.add(entry);
+    deduped.push(entry);
+  }
+
+  return deduped;
+}
+
+async function compileThemeAssetsByArea({
+  rootDir,
+  pack,
+  assetsManifest,
+  warnings
+}: {
+  rootDir: string;
+  pack: ResolvedThemePack;
+  assetsManifest: ThemeAssetsManifestForBuild;
+  warnings: string[];
+}): Promise<ThemeAssetsBundlesByArea> {
+  const bundles: ThemeAssetsBundlesByArea = {
+    admin: {
+      cssHrefs: [],
+      scriptHrefs: [],
+      ignoreCoreCss: false,
+      ignoreCoreScript: false
+    },
+    dashboard: {
+      cssHrefs: [],
+      scriptHrefs: [],
+      ignoreCoreCss: false,
+      ignoreCoreScript: false
+    },
+    frontend: {
+      cssHrefs: [],
+      scriptHrefs: [],
+      ignoreCoreCss: false,
+      ignoreCoreScript: false
+    }
+  };
+
+  const tokensAbsolutePath = path.join(rootDir, pack.entryTokensPath);
+  if (!fs.existsSync(tokensAbsolutePath)) {
+    warnings.push(
+      `Theme ${pack.themeId}: missing entryTokens at ${pack.entryTokensPath}.`
+    );
+  }
+
+  for (const area of THEME_SELECTION_AREAS) {
+    const primaryCssRelative = resolveAreaAssetPath(
+      assetsManifest.globalCssByArea,
+      area
+    );
+    const additionalCssRelative = resolveAreaAssetListPaths(
+      assetsManifest.additionalCssByArea,
+      area
+    );
+    const primaryScriptRelative = resolveAreaAssetPath(
+      assetsManifest.scriptByArea,
+      area
+    );
+    const additionalScriptRelative = resolveAreaAssetListPaths(
+      assetsManifest.additionalScriptByArea,
+      area
+    );
+
+    bundles[area].ignoreCoreCss = resolveAreaBooleanFlag(
+      assetsManifest.ignoreCoreCssByArea,
+      area
+    );
+    bundles[area].ignoreCoreScript = resolveAreaBooleanFlag(
+      assetsManifest.ignoreCoreScriptByArea,
+      area
+    );
+
+    const cssSources = dedupeAbsolutePaths([
+      fs.existsSync(tokensAbsolutePath) ? tokensAbsolutePath : null,
+      primaryCssRelative
+        ? resolveThemeScopedAbsolutePath({
+            rootDir,
+            pack,
+            relativePath: primaryCssRelative,
+            warnings,
+            field: `assets.globalCssByArea.${area}`
+          })
+        : null,
+      ...additionalCssRelative.map((relativePath) =>
+        resolveThemeScopedAbsolutePath({
+          rootDir,
+          pack,
+          relativePath,
+          warnings,
+          field: `assets.additionalCssByArea.${area}`
+        })
+      )
+    ]);
+
+    const scriptSources = dedupeAbsolutePaths([
+      primaryScriptRelative
+        ? resolveThemeScopedAbsolutePath({
+            rootDir,
+            pack,
+            relativePath: primaryScriptRelative,
+            warnings,
+            field: `assets.scriptByArea.${area}`
+          })
+        : null,
+      ...additionalScriptRelative.map((relativePath) =>
+        resolveThemeScopedAbsolutePath({
+          rootDir,
+          pack,
+          relativePath,
+          warnings,
+          field: `assets.additionalScriptByArea.${area}`
+        })
+      )
+    ]);
+
+    const themeAreaOutputDir = path.join(
+      rootDir,
+      'public',
+      '.generated',
+      'theme-assets',
+      pack.themeId,
+      area
+    );
+
+    for (let index = 0; index < cssSources.length; index += 1) {
+      const cssSourceAbsolute = cssSources[index];
+      const cssHref = await compileCssAssetToPublicHref({
+        rootDir,
+        sourceAbsolutePath: cssSourceAbsolute,
+        outputDirAbsolute: path.join(themeAreaOutputDir, 'css'),
+        outputLabel: `asset-${index + 1}`
+      });
+      bundles[area].cssHrefs.push(cssHref);
+    }
+
+    for (let index = 0; index < scriptSources.length; index += 1) {
+      const scriptSourceAbsolute = scriptSources[index];
+      const scriptHref = copyScriptAssetToPublicHref({
+        rootDir,
+        sourceAbsolutePath: scriptSourceAbsolute,
+        outputDirAbsolute: path.join(themeAreaOutputDir, 'js'),
+        outputLabel: `asset-${index + 1}`
+      });
+      bundles[area].scriptHrefs.push(scriptHref);
+    }
+  }
+
+  return bundles;
+}
+
+function writeGeneratedThemeAssetsRegistry({
+  outputPath,
+  coreAssetsByArea,
+  themeAssetsById
+}: {
+  outputPath: string;
+  coreAssetsByArea: CoreAssetsByArea;
+  themeAssetsById: Record<string, ThemeAssetsBundlesByArea>;
+}) {
+  const lines: string[] = [];
+  lines.push('export type ThemeSelectionArea = "admin" | "dashboard" | "frontend";');
+  lines.push('');
+  lines.push('export type CoreAreaAssetsBundle = {');
+  lines.push('  cssHref: string | null;');
+  lines.push('  scriptHref: string | null;');
+  lines.push('};');
+  lines.push('');
+  lines.push('export type ThemeAreaAssetsBundle = {');
+  lines.push('  cssHrefs: string[];');
+  lines.push('  scriptHrefs: string[];');
+  lines.push('  ignoreCoreCss: boolean;');
+  lines.push('  ignoreCoreScript: boolean;');
+  lines.push('};');
+  lines.push('');
+  lines.push(
+    'export const CORE_ASSETS_BY_AREA: Record<ThemeSelectionArea, CoreAreaAssetsBundle> = ' +
+      JSON.stringify(coreAssetsByArea, null, 2) +
+      ';'
+  );
+  lines.push('');
+  lines.push(
+    'export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea, ThemeAreaAssetsBundle>> = ' +
+      JSON.stringify(themeAssetsById, null, 2) +
+      ';'
+  );
+  lines.push('');
+
+  ensureOutputDir(outputPath);
+  fs.writeFileSync(outputPath, lines.join('\n'), 'utf8');
+}
+
+async function prepareCompiledThemeAndCoreAssets({
+  rootDir,
+  resolvedThemePacks,
+  warnings
+}: {
+  rootDir: string;
+  resolvedThemePacks: ResolvedThemePack[];
+  warnings: string[];
+}) {
+  const generatedThemeAssetsDir = path.join(
+    rootDir,
+    'public',
+    '.generated',
+    'theme-assets'
+  );
+  const generatedCoreAssetsDir = path.join(
+    rootDir,
+    'public',
+    '.generated',
+    'core-assets'
+  );
+  ensureCleanDir(generatedThemeAssetsDir);
+  ensureCleanDir(generatedCoreAssetsDir);
+
+  const coreAssetsByArea = await compileCoreAssetsByArea({
+    rootDir,
+    warnings
+  });
+
+  const themeAssetsById: Record<string, ThemeAssetsBundlesByArea> = {};
+  for (const pack of resolvedThemePacks) {
+    const assetsManifest = await readThemeAssetsManifestFromThemeConfig({
+      rootDir,
+      pack,
+      warnings
+    });
+    const bundles = await compileThemeAssetsByArea({
+      rootDir,
+      pack,
+      assetsManifest,
+      warnings
+    });
+    themeAssetsById[pack.themeId] = bundles;
+  }
+
+  const outputPath = path.join(rootDir, 'lib', 'themes', 'assets.generated.ts');
+  writeGeneratedThemeAssetsRegistry({
+    outputPath,
+    coreAssetsByArea,
+    themeAssetsById
+  });
 }
 
 const CODE_TEMPLATE_EXTENSIONS = new Set(['.tsx', '.jsx']);
@@ -934,9 +1617,9 @@ function writeGeneratedThemeSelectionRegistry({
   fs.writeFileSync(outputPath, lines.join('\n'), 'utf8');
 }
 
-export function runThemesPrepare(
+export async function runThemesPrepare(
   options: ThemesPrepareOptions = {}
-): ThemesPrepareResult {
+): Promise<ThemesPrepareResult> {
   const rootDir = options.rootDir ?? process.cwd();
   const themesDir = resolveThemesDir(rootDir, options.themesDir);
   const strictCompatibility = resolveStrictCompatibility(options);
@@ -1188,6 +1871,11 @@ export function runThemesPrepare(
     selections: resolvedSelections,
     templatePriority
   });
+  await prepareCompiledThemeAndCoreAssets({
+    rootDir,
+    resolvedThemePacks,
+    warnings
+  });
 
   if (warnings.length > 0 && options.logWarnings !== false) {
     console.warn('[themes-prepare] warnings:');
@@ -1253,10 +1941,8 @@ const isCli =
   path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 
 if (isCli) {
-  try {
-    runThemesPrepare(parseCliArgs(process.argv.slice(2)));
-  } catch (error) {
+  runThemesPrepare(parseCliArgs(process.argv.slice(2))).catch((error) => {
     console.error(error);
     process.exit(1);
-  }
+  });
 }

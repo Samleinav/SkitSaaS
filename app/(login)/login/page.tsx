@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { ThemeGlobalStyle } from '@/components/theme/theme-global-style';
-import { ThemeTokensStyle } from '@/components/theme/theme-tokens-style';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
-  readExternalThemeGlobalCssBySelectionFromConfig
+  resolveAreaAssetHrefsBySelection
 } from '@/lib/themes/assets';
-import { getExternalThemeTokensCssBySelection } from '@/lib/themes/runtime';
 import {
   getLoginProviderOptionsForArea,
   readLoginAreaPolicy
@@ -49,18 +47,10 @@ export default async function LoginPage() {
   const themeSelection = await getThemeSelectionForArea('dashboard');
   const loginPolicy = readLoginAreaPolicy('dashboard');
   const loginProviders = await getLoginProviderOptionsForArea('dashboard');
-  const themeTokensCss = themeSelection
-    ? getExternalThemeTokensCssBySelection({
-        themeId: themeSelection.themeKey,
-        area: 'dashboard'
-      })
-    : null;
-  const themeGlobalCss = themeSelection
-    ? await readExternalThemeGlobalCssBySelectionFromConfig({
-        themeId: themeSelection.themeKey,
-        area: 'dashboard'
-      })
-    : null;
+  const areaAssets = resolveAreaAssetHrefsBySelection({
+    themeId: themeSelection.themeKey,
+    area: 'dashboard'
+  });
 
   const fallbackPage = (
     <Suspense>
@@ -92,20 +82,12 @@ export default async function LoginPage() {
 
   return (
     <>
-      {themeTokensCss ? (
-        <ThemeTokensStyle
-          area="dashboard"
-          themeKey={themeSelection?.themeKey ?? null}
-          tokensCss={themeTokensCss}
-        />
-      ) : null}
-      {themeGlobalCss ? (
-        <ThemeGlobalStyle
-          area="dashboard"
-          themeKey={themeSelection?.themeKey ?? null}
-          globalCss={themeGlobalCss}
-        />
-      ) : null}
+      <ThemeAreaAssets
+        area="dashboard"
+        themeId={themeSelection?.themeKey ?? null}
+        cssHrefs={areaAssets.cssHrefs}
+        scriptHrefs={areaAssets.scriptHrefs}
+      />
       {themedPage}
     </>
   );

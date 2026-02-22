@@ -5,18 +5,16 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
     "en": {
       "mod.commerce.one-time-payments": {
         "products": {
-          "common": {
-            "providerStripe": "Stripe",
-            "providerPayPal": "PayPal"
-          },
           "catalog": {
             "eyebrow": "One-time products",
             "title": "Products",
             "description": "Baseline storefront for one-time purchases connected to core checkout.",
             "empty": "No published one-time products are available.",
             "noDescription": "No description.",
+            "inCartLabel": "In cart",
             "addToCart": "Add to cart",
-            "buyNow": "Buy now"
+            "buyNow": "Buy now",
+            "viewCart": "View cart"
           },
           "cart": {
             "title": "Cart",
@@ -26,7 +24,8 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "unitPriceLabel": "Unit price",
             "quantityLabel": "Quantity",
             "totalLabel": "Total",
-            "providerLabel": "Provider",
+            "mixedCurrencyWarning": "Mixed currencies detected in cart. Use one currency per checkout order.",
+            "unavailableItemsWarning": "Some cart items are no longer available and were removed automatically.",
             "continueToOrder": "Continue to order",
             "backToProducts": "Back to products"
           },
@@ -39,18 +38,21 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "unitPriceLabel": "Unit price",
             "quantityLabel": "Quantity",
             "totalLabel": "Total",
-            "providerLabel": "Provider",
             "targetLabel": "Target",
             "targetTeamLabel": "Team",
             "targetUserLabel": "User",
             "continueToCheckout": "Continue to checkout",
             "backToCart": "Back to cart",
             "oneTimeDescription": "One-time order",
+            "mixedCurrencyWarning": "Mixed currencies detected in cart. Remove incompatible products before continuing to checkout.",
+            "unavailableItemsWarning": "Some cart items are no longer available and were removed automatically.",
             "switchedToUserWarning": "No team membership found for this account. The checkout target was switched to user automatically.",
             "errors": {
+              "invalid_product_id": "The selected product is invalid.",
               "target_team_required": "You need an active team membership before starting checkout.",
               "product_not_found": "The selected product was not found.",
               "product_not_published": "The selected product is not published.",
+              "one_time_only_product_required": "The selected product is not available for one-time checkout.",
               "product_missing_active_price": "The selected product has no active price.",
               "target_team_forbidden": "You cannot create an order for the selected team.",
               "operation_failed": "Unable to start checkout for this order."
@@ -62,18 +64,16 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
     "es": {
       "mod.commerce.one-time-payments": {
         "products": {
-          "common": {
-            "providerStripe": "Stripe",
-            "providerPayPal": "PayPal"
-          },
           "catalog": {
             "eyebrow": "Productos de pago unico",
             "title": "Productos",
             "description": "Catalogo base para compras de pago unico conectado al checkout core.",
             "empty": "No hay productos one_time publicados.",
             "noDescription": "Sin descripcion.",
+            "inCartLabel": "En carrito",
             "addToCart": "Agregar al carrito",
-            "buyNow": "Comprar ahora"
+            "buyNow": "Comprar ahora",
+            "viewCart": "Ver carrito"
           },
           "cart": {
             "title": "Carrito",
@@ -83,7 +83,8 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "unitPriceLabel": "Precio unitario",
             "quantityLabel": "Cantidad",
             "totalLabel": "Total",
-            "providerLabel": "Proveedor",
+            "mixedCurrencyWarning": "Se detectaron monedas mixtas en el carrito. Usa una sola moneda por orden de checkout.",
+            "unavailableItemsWarning": "Algunos productos del carrito ya no estan disponibles y se eliminaron automaticamente.",
             "continueToOrder": "Continuar al pedido",
             "backToProducts": "Volver a productos"
           },
@@ -96,18 +97,21 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "unitPriceLabel": "Precio unitario",
             "quantityLabel": "Cantidad",
             "totalLabel": "Total",
-            "providerLabel": "Proveedor",
             "targetLabel": "Destino",
             "targetTeamLabel": "Equipo",
             "targetUserLabel": "Usuario",
             "continueToCheckout": "Continuar al checkout",
             "backToCart": "Volver al carrito",
             "oneTimeDescription": "Pedido one_time",
+            "mixedCurrencyWarning": "Se detectaron monedas mixtas en el carrito. Quita productos incompatibles antes de continuar al checkout.",
+            "unavailableItemsWarning": "Algunos productos del carrito ya no estan disponibles y se eliminaron automaticamente.",
             "switchedToUserWarning": "No se encontro membresia de equipo para esta cuenta. El destino del checkout cambio automaticamente a usuario.",
             "errors": {
+              "invalid_product_id": "El producto seleccionado no es valido.",
               "target_team_required": "Necesitas una membresia activa de equipo antes de iniciar checkout.",
               "product_not_found": "No se encontro el producto seleccionado.",
               "product_not_published": "El producto seleccionado no esta publicado.",
+              "one_time_only_product_required": "El producto seleccionado no esta disponible para checkout one_time.",
               "product_missing_active_price": "El producto seleccionado no tiene precio activo.",
               "target_team_forbidden": "No puedes crear un pedido para el equipo seleccionado.",
               "operation_failed": "No fue posible iniciar checkout para este pedido."
@@ -145,7 +149,8 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
               "title": "Products",
               "description": "Admin management for subscription and one-time catalog products.",
               "createLabel": "Create product",
-              "empty": "No products found for current filters."
+              "filterPlaceholder": "Search products...",
+              "empty": "No products found."
             },
             "create": {
               "title": "Create Product",
@@ -198,7 +203,7 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "subscriptionTemplateIdLabel": "Subscription template id",
             "subscriptionTemplateIdHint": "Required only when kind is subscription.",
             "priceCurrencyLabel": "Price currency",
-            "priceAmountLabel": "Price amount (cents)",
+            "priceAmountLabel": "Price amount",
             "priceProviderLabel": "Price provider",
             "priceProviderPlaceholder": "stripe | paypal",
             "providerPriceIdLabel": "Provider price id"
@@ -264,7 +269,8 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
               "title": "Productos",
               "description": "Gestion admin para productos de suscripcion y pago unico.",
               "createLabel": "Crear producto",
-              "empty": "No hay productos para los filtros actuales."
+              "filterPlaceholder": "Buscar productos...",
+              "empty": "No hay productos."
             },
             "create": {
               "title": "Crear producto",
@@ -317,7 +323,7 @@ export const moduleMessagesByArea: ModuleMessagesByArea = {
             "subscriptionTemplateIdLabel": "Id plantilla de suscripcion",
             "subscriptionTemplateIdHint": "Requerido solo cuando el tipo es suscripcion.",
             "priceCurrencyLabel": "Moneda del precio",
-            "priceAmountLabel": "Monto (centavos)",
+            "priceAmountLabel": "Monto",
             "priceProviderLabel": "Proveedor de precio",
             "priceProviderPlaceholder": "stripe | paypal",
             "providerPriceIdLabel": "Id de precio del proveedor"

@@ -10,8 +10,4 @@ export const THEME_FRONTEND_ROUTE_REGISTRY: Record<string, FrontendRouteRegistry
     themeId: "theme.first.frontend",
     routesImport: () => import("../../themes/first-frontend/routes"),
   },
-  "theme.shadcn.dashboard.frontend": {
-    themeId: "theme.shadcn.dashboard.frontend",
-    routesImport: () => import("../../themes/shadcn-dashboard-frontend/routes"),
-  },
 };

@@ -62,3 +62,6 @@ This regenerates:
 - `lib/themes/code-registry.generated.ts`
 - `lib/themes/frontend-routes.generated.ts`
 - `lib/i18n/themes-i18n.generated.ts`
+- `lib/themes/assets.generated.ts`
+- `public/.generated/core-assets/*`
+- `public/.generated/theme-assets/*`

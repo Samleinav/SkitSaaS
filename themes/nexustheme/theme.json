@@ -1,0 +1,12 @@
+{
+  "themeId": "theme.nexus",
+  "version": "1.0.0",
+  "areas": ["admin", "dashboard"],
+  "mode": "tokens",
+  "entryTokens": "tokens.css",
+  "themeRange": "^1.0.0",
+  "displayName": "Nexus Backoffice",
+  "description": "Nexus admin/dashboard theme inspired by shadcn dashboard layouts.",
+  "author": "Local Workspace",
+  "tags": ["admin", "dashboard", "login", "nexus", "shadcn"]
+}

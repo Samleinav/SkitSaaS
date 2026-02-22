@@ -104,6 +104,9 @@ Generated output:
 - `lib/themes/selection.generated.ts`
 - `lib/themes/code-registry.generated.ts`
 - `lib/themes/frontend-routes.generated.ts`
+- `lib/themes/assets.generated.ts`
+- `public/.generated/core-assets/*`
+- `public/.generated/theme-assets/*`
 
 ## Theme config contract
 
@@ -211,9 +214,9 @@ This keeps theme and module decoupled:
 - module controls slot implementation
 - host/runtime resolves active provider with fallback safety
 
-## Runtime token loading
+## Runtime token/assets loading
 
-Area tokens are applied on SSR and reinforced on hydration:
+Area assets are prepared at build-time and loaded per area on SSR:
 
 - `app/(frontend)/layout.tsx` (area `frontend`)
 - `app/(dashboard)/admin/layout.tsx` (area `admin`)
@@ -221,13 +224,15 @@ Area tokens are applied on SSR and reinforced on hydration:
 - `app/(login)/login/page.tsx` and `app/(login)/sign-up/page.tsx` (area `dashboard`)
 - `app/(login)/admin/login/page.tsx` (area `admin`)
 
-Server style injection component:
+Runtime area asset renderer:
 
-- `components/theme/theme-tokens-style.tsx`
+- `components/theme/theme-area-assets.tsx`
 
-Client hydration sync:
+Generated registries and outputs:
 
-- `ThemeRuntimeProvider` keeps root mode/theme dataset consistent and updates/removes runtime token style as needed.
+- `lib/themes/assets.generated.ts`
+- `public/.generated/core-assets/*`
+- `public/.generated/theme-assets/*`
 
 If a selected pack is missing or invalid for an area, runtime falls back immediately to core styles (no crash).
 
@@ -242,6 +247,18 @@ export default defineThemeConfig({
   assets: {
     globalCssByArea: {
       frontend: 'global.css'
+    },
+    additionalCssByArea: {
+      frontend: ['styles/landing.css']
+    },
+    additionalScriptByArea: {
+      frontend: ['scripts/landing.js']
+    },
+    ignoreCoreCssByArea: {
+      frontend: true
+    },
+    ignoreCoreScriptByArea: {
+      frontend: true
     },
     faviconByArea: {
       frontend: 'assets/favicon-frontend.svg'
@@ -268,7 +285,7 @@ Current host integration:
   - `app/(login)/login/page.tsx`
   - `app/(login)/admin/login/page.tsx`
   - `app/(login)/sign-up/page.tsx`
-- global CSS style injection by area with `components/theme/theme-global-style.tsx`
+- area CSS/JS bundle injection with `components/theme/theme-area-assets.tsx`
 - area not-found dispatchers:
   - `app/(frontend)/not-found.tsx`
   - `app/(dashboard)/admin/not-found.tsx`
@@ -279,6 +296,7 @@ Safety behavior:
 - missing/invalid asset config fields are ignored
 - unsafe paths outside the theme pack root are rejected
 - all surfaces keep core fallback behavior
+- when `ignoreCoreCssByArea[area]=true`, the theme becomes responsible for area CSS compatibility
 
 ## DB theme catalog (legacy)
 

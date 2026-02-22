@@ -23,6 +23,7 @@ plans
 # next.js
 /.next/
 /out/
+/public/.generated/
 
 # production
 /build

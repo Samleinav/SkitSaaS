@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {
+  computeMigrationChecksum,
   discoverModuleMigrationTargets,
+  isMigrationChecksumCompatible,
   parseSqlStatements
 } from '../../scripts/modules-migrate';
 
@@ -77,3 +80,32 @@ test('discoverModuleMigrationTargets resolves db migration dirs from module.json
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
 });
+
+test('computeMigrationChecksum is stable across LF and CRLF line endings', () => {
+  const lf = 'CREATE TABLE one (id integer);\nCREATE TABLE two (id integer);\n';
+  const crlf = lf.replace(/\n/g, '\r\n');
+
+  assert.equal(computeMigrationChecksum(lf), computeMigrationChecksum(crlf));
+});
+
+test('isMigrationChecksumCompatible accepts historical LF/CRLF checksums', () => {
+  const lf = 'CREATE TABLE one (id integer);\nCREATE TABLE two (id integer);\n';
+  const crlf = lf.replace(/\n/g, '\r\n');
+  const lfChecksum = computeMigrationChecksum(lf);
+  const crlfLegacyChecksum = createSha256(crlf);
+
+  assert.equal(isMigrationChecksumCompatible(lfChecksum, crlf), true);
+  assert.equal(isMigrationChecksumCompatible(crlfLegacyChecksum, lf), true);
+});
+
+test('isMigrationChecksumCompatible rejects checksums from different contents', () => {
+  const sql = 'CREATE TABLE one (id integer);\n';
+  const differentSql = 'CREATE TABLE two (id integer);\n';
+  const checksumFromDifferentSql = computeMigrationChecksum(differentSql);
+
+  assert.equal(isMigrationChecksumCompatible(checksumFromDifferentSql, sql), false);
+});
+
+function createSha256(value: string) {
+  return createHash('sha256').update(value).digest('hex');
+}
