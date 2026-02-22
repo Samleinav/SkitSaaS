@@ -183,19 +183,7 @@ importers:
         specifier: workspace:*
         version: link:../../app/sdk
 
-  themes/frontend-sandbox:
-    dependencies:
-      next:
-        specifier: ^16.0.0
-        version: 16.1.6(@babel/core@7.29.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      react:
-        specifier: ^19.0.0
-        version: 19.1.0
-      react-dom:
-        specifier: ^19.0.0
-        version: 19.1.0(react@19.1.0)
-
-  themes/pilot-admin:
+  themes/nexustheme:
     dependencies:
       next:
         specifier: ^16.0.0
@@ -210,9 +198,6 @@ importers:
       '@skitsaas/sdk':
         specifier: workspace:*
         version: link:../../app/sdk
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.1.4
 
 packages:
 
