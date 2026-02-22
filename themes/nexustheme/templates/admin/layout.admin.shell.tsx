@@ -34,7 +34,7 @@ export default function LayoutAdminShellTemplate({
   if (!hasComposableSlots) {
     return (
       <section
-        className={className || 'theme-nexus-shell min-h-screen bg-background text-foreground'}
+        className={className || 'min-h-screen bg-background text-foreground'}
       >
         {children}
       </section>
@@ -45,13 +45,13 @@ export default function LayoutAdminShellTemplate({
     return (
       <section
         className={mergeClassNames(
-          'theme-nexus-shell relative flex min-h-0 flex-1 overflow-hidden bg-slate-100/50 dark:bg-[#0b1222]',
+          'relative flex min-h-0 flex-1 overflow-hidden bg-background text-foreground',
           className
         )}
         data-shell-variant={variant}
         data-shell-mode={mode}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(59,130,246,0.13),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(56,189,248,0.14),transparent_38%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(20,184,166,0.18),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(14,165,233,0.16),transparent_38%)]" />
         <div className="relative flex w-full flex-1 flex-col xl:flex-row">
           <aside
             className={mergeClassNames(
@@ -97,7 +97,7 @@ export default function LayoutAdminShellTemplate({
   return (
     <section
       className={mergeClassNames(
-        'theme-nexus-shell min-h-screen bg-background text-foreground',
+        'min-h-screen bg-background text-foreground',
         className
       )}
       data-shell-variant={variant}
@@ -130,4 +130,5 @@ export default function LayoutAdminShellTemplate({
     </section>
   );
 }
+
 

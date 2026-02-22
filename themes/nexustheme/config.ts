@@ -11,6 +11,10 @@ export default defineThemeConfig({
       admin: 'global.css',
       dashboard: 'global.css'
     },
+    ignoreCoreCssByArea: {
+      admin: true,
+      dashboard: true
+    },
     faviconByArea: {
       admin: 'assets/favicon-admin.svg',
       dashboard: 'assets/favicon-dashboard.svg'

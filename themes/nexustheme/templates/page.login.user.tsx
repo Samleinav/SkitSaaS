@@ -6,7 +6,7 @@ export default function PageLoginUserTemplate({
 }: TemplateProps) {
   return (
     <section
-      className={className || 'theme-nexus-shell min-h-screen'}
+      className={className || 'min-h-screen bg-background text-foreground'}
     >
       {children}
     </section>

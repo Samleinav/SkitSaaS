@@ -18,7 +18,7 @@ export default function LayoutDashboardShellTemplate({
 
   return (
     <section
-      className={className || 'theme-nexus-shell min-h-screen bg-background text-foreground'}
+      className={className || 'min-h-screen bg-background text-foreground'}
       data-layout-style={toStringOrNull(data?.layoutStyle) ?? undefined}
       data-layout-mode={toStringOrNull(data?.mode) ?? undefined}
       data-layout-heading={toStringOrNull(data?.heading) ?? undefined}
@@ -27,4 +27,5 @@ export default function LayoutDashboardShellTemplate({
     </section>
   );
 }
+
 

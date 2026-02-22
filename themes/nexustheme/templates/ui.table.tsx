@@ -51,8 +51,8 @@ export default function UiTableThemeTemplate({
   const themeMessages = useThemeMessages(themeId) as UiTableThemeMessages;
   const areaClassName =
     normalizedArea === 'dashboard'
-      ? 'theme-nexus-table-surface-dashboard'
-      : 'theme-nexus-table-surface-admin';
+      ? 'ring-1 ring-emerald-400/20'
+      : 'ring-1 ring-sky-400/20';
   const surfaceLabel =
     resolveSurfaceLabel(themeMessages, normalizedArea) ??
     (normalizedArea === 'dashboard' ? 'Dashboard table' : 'Admin table');
@@ -61,7 +61,7 @@ export default function UiTableThemeTemplate({
     <div
       aria-label={surfaceLabel}
       className={mergeClassNames(
-        'theme-nexus-table-surface overflow-hidden rounded-md border',
+        'overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-sm',
         areaClassName,
         data?.frameClassName,
         className

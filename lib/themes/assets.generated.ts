@@ -14,15 +14,15 @@ export type ThemeAreaAssetsBundle = {
 
 export const CORE_ASSETS_BY_AREA: Record<ThemeSelectionArea, CoreAreaAssetsBundle> = {
   "admin": {
-    "cssHref": "/.generated/core-assets/admin/core-7ce176910b32.css",
+    "cssHref": "/.generated/core-assets/admin/core-f76f71616b97.css",
     "scriptHref": null
   },
   "dashboard": {
-    "cssHref": "/.generated/core-assets/dashboard/core-7ce176910b32.css",
+    "cssHref": "/.generated/core-assets/dashboard/core-f76f71616b97.css",
     "scriptHref": null
   },
   "frontend": {
-    "cssHref": "/.generated/core-assets/frontend/core-7ce176910b32.css",
+    "cssHref": "/.generated/core-assets/frontend/core-f76f71616b97.css",
     "scriptHref": null
   }
 };
@@ -86,25 +86,25 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
   "theme.nexus": {
     "admin": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-3e12c5ae5640.css",
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-090bd3ca50ad.css"
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-d8f3e05d3923.css",
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-47fd0aebdc23.css"
       ],
       "scriptHrefs": [],
-      "ignoreCoreCss": false,
+      "ignoreCoreCss": true,
       "ignoreCoreScript": false
     },
     "dashboard": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-3e12c5ae5640.css",
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-090bd3ca50ad.css"
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-d8f3e05d3923.css",
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-47fd0aebdc23.css"
       ],
       "scriptHrefs": [],
-      "ignoreCoreCss": false,
+      "ignoreCoreCss": true,
       "ignoreCoreScript": false
     },
     "frontend": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-3e12c5ae5640.css"
+        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-d8f3e05d3923.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,

@@ -6,7 +6,7 @@ export default function LayoutAdminAppConfigShellTemplate({
   return (
     <section
       className={
-        className || 'theme-nexus-shell min-h-full bg-background text-foreground'
+        className || 'min-h-full bg-background text-foreground'
       }
     >
       {children}

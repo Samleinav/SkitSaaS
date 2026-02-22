@@ -18,15 +18,12 @@ export default function UiTableControlTemplate({
   className,
   children
 }: UiTableControlTemplateProps) {
-  const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
   const slot =
     typeof data?.slot === 'string' && data.slot.trim().length > 0
       ? data.slot.trim()
       : null;
   const classes = [
     'contents',
-    'theme-nexus-table-control',
-    'theme-nexus-table-control-area-' + area,
     className
   ]
     .filter(Boolean)
