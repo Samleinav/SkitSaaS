@@ -13,15 +13,15 @@ export type ThemeAreaSelection = {
 export const THEME_SELECTIONS: ThemeAreaSelection[] = [
   {
     "area": "admin",
-    "themeId": "theme.first.backoffice",
-    "source": "default",
+    "themeId": "theme.nexus",
+    "source": "env",
     "envKey": "THEME_ADMIN",
     "legacyEnvKey": "THEME_ADMIN_DEFAULT"
   },
   {
     "area": "dashboard",
-    "themeId": "theme.first.backoffice",
-    "source": "default",
+    "themeId": "theme.nexus",
+    "source": "env",
     "envKey": "THEME_DASHBOARD",
     "legacyEnvKey": "THEME_DASHBOARD_DEFAULT"
   },
@@ -35,16 +35,16 @@ export const THEME_SELECTIONS: ThemeAreaSelection[] = [
 ];
 
 export const THEME_SELECTION_BY_AREA: Record<ThemeSelectionArea, string> = {
-  "admin": "theme.first.backoffice",
-  "dashboard": "theme.first.backoffice",
+  "admin": "theme.nexus",
+  "dashboard": "theme.nexus",
   "frontend": "theme.first.frontend"
 };
 
 export const THEME_TEMPLATE_PRIORITY: ThemeTemplatePriority = "theme";
 
 export const ACTIVE_THEME_IDS: string[] = [
-  "theme.first.backoffice",
-  "theme.first.frontend"
+  "theme.first.frontend",
+  "theme.nexus"
 ];
 
 // Decision: keep code registry generation for all discovered packs.

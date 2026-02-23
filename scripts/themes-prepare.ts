@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import postcss from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
+import dotenv from 'dotenv';
 import {
   THEME_RUNTIME_CONTRACT_VERSION,
   validateThemePackManifest,
@@ -15,6 +16,8 @@ import {
   BACKOFFICE_REQUIRED_CODE_TEMPLATE_IDS_BY_AREA
 } from '../lib/themes/required-code-templates';
 import { isSemverRangeSatisfied } from './modules-prepare';
+
+dotenv.config();
 
 type ThemePrepareErrorCode =
   | 'theme_json_parse_failed'
