@@ -18,6 +18,7 @@ modulesprivate
 examplemodules
 templateShadcn
 plans
+tmp
 # testing
 /coverage
 # next.js
