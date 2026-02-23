@@ -1,7 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
-  getAdminDashboardMonthlySeries,
   getAdminDashboardSummary,
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries';
@@ -11,7 +10,6 @@ import { getEnabledAdminDashboardModules } from './admin-dashboard/modules';
 import type { AdminDashboardModuleProps } from './admin-dashboard/types';
 import { requireAdminAccess } from './guards';
 
-const CHART_SOURCE_DAYS = 180;
 const RECENT_ACTIVITY_LIMIT = 4;
 const ADMIN_DASHBOARD_FALLBACK_MODULE_TEMPLATE_ID =
   'section.admin.dashboard.module-widget';
@@ -29,10 +27,9 @@ export default async function AdminPage() {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
   const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
 
-  const [summary, activityLogs, monthlySeries] = await Promise.all([
+  const [summary, activityLogs] = await Promise.all([
     getAdminDashboardSummary(),
-    getSystemActivityLogsForAdmin(120),
-    getAdminDashboardMonthlySeries(CHART_SOURCE_DAYS)
+    getSystemActivityLogsForAdmin(120)
   ]);
 
   const moduleProps = {
@@ -46,7 +43,7 @@ export default async function AdminPage() {
       message: activityLog.message,
       createdAt: activityLog.createdAt
     })),
-    activityChart: monthlySeries
+    activityChart: []
   } satisfies AdminDashboardModuleProps;
 
   const enabledModules = await getEnabledAdminDashboardModules();
