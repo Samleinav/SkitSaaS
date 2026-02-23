@@ -22,6 +22,7 @@ import type { AdminNavTemplateItem } from '@/lib/themes/template-data-contract';
 import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isAdminEnabled } from '@/lib/config/runtime-surface';
+import { createPerfTrace } from '@/lib/observability/perf-trace';
 import { AdminBreadcrumb, type AdminNavLabels } from './admin-breadcrumb';
 import { AdminNav } from './admin-nav';
 
@@ -30,48 +31,104 @@ type AdminLayoutProps = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  if (!isAdminEnabled()) {
-    return {};
-  }
-
-  const themeSelection = await getThemeSelectionForArea('admin');
-  const favicon = await getExternalThemeFaviconDataUrlBySelectionFromConfig({
-    themeId: themeSelection.themeKey,
-    area: 'admin'
-  });
-  if (!favicon) {
-    return {};
-  }
-
-  return {
-    icons: {
-      icon: favicon,
-      shortcut: favicon,
-      apple: favicon
+  const perfTrace = createPerfTrace({
+    scope: 'admin',
+    name: 'admin.layout.metadata',
+    tags: {
+      route: '/admin'
     }
-  };
+  });
+
+  try {
+    if (!isAdminEnabled()) {
+      perfTrace.end('skipped', {
+        reason: 'admin_disabled'
+      });
+      return {};
+    }
+
+    const themeSelection = await getThemeSelectionForArea('admin');
+    perfTrace.step('getThemeSelectionForArea', {
+      themeId: themeSelection.themeKey
+    });
+
+    const favicon = await getExternalThemeFaviconDataUrlBySelectionFromConfig({
+      themeId: themeSelection.themeKey,
+      area: 'admin'
+    });
+    perfTrace.step('getExternalThemeFaviconDataUrlBySelectionFromConfig', {
+      hasFavicon: Boolean(favicon)
+    });
+
+    if (!favicon) {
+      perfTrace.end('ok', {
+        hasIcons: false
+      });
+      return {};
+    }
+
+    perfTrace.end('ok', {
+      hasIcons: true
+    });
+    return {
+      icons: {
+        icon: favicon,
+        shortcut: favicon,
+        apple: favicon
+      }
+    };
+  } catch (error) {
+    perfTrace.end('error', {
+      errorName: error instanceof Error ? error.name : 'unknown_error'
+    });
+    throw error;
+  }
 }
 
 export default async function AdminLayout({
   children
 }: AdminLayoutProps) {
-  if (!isAdminEnabled()) {
-    notFound();
-  }
-
-  const messages = await getServerMessages('admin');
-  const moduleItems = await getEnabledModuleNavItems('admin');
-  const navPayload = { items: [...moduleItems] };
-  await emitEvent(
-    EVENT_HOOKS.adminNavItemsCompose,
-    navPayload,
-    { source: '/admin/layout' }
-  );
-  const themeSelection = await getThemeSelectionForArea('admin');
-  const areaAssets = resolveAreaAssetHrefsBySelection({
-    themeId: themeSelection.themeKey,
-    area: 'admin'
+  const perfTrace = createPerfTrace({
+    scope: 'admin',
+    name: 'admin.layout',
+    tags: {
+      route: '/admin'
+    }
   });
+
+  try {
+    if (!isAdminEnabled()) {
+      perfTrace.end('skipped', {
+        reason: 'admin_disabled'
+      });
+      notFound();
+    }
+
+    const messages = await getServerMessages('admin');
+    perfTrace.step('getServerMessages');
+    const moduleItems = await getEnabledModuleNavItems('admin');
+    const navPayload = { items: [...moduleItems] };
+    perfTrace.step('getEnabledModuleNavItems', {
+      moduleItems: moduleItems.length
+    });
+    await emitEvent(
+      EVENT_HOOKS.adminNavItemsCompose,
+      navPayload,
+      { source: '/admin/layout' }
+    );
+    perfTrace.step('emitEvent:adminNavItemsCompose');
+    const themeSelection = await getThemeSelectionForArea('admin');
+    perfTrace.step('getThemeSelectionForArea', {
+      themeId: themeSelection.themeKey
+    });
+    const areaAssets = resolveAreaAssetHrefsBySelection({
+      themeId: themeSelection.themeKey,
+      area: 'admin'
+    });
+    perfTrace.step('resolveAreaAssetHrefsBySelection', {
+      cssHrefs: areaAssets.cssHrefs.length,
+      scriptHrefs: areaAssets.scriptHrefs.length
+    });
   const navLabels: AdminNavLabels = {
     users: messages.nav.users,
     subscriptions: messages.nav.subscriptions,
@@ -337,23 +394,38 @@ export default async function AdminLayout({
     layoutFallback
   );
 
-  return (
-    <ThemeCodeRuntimeProvider themeId={themeSelection.themeKey}>
-      <ThemeRuntimeProvider
-        area="admin"
-        initialMode={themeSelection.mode}
-        initialThemeKey={themeSelection.themeKey}
-        initialTokensCss={null}
-        allowUserOverride={themeSelection.allowUserOverride}
-      >
-        <ThemeAreaAssets
+    perfTrace.step('composeAdminLayoutSlots', {
+      navVariant,
+      moduleItems: navPayload.items.length
+    });
+    perfTrace.end('ok', {
+      themeId: themeSelection.themeKey,
+      wrappedByThemeCodeTemplate: Boolean(themeSelection?.themeKey)
+    });
+
+    return (
+      <ThemeCodeRuntimeProvider themeId={themeSelection.themeKey}>
+        <ThemeRuntimeProvider
           area="admin"
-          themeId={themeSelection.themeKey}
-          cssHrefs={areaAssets.cssHrefs}
-          scriptHrefs={areaAssets.scriptHrefs}
-        />
-        {themedLayoutContent}
-      </ThemeRuntimeProvider>
-    </ThemeCodeRuntimeProvider>
-  );
+          initialMode={themeSelection.mode}
+          initialThemeKey={themeSelection.themeKey}
+          initialTokensCss={null}
+          allowUserOverride={themeSelection.allowUserOverride}
+        >
+          <ThemeAreaAssets
+            area="admin"
+            themeId={themeSelection.themeKey}
+            cssHrefs={areaAssets.cssHrefs}
+            scriptHrefs={areaAssets.scriptHrefs}
+          />
+          {themedLayoutContent}
+        </ThemeRuntimeProvider>
+      </ThemeCodeRuntimeProvider>
+    );
+  } catch (error) {
+    perfTrace.end('error', {
+      errorName: error instanceof Error ? error.name : 'unknown_error'
+    });
+    throw error;
+  }
 }

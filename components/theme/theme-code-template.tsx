@@ -8,6 +8,7 @@ import {
   type ModuleCodeRegistryEntry
 } from '@/lib/templates/module-code-registry.generated';
 import type { TemplateDataForId } from '@/lib/themes/template-data-contract';
+import { createPerfTrace } from '@/lib/observability/perf-trace';
 
 function resolveThemeId(explicitThemeId: string | null | undefined): string | null {
   return explicitThemeId ?? null;
@@ -179,17 +180,32 @@ async function resolveThemeCodeTemplate<TId extends string>({
   componentId: string;
 }): Promise<ThemeCodeTemplateResolution<TId>> {
   const normalizedComponentId = normalizeId(componentId);
+  const normalizedThemeId = normalizeId(themeId);
+  const perfTrace = createPerfTrace({
+    scope: 'theme',
+    name: 'theme.code-template.resolve',
+    tags: {
+      componentId: normalizedComponentId,
+      themeId: normalizedThemeId
+    }
+  });
+
   if (!normalizedComponentId) {
+    perfTrace.end('skipped', {
+      reason: 'invalid_component_id'
+    });
     return {
       resolved: null,
       componentId: null,
-      themeId: normalizeId(themeId),
+      themeId: normalizedThemeId,
       reason: 'invalid_component_id'
     };
   }
 
-  const normalizedThemeId = normalizeId(themeId);
   if (!normalizedThemeId) {
+    perfTrace.end('skipped', {
+      reason: 'missing_theme_id'
+    });
     return {
       resolved: null,
       componentId: normalizedComponentId,
@@ -200,6 +216,9 @@ async function resolveThemeCodeTemplate<TId extends string>({
 
   const registryEntry = resolveRegistryEntry(normalizedThemeId);
   if (!registryEntry) {
+    perfTrace.end('skipped', {
+      reason: 'theme_not_registered'
+    });
     return {
       resolved: null,
       componentId: normalizedComponentId,
@@ -216,8 +235,15 @@ async function resolveThemeCodeTemplate<TId extends string>({
       }),
       loadThemeProviderComponent(registryEntry)
     ]);
+    perfTrace.step('loadThemeTemplateAndProvider', {
+      hasComponent: Boolean(Component),
+      hasProvider: Boolean(Provider)
+    });
 
     if (!Component) {
+      perfTrace.end('skipped', {
+        reason: 'template_not_registered'
+      });
       return {
         resolved: null,
         componentId: normalizedComponentId,
@@ -226,6 +252,9 @@ async function resolveThemeCodeTemplate<TId extends string>({
       };
     }
 
+    perfTrace.end('ok', {
+      hasProvider: Boolean(Provider)
+    });
     return {
       resolved: {
         Component: Component as ThemeTemplateComponent<TId>,
@@ -236,6 +265,9 @@ async function resolveThemeCodeTemplate<TId extends string>({
       reason: null
     };
   } catch {
+    perfTrace.end('error', {
+      reason: 'template_load_failed'
+    });
     return {
       resolved: null,
       componentId: normalizedComponentId,

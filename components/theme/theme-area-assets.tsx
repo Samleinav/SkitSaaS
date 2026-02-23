@@ -1,4 +1,5 @@
 import type { ThemeArea } from '@/lib/theme';
+import { ThemeAreaAssetsCleanup } from '@/components/theme/theme-area-assets-cleanup';
 
 function buildStableAssetKey(parts: string[]) {
   return parts.join('::');
@@ -17,6 +18,11 @@ export function ThemeAreaAssets({
 }) {
   return (
     <>
+      <ThemeAreaAssetsCleanup
+        area={area}
+        cssHrefs={cssHrefs}
+        scriptHrefs={scriptHrefs}
+      />
       {cssHrefs.map((href, index) => (
         <link
           key={buildStableAssetKey(['css', area, themeId ?? 'none', String(index), href])}

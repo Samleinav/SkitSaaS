@@ -155,6 +155,13 @@ Theme pack prepare/build helpers:
 | `THEMES_DIR` | Override theme packs directory used by `themes:prepare` | auto (`/themes`) |
 | `THEMES_PREPARE_STRICT` | Strict compatibility mode in `themes:prepare` (`true/false`) | `true` |
 
+Performance diagnostics (optional):
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `PERF_DIAGNOSTICS` | Enable server-side perf trace logs (`true/false`) | `false` |
+| `PERF_DIAGNOSTICS_SCOPES` | Comma-separated scope filter for traces (`admin`, `theme`, or `*`) | empty (all scopes when enabled) |
+
 ## SMTP
 
 | Variable | Purpose | Default |
