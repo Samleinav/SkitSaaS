@@ -1,22 +1,23 @@
 ---
 name: skitsaas-theme-authoring
-description: Crea y evoluciona theme packs para SkitSaaS (admin, dashboard y frontend) compatibles con el runtime CTC y el flujo build-time de themes. Usa este skill cuando se pida crear un theme nuevo, migrar templates externos (Tailwind/shadcn/Bootstrap), completar templates faltantes inventando componentes cuando no existan, organizar templates por modulos en /templates/mods/module-id, o validar que themes:prepare y tests de theme pasen.
+description: Create and evolve theme packs for SkitSaaS (admin, dashboard, and frontend) compatible with the CTC runtime and the theme build-time flow. Use this skill when asked to create a new theme, migrate external templates (Tailwind/shadcn/Bootstrap), complete missing templates by inventing components when needed, organize module templates under /templates/mods/module-id, or validate that themes:prepare and theme tests pass.
 ---
 
 # SkitSaaS Theme Authoring
 
-## Objetivo
+## Goal
 
-Crear y mantener themes para SkitSaaS con foco en:
+Create and maintain themes for SkitSaaS with focus on:
 
-- compatibilidad con `pnpm themes:prepare`
-- cumplimiento del contrato CTC (`ThemeTemplate`/`ThemeCodeTemplate`)
-- cobertura completa de `admin/dashboard` aunque haya que inventar componentes
-- extensibilidad por modulos
+- compatibility with `pnpm themes:prepare`
+- CTC contract compliance (`ThemeTemplate`/`ThemeCodeTemplate`)
+- full `admin/dashboard` coverage, even when components must be invented
+- module extensibility
+- strict theme work isolation (no Core changes without confirmation)
 
-## Referencias obligatorias antes de editar
+## Required References Before Editing
 
-Leer estos archivos primero:
+Read these files first:
 
 - `AGENTS.md`
 - `docs/modules/08-themes.md`
@@ -25,108 +26,129 @@ Leer estos archivos primero:
 - `lib/themes/manifest.ts`
 - `lib/themes/required-code-templates.ts`
 - `scripts/themes-prepare.ts`
-- theme base actual: `themes/first-backoffice/*` y/o `themes/first-frontend/*`
+- current base theme: `themes/first-backoffice/*` and/or `themes/first-frontend/*`
 
-## Flujo recomendado
+## Critical Rule: Theme vs Core Isolation
 
-### 1. Definir alcance del theme
+When creating/evolving a theme:
 
-Decidir area objetivo:
+- Everything must be solved from the theme being worked on.
+- Do not modify Core to "make a theme template/component work".
+- Treat any file outside `themes/<theme-folder>/*` as Core (for example `app/*`, `components/*`, `lib/*`, `scripts/*`, `tests/*`, host docs, etc.).
+- Allowed exception: generated artifacts from official commands (`pnpm themes:prepare`) when the flow regenerates them.
+
+If something cannot be solved from the theme:
+
+- stop any Core-change implementation
+- prepare concrete options and ask the user/person for confirmation before touching Core
+- do not assume implicit authorization
+
+If a potential Core improvement is identified (to fix current issues or improve future theme authoring):
+
+- propose the improvement and its impact
+- ask for explicit confirmation before editing Core
+- apply Core changes only after approval
+
+## Recommended Flow
+
+### 1. Define theme scope
+
+Decide target area:
 
 - `frontend`
 - `admin`
 - `dashboard`
-- combinado (`admin` + `dashboard`)
+- combined (`admin` + `dashboard`)
 
-Para backoffice (`admin/dashboard`), asumir desde el inicio que faltaran componentes y hay que crearlos.
+For backoffice (`admin/dashboard`), assume from the start that some components will be missing and must be created.
 
-Definir seleccion build-time:
+Define build-time selection:
 
-- `THEME_ADMIN` para area `admin`
-- `THEME_DASHBOARD` para area `dashboard`
-- `THEME_FRONTEND` para area `frontend`
+- `THEME_ADMIN` for `admin` area
+- `THEME_DASHBOARD` for `dashboard` area
+- `THEME_FRONTEND` for `frontend` area
 
-### 2. Crear estructura minima del pack
+### 2. Create minimal pack structure
 
-Ruta base:
+Base path:
 
 - `themes/<theme-folder>/`
 
-Archivos minimos:
+Minimum files:
 
 - `package.json`
 - `theme.json`
 - `tokens.css`
 - `config.ts`
-- `templates/` (para code templates)
-- `templates.json` (si aplica)
-- `routes.ts` (solo para frontend route-driven)
+- `templates/` (for code templates)
+- `templates.json` (if applicable)
+- `routes.ts` (only for route-driven frontend themes)
 
-Reglas:
+Rules:
 
-- usar `defineThemeConfig` desde `@skitsaas/sdk`
-- no importar host internals con `@/lib/*` dentro de `themes/*`
-- evitar colisiones de ids/template names
-- `theme.json` debe cumplir contrato: `themeId` dot.case (`theme.x.y`), `version` semver, `areas` validas (`admin|dashboard|frontend|global`), `mode="tokens"`, `entryTokens`, `themeRange`
-- si el theme aplica a `frontend`, incluir `routes.ts[x]` para que `themes:prepare` no falle
+- use `defineThemeConfig` from `@skitsaas/sdk`
+- do not import host internals with `@/lib/*` inside `themes/*`
+- avoid ID/template-name collisions
+- `theme.json` must follow contract: `themeId` in dot.case (`theme.x.y`), semver `version`, valid `areas` (`admin|dashboard|frontend|global`), `mode="tokens"`, `entryTokens`, `themeRange`
+- if the theme targets `frontend`, include `routes.ts[x]` so `themes:prepare` does not fail
 
-### 3. Politica de componentes faltantes
+### 3. Missing component policy
 
-Si no existe un componente requerido, crearlo.
+If a required component does not exist, create it.
 
-Prioridad de stack visual:
+Visual stack priority:
 
 1. Tailwind CSS + shadcn-style primitives (default)
-2. mezclar utilidades del host y markup del template externo
-3. Bootstrap solo cuando aporte valor real (layout/forms/utilities)
+2. mix host utilities and external template markup
+3. Bootstrap only when it provides clear value (layout/forms/utilities)
 
-Si se usa Bootstrap:
+If Bootstrap is used:
 
-- encapsular en `global.css` del theme bajo un namespace de clase raiz
-- no contaminar estilos globales del host
-- mantener tokens CSS del host (`--background`, `--foreground`, etc.) como fuente de color
+- scope it in the theme `global.css` under a root class namespace
+- do not contaminate host global styles
+- keep host CSS tokens (`--background`, `--foreground`, etc.) as the color source
 
-### 4. Contrato de templates backoffice
+### 4. Backoffice template contract
 
-Para `admin/dashboard`, cumplir IDs obligatorios de:
+For `admin/dashboard`, satisfy required IDs from:
 
 - `lib/themes/required-code-templates.ts`
 
-Regla operativa:
+Operational rule:
 
-- si un template no existe en el source externo, inventarlo con fallback visual coherente
-- priorizar primero shell/layout/nav, luego paginas core, luego slots de tabla/ui
-- considerar orden de resolucion CTC (`THEME_TEMPLATE_PRIORITY`): por defecto `theme -> module`; no depender de module templates para cubrir required IDs del host
-- no romper el baseline `theme.first.backoffice`; `themes:prepare` lo exige con cobertura completa admin/dashboard
+- if a template does not exist in the external source, invent it with a coherent visual fallback
+- prioritize shell/layout/nav first, then core pages, then table/UI slots
+- consider CTC resolution order (`THEME_TEMPLATE_PRIORITY`): default is `theme -> module`; do not rely on module templates to cover host required IDs
+- do not break baseline `theme.first.backoffice`; `themes:prepare` requires full admin/dashboard coverage
 
-### 5. Regla para templates de modulos
+### 5. Rule for module templates
 
-Si hay templates por modulo, crear subdirectorio:
+If module-level templates exist, create this subdirectory:
 
 - `templates/mods/<moduleId>/`
 
-Ejemplo:
+Example:
 
 - `templates/mods/mod.commerce.products/`
 
-Importante:
+Important:
 
-- el registry de themes usa el nombre de archivo como `componentId` (sin carpeta)
-- evitar colisiones entre modulos usando nombres de archivo unicos con prefijo del modulo
-- ejemplo recomendado de nombre: `mod.commerce.products.section.admin.products.card.tsx`
+- the theme registry uses file name as `componentId` (without folder)
+- avoid cross-module collisions using unique file names with module prefix
+- recommended filename example: `mod.commerce.products.section.admin.products.card.tsx`
 
-### 6. Integracion visual con host
+### 6. Host visual integration
 
-Mantener compatibilidad con las props `data` enviadas por host:
+Keep compatibility with `data` props sent by host:
 
-- no eliminar claves esperadas del contrato (`title`, `description`, `slot`, etc.)
-- usar defaults robustos cuando falten datos
-- conservar `children`/slots para contenido runtime y modulos
-- si el theme define i18n, usar `i18n/<locale>.json` o `i18n/<area>/<locale>.json` con JSON valido
+- do not remove expected contract keys (`title`, `description`, `slot`, etc.)
+- use robust defaults when data is missing
+- preserve `children`/slots for runtime and module content
+- if the theme defines i18n, use `i18n/<locale>.json` or `i18n/<area>/<locale>.json` with valid JSON
 
-### 7. Validacion obligatoria
+### 7. Required validation
 
-Ejecutar siempre:
+Always run:
 
 ```bash
 pnpm themes:prepare
@@ -137,7 +159,7 @@ npx tsx --test tests/theme/theme-slot-data-contract.test.ts
 npx tsx --test tests/theme/theme-pack-import-boundaries.test.ts
 ```
 
-Para cambios grandes de assets/runtime:
+For large asset/runtime changes:
 
 ```bash
 npx tsx --test tests/theme/theme-assets-runtime.test.ts
@@ -145,19 +167,21 @@ npx tsx --test tests/theme/theme-code-template.test.tsx
 npx tsx --test tests/theme/theme-runtime.test.ts
 ```
 
-## Criterios de cierre
+## Completion criteria
 
-Marcar completado solo si:
+Mark complete only if:
 
-- `themes:prepare` pasa sin errores
-- no hay imports prohibidos (`@/*`) dentro del theme pack
-- IDs requeridos de area estan cubiertos
-- estilos no rompen otras areas
-- docs de themes quedan actualizadas cuando cambia contrato/uso
+- `themes:prepare` passes without errors
+- no prohibited imports (`@/*`) exist inside the theme pack
+- required area IDs are covered
+- styles do not break other areas
+- theme docs are updated when contract/usage changes
 
-## Guardrails de implementacion
+## Implementation guardrails
 
-- mantener ASCII por defecto en nuevos archivos
-- no borrar ni revertir cambios del usuario fuera del alcance solicitado
-- no copiar una app externa completa dentro del theme: extraer solo lo necesario
-- priorizar consistencia de SkitSaaS sobre fidelidad pixel-perfect del template fuente
+- keep ASCII by default in new files
+- do not delete or revert user changes outside requested scope
+- do not copy an entire external app into the theme: extract only what is needed
+- prioritize SkitSaaS consistency over pixel-perfect fidelity to source template
+- modifying Core is forbidden without explicit user/person confirmation
+- if no sufficient extension point exists in theme, escalate with a proposal and wait for approval before any change outside `themes/<theme-folder>/*`

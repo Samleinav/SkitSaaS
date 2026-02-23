@@ -87,7 +87,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     "admin": {
       "cssHrefs": [
         "/.generated/theme-assets/theme.nexus/admin/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-4aa14750aec5.css"
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-b7a803e2bbbf.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -96,7 +96,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     "dashboard": {
       "cssHrefs": [
         "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-4aa14750aec5.css"
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-b7a803e2bbbf.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
