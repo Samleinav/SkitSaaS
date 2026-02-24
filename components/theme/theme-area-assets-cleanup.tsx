@@ -9,7 +9,7 @@ type ThemeAreaAssetsCleanupProps = {
   scriptHrefs: string[];
 };
 
-type ThemeAssetNode = HTMLLinkElement | HTMLScriptElement;
+type ThemeCssAssetNode = HTMLLinkElement;
 
 function normalizeAssetRef(value: string | null | undefined) {
   const normalized = String(value ?? '').trim();
@@ -30,40 +30,55 @@ function collectExpectedRefs(entries: string[]) {
   return refs;
 }
 
-function removeStaleAssetNodes({
+function enableCssLink(node: ThemeCssAssetNode) {
+  const previousMedia = node.dataset.themeAssetPrevMedia;
+  if (previousMedia !== undefined) {
+    node.media = previousMedia;
+    delete node.dataset.themeAssetPrevMedia;
+  } else if (node.media === 'not all') {
+    node.media = '';
+  }
+
+  node.disabled = false;
+}
+
+function disableCssLink(node: ThemeCssAssetNode) {
+  if (node.dataset.themeAssetPrevMedia === undefined) {
+    node.dataset.themeAssetPrevMedia = node.media || '';
+  }
+
+  node.disabled = true;
+  node.media = 'not all';
+}
+
+function synchronizeThemeCssAssets({
   area,
-  cssHrefs,
-  scriptHrefs
+  cssHrefs
 }: ThemeAreaAssetsCleanupProps) {
   const expectedCssRefs = collectExpectedRefs(cssHrefs);
-  const expectedScriptRefs = collectExpectedRefs(scriptHrefs);
-  const assetNodes = document.querySelectorAll<ThemeAssetNode>(
-    'link[data-theme-asset-kind],script[data-theme-asset-kind]'
+  const cssNodes = document.querySelectorAll<ThemeCssAssetNode>(
+    'link[rel="stylesheet"][data-theme-asset-kind="css"]'
   );
 
-  for (const node of assetNodes) {
-    const assetKind = node.dataset.themeAssetKind;
+  for (const node of cssNodes) {
     const assetArea = node.dataset.themeAssetArea;
-    const refAttr = assetKind === 'css' ? 'href' : 'src';
-    const assetRef = normalizeAssetRef(node.getAttribute(refAttr));
+    const assetRef = normalizeAssetRef(node.getAttribute('href'));
 
-    if (!assetKind || !assetArea || !assetRef) {
+    if (!assetArea || !assetRef) {
       continue;
     }
 
     if (assetArea !== area) {
-      node.remove();
+      disableCssLink(node);
       continue;
     }
 
-    if (assetKind === 'css' && !expectedCssRefs.has(assetRef)) {
-      node.remove();
+    if (!expectedCssRefs.has(assetRef)) {
+      disableCssLink(node);
       continue;
     }
 
-    if (assetKind === 'js' && !expectedScriptRefs.has(assetRef)) {
-      node.remove();
-    }
+    enableCssLink(node);
   }
 }
 
@@ -73,7 +88,7 @@ export function ThemeAreaAssetsCleanup({
   scriptHrefs
 }: ThemeAreaAssetsCleanupProps) {
   useEffect(() => {
-    removeStaleAssetNodes({
+    synchronizeThemeCssAssets({
       area,
       cssHrefs,
       scriptHrefs
@@ -82,4 +97,3 @@ export function ThemeAreaAssetsCleanup({
 
   return null;
 }
-
