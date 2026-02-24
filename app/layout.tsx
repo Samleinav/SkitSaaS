@@ -10,6 +10,7 @@ import { Suspense } from 'react';
 import { THEME_MEDIA_QUERY, THEME_STORAGE_KEY } from '@/lib/theme';
 import { ThemeRuntimeScript } from '@/components/theme/theme-runtime-script';
 import { ThemeI18nHost } from '@/components/theme/theme-i18n-host';
+import { ThemeAreaCssGuard } from '@/components/theme/theme-area-css-guard';
 import { bootstrapModuleSdkServer } from '@/lib/modules/sdk-server-bootstrap';
 
 export const metadata: Metadata = {
@@ -73,6 +74,7 @@ async function RootLayoutContent({
     <LanguageProvider locale={locale}>
       <ThemeI18nHost locale={locale} defaultLocale={DEFAULT_LOCALE}>
         <NotifyProvider>
+          <ThemeAreaCssGuard />
           <SWRConfig
             value={{
               fallback: {

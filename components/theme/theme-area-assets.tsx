@@ -35,6 +35,9 @@ export function ThemeAreaAssets({
           rel="stylesheet"
           href={href}
           precedence={buildCssPrecedence({ area, themeId, index })}
+          data-theme-asset-kind="css"
+          data-theme-asset-area={area}
+          data-theme-asset-theme={themeId ?? ''}
         />
       ))}
       {scriptHrefs.map((href, index) => (
@@ -42,6 +45,9 @@ export function ThemeAreaAssets({
           key={buildStableAssetKey(['js', area, themeId ?? 'none', String(index), href])}
           src={href}
           defer
+          data-theme-asset-kind="js"
+          data-theme-asset-area={area}
+          data-theme-asset-theme={themeId ?? ''}
         />
       ))}
     </>
