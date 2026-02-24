@@ -125,14 +125,14 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className={contentClassName}>
         <DropdownMenuItem className={itemClassName}>
-          <Link href="/dashboard" className="flex w-full items-center">
+          <Link href="/dashboard" prefetch={false} className="flex w-full items-center">
             <Home className="mr-2 h-4 w-4" />
             <span>{header.dashboard}</span>
           </Link>
         </DropdownMenuItem>
         {isAdmin ? (
           <DropdownMenuItem className={itemClassName}>
-            <Link href="/admin" className="flex w-full items-center">
+            <Link href="/admin" prefetch={false} className="flex w-full items-center">
               <Shield className="mr-2 h-4 w-4" />
               <span>{header.admin}</span>
             </Link>

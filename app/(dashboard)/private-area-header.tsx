@@ -66,7 +66,7 @@ export function PrivateAreaHeader({
   const fallbackHeader = (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="group flex items-center gap-3">
+        <Link href="/" prefetch={false} className="group flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-xl border border-orange-200/70 bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-sm transition-transform group-hover:-translate-y-0.5 dark:border-orange-400/40 dark:from-orange-400 dark:to-amber-300">
             <Building2 className="h-4 w-4" />
           </span>
