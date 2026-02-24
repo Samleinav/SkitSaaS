@@ -1,8 +1,19 @@
 import type { ThemeArea } from '@/lib/theme';
-import { ThemeAreaAssetsCleanup } from '@/components/theme/theme-area-assets-cleanup';
 
 function buildStableAssetKey(parts: string[]) {
   return parts.join('::');
+}
+
+function buildCssPrecedence({
+  area,
+  themeId,
+  index
+}: {
+  area: ThemeArea;
+  themeId: string | null;
+  index: number;
+}) {
+  return buildStableAssetKey(['theme-css', area, themeId ?? 'none', String(index)]);
 }
 
 export function ThemeAreaAssets({
@@ -18,15 +29,12 @@ export function ThemeAreaAssets({
 }) {
   return (
     <>
-      <ThemeAreaAssetsCleanup area={area} />
       {cssHrefs.map((href, index) => (
         <link
           key={buildStableAssetKey(['css-link', area, themeId ?? 'none', String(index), href])}
           rel="stylesheet"
           href={href}
-          data-theme-asset-kind="css"
-          data-theme-asset-area={area}
-          data-theme-asset-theme={themeId ?? ''}
+          precedence={buildCssPrecedence({ area, themeId, index })}
         />
       ))}
       {scriptHrefs.map((href, index) => (
@@ -34,9 +42,6 @@ export function ThemeAreaAssets({
           key={buildStableAssetKey(['js', area, themeId ?? 'none', String(index), href])}
           src={href}
           defer
-          data-theme-asset-kind="js"
-          data-theme-asset-area={area}
-          data-theme-asset-theme={themeId ?? ''}
         />
       ))}
     </>

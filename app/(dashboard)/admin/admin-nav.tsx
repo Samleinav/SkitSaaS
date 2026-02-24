@@ -161,6 +161,7 @@ export function AdminNav({
             <div key={item.href} className="space-y-1">
               <Link
                 href={item.href}
+                prefetch={false}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'group flex items-center gap-3 rounded-xl border text-sm transition-colors',
@@ -207,6 +208,7 @@ export function AdminNav({
                       <Link
                         key={child.href}
                         href={child.href}
+                        prefetch={false}
                         aria-current={isChildActive ? 'page' : undefined}
                         className={cn(
                           'group/sub flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors',

@@ -245,6 +245,7 @@ export default function DashboardLayout({
                     <div key={item.href} className="space-y-1">
                       <Link
                         href={item.href}
+                        prefetch={false}
                         aria-current={isActive ? 'page' : undefined}
                         onClick={() => setIsSidebarOpen(false)}
                         className={cn(
@@ -291,6 +292,7 @@ export default function DashboardLayout({
                               <Link
                                 key={child.href}
                                 href={child.href}
+                                prefetch={false}
                                 aria-current={isChildActive ? 'page' : undefined}
                                 onClick={() => setIsSidebarOpen(false)}
                                 className={cn(
@@ -379,6 +381,7 @@ export default function DashboardLayout({
                   <div key={item.href} className="space-y-1">
                     <Link
                       href={item.href}
+                      prefetch={false}
                       aria-current={isActive ? 'page' : undefined}
                       onClick={() => setIsSidebarOpen(false)}
                       className={cn(
@@ -425,6 +428,7 @@ export default function DashboardLayout({
                             <Link
                               key={child.href}
                               href={child.href}
+                              prefetch={false}
                               aria-current={isChildActive ? 'page' : undefined}
                               onClick={() => setIsSidebarOpen(false)}
                               className={cn(
