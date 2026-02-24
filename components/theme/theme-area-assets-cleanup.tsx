@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import type { ThemeArea } from '@/lib/theme';
 
 type ThemeAreaAssetsCleanupProps = {
@@ -14,6 +15,43 @@ type ThemeCssAssetNode = HTMLLinkElement;
 function normalizeAssetRef(value: string | null | undefined) {
   const normalized = String(value ?? '').trim();
   return normalized || null;
+}
+
+function normalizeThemeArea(area: ThemeArea): 'admin' | 'dashboard' | 'frontend' {
+  if (area === 'admin' || area === 'dashboard' || area === 'frontend') {
+    return area;
+  }
+
+  return 'frontend';
+}
+
+function matchesPathPrefix(path: string, prefix: string) {
+  return path === prefix || path.startsWith(`${prefix}/`);
+}
+
+function resolveAreaFromPath(pathname: string | null): 'admin' | 'dashboard' | 'frontend' {
+  const path = String(pathname ?? '').trim().toLowerCase();
+  if (matchesPathPrefix(path, '/admin/login')) {
+    return 'admin';
+  }
+
+  if (
+    matchesPathPrefix(path, '/login') ||
+    matchesPathPrefix(path, '/sign-up') ||
+    matchesPathPrefix(path, '/sign-in')
+  ) {
+    return 'dashboard';
+  }
+
+  if (matchesPathPrefix(path, '/admin')) {
+    return 'admin';
+  }
+
+  if (matchesPathPrefix(path, '/dashboard')) {
+    return 'dashboard';
+  }
+
+  return 'frontend';
 }
 
 function collectExpectedRefs(entries: string[]) {
@@ -87,13 +125,37 @@ export function ThemeAreaAssetsCleanup({
   cssHrefs,
   scriptHrefs
 }: ThemeAreaAssetsCleanupProps) {
+  const pathname = usePathname();
+
   useEffect(() => {
-    synchronizeThemeCssAssets({
-      area,
-      cssHrefs,
-      scriptHrefs
+    const expectedArea = normalizeThemeArea(area);
+    const routeArea = resolveAreaFromPath(pathname);
+    if (expectedArea !== routeArea) {
+      return;
+    }
+
+    const synchronize = () =>
+      synchronizeThemeCssAssets({
+        area: expectedArea,
+        cssHrefs,
+        scriptHrefs
+      });
+
+    synchronize();
+    const observer = new MutationObserver(() => {
+      synchronize();
     });
-  }, [area, cssHrefs, scriptHrefs]);
+    observer.observe(document.head, {
+      childList: true,
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['href', 'rel', 'media', 'disabled', 'data-theme-asset-kind', 'data-theme-asset-area']
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [area, cssHrefs, pathname, scriptHrefs]);
 
   return null;
 }
