@@ -34,6 +34,76 @@ const themeInitScript = `(() => {
   root.style.colorScheme = theme;
 })();`;
 
+const themeCssPendingInitScript = `(() => {
+  const root = document.documentElement;
+  const path = window.location.pathname.toLowerCase();
+  const isPrivateArea =
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    path === '/dashboard' ||
+    path.startsWith('/dashboard/') ||
+    path === '/login' ||
+    path.startsWith('/login/') ||
+    path === '/sign-up' ||
+    path.startsWith('/sign-up/') ||
+    path === '/sign-in' ||
+    path.startsWith('/sign-in/');
+
+  if (!isPrivateArea) {
+    return;
+  }
+
+  root.dataset.themeCssPending = '1';
+  window.setTimeout(() => {
+    if (root.dataset.themeCssPending === '1') {
+      delete root.dataset.themeCssPending;
+    }
+  }, 6000);
+})();`;
+
+const themeCssPendingStyle = `
+html[data-theme-css-pending='1'] body {
+  min-height: 100dvh;
+}
+
+html[data-theme-css-pending='1'] body > * {
+  visibility: hidden !important;
+}
+
+html[data-theme-css-pending='1'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(251, 146, 60, 0.16), transparent 38%),
+    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.12), transparent 42%),
+    #020617;
+}
+
+html[data-theme-css-pending='1'] body::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  margin-left: -14px;
+  border-radius: 9999px;
+  border: 3px solid rgba(148, 163, 184, 0.45);
+  border-top-color: rgba(248, 250, 252, 0.95);
+  animation: theme-css-pending-spin 0.8s linear infinite;
+  z-index: 2147483647;
+}
+
+@keyframes theme-css-pending-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+`;
+
 export default function RootLayout({
   children
 }: {
@@ -46,6 +116,8 @@ export default function RootLayout({
       className={manrope.className}
     >
       <head>
+        <style dangerouslySetInnerHTML={{ __html: themeCssPendingStyle }} />
+        <script dangerouslySetInnerHTML={{ __html: themeCssPendingInitScript }} />
         <ThemeRuntimeScript />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

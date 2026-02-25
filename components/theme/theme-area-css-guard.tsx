@@ -10,6 +10,21 @@ import {
 
 type ThemeCssLinkNode = HTMLLinkElement;
 
+function areaRequiresCssGate(area: ThemeCssArea) {
+  return area === 'admin' || area === 'dashboard';
+}
+
+function setCssPendingState(activeArea: ThemeCssArea, pending: boolean) {
+  const root = document.documentElement;
+  root.dataset.themeCssArea = activeArea;
+
+  if (pending) {
+    root.dataset.themeCssPending = '1';
+  } else {
+    delete root.dataset.themeCssPending;
+  }
+}
+
 function isCssLinkLoaded(node: ThemeCssLinkNode) {
   if (node.dataset.themeCssLoaded === 'true') {
     return true;
@@ -95,10 +110,16 @@ function synchronizeThemeCssAssets(activeArea: ThemeCssArea, onSettled: () => vo
   const hasActiveAreaAssets = activeNodes.length > 0;
   const activeAreaLoaded =
     hasActiveAreaAssets && activeNodes.every((node) => isCssLinkLoaded(node));
+  const requiresCssGate = areaRequiresCssGate(activeArea);
+  const canCommitAreaSwitch = hasActiveAreaAssets
+    ? activeAreaLoaded
+    : !requiresCssGate;
+
+  setCssPendingState(activeArea, !canCommitAreaSwitch);
 
   // Keep previous area CSS active until target area stylesheets are ready,
   // avoiding a brief unstyled paint during route transitions.
-  if (!activeAreaLoaded) {
+  if (!canCommitAreaSwitch) {
     for (const node of cssNodes) {
       const assetArea = readAssetArea(node);
       if (!assetArea) {
@@ -129,6 +150,7 @@ export function ThemeAreaCssGuard() {
 
   useLayoutEffect(() => {
     const activeArea = resolveThemeCssAreaFromPath(pathname);
+    setCssPendingState(activeArea, areaRequiresCssGate(activeArea));
     let frameHandle: number | null = null;
     const requestSynchronize = () => {
       if (frameHandle !== null) {
