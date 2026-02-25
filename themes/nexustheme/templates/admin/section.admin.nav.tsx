@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { mergeClassNames } from '@skitsaas/sdk';
 import type { TemplateData as BaseTemplateData, TemplateProps } from '../template-types';
 import {
@@ -133,6 +134,45 @@ export default function SectionAdminNavTemplate({
   const navItems = Array.isArray(data?.navItems)
     ? data.navItems.filter(isTemplateNavItem)
     : [];
+  const activeParentItemKeys = useMemo(
+    () =>
+      new Set(
+        navItems
+          .filter((item) => {
+            const childrenItems = Array.isArray(item.children)
+              ? item.children.filter(isTemplateNavChildItem)
+              : [];
+            if (!childrenItems.length) {
+              return false;
+            }
+
+            return isNavItemActive(pathname, item);
+          })
+          .map((item) => item.href)
+      ),
+    [navItems, pathname]
+  );
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!activeParentItemKeys.size) {
+      return;
+    }
+
+    setExpandedItems((previous) => {
+      let changed = false;
+      const next = { ...previous };
+
+      for (const href of activeParentItemKeys) {
+        if (!next[href]) {
+          next[href] = true;
+          changed = true;
+        }
+      }
+
+      return changed ? next : previous;
+    });
+  }, [activeParentItemKeys]);
 
   if (navItems.length === 0) {
     return <>{children ?? null}</>;
@@ -155,24 +195,9 @@ export default function SectionAdminNavTemplate({
         'flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm',
         className
       )}
+      data-nexus-admin-nav="true"
     >
-      <div className="border-b border-sidebar-border p-2.5">
-        <Link
-          href="/admin"
-          prefetch={false}
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-sidebar-accent/70"
-        >
-          <span className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <LayoutDashboard className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold">SkitSaaS</p>
-            <p className="truncate text-[11px] text-muted-foreground">Admin Dashboard</p>
-          </div>
-        </Link>
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-2">
+      <div className="nexus-admin-nav-scroll min-h-0 flex-1 space-y-3 overflow-y-auto p-2 pr-1.5">
         {NAV_GROUP_ORDER.map((groupKey) => {
           const items = groupedItems[groupKey];
           if (!items.length) {
@@ -191,40 +216,74 @@ export default function SectionAdminNavTemplate({
                   const childrenItems = Array.isArray(item.children)
                     ? item.children.filter(isTemplateNavChildItem)
                     : [];
+                  const hasChildren = childrenItems.length > 0;
+                  const isExpanded =
+                    hasChildren &&
+                    (expandedItems[item.href] ?? activeParentItemKeys.has(item.href));
 
                   return (
                     <div key={item.href} className="space-y-1">
-                      <Link
-                        href={item.href}
-                        prefetch={false}
-                        aria-current={isActive ? 'page' : undefined}
+                      <div
                         className={mergeClassNames(
-                          'group flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                          'group flex items-center gap-2 rounded-lg px-2 py-1 text-sm transition-colors',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                             : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
                         )}
                       >
-                        <span
-                          className={mergeClassNames(
-                            'flex size-8 items-center justify-center rounded-md border',
-                            isActive
-                              ? 'border-sidebar-primary/30 bg-sidebar-primary text-sidebar-primary-foreground'
-                              : 'border-sidebar-border bg-sidebar text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
-                          )}
+                        <Link
+                          href={item.href}
+                          prefetch={false}
+                          aria-current={isActive ? 'page' : undefined}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-1"
                         >
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
-                        <ChevronRight
-                          className={mergeClassNames(
-                            'h-4 w-4 transition-opacity',
-                            isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                          )}
-                        />
-                      </Link>
+                          <span
+                            className={mergeClassNames(
+                              'flex size-8 items-center justify-center rounded-md border',
+                              isActive
+                                ? 'border-sidebar-primary/30 bg-sidebar-primary text-sidebar-primary-foreground'
+                                : 'border-sidebar-border bg-sidebar text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-medium">{item.label}</span>
+                        </Link>
 
-                      {childrenItems.length ? (
+                        {hasChildren ? (
+                          <button
+                            type="button"
+                            className={mergeClassNames(
+                              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-sidebar/80',
+                              isExpanded ? 'text-sidebar-accent-foreground' : 'text-muted-foreground'
+                            )}
+                            onClick={() => {
+                              setExpandedItems((previous) => ({
+                                ...previous,
+                                [item.href]: !isExpanded
+                              }));
+                            }}
+                            aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                            aria-expanded={isExpanded}
+                          >
+                            <ChevronRight
+                              className={mergeClassNames(
+                                'h-4 w-4 transition-transform',
+                                isExpanded ? 'rotate-90' : 'rotate-0'
+                              )}
+                            />
+                          </button>
+                        ) : (
+                          <ChevronRight
+                            className={mergeClassNames(
+                              'h-4 w-4 shrink-0 transition-opacity',
+                              isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            )}
+                          />
+                        )}
+                      </div>
+
+                      {hasChildren && isExpanded ? (
                         <div className="ml-11 space-y-1 border-l border-sidebar-border pl-2">
                           {childrenItems.map((child) => {
                             const isChildActive = isChildItemActive(pathname, child);
@@ -261,6 +320,36 @@ export default function SectionAdminNavTemplate({
           );
         })}
       </div>
+
+      <style jsx global>{`
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll:hover,
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll:focus-within {
+          scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
+        }
+
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll::-webkit-scrollbar-thumb {
+          background-color: transparent;
+          border-radius: 9999px;
+        }
+
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll:hover::-webkit-scrollbar-thumb,
+        [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll:focus-within::-webkit-scrollbar-thumb {
+          background-color: hsl(var(--muted-foreground) / 0.45);
+        }
+      `}</style>
     </nav>
   );
 }

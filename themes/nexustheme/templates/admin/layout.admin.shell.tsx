@@ -65,13 +65,13 @@ export default function LayoutAdminShellTemplate({
 
       <main
         className={mergeClassNames(
-          'min-w-0 px-3 pb-6 pt-3 sm:px-4 lg:px-6',
+          'min-w-0 px-3 pb-6 pt-2 sm:px-4 lg:px-6',
           contentInset
         )}
       >
-        <div className="mx-auto w-full max-w-[1600px] space-y-4">
-          {breadcrumbSlot ? <div>{breadcrumbSlot}</div> : null}
-          <section className="space-y-4">{content}</section>
+        <div className="mx-auto w-full max-w-[1600px]">
+          {breadcrumbSlot}
+          <section className="space-y-3">{content}</section>
         </div>
       </main>
     </section>

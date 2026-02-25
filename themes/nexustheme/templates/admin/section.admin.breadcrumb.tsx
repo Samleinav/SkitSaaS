@@ -3,27 +3,20 @@ import type { TemplateProps } from '../template-types';
 
 export default function SectionAdminBreadcrumbTemplate({
   data,
-  className,
-  children
+  className
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Admin');
 
   return (
     <div
       className={mergeClassNames(
-        'rounded-xl border border-border/70 bg-card/80 px-4 py-2.5 shadow-sm',
+        'mb-1 px-1 text-xs text-muted-foreground',
         className
       )}
       data-breadcrumb-title={title}
+      data-nexus-admin-breadcrumb="minimal"
     >
-      {children ?? (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
-            Admin
-          </span>
-          <span className="text-sm font-medium">{title}</span>
-        </div>
-      )}
+      <span className="text-xs font-medium text-foreground/90">{title}</span>
     </div>
   );
 }
