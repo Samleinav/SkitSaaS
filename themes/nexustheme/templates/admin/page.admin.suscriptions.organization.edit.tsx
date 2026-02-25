@@ -1,4 +1,5 @@
 import { toStringOrFallback } from '@skitsaas/sdk';
+import { NexusPageShell } from '../../lib/page-shell';
 import type { TemplateProps } from '../template-types';
 
 export default function PageAdminSuscriptionsOrganizationEditTemplate({
@@ -7,14 +8,20 @@ export default function PageAdminSuscriptionsOrganizationEditTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Edit Organization Subscription');
-  const description = toStringOrFallback(data?.description, 'Manage organization subscription provider and status.');
+  const description = toStringOrFallback(
+    data?.description,
+    'Manage organization subscription provider and status.'
+  );
+  const teamId = toStringOrFallback(data?.teamId, '');
+
   return (
-    <main className={className || 'w-full px-0 py-0'}>
-      <section className="rounded-xl border border-border/70 bg-card/80 p-6 text-card-foreground shadow-sm">
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        {description ? <p className="mt-2 text-sm opacity-80">{description}</p> : null}
-        {children ? <div className="mt-4">{children}</div> : null}
-      </section>
-    </main>
+    <NexusPageShell
+      className={className}
+      title={title}
+      description={description}
+      badge={teamId ? `Team: ${teamId}` : null}
+    >
+      {children}
+    </NexusPageShell>
   );
 }

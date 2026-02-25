@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Building2 } from 'lucide-react';
+import { LayoutDashboard, Search } from 'lucide-react';
+import { mergeClassNames } from '@skitsaas/sdk';
 
 type LayoutPrivateHeaderData = {
   controlsSlot?: ReactNode;
@@ -19,23 +20,38 @@ export default function LayoutPrivateHeaderTemplate({
 }: LayoutPrivateHeaderTemplateProps) {
   return (
     <header
-      className={
-        className ||
-        'sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl'
-      }
+      className={mergeClassNames(
+        'sticky top-0 z-50 border-b border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90',
+        className
+      )}
     >
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" prefetch={false} className="group flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl border border-orange-200/70 bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-sm transition-transform group-hover:-translate-y-0.5 dark:border-orange-400/40 dark:from-orange-400 dark:to-amber-300">
-            <Building2 className="h-4 w-4" />
+      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-3 sm:px-4 lg:px-6">
+        <Link
+          href="/"
+          prefetch={false}
+          className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent/60"
+        >
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <LayoutDashboard className="h-4 w-4" />
           </span>
-          <div className="leading-tight">
-            <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              S-kit SaaS
-            </p>
-            <span className="text-base font-semibold text-foreground">ACME</span>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-semibold">SkitSaaS</p>
+            <p className="truncate text-[11px] text-muted-foreground">Admin Dashboard</p>
           </div>
         </Link>
+
+        <div className="hidden flex-1 md:flex">
+          <button
+            type="button"
+            className="inline-flex h-9 w-full max-w-sm items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 text-left text-xs text-muted-foreground"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search...</span>
+            <span className="ml-auto rounded border border-border/80 px-1.5 py-0.5 text-[10px] tracking-wide uppercase">
+              Ctrl K
+            </span>
+          </button>
+        </div>
 
         {data?.controlsSlot ?? null}
       </div>

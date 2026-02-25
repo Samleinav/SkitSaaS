@@ -1,5 +1,6 @@
 import { toStringOrFallback } from '@skitsaas/sdk';
-import type { TemplateProps } from '../template-types';
+import { NexusPageShell } from '../../lib/page-shell';
+import type { TemplateProps } from '../template-types';
 
 export default function PageAdminSuscriptionsTemplate({
   data,
@@ -7,21 +8,20 @@ export default function PageAdminSuscriptionsTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Subscriptions');
-  const description = toStringOrFallback(data?.description, 'User and organization subscription operations.');
+  const description = toStringOrFallback(
+    data?.description,
+    'User and organization subscription operations.'
+  );
   const scope = toStringOrFallback(data?.scope, 'organization');
 
   return (
-    <main
-      className={className || 'w-full px-0 py-0'}
-      data-subscription-scope={scope}
+    <NexusPageShell
+      className={className}
+      title={title}
+      description={description}
+      badge={`Scope: ${scope}`}
     >
-      <section className="rounded-xl border border-border/70 bg-card/80 p-6 text-card-foreground shadow-sm">
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        <p className="mt-2 text-sm opacity-80">{description}</p>
-        {children ? <div className="mt-4">{children}</div> : null}
-      </section>
-    </main>
+      {children}
+    </NexusPageShell>
   );
 }
-
-

@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { mergeClassNames } from '@skitsaas/sdk';
 
 type LayoutPrivateShellTemplateProps = {
   className?: string;
@@ -12,7 +13,13 @@ export default function LayoutPrivateShellTemplate({
   children
 }: LayoutPrivateShellTemplateProps) {
   return (
-    <section className={className || 'flex min-h-screen flex-col bg-transparent'}>
+    <section
+      className={mergeClassNames(
+        'flex min-h-screen flex-col bg-background text-foreground',
+        className
+      )}
+      data-nexus-private-shell="true"
+    >
       {children}
     </section>
   );

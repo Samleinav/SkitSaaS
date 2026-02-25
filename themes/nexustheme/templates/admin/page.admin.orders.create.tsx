@@ -1,4 +1,5 @@
 import { toStringOrFallback } from '@skitsaas/sdk';
+import { NexusPageShell } from '../../lib/page-shell';
 import type { TemplateProps } from '../template-types';
 
 export default function PageAdminOrdersCreateTemplate({
@@ -7,14 +8,20 @@ export default function PageAdminOrdersCreateTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Create Order');
-  const description = toStringOrFallback(data?.description, 'Create manual orders for teams and users.');
+  const description = toStringOrFallback(
+    data?.description,
+    'Create manual orders for teams and users.'
+  );
+  const targetType = toStringOrFallback(data?.initialTargetType, '');
+
   return (
-    <main className={className || 'w-full px-0 py-0'}>
-      <section className="rounded-xl border border-border/70 bg-card/80 p-6 text-card-foreground shadow-sm">
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        {description ? <p className="mt-2 text-sm opacity-80">{description}</p> : null}
-        {children ? <div className="mt-4">{children}</div> : null}
-      </section>
-    </main>
+    <NexusPageShell
+      className={className}
+      title={title}
+      description={description}
+      badge={targetType ? `Target: ${targetType}` : null}
+    >
+      {children}
+    </NexusPageShell>
   );
 }

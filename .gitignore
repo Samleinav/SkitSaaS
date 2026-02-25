@@ -53,3 +53,4 @@ lib/modules/build-evidence.generated.json
 # Docker
 postgres_data/
 .env*.local
+.claude/setting1s.l1ocal.json

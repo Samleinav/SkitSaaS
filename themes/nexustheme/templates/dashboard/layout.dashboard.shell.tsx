@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { toStringOrNull } from '@skitsaas/sdk';
+import { mergeClassNames, toStringOrNull } from '@skitsaas/sdk';
 import type {
   TemplateData as BaseTemplateData,
   TemplateProps
@@ -18,10 +18,14 @@ export default function LayoutDashboardShellTemplate({
 
   return (
     <section
-      className={className || 'min-h-screen bg-background text-foreground'}
+      className={mergeClassNames(
+        'min-h-screen bg-background text-foreground',
+        className
+      )}
       data-layout-style={toStringOrNull(data?.layoutStyle) ?? undefined}
       data-layout-mode={toStringOrNull(data?.mode) ?? undefined}
       data-layout-heading={toStringOrNull(data?.heading) ?? undefined}
+      data-nexus-dashboard-shell="true"
     >
       {content}
     </section>

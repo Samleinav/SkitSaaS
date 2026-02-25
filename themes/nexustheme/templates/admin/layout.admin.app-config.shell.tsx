@@ -5,9 +5,7 @@ export default function LayoutAdminAppConfigShellTemplate({
 }: TemplateProps) {
   return (
     <section
-      className={
-        className || 'min-h-full bg-background text-foreground'
-      }
+      className={className || 'space-y-4 rounded-2xl border border-border/70 bg-card/85 p-4 shadow-sm'}
     >
       {children}
     </section>
