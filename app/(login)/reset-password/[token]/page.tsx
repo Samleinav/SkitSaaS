@@ -11,13 +11,9 @@ import {
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
 import { ResetPassword } from './reset-password';
 
-export const metadata: Metadata = {
-  title: 'Reset Password'
-};
-
 export async function generateMetadata(): Promise<Metadata> {
   if (!isDashboardEnabled()) {
-    return {};
+    return { title: 'Reset Password' };
   }
 
   const themeSelection = await getThemeSelectionForArea('dashboard');
@@ -27,10 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   if (!favicon) {
-    return {};
+    return { title: 'Reset Password' };
   }
 
   return {
+    title: 'Reset Password',
     icons: {
       icon: favicon,
       shortcut: favicon,

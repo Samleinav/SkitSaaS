@@ -11,13 +11,9 @@ import {
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
 import { ForgotPassword } from './forgot-password';
 
-export const metadata: Metadata = {
-  title: 'Forgot Password'
-};
-
 export async function generateMetadata(): Promise<Metadata> {
   if (!isDashboardEnabled()) {
-    return {};
+    return { title: 'Forgot Password' };
   }
 
   const themeSelection = await getThemeSelectionForArea('dashboard');
@@ -27,10 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   if (!favicon) {
-    return {};
+    return { title: 'Forgot Password' };
   }
 
   return {
+    title: 'Forgot Password',
     icons: {
       icon: favicon,
       shortcut: favicon,
