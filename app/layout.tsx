@@ -47,7 +47,11 @@ const themeCssPendingInitScript = `(() => {
     path === '/sign-up' ||
     path.startsWith('/sign-up/') ||
     path === '/sign-in' ||
-    path.startsWith('/sign-in/');
+    path.startsWith('/sign-in/') ||
+    path === '/forgot-password' ||
+    path.startsWith('/forgot-password/') ||
+    path === '/reset-password' ||
+    path.startsWith('/reset-password/');
 
   if (!isPrivateArea) {
     return;

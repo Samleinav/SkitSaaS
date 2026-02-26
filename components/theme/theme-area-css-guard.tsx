@@ -145,11 +145,34 @@ function synchronizeThemeCssAssets(activeArea: ThemeCssArea, onSettled: () => vo
   }
 }
 
+function resolveActiveArea(pathname: string): ThemeCssArea {
+  const path = String(pathname ?? '').trim().toLowerCase();
+
+  // High-confidence prefix patterns: /admin/* and /dashboard/* are always certain.
+  if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
+  if (path === '/dashboard' || path.startsWith('/dashboard/')) return 'dashboard';
+
+  // For all other paths (login group, frontend, custom module paths),
+  // prefer the layout signal rendered by ThemeAreaSignal.
+  // The guard's useLayoutEffect fires after the DOM commit, so server-rendered
+  // signal elements are already in the DOM at this point.
+  // Multiple signals can exist (nested layouts); the deepest one wins.
+  const signals = document.querySelectorAll<HTMLElement>('[data-theme-area-signal]');
+  if (signals.length > 0) {
+    const signal = signals[signals.length - 1].dataset.themeAreaSignal;
+    if (signal === 'admin' || signal === 'dashboard' || signal === 'frontend') {
+      return signal;
+    }
+  }
+
+  return resolveThemeCssAreaFromPath(pathname);
+}
+
 export function ThemeAreaCssGuard() {
   const pathname = usePathname();
 
   useLayoutEffect(() => {
-    const activeArea = resolveThemeCssAreaFromPath(pathname);
+    const activeArea = resolveActiveArea(pathname);
     setCssPendingState(activeArea, areaRequiresCssGate(activeArea));
     let frameHandle: number | null = null;
     const requestSynchronize = () => {

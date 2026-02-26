@@ -14,7 +14,9 @@ export function resolveThemeCssAreaFromPath(pathname: string | null | undefined)
   if (
     matchesPathPrefix(path, '/login') ||
     matchesPathPrefix(path, '/sign-up') ||
-    matchesPathPrefix(path, '/sign-in')
+    matchesPathPrefix(path, '/sign-in') ||
+    matchesPathPrefix(path, '/forgot-password') ||
+    matchesPathPrefix(path, '/reset-password')
   ) {
     return 'dashboard';
   }
