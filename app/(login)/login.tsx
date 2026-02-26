@@ -133,9 +133,19 @@ export function Login({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-zinc-300">
-                  {auth.password}
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium text-zinc-300">
+                    {auth.password}
+                  </Label>
+                  {mode === 'signin' ? (
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-zinc-500 hover:text-amber-100 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  ) : null}
+                </div>
                 <Input
                   id="password"
                   name="password"

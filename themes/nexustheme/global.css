@@ -170,3 +170,8 @@ html {
 .animate-logo-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Avoid private-header fallback flash before layout.private.header template hydrates. */
+header[class*='sticky'][class*='top-0'][class*='z-40'][class*='bg-background/85'][class*='backdrop-blur-xl'] {
+  display: none;
+}

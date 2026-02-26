@@ -1,7 +1,8 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { createHash, randomBytes } from 'crypto';
 import { db } from '@/lib/db/drizzle';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
@@ -11,6 +12,7 @@ import {
   teams,
   teamMembers,
   activityLogs,
+  passwordResetTokens,
   type NewUser,
   type NewTeam,
   type NewTeamMember,
@@ -18,6 +20,7 @@ import {
   ActivityType,
   invitations
 } from '@/lib/db/schema';
+import { sendPasswordResetEmail } from '@/lib/email/password-reset';
 import {
   clearSession,
   comparePasswords,
@@ -1034,5 +1037,135 @@ export const inviteTeamMember = validatedActionWithUser(
     }
 
     return { success: 'Invitation sent successfully' };
+  }
+);
+
+const requestPasswordResetSchema = z.object({
+  email: z.string().email('Invalid email address')
+});
+
+export const requestPasswordReset = validatedAction(
+  requestPasswordResetSchema,
+  async (data) => {
+    const { email } = data;
+
+    // Always return the same message to avoid leaking whether the email exists
+    const genericSuccess = {
+      success: 'If an account with that email exists, a reset link has been sent.'
+    };
+
+    const [user] = await db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(and(eq(users.email, email.toLowerCase()), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (!user) {
+      return genericSuccess;
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.insert(passwordResetTokens).values({
+      userId: user.id,
+      tokenHash,
+      expiresAt
+    });
+
+    await emitEventAsync(
+      EVENT_HOOKS.authPasswordResetRequested,
+      { userId: user.id, email: user.email },
+      {
+        actorEmail: user.email,
+        source: '/forgot-password'
+      }
+    );
+
+    try {
+      await sendPasswordResetEmail({
+        token,
+        recipientEmail: user.email,
+        recipientUserId: user.id,
+        expiresInMinutes: 60
+      });
+    } catch (error) {
+      console.error('Failed to send password reset email', {
+        userId: user.id,
+        error
+      });
+    }
+
+    return genericSuccess;
+  }
+);
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8).max(100),
+  confirmPassword: z.string().min(8).max(100)
+});
+
+export const resetPassword = validatedAction(
+  resetPasswordSchema,
+  async (data) => {
+    const { token, newPassword, confirmPassword } = data;
+
+    if (newPassword !== confirmPassword) {
+      return {
+        token,
+        newPassword,
+        confirmPassword,
+        error: 'Passwords do not match.'
+      };
+    }
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const now = new Date();
+
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(
+        and(
+          eq(passwordResetTokens.tokenHash, tokenHash),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, now)
+        )
+      )
+      .limit(1);
+
+    if (!resetToken) {
+      return {
+        token,
+        newPassword,
+        confirmPassword,
+        error: 'This reset link is invalid or has expired.'
+      };
+    }
+
+    const newPasswordHash = await hashPassword(newPassword);
+
+    await Promise.all([
+      db
+        .update(users)
+        .set({ passwordHash: newPasswordHash, updatedAt: now })
+        .where(eq(users.id, resetToken.userId)),
+      db
+        .update(passwordResetTokens)
+        .set({ usedAt: now })
+        .where(eq(passwordResetTokens.id, resetToken.id))
+    ]);
+
+    await emitEventAsync(
+      EVENT_HOOKS.authPasswordResetCompleted,
+      { userId: resetToken.userId },
+      {
+        source: '/reset-password'
+      }
+    );
+
+    redirect('/login?reset=1');
   }
 );

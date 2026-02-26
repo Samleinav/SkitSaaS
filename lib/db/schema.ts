@@ -835,6 +835,26 @@ export const authExternalIdentities = pgTable(
   })
 );
 
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex('password_reset_tokens_token_hash_idx').on(
+      table.tokenHash
+    ),
+    userIndex: index('password_reset_tokens_user_idx').on(table.userId),
+  })
+);
+
 export const authSessions = pgTable(
   'auth_sessions',
   {
@@ -931,6 +951,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   invitationsSent: many(invitations),
   authExternalIdentities: many(authExternalIdentities),
   authSessions: many(authSessions),
+  passwordResetTokens: many(passwordResetTokens),
   emailLogs: many(emailLogs),
   subscriptionTrialUsage: many(subscriptionTrialUsage),
   systemActivityLogsAsActor: many(sysActivityLogs, {
@@ -990,6 +1011,16 @@ export const authSessionsRelations = relations(authSessions, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const passwordResetTokensRelations = relations(
+  passwordResetTokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [passwordResetTokens.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const paymentLogsRelations = relations(paymentLogs, ({ one }) => ({
   team: one(teams, {
@@ -1141,4 +1172,5 @@ export enum ActivityType {
   REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
   INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
   ACCEPT_INVITATION = 'ACCEPT_INVITATION',
+  RESET_PASSWORD = 'RESET_PASSWORD',
 }

@@ -9,6 +9,8 @@ export const EVENT_HOOKS = {
     authSignUpFailed: 'auth.sign_up.failed',
     authInvitationAccepted: 'auth.invitation.accepted',
     authTeamCreated: 'auth.team.created',
+    authPasswordResetRequested: 'auth.password_reset.requested',
+    authPasswordResetCompleted: 'auth.password_reset.completed',
     // Dashboard account + teams
     dashboardAccountUpdated: 'dashboard.account.updated',
     dashboardAccountPasswordUpdated: 'dashboard.account.password.updated',

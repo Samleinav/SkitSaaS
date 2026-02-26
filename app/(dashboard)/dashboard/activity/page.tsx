@@ -30,6 +30,7 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.REMOVE_TEAM_MEMBER]: UserMinus,
   [ActivityType.INVITE_TEAM_MEMBER]: Mail,
   [ActivityType.ACCEPT_INVITATION]: CheckCircle,
+  [ActivityType.RESET_PASSWORD]: Lock,
 };
 
 const DATE_LOCALE_BY_APP_LOCALE: Record<AppLocale, string> = {

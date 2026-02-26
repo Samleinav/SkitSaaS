@@ -49,14 +49,14 @@ export default function LayoutAdminShellTemplate({
     >
       <aside
         className={mergeClassNames(
-          'border-b border-border/70 bg-sidebar/90 px-3 py-3 xl:fixed xl:inset-y-[3.5rem] xl:left-0 xl:z-40 xl:border-r xl:border-b-0 xl:px-2.5 xl:py-3',
+          'border-b border-border/70 bg-sidebar/90 px-3 py-3 xl:fixed xl:inset-y-[3.5rem] xl:left-0 xl:z-40 xl:border-r xl:border-b-0 xl:px-2.5 xl:pt-3 xl:pb-0',
           navWidth
         )}
       >
-        <div className="flex h-full min-h-[calc(100vh-3.5rem)] flex-col gap-3 xl:min-h-0">
+        <div className="flex h-full min-h-[calc(100vh-3.5rem)] flex-col gap-2 xl:min-h-0">
           <div className="min-h-0 flex-1 overflow-hidden">{navSlot}</div>
           {controlsSlot ? (
-            <div className="rounded-xl border border-sidebar-border bg-sidebar p-2.5 shadow-sm">
+            <div className="rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-sm">
               {controlsSlot}
             </div>
           ) : null}

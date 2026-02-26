@@ -16,6 +16,9 @@ export default function SectionAdminBreadcrumbTemplate({
       data-breadcrumb-title={title}
       data-nexus-admin-breadcrumb="minimal"
     >
+      <span className="text-[11px] font-medium tracking-[0.12em] text-muted-foreground uppercase">
+          Admin
+        </span>
       <span className="text-xs font-medium text-foreground/90">{title}</span>
     </div>
   );

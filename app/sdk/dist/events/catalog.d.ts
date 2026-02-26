@@ -8,6 +8,8 @@ export declare const EVENT_HOOKS: {
     readonly authSignUpFailed: "auth.sign_up.failed";
     readonly authInvitationAccepted: "auth.invitation.accepted";
     readonly authTeamCreated: "auth.team.created";
+    readonly authPasswordResetRequested: "auth.password_reset.requested";
+    readonly authPasswordResetCompleted: "auth.password_reset.completed";
     readonly dashboardAccountUpdated: "dashboard.account.updated";
     readonly dashboardAccountPasswordUpdated: "dashboard.account.password.updated";
     readonly dashboardAccountDeleted: "dashboard.account.deleted";
