@@ -142,7 +142,7 @@ export function Login({
                       href="/forgot-password"
                       className="text-xs text-zinc-500 hover:text-amber-100 transition-colors"
                     >
-                      Forgot password?
+                      {auth.forgotPassword}
                     </Link>
                   ) : null}
                 </div>

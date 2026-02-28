@@ -24,6 +24,27 @@ export type LoginMessages = {
     passwordSignUpDisabled: string;
     continueWith: string;
     noExternalProviders: string;
+    forgotPassword: string;
+  };
+  forgotPassword: {
+    title: string;
+    description: string;
+    emailPlaceholder: string;
+    sendResetLink: string;
+    sending: string;
+    rememberPassword: string;
+    backToSignIn: string;
+  };
+  resetPassword: {
+    title: string;
+    description: string;
+    newPassword: string;
+    newPasswordPlaceholder: string;
+    confirmPassword: string;
+    confirmPasswordPlaceholder: string;
+    setPassword: string;
+    updating: string;
+    backToSignIn: string;
   };
 };
 
@@ -53,7 +74,28 @@ export const loginMessages: Record<AppLocale, LoginMessages> = {
       passwordSignUpDisabled:
         'Account creation with password is disabled for this area.',
       continueWith: 'Continue with',
-      noExternalProviders: 'No external login provider is currently available.'
+      noExternalProviders: 'No external login provider is currently available.',
+      forgotPassword: 'Forgot password?'
+    },
+    forgotPassword: {
+      title: 'Reset your password',
+      description: "Enter your email and we'll send you a reset link.",
+      emailPlaceholder: 'you@example.com',
+      sendResetLink: 'Send reset link',
+      sending: 'Sending...',
+      rememberPassword: 'Remember your password?',
+      backToSignIn: 'Back to sign in'
+    },
+    resetPassword: {
+      title: 'Choose a new password',
+      description: 'Must be at least 8 characters.',
+      newPassword: 'New password',
+      newPasswordPlaceholder: 'New password',
+      confirmPassword: 'Confirm password',
+      confirmPasswordPlaceholder: 'Confirm password',
+      setPassword: 'Set new password',
+      updating: 'Updating...',
+      backToSignIn: 'Back to sign in'
     }
   },
   es: {
@@ -82,7 +124,28 @@ export const loginMessages: Record<AppLocale, LoginMessages> = {
         'La creacion de cuentas con contrasena esta deshabilitada para esta area.',
       continueWith: 'Continuar con',
       noExternalProviders:
-        'No hay proveedores de inicio de sesion externos disponibles.'
+        'No hay proveedores de inicio de sesion externos disponibles.',
+      forgotPassword: 'Olvidaste tu contrasena?'
+    },
+    forgotPassword: {
+      title: 'Restablecer tu contrasena',
+      description: 'Ingresa tu correo y te enviaremos un enlace para restablecerla.',
+      emailPlaceholder: 'tu@ejemplo.com',
+      sendResetLink: 'Enviar enlace',
+      sending: 'Enviando...',
+      rememberPassword: 'Recuerdas tu contrasena?',
+      backToSignIn: 'Volver a iniciar sesion'
+    },
+    resetPassword: {
+      title: 'Elige una nueva contrasena',
+      description: 'Debe tener al menos 8 caracteres.',
+      newPassword: 'Nueva contrasena',
+      newPasswordPlaceholder: 'Nueva contrasena',
+      confirmPassword: 'Confirmar contrasena',
+      confirmPasswordPlaceholder: 'Confirmar contrasena',
+      setPassword: 'Establecer contrasena',
+      updating: 'Actualizando...',
+      backToSignIn: 'Volver a iniciar sesion'
     }
   }
 };

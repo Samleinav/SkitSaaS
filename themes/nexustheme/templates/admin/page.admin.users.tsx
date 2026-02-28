@@ -8,9 +8,10 @@ export default function PageAdminUsersTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Users');
+  const description = 'Manage user accounts, subscriptions, and access permissions.';
 
   return (
-    <NexusPageShell className={className} title={title}>
+    <NexusPageShell className={className} title={title} description={description}>
       {children}
     </NexusPageShell>
   );

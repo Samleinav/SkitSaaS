@@ -10,7 +10,7 @@ export default function PageAdminPaymentsTemplate({
   const title = toStringOrFallback(data?.title, 'Payments');
   const description = toStringOrFallback(
     data?.description,
-    'Payments ledger and reconciliation.'
+    'Review payment transactions, manage refunds, and reconcile financial records across all accounts.'
   );
 
   return (

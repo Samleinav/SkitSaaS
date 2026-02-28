@@ -186,6 +186,13 @@ export function ThemeAreaCssGuard() {
       });
     };
 
+    // Run synchronously before the browser paints so that when the target
+    // area's CSS is already cached, the switch completes in this same frame
+    // and the content is never visible with the wrong stylesheet.
+    synchronizeThemeCssAssets(activeArea, requestSynchronize);
+
+    // Also schedule a rAF pass to handle CSS load tracking and retries
+    // when the stylesheet is not yet cached.
     requestSynchronize();
     const observer = new MutationObserver(() => {
       requestSynchronize();

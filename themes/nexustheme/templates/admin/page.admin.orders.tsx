@@ -10,7 +10,7 @@ export default function PageAdminOrdersTemplate({
   const title = toStringOrFallback(data?.title, 'Orders');
   const description = toStringOrFallback(
     data?.description,
-    'Operational payment orders and statuses.'
+    'Monitor and manage payment orders, track transaction statuses, and view order history across all users and organizations.'
   );
 
   return (

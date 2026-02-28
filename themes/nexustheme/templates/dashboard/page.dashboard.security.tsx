@@ -8,7 +8,10 @@ export default function PageDashboardSecurityTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Security');
-  const description = toStringOrFallback(data?.description, 'Manage password and account access.');
+  const description = toStringOrFallback(
+    data?.description,
+    'Manage your password, review login activity, and configure account security settings.'
+  );
 
   return (
     <NexusPageShell className={className} title={title} description={description}>

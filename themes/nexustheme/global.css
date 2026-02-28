@@ -44,7 +44,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.975 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -78,22 +78,22 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.09 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.17 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary-foreground: oklch(0.17 0 0);
+  --secondary: oklch(0.245 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(0.22 0 0);
+  --muted-foreground: oklch(0.62 0 0);
+  --accent: oklch(0.22 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
@@ -101,7 +101,7 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: oklch(0.185 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -171,7 +171,71 @@ html {
   animation-play-state: paused;
 }
 
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-skeleton-shimmer {
+  animation: skeleton-shimmer 2s ease-in-out infinite;
+}
+
 /* Avoid private-header fallback flash before layout.private.header template hydrates. */
 header[class*='sticky'][class*='top-0'][class*='z-40'][class*='bg-background/85'][class*='backdrop-blur-xl'] {
   display: none;
+}
+
+/* ── Sidebar drawer: default hidden on all sizes, transitions ── */
+[data-nexus-admin-shell] > aside {
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+
+/* Mobile backdrop: hidden by default, shown when sidebar-mobile-open */
+[data-nexus-sidebar-backdrop] {
+  display: none;
+}
+html[data-sidebar-mobile-open] [data-nexus-sidebar-backdrop] {
+  display: block;
+}
+
+/* Mobile: show sidebar when data-sidebar-mobile-open */
+@media (max-width: 1279px) {
+  html[data-sidebar-mobile-open] [data-nexus-admin-shell] > aside {
+    transform: translateX(0);
+  }
+}
+
+/* Desktop: sidebar visible by default, push header + main */
+@media (min-width: 1280px) {
+  /* Sidebar visible */
+  [data-nexus-admin-shell] > aside {
+    transform: translateX(0);
+  }
+
+  /* Header + main: pushed right to clear sidebar */
+  html [data-nexus-private-header],
+  html [data-nexus-admin-shell] > main {
+    transition: padding-left 0.25s ease;
+    padding-left: calc(16rem + 1.5rem);
+  }
+
+  /* Collapsed: sidebar slides out, header + main return to normal */
+  html[data-sidebar-collapsed] [data-nexus-admin-shell] > aside {
+    transform: translateX(-100%);
+  }
+  html[data-sidebar-collapsed] [data-nexus-private-header],
+  html[data-sidebar-collapsed] [data-nexus-admin-shell] > main {
+    padding-left: 1.5rem;
+  }
+
+  /* Show logo in header when sidebar is collapsed */
+  html[data-sidebar-collapsed] [data-nexus-header-logo] {
+    display: inline-flex;
+  }
 }

@@ -232,6 +232,7 @@ export type DashboardMessages = {
       removeTeamMember: string;
       inviteTeamMember: string;
       acceptInvitation: string;
+      resetPassword: string;
       unknown: string;
     };
     fromIp: string;
@@ -479,6 +480,7 @@ export const dashboardMessages: Record<AppLocale, DashboardMessages> = {
         removeTeamMember: 'You removed a team member',
         inviteTeamMember: 'You invited a team member',
         acceptInvitation: 'You accepted an invitation',
+        resetPassword: 'You reset your password',
         unknown: 'Unknown action occurred'
       },
       fromIp: 'from IP',
@@ -727,6 +729,7 @@ export const dashboardMessages: Record<AppLocale, DashboardMessages> = {
         removeTeamMember: 'Eliminaste un miembro del equipo',
         inviteTeamMember: 'Invitaste a un miembro al equipo',
         acceptInvitation: 'Aceptaste una invitacion',
+        resetPassword: 'Restableciste tu contrasena',
         unknown: 'Ocurrio una accion desconocida'
       },
       fromIp: 'desde IP',

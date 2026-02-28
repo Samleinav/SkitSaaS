@@ -160,6 +160,14 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/first-backoffice/templates/page.login.admin.tsx"
       },
       {
+        "componentId": "page.login.forgot-password",
+        "filePath": "themes/first-backoffice/templates/page.login.forgot-password.tsx"
+      },
+      {
+        "componentId": "page.login.reset-password",
+        "filePath": "themes/first-backoffice/templates/page.login.reset-password.tsx"
+      },
+      {
         "componentId": "page.login.signup",
         "filePath": "themes/first-backoffice/templates/page.login.signup.tsx"
       },
@@ -467,6 +475,14 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/nexustheme/templates/page.login.admin.tsx"
       },
       {
+        "componentId": "page.login.forgot-password",
+        "filePath": "themes/nexustheme/templates/page.login.forgot-password.tsx"
+      },
+      {
+        "componentId": "page.login.reset-password",
+        "filePath": "themes/nexustheme/templates/page.login.reset-password.tsx"
+      },
+      {
         "componentId": "page.login.signup",
         "filePath": "themes/nexustheme/templates/page.login.signup.tsx"
       },
@@ -515,6 +531,18 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/nexustheme/templates/admin/section.admin.nav.tsx"
       },
       {
+        "componentId": "section.admin.orders.metrics",
+        "filePath": "themes/nexustheme/templates/admin/section.admin.orders.metrics.tsx"
+      },
+      {
+        "componentId": "section.admin.payments.metrics",
+        "filePath": "themes/nexustheme/templates/admin/section.admin.payments.metrics.tsx"
+      },
+      {
+        "componentId": "section.admin.subscriptions.metrics",
+        "filePath": "themes/nexustheme/templates/admin/section.admin.subscriptions.metrics.tsx"
+      },
+      {
         "componentId": "section.admin.table.logs.cell",
         "filePath": "themes/nexustheme/templates/admin/section.admin.table.logs.cell.tsx"
       },
@@ -541,6 +569,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
       {
         "componentId": "section.admin.table.users.cell",
         "filePath": "themes/nexustheme/templates/admin/section.admin.table.users.cell.tsx"
+      },
+      {
+        "componentId": "section.admin.users.metrics",
+        "filePath": "themes/nexustheme/templates/admin/section.admin.users.metrics.tsx"
       },
       {
         "componentId": "section.dashboard.table.subscriptions.invoices.cell",

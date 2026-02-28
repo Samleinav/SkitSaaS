@@ -61,13 +61,16 @@ export default function UiTableThemeTemplate({
     <div
       aria-label={surfaceLabel}
       className={mergeClassNames(
-        'overflow-hidden rounded-xl border border-border/70 bg-card/80 shadow-sm',
+        '@container/table overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md',
         areaClassName,
         data?.frameClassName,
         className
       )}
+      data-nexus-ui-table={normalizedArea}
     >
-      {children}
+      <div className="overflow-x-auto">
+        {children}
+      </div>
     </div>
   );
 }

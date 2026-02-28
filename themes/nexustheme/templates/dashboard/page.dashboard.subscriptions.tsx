@@ -10,7 +10,7 @@ export default function PageDashboardSubscriptionsTemplate({
   const title = toStringOrFallback(data?.title, 'Subscriptions');
   const description = toStringOrFallback(
     data?.description,
-    'Manage plans, organizations, and billing events.'
+    'View and manage your organization subscriptions, billing cycles, and payment history.'
   );
 
   return (

@@ -10,7 +10,7 @@ export default function PageAdminSuscriptionsTemplate({
   const title = toStringOrFallback(data?.title, 'Subscriptions');
   const description = toStringOrFallback(
     data?.description,
-    'User and organization subscription operations.'
+    'Manage subscription plans, renewals, and billing cycles for users and organizations. Monitor active subscriptions and handle plan changes.'
   );
   const scope = toStringOrFallback(data?.scope, 'organization');
 

@@ -8,7 +8,10 @@ export default function PageDashboardGeneralTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'General');
-  const description = toStringOrFallback(data?.description, 'Manage account profile details.');
+  const description = toStringOrFallback(
+    data?.description,
+    'Update your profile information, display name, and account preferences.'
+  );
 
   return (
     <NexusPageShell className={className} title={title} description={description}>

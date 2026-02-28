@@ -8,7 +8,10 @@ export default function PageAdminLogsTemplate({
   children
 }: TemplateProps) {
   const title = toStringOrFallback(data?.title, 'Logs');
-  const description = toStringOrFallback(data?.description, 'System and email delivery logs.');
+  const description = toStringOrFallback(
+    data?.description,
+    'View system activity logs, monitor email deliveries, and track application events for debugging and auditing.'
+  );
   const activeTab = toStringOrFallback(data?.tab, '');
 
   return (

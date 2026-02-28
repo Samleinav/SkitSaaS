@@ -1,7 +1,11 @@
 {
   "env": {
-    "CLAUDE_CODE_USE_BEDROCK": "0",
-    "AWS_REGION": "us-east-1"
+    "CLAUDE_CODE_USE_BEDROCK": "1",
+    "AWS_REGION": "us-east-1",
+    "ANTHROPIC_MODEL": "us.anthropic.claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL":"us.anthropic.claude-opus-4-6-v1",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL":"us.anthropic.claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL":"us.anthropic.claude-haiku-4-5-20251001-v1:0"
   },
   "permissions": {
     "allow": [
@@ -12,8 +16,8 @@
       "Bash(find \"/d/GitHub/saas-starter/app/\\(login\\)\" -type d)",
       "Bash(find \"/d/GitHub/saas-starter/app/\\(login\\)\" -type f)",
       "Bash(pnpm typecheck)",
-      "Bash(ls d:/GitHub/saas-starter/app/\\\\\\(login\\\\\\)/)"
+      "Bash(ls d:/GitHub/saas-starter/app/\\\\\\(login\\\\\\)/)",
+      "Bash(ls templateShadcn/shadcn-dashboard/nextjs-version/src/app/\\\\\\(dashboard\\\\\\)/dashboard/)"
     ]
-  },
-  "model": "global.anthropic.claude-opus-4-6-v1"
+  }
 }

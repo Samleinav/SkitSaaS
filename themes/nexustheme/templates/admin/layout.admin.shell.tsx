@@ -1,5 +1,10 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import Link from 'next/link';
+import { LayoutDashboard } from 'lucide-react';
 import { mergeClassNames } from '@skitsaas/sdk';
+import { NexusSidebarUser } from '../../components/nexus-sidebar-user';
 import type {
   TemplateData as BaseTemplateData,
   TemplateProps
@@ -28,8 +33,7 @@ export default function LayoutAdminShellTemplate({
   const hasComposableSlots = Boolean(
     navSlot || breadcrumbSlot || controlsSlot || contentSlot
   );
-  const navWidth = mode === 'adjusted' ? 'xl:w-[17rem]' : 'xl:w-[16rem]';
-  const contentInset = mode === 'adjusted' ? 'xl:pl-[18.25rem]' : 'xl:pl-[17.25rem]';
+  const navWidth = mode === 'adjusted' ? 'xl:w-[17.25rem]' : 'xl:w-64';
 
   if (!hasComposableSlots) {
     return (
@@ -47,31 +51,61 @@ export default function LayoutAdminShellTemplate({
       )}
       data-nexus-admin-shell={mode}
     >
+      {/* ── Mobile backdrop — closes sidebar when tapped ─────────── */}
+      <button
+        type="button"
+        aria-label="Close sidebar"
+        data-nexus-sidebar-backdrop
+        tabIndex={-1}
+        onClick={() => document.documentElement.removeAttribute('data-sidebar-mobile-open')}
+        className="fixed inset-0 z-[59] hidden bg-black/50 xl:hidden"
+      />
+
+      {/* ── Sidebar drawer — fixed on all screen sizes ───────────── */}
       <aside
         className={mergeClassNames(
-          'border-b border-border/70 bg-sidebar/90 px-3 py-3 xl:fixed xl:inset-y-[3.5rem] xl:left-0 xl:z-40 xl:border-r xl:border-b-0 xl:px-2.5 xl:pt-3 xl:pb-0',
+          // Base: fixed full-height drawer, always in the same place
+          'fixed inset-y-0 left-0 z-[60] flex flex-col',
+          'bg-sidebar border-r border-border/70',
+          // Mobile width slightly wider for touch comfort
+          'w-72',
+          // Desktop width
           navWidth
         )}
       >
-        <div className="flex h-full min-h-[calc(100vh-3.5rem)] flex-col gap-2 xl:min-h-0">
-          <div className="min-h-0 flex-1 overflow-hidden">{navSlot}</div>
-          {controlsSlot ? (
-            <div className="rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-sm">
-              {controlsSlot}
+        {/* Branding header — height matches top nav bar (h-14) */}
+        <div className="flex h-14 shrink-0 items-center border-b border-border/70 px-2.5">
+          <Link
+            href="/"
+            prefetch={false}
+            className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-sidebar-accent/60"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <LayoutDashboard className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">SkitSaaS</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/60">Admin Dashboard</p>
             </div>
-          ) : null}
+          </Link>
+        </div>
+
+        {/* Nav content — scrollable */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 pt-3 pb-2">
+          <div className="min-h-0 flex-1">{navSlot}</div>
+        </div>
+
+        {/* User section — pinned to bottom */}
+        <div className="shrink-0 border-t border-border/70 px-2.5 py-2">
+          <NexusSidebarUser />
         </div>
       </aside>
 
-      <main
-        className={mergeClassNames(
-          'min-w-0 px-3 pb-6 pt-2 sm:px-4 lg:px-6',
-          contentInset
-        )}
-      >
+      {/* ── Main content ─────────────────────────────────────────── */}
+      <main className="min-h-screen px-3 pb-6 pt-5 sm:px-4 lg:px-6">
         <div className="mx-auto w-full max-w-[1600px]">
           {breadcrumbSlot}
-          <section className="space-y-3">{content}</section>
+          <section className="mt-3 space-y-3">{content}</section>
         </div>
       </main>
     </section>

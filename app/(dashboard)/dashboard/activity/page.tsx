@@ -94,6 +94,8 @@ function formatAction(
       return messages.inviteTeamMember;
     case ActivityType.ACCEPT_INVITATION:
       return messages.acceptInvitation;
+    case ActivityType.RESET_PASSWORD:
+      return messages.resetPassword;
     default:
       return messages.unknown;
   }
