@@ -39,14 +39,14 @@ type AdminNavTemplateData = BaseTemplateData & {
   navItems?: TemplateNavItem[];
 };
 
-type NavGroupKey = 'dashboards' | 'apps' | 'settings' | 'modules';
+// 'settings' is never in NAV_GROUP_ORDER — it's pinned below the scroll area
+type NavGroupKey = 'dashboards' | 'apps' | 'settings';
 
-const NAV_GROUP_ORDER: NavGroupKey[] = ['dashboards', 'apps', 'settings', 'modules'];
+const NAV_GROUP_ORDER: NavGroupKey[] = ['dashboards', 'apps'];
 const NAV_GROUP_LABEL: Record<NavGroupKey, string> = {
   dashboards: 'Dashboards',
   apps: 'Apps',
-  settings: 'Settings',
-  modules: 'Modules'
+  settings: 'Settings'
 };
 
 const iconMap: Record<string, LucideIcon> = {
@@ -61,21 +61,15 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 function isTemplateNavChildItem(value: unknown): value is TemplateNavChildItem {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as TemplateNavChildItem;
-  return typeof candidate.href === 'string' && typeof candidate.label === 'string';
+  if (!value || typeof value !== 'object') return false;
+  const c = value as TemplateNavChildItem;
+  return typeof c.href === 'string' && typeof c.label === 'string';
 }
 
 function isTemplateNavItem(value: unknown): value is TemplateNavItem {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as TemplateNavItem;
-  return typeof candidate.href === 'string' && typeof candidate.label === 'string';
+  if (!value || typeof value !== 'object') return false;
+  const c = value as TemplateNavItem;
+  return typeof c.href === 'string' && typeof c.label === 'string';
 }
 
 function matchesPath(
@@ -85,16 +79,10 @@ function matchesPath(
   matchPrefixes: string[] = []
 ) {
   if (exact) {
-    return pathname === href || matchPrefixes.some((prefix) => pathname === prefix);
+    return pathname === href || matchPrefixes.some((p) => pathname === p);
   }
-
-  if (pathname === href || pathname.startsWith(`${href}/`)) {
-    return true;
-  }
-
-  return matchPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+  if (pathname === href || pathname.startsWith(`${href}/`)) return true;
+  return matchPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 function isChildItemActive(pathname: string, item: TemplateNavChildItem) {
@@ -102,26 +90,14 @@ function isChildItemActive(pathname: string, item: TemplateNavChildItem) {
 }
 
 function isNavItemActive(pathname: string, item: TemplateNavItem) {
-  if (matchesPath(pathname, item.href, item.exact ?? false, item.matchPrefixes)) {
-    return true;
-  }
-
+  if (matchesPath(pathname, item.href, item.exact ?? false, item.matchPrefixes)) return true;
   return item.children?.some((child) => isChildItemActive(pathname, child)) ?? false;
 }
 
 function resolveNavGroup(item: TemplateNavItem): NavGroupKey {
-  if (item.href === '/admin') {
-    return 'dashboards';
-  }
-
-  if (item.href.startsWith('/admin/app-config')) {
-    return 'settings';
-  }
-
-  if (item.icon === 'package' || item.href.startsWith('/admin/modules')) {
-    return 'modules';
-  }
-
+  if (item.href === '/admin') return 'dashboards';
+  if (item.href.startsWith('/admin/app-config')) return 'settings';
+  // modules (icon: 'package') and all other apps both go under 'apps'
   return 'apps';
 }
 
@@ -131,9 +107,12 @@ export default function SectionAdminNavTemplate({
   children
 }: TemplateProps<AdminNavTemplateData>) {
   const pathname = usePathname();
-  const navItems = Array.isArray(data?.navItems)
-    ? data.navItems.filter(isTemplateNavItem)
-    : [];
+
+  // Filter out Logs — it lives in App Config instead
+  const navItems = (
+    Array.isArray(data?.navItems) ? data.navItems.filter(isTemplateNavItem) : []
+  ).filter((item) => item.href !== '/admin/logs');
+
   const activeParentItemKeys = useMemo(
     () =>
       new Set(
@@ -142,35 +121,28 @@ export default function SectionAdminNavTemplate({
             const childrenItems = Array.isArray(item.children)
               ? item.children.filter(isTemplateNavChildItem)
               : [];
-            if (!childrenItems.length) {
-              return false;
-            }
-
+            if (!childrenItems.length) return false;
             return isNavItemActive(pathname, item);
           })
           .map((item) => item.href)
       ),
     [navItems, pathname]
   );
+
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!activeParentItemKeys.size) {
-      return;
-    }
-
-    setExpandedItems((previous) => {
+    if (!activeParentItemKeys.size) return;
+    setExpandedItems((prev) => {
       let changed = false;
-      const next = { ...previous };
-
+      const next = { ...prev };
       for (const href of activeParentItemKeys) {
         if (!(href in next)) {
           next[href] = true;
           changed = true;
         }
       }
-
-      return changed ? next : previous;
+      return changed ? next : prev;
     });
   }, [activeParentItemKeys]);
 
@@ -181,12 +153,118 @@ export default function SectionAdminNavTemplate({
   const groupedItems: Record<NavGroupKey, TemplateNavItem[]> = {
     dashboards: [],
     apps: [],
-    settings: [],
-    modules: []
+    settings: []
   };
 
   for (const item of navItems) {
     groupedItems[resolveNavGroup(item)].push(item);
+  }
+
+  function renderItem(item: TemplateNavItem) {
+    const Icon = iconMap[item.icon ?? ''] ?? Package;
+    const isActive = isNavItemActive(pathname, item);
+    const childrenItems = Array.isArray(item.children)
+      ? item.children.filter(isTemplateNavChildItem)
+      : [];
+    const hasChildren = childrenItems.length > 0;
+    const isExpanded =
+      hasChildren && (expandedItems[item.href] ?? activeParentItemKeys.has(item.href));
+
+    return (
+      <div key={item.href} className="space-y-0.5">
+        <div
+          className={mergeClassNames(
+            'group flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-sm transition-colors',
+            isActive
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
+          )}
+        >
+          <Link
+            href={item.href}
+            prefetch={false}
+            aria-current={isActive ? 'page' : undefined}
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-1.5"
+          >
+            <span
+              className={mergeClassNames(
+                'flex size-7 items-center justify-center rounded-md border',
+                isActive
+                  ? 'border-sidebar-primary/30 bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'border-sidebar-border bg-sidebar text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[15px] font-medium leading-tight">
+              {item.label}
+            </span>
+          </Link>
+
+          {hasChildren ? (
+            <button
+              type="button"
+              className={mergeClassNames(
+                'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-sidebar/80',
+                isExpanded ? 'text-sidebar-accent-foreground' : 'text-muted-foreground'
+              )}
+              onClick={() => {
+                setExpandedItems((prev) => ({
+                  ...prev,
+                  [item.href]: !isExpanded
+                }));
+              }}
+              aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+              aria-expanded={isExpanded}
+            >
+              <ChevronRight
+                className={mergeClassNames(
+                  'h-3.5 w-3.5 transition-transform',
+                  isExpanded ? 'rotate-90' : 'rotate-0'
+                )}
+              />
+            </button>
+          ) : (
+            <ChevronRight
+              className={mergeClassNames(
+                'h-3.5 w-3.5 shrink-0 transition-opacity',
+                isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}
+            />
+          )}
+        </div>
+
+        {hasChildren && isExpanded ? (
+          <div className="ml-9 space-y-0.5 border-l border-sidebar-border/80 pl-2">
+            {childrenItems.map((child) => {
+              const isChildActive = isChildItemActive(pathname, child);
+              return (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  prefetch={false}
+                  aria-current={isChildActive ? 'page' : undefined}
+                  className={mergeClassNames(
+                    'flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] transition-colors',
+                    isChildActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
+                  )}
+                >
+                  <span
+                    className={mergeClassNames(
+                      'h-1.5 w-1.5 rounded-full',
+                      isChildActive ? 'bg-sidebar-primary' : 'bg-muted-foreground'
+                    )}
+                  />
+                  <span className="truncate">{child.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   return (
@@ -197,131 +275,28 @@ export default function SectionAdminNavTemplate({
       )}
       data-nexus-admin-nav="true"
     >
+      {/* Scrollable main nav */}
       <div className="nexus-admin-nav-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2 pr-1.5">
         {NAV_GROUP_ORDER.map((groupKey) => {
           const items = groupedItems[groupKey];
-          if (!items.length) {
-            return null;
-          }
-
+          if (!items.length) return null;
           return (
             <section key={groupKey} className="space-y-0.5">
               <p className="px-2 pt-1 pb-1 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                 {NAV_GROUP_LABEL[groupKey]}
               </p>
-              <div className="space-y-0.5">
-                {items.map((item) => {
-                  const Icon = iconMap[item.icon ?? ''] ?? Package;
-                  const isActive = isNavItemActive(pathname, item);
-                  const childrenItems = Array.isArray(item.children)
-                    ? item.children.filter(isTemplateNavChildItem)
-                    : [];
-                  const hasChildren = childrenItems.length > 0;
-                  const isExpanded =
-                    hasChildren &&
-                    (expandedItems[item.href] ?? activeParentItemKeys.has(item.href));
-
-                  return (
-                    <div key={item.href} className="space-y-0.5">
-                      <div
-                        className={mergeClassNames(
-                          'group flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-sm transition-colors',
-                          isActive
-                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
-                        )}
-                      >
-                        <Link
-                          href={item.href}
-                          prefetch={false}
-                          aria-current={isActive ? 'page' : undefined}
-                          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-1.5"
-                        >
-                          <span
-                            className={mergeClassNames(
-                              'flex size-7 items-center justify-center rounded-md border',
-                              isActive
-                                ? 'border-sidebar-primary/30 bg-sidebar-primary text-sidebar-primary-foreground'
-                                : 'border-sidebar-border bg-sidebar text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
-                            )}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-[15px] font-medium leading-tight">
-                            {item.label}
-                          </span>
-                        </Link>
-
-                        {hasChildren ? (
-                          <button
-                            type="button"
-                            className={mergeClassNames(
-                              'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-sidebar/80',
-                              isExpanded ? 'text-sidebar-accent-foreground' : 'text-muted-foreground'
-                            )}
-                            onClick={() => {
-                              setExpandedItems((previous) => ({
-                                ...previous,
-                                [item.href]: !isExpanded
-                              }));
-                            }}
-                            aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
-                            aria-expanded={isExpanded}
-                          >
-                            <ChevronRight
-                              className={mergeClassNames(
-                                'h-3.5 w-3.5 transition-transform',
-                                isExpanded ? 'rotate-90' : 'rotate-0'
-                              )}
-                            />
-                          </button>
-                        ) : (
-                          <ChevronRight
-                            className={mergeClassNames(
-                              'h-3.5 w-3.5 shrink-0 transition-opacity',
-                              isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                            )}
-                          />
-                        )}
-                      </div>
-
-                      {hasChildren && isExpanded ? (
-                        <div className="ml-9 space-y-0.5 border-l border-sidebar-border/80 pl-2">
-                          {childrenItems.map((child) => {
-                            const isChildActive = isChildItemActive(pathname, child);
-                            return (
-                              <Link
-                                key={child.href}
-                                href={child.href}
-                                prefetch={false}
-                                aria-current={isChildActive ? 'page' : undefined}
-                                className={mergeClassNames(
-                                  'flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] transition-colors',
-                                  isChildActive
-                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
-                                )}
-                              >
-                                <span
-                                  className={mergeClassNames(
-                                    'h-1.5 w-1.5 rounded-full',
-                                    isChildActive ? 'bg-sidebar-primary' : 'bg-muted-foreground'
-                                  )}
-                                />
-                                <span className="truncate">{child.label}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
+              <div className="space-y-0.5">{items.map(renderItem)}</div>
             </section>
           );
         })}
       </div>
+
+      {/* App Config — always pinned at bottom */}
+      {groupedItems['settings'].length > 0 && (
+        <div className="shrink-0 border-t border-sidebar-border/70 p-2 space-y-0.5">
+          {groupedItems['settings'].map(renderItem)}
+        </div>
+      )}
 
       <style jsx global>{`
         [data-nexus-admin-nav='true'] .nexus-admin-nav-scroll {

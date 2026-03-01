@@ -10,7 +10,7 @@ export default function SectionAdminAppConfigNavPanelTemplate({
   return (
     <section
       className={mergeClassNames(
-        'space-y-2 rounded-2xl border border-border/70 bg-card/80 p-3 shadow-sm',
+        'space-y-2',
         className
       )}
       data-nexus-app-config-nav-panel="true"

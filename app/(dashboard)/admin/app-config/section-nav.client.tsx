@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowRight,
   CreditCard,
+  FileText,
   Mail,
   Package,
   SlidersHorizontal
@@ -47,6 +48,12 @@ const SECTION_ITEMS: AppConfigSectionItem[] = [
     href: '/admin/app-config/email',
     icon: Mail,
     key: 'email'
+  },
+  {
+    href: '/admin/logs',
+    icon: FileText,
+    label: 'Logs',
+    description: 'View system and activity logs'
   }
 ];
 

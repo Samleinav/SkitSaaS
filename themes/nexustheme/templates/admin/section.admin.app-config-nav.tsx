@@ -11,7 +11,7 @@ export default function SectionAdminAppConfigNavTemplate({
   return (
     <div
       className={mergeClassNames(
-        'space-y-3 rounded-xl border border-border/70 bg-card/80 p-3 shadow-sm',
+        'space-y-3',
         className
       )}
       data-admin-section={section}
