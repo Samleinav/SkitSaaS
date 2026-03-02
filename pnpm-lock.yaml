@@ -23,8 +23,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1
       '@skitsaas/sdk':
-        specifier: workspace:*
-        version: link:app/sdk
+        specifier: ^1.1.1
+        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
       '@tailwindcss/postcss':
         specifier: 4.1.7
         version: 4.1.7
@@ -164,8 +164,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: workspace:*
-        version: link:../../app/sdk
+        specifier: ^1.1.1
+        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/first-frontend:
     dependencies:
@@ -180,8 +180,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: workspace:*
-        version: link:../../app/sdk
+        specifier: ^1.1.1
+        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/nexustheme:
     dependencies:
@@ -295,8 +295,8 @@ importers:
         version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.4))(@types/react@19.1.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: workspace:*
-        version: link:../../app/sdk
+        specifier: ^1.1.1
+        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
 packages:
 
@@ -2176,6 +2176,12 @@ packages:
   '@simplewebauthn/types@10.0.0':
     resolution: {integrity: sha512-SFXke7xkgPRowY2E+8djKbdEznTVnD5R6GO7GPTthpHrokLvNKw8C3lFZypTxLI7KkCfGPfhtqB3d7OVGGa9jQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+  '@skitsaas/sdk@1.1.1':
+    resolution: {integrity: sha512-pwtvM0M5oqvMCRAqpZDlqjYiJbd+I5qS6rXJWk8Ke0xrcjm/SGv9bnrXe3DMh+kaIv5mWbt07IVyeGQEW3m8Rw==}
+    peerDependencies:
+      drizzle-orm: ^0.43.1
+      react: ^19.0.0
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -6245,6 +6251,12 @@ snapshots:
       - encoding
 
   '@simplewebauthn/types@10.0.0': {}
+
+  '@skitsaas/sdk@1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
+    dependencies:
+      drizzle-orm: 0.43.1(gel@2.1.0)(postgres@3.4.5)
+      react: 19.1.0
+      typescript: 5.8.3
 
   '@standard-schema/spec@1.1.0': {}
 

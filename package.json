@@ -47,7 +47,7 @@
     "subscriptions:change-requests": "npx tsx scripts/subscription-change-worker.ts"
   },
   "dependencies": {
-    "@skitsaas/sdk": "workspace:*",
+    "@skitsaas/sdk": "^1.1.1",
     "@paypal/paypal-js": "^9.2.0",
     "@paypal/paypal-server-sdk": "^2.2.0",
     "@simplewebauthn/server": "^10.0.1",

@@ -9,7 +9,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@skitsaas/sdk": "workspace:*"
+    "@skitsaas/sdk": "^1.1.1"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

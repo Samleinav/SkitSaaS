@@ -9,15 +9,7 @@
   },
   "permissions": {
     "allow": [
-      "Bash(ls -la /d/GitHub/saas-starter/app/\\\\\\(frontend\\\\\\)/)",
-      "Bash(ls -la /d/GitHub/saas-starter/app/\\\\\\(dashboard\\\\\\)/admin/)",
-      "Bash(ls -la /d/GitHub/saas-starter/app/\\\\\\(dashboard\\\\\\)/dashboard/)",
-      "Bash(find /d/GitHub/saas-starter/modules -name \"module.json\" -exec head -30 {} ;)",
-      "Bash(find \"/d/GitHub/saas-starter/app/\\(login\\)\" -type d)",
-      "Bash(find \"/d/GitHub/saas-starter/app/\\(login\\)\" -type f)",
-      "Bash(pnpm typecheck)",
-      "Bash(ls d:/GitHub/saas-starter/app/\\\\\\(login\\\\\\)/)",
-      "Bash(ls templateShadcn/shadcn-dashboard/nextjs-version/src/app/\\\\\\(dashboard\\\\\\)/dashboard/)"
+      
     ]
   }
 }
