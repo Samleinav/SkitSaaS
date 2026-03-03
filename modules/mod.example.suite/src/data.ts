@@ -1,5 +1,5 @@
 import { and, desc, eq, or } from '@skitsaas/sdk/db';
-import { getDb, getTable } from '@skitsaas/sdk/server';
+import { getAdminDb, getTable } from '@skitsaas/sdk/server';
 import { modExampleSuiteItems, modExampleSuiteSettings } from '../db/schema';
 import {
   EXAMPLE_SUITE_DEFAULT_SETTINGS,
@@ -95,7 +95,7 @@ function mapItemRow(
 }
 
 function getExampleSuiteDb() {
-  return getDb<any>();
+  return getAdminDb<any>();
 }
 
 function getUsersTable() {

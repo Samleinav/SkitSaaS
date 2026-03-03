@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, isNull, ne } from '@skitsaas/sdk/db';
-import { getDb } from '@skitsaas/sdk/server';
+import { getAdminDb } from '@skitsaas/sdk/server';
 import {
   modCommerceProductPrices,
   modCommerceProductPublication,
@@ -64,7 +64,7 @@ type MutationContext = {
 };
 
 function getCommerceProductsDb() {
-  return getDb<any>();
+  return getAdminDb<any>();
 }
 
 function normalizePositiveInt(value: number | null | undefined) {

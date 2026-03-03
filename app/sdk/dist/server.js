@@ -53,6 +53,10 @@ export function getDb() {
     const adapter = readDatabaseAdapter();
     return adapter.getDb();
 }
+export function getAdminDb() {
+    const adapter = readDatabaseAdapter();
+    return adapter.getAdminDb ? adapter.getAdminDb() : adapter.getDb();
+}
 function normalizeDatabaseTableId(tableId) {
     return toTrimmedString(tableId).toLowerCase();
 }

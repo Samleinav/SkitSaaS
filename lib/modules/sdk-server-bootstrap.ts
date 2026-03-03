@@ -18,7 +18,7 @@ import {
   deleteAppConfigEntry,
   upsertAppConfigEntry
 } from '@/lib/config/app-config-writes';
-import { db } from '@/lib/db/drizzle';
+import { adminDb, db } from '@/lib/db/drizzle';
 import * as rootSchema from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
@@ -179,6 +179,7 @@ export function bootstrapModuleSdkServer() {
 
   configureDatabase({
     getDb: () => db,
+    getAdminDb: () => adminDb,
     getTable: (tableId) => ROOT_TABLE_REGISTRY.get(normalizeTableId(tableId)) ?? null,
     listTables: () => ROOT_TABLE_KEYS
   });

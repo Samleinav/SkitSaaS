@@ -13,9 +13,7 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
 import { TemplateConfirmSubmitButton } from '@/components/ui/template-confirm-submit-button';
 import {
-  getAllSubscriptionTemplatesForAdmin
-} from '@/lib/db/queries';
-import {
+  getAllSubscriptionTemplatesForAdmin,
   getAdminTeamById
 } from '@/lib/db/queries.admin';
 import { getServerMessages } from '@/lib/i18n/server';

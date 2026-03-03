@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, isNull } from '@skitsaas/sdk/db';
-import { getDb } from '@skitsaas/sdk/server';
+import { getAdminDb } from '@skitsaas/sdk/server';
 import { createOneTimeCheckoutOrderStart } from '@/lib/payments/checkout-orders';
 import {
   modCommerceProductPrices,
@@ -134,7 +134,7 @@ type FulfillmentRow = {
 };
 
 function getOneTimePaymentsDb() {
-  return getDb<any>();
+  return getAdminDb<any>();
 }
 
 function normalizePositiveInt(value: number | null | undefined) {

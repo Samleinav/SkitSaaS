@@ -17,11 +17,13 @@ export declare function getModuleConfigValue(namespace: string, configKey: strin
 export declare function setModuleConfigValue(namespace: string, configKey: string, configValue: string | null): Promise<void>;
 export type DatabaseAdapter = {
     getDb: () => unknown;
+    getAdminDb?: () => unknown;
     getTable?: (tableId: string) => unknown | null | undefined;
     listTables?: () => Iterable<string>;
 };
 export declare function configureDatabase(adapter: DatabaseAdapter): void;
 export declare function getDb<TDb = unknown>(): TDb;
+export declare function getAdminDb<TDb = unknown>(): TDb;
 export declare function listTables(): string[];
 export declare function findTable<TTable = unknown>(tableId: string): TTable | null;
 export declare function getTable<TTable = unknown>(tableId: string): NonNullable<TTable>;

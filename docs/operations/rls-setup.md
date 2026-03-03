@@ -163,6 +163,39 @@ import { getAllUsersForAdmin } from '@/lib/db/queries.admin';
 const users = await getAllUsersForAdmin({ page: 1, limit: 50 });
 ```
 
+## Module queries
+
+All modules access the database through `getAdminDb()` from `@skitsaas/sdk/server`.
+
+**Why not `getDb()`?**
+
+Module-owned tables (`mod_commerce_products`, `mod_example_suite_items`, etc.) are
+created by module migrations. The `saas_app` role only has grants on specific
+named host tables — it has no access to module tables. Using `getDb()` in a module
+would result in `permission denied` errors at runtime.
+
+`getAdminDb()` returns `adminDb` (`saas_admin` role), which has `ALL` on all tables
+via `GRANT ALL ON ALL TABLES IN SCHEMA public TO saas_admin`.
+
+**Authorization in modules** is enforced at the application level by the module's
+own query conditions — not by RLS:
+
+```ts
+// module data.ts
+import { getAdminDb } from '@skitsaas/sdk/server';
+
+function getDb() {
+  return getAdminDb<any>(); // full access — module applies own WHERE conditions
+}
+```
+
+When a module joins host tables that have RLS (e.g. `team_members` in a checkout
+flow), using `adminDb` is also correct since the module's WHERE clause enforces
+the access boundary itself.
+
+`getDb()` in modules is only appropriate for advanced user-scoped patterns where
+`withUserContext` is explicitly in the call chain — not required by default.
+
 ## Verification
 
 After deployment, run these checks:
@@ -246,3 +279,5 @@ To skip RLS locally:
 | `lib/db/queries.ts` | App-level queries using `db` |
 | `lib/db/queries.admin.ts` | Admin queries using `adminDb` |
 | `lib/db/migrations/0026_rls_setup.sql` | Roles, grants, and RLS policy migration |
+| `lib/modules/sdk-server-bootstrap.ts` | Wires both `db` and `adminDb` into the module SDK adapter |
+| `app/sdk/src/server.ts` | SDK `DatabaseAdapter` contract — `getDb` and `getAdminDb` exports |

@@ -106,6 +106,7 @@ export async function setModuleConfigValue(
 
 export type DatabaseAdapter = {
   getDb: () => unknown;
+  getAdminDb?: () => unknown;
   getTable?: (tableId: string) => unknown | null | undefined;
   listTables?: () => Iterable<string>;
 };
@@ -129,6 +130,11 @@ function readDatabaseAdapter() {
 export function getDb<TDb = unknown>() {
   const adapter = readDatabaseAdapter();
   return adapter.getDb() as TDb;
+}
+
+export function getAdminDb<TDb = unknown>() {
+  const adapter = readDatabaseAdapter();
+  return (adapter.getAdminDb ? adapter.getAdminDb() : adapter.getDb()) as TDb;
 }
 
 function normalizeDatabaseTableId(tableId: string) {

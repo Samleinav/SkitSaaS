@@ -1,5 +1,5 @@
 import { and, desc, eq, or } from '@skitsaas/sdk/db';
-import { getDb, getTable } from '@skitsaas/sdk/server';
+import { getAdminDb, getTable } from '@skitsaas/sdk/server';
 import { modExamplePackageItems, modExamplePackageSettings } from '../db/schema.js';
 import {
   EXAMPLE_PACKAGE_DEFAULT_SETTINGS,
@@ -20,7 +20,7 @@ function normalizeNullableText(value) {
 }
 
 function getDbClient() {
-  return getDb();
+  return getAdminDb();
 }
 
 function getUsersTable() {

@@ -54,6 +54,7 @@ Exports:
 - `setModuleConfigValue`
 - `configureDatabase`
 - `getDb`
+- `getAdminDb`
 - `findTable`
 - `getTable`
 - `listTables`
@@ -301,7 +302,7 @@ import {
   inferAppConfigIsSecret,
   trimToNull
 } from '@/lib/config/app-config';
-import { db } from '@/lib/db/drizzle';
+import { adminDb, db } from '@/lib/db/drizzle';
 import {
   users,
   subscriptionAssignments,
@@ -369,7 +370,8 @@ const TABLE_REGISTRY = new Map<string, unknown>([
   ['sys_activity_logs', sysActivityLogs]
 ]);
 configureDatabase({
-  getDb: () => db,
+  getDb: () => db,           // saas_app role — RLS enforced (user-facing queries)
+  getAdminDb: () => adminDb, // saas_admin role — bypasses RLS (admin / module-owned tables)
   getTable: (tableId) => {
     // tableId can be alias ("users", "subscriptions", "logs")
     // or db table name ("users", "subscription_assignments", etc.)
@@ -384,6 +386,7 @@ Then modules can use:
 ```ts
 import {
   emitEventAsync,
+  getAdminDb,
   getDb,
   getTable,
   requireUser,
@@ -391,7 +394,18 @@ import {
 } from '@skitsaas/sdk/server';
 
 const user = await requireUser<{ id: number }>();
-const db = getDb<any>();
+
+// getAdminDb() — use for module-owned tables and admin-area queries.
+// Module-owned tables are not in the saas_app grant list, so saas_app
+// cannot access them. saas_admin bypasses RLS and has access to all tables.
+// The module is responsible for its own authorization logic.
+const db = getAdminDb<any>();
+
+// getDb() — use only when the query targets host RLS-protected tables
+// (users, team_members, etc.) and app.user_id is set in the request context
+// via withUserContext(). Prefer getAdminDb() when in doubt.
+const userScopedDb = getDb<any>();
+
 const usersTable = getTable<any>('users');
 await revalidatePaths(['/dashboard/custom/analytics']);
 
