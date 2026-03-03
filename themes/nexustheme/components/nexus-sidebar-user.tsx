@@ -85,7 +85,7 @@ export function NexusSidebarUser() {
           {/* Menu items */}
           <div className="p-1">
             <Link
-              href="/dashboard"
+              href="/admin/account"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >

@@ -3,7 +3,7 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getAdminDashboardSummary,
   getSystemActivityLogsForAdmin
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { createPerfTrace } from '@/lib/observability/perf-trace';

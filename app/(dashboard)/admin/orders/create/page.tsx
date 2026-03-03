@@ -8,7 +8,9 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { getPaymentOrderFormOptionsForAdmin } from '@/lib/db/queries';
+import {
+  getPaymentOrderFormOptionsForAdmin
+} from '@/lib/db/queries.admin';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../guards';

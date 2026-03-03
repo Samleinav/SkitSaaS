@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import {
   getPaymentOrderForAdminById,
   getPaymentOrderFormOptionsForAdmin
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { updatePaymentOrderAction } from '../../actions';

@@ -1,4 +1,6 @@
-import { getPaymentProviderConfigsForAdmin } from '@/lib/db/queries';
+import {
+  getPaymentProviderConfigsForAdmin
+} from '@/lib/db/queries.admin';
 import { getEmailConfigDefinitionsForAdmin } from '@/lib/email/config';
 import { getOrganizationConfigDefinitionsForAdmin } from '@/lib/organizations/config';
 import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';

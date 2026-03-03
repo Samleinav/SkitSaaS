@@ -14,6 +14,7 @@ import {
   ReceiptText,
   Settings2,
   ShoppingCart,
+  UserRound,
   Users,
   type LucideIcon
 } from 'lucide-react';
@@ -57,6 +58,7 @@ const iconMap: Record<string, LucideIcon> = {
   'shopping-cart': ShoppingCart,
   'file-text': FileText,
   'settings-2': Settings2,
+  'user-round': UserRound,
   package: Package
 };
 
@@ -97,6 +99,7 @@ function isNavItemActive(pathname: string, item: TemplateNavItem) {
 function resolveNavGroup(item: TemplateNavItem): NavGroupKey {
   if (item.href === '/admin') return 'dashboards';
   if (item.href.startsWith('/admin/app-config')) return 'settings';
+  if (item.href.startsWith('/admin/account')) return 'settings';
   // modules (icon: 'package') and all other apps both go under 'apps'
   return 'apps';
 }

@@ -53,8 +53,9 @@ Exceptions (allowed in core docs):
 3. [Email System (SMTP)](./operations/email-system.md)
 4. [Events and Hooks](./operations/events-hooks.md)
 5. [Events and Hooks Emitters Checklist](./operations/events-hooks-emitters.md)
-6. [Ops Validation Pack](./operations/ops-validation-pack.md)
-7. [Ops Canary Pack](./operations/ops-canary-pack.md)
+6. [Row-Level Security (RLS) Setup](./operations/rls-setup.md)
+7. [Ops Validation Pack](./operations/ops-validation-pack.md)
+8. [Ops Canary Pack](./operations/ops-canary-pack.md)
 
 ## Extension Surfaces
 

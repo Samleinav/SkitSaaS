@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import {
   getAdminUserById,
   getUserSubscriptionTemplatesForAdmin
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../../../guards';

@@ -9,7 +9,9 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { getAllSubscriptionTemplatesForAdmin } from '@/lib/db/queries';
+import {
+  getAllSubscriptionTemplatesForAdmin
+} from '@/lib/db/queries.admin';
 import { requireAdminAccess } from '../guards';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';

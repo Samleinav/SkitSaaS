@@ -8,7 +8,7 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getAllUsersForAdmin,
   getUserSubscriptionTemplatesForAdmin
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { requireAdminAccess } from '../guards';
 import { formatDate } from '../utils';
 import type { AdminUserRow } from './columns';

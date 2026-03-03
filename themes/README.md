@@ -9,11 +9,6 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
 - Purpose: visual QA sandbox for public routes.
 - Style mode: tokens + `templates.json`.
 
-2. `theme.pilot.admin` (`themes/pilot-admin`)
-- Areas: `admin`, `dashboard`
-- Purpose: pilot for code-driven templates and theme i18n.
-- Style mode: tokens + `templates.json` + `config.ts`.
-
 3. `theme.first.frontend` (`themes/first-frontend`)
 - Area: `frontend`
 - Purpose: scaffold pack for first real frontend migration.
@@ -30,16 +25,6 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
   - `tokens.css`
   - `global.css` (declared in `config.ts`)
   - template placeholders (`layout.admin.shell`, `page.admin.home`, `layout.dashboard.shell`, `page.dashboard.home`, login pages, `system.not-found`)
-
-5. `theme.shadcn.dashboard.frontend` (`themes/shadcn-dashboard-frontend`)
-- Area: `frontend`
-- Purpose: shadcn dashboard inspired frontend visual variant.
-- Includes:
-  - `tokens.css`
-  - `global.css` (declared in `config.ts`)
-  - `routes.ts` for frontend route-driven dispatch
-  - route templates (`/__layout`, `/`, `/pricing`, `/404`)
-  - area assets (`assets/favicon-frontend.svg`)
 
 ## File layout per pack
 

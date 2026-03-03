@@ -18,7 +18,7 @@ import {
   getAdminUserById,
   getAdminUserOrganizations,
   getUserSubscriptionTemplatesForAdmin
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../guards';

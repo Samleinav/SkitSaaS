@@ -196,9 +196,15 @@ export default async function AdminLayout({
     icon: 'settings-2',
     label: messages.nav.appConfig
   };
+  const accountNavItemForTemplate: AdminNavTemplateItem = {
+    href: '/admin/account',
+    icon: 'user-round',
+    label: 'Account'
+  };
   const navItemsForTemplate: AdminNavTemplateItem[] = [
     ...coreNavItemsForTemplate,
     ...moduleNavItemsForTemplate,
+    accountNavItemForTemplate,
     appConfigNavItemForTemplate
   ];
   const navFallback = (

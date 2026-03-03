@@ -6,7 +6,9 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { getPaymentTransactionsForAdmin } from '@/lib/db/queries';
+import {
+  getPaymentTransactionsForAdmin
+} from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';

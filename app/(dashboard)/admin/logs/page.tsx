@@ -8,7 +8,10 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { getEmailLogsForAdmin, getSystemActivityLogsForAdmin } from '@/lib/db/queries';
+import {
+  getEmailLogsForAdmin,
+  getSystemActivityLogsForAdmin
+} from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';

@@ -22,7 +22,7 @@ import {
   getAllTeamsForAdmin,
   getAllUsersForAdmin,
   getAdminSubscriptionTargetIdsWithOrders
-} from '@/lib/db/queries';
+} from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
