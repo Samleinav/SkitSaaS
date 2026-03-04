@@ -53,21 +53,7 @@ Notes:
 - Example split: `AUTH_ADMIN_LOGIN_METHODS=passkey` and `AUTH_DASHBOARD_LOGIN_METHODS=password`.
 - Method tokens currently recognized by host policy are `password`, `passkey`, and `social`.
 
-## Module-owned auth config docs
-
-Auth provider module-specific config/env values are documented and owned by each module:
-
-- `modules/mod.auth.passkey/README.md`
-- `modules/mod.auth.social-logins/README.md`
-- `modules/mod.auth.enterprise-sso/README.md`
-
-Provider selection/filter keys used with provider-based login methods are documented in module ownership docs:
-
-- `AUTH_ADMIN_SOCIAL_PROVIDERS`
-- `AUTH_DASHBOARD_SOCIAL_PROVIDERS`
-- `AUTH_DEFAULT_SOCIAL_PROVIDER`
-
-This core document only tracks host-level env variables and policies.
+This core document only tracks host-level env variables. Auth extension modules (passkey, social login, SSO) document their own config in their respective `README.md`.
 
 ## Deployment surface mode
 
@@ -141,13 +127,6 @@ Notes:
 | `THEME_ADMIN_DEFAULT` | Legacy alias for `THEME_ADMIN` (deprecated) | empty |
 | `THEME_DASHBOARD_DEFAULT` | Legacy alias for `THEME_DASHBOARD` (deprecated) | empty |
 
-Legacy runtime keys (migration window only):
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `THEME_MODE` | Global mode fallback (`system`, `light`, `dark`) | `system` |
-| `THEME_ALLOW_USER_OVERRIDE` | Per-user runtime override (deprecated) | `true` |
-
 Theme pack prepare/build helpers:
 
 | Variable | Purpose | Default |
@@ -180,7 +159,6 @@ Performance diagnostics (optional):
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `FF_USE_APP_MODULES_RUNTIME` | Enable module runtime | `true` |
-| `FF_USE_THEME_RUNTIME` | Legacy theme runtime switch (deprecated, ignored by host rendering) | `false` |
 | `FF_USE_MODULE_DISPATCHER_ROUTES` | Enable module dispatcher routes | `true` |
 
 ## Module discovery and sync

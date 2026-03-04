@@ -27,13 +27,7 @@ This doc summarizes the core tables and their responsibilities.
 
 ## Module-owned extension tables
 
-This document focuses on core tables only.
-
-Module-specific table contracts and semantics are documented in module ownership docs:
-
-- `modules/mod.auth.passkey/README.md`
-- `modules/mod.auth.social-logins/README.md`
-- `modules/mod.auth.enterprise-sso/README.md`
+This document covers core tables only. Each installed module owns its own tables and documents them in its module `README.md`.
 
 ## Subscriptions and pricing
 
@@ -62,8 +56,8 @@ Financial flow:
 - `app_configs` - generic runtime config (payments, email, org policy, themes)
 - `app_modules` - module runtime state
 - `app_module_migrations` - module migration ledger (`module_id`, migration name, checksum, schema version)
-- `app_themes` - legacy theme catalog table (compatibility/audit)
-- `user_theme_preferences` - legacy per-user theme table (compatibility/audit)
+- `app_themes` - legacy theme catalog table (kept for migration compatibility, not used by current theme system)
+- `user_theme_preferences` - legacy per-user theme override table (kept for migration compatibility; runtime theme switching per user was removed — theme is now build-time only)
 
 ## Logs and audit
 

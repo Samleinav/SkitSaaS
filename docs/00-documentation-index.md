@@ -6,7 +6,9 @@ description: Entry index for core, subscriptions, operations, extensions, SDK, m
 
 # Documentation Index
 
-This index organizes the technical documentation for publication in Docusaurus.
+> **Using this docs site**: The `/docs` route is powered by [Fumadocs](https://fumadocs.vercel.app/) and reads from the `docs/` directory. Replace the content in `docs/` with your own product documentation. Keep `docs/00-documentation-index.md` as the entry point (the docs index redirects here by default). All other pages can be customized or removed freely.
+
+This index organizes the technical documentation for the S-Kit SaaS Starter core platform.
 
 ## Documentation Taxonomy
 

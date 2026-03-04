@@ -7,7 +7,14 @@ export default function Layout({ children }: { children: ReactNode }) {
     <DocsLayout
       tree={docsSource.pageTree}
       nav={{
-        title: 'S-Kit Docs',
+        title: (
+          <span className="flex items-center gap-2">
+            S-Kit Docs
+            <span className="rounded border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+              v1
+            </span>
+          </span>
+        ),
       }}
     >
       {children}
