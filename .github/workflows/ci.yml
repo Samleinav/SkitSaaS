@@ -9,9 +9,6 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    env:
-      AUTH_SECRET: your_auth_secret_here
-      POSTGRES_URL: postgres://postgres.nckoxizwhqypvwsarrnj:IBjIP4RYAnKpqlE4@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x
     steps:
       - name: Checkout
         uses: actions/checkout@v4
