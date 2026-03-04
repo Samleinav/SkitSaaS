@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import type { ComponentType } from 'react';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { appModules } from '@/lib/db/schema';
@@ -51,6 +52,8 @@ export type ResolvedModuleNavItem = {
   order: number;
   exact?: boolean;
 };
+
+export type StandaloneHomeComponent = ComponentType<{ userId: number }>;
 
 export type ModuleWidgetArea = 'admin' | 'dashboard';
 
@@ -933,6 +936,42 @@ function resolveNavItemsForModule(
   }));
 }
 
+function resolveStandaloneHomeComponentForModule(
+  manifest: ModuleManifest
+): StandaloneHomeComponent | null {
+  return manifest.standaloneHomeComponent ?? null;
+}
+
+async function resolveStandaloneNavItemsForModule(
+  manifest: ModuleManifest,
+  userId: number
+) {
+  const standaloneNavItems = manifest.standaloneNavItems;
+  if (!standaloneNavItems) {
+    return [] as ResolvedModuleNavItem[];
+  }
+
+  try {
+    const moduleNavItems =
+      typeof standaloneNavItems === 'function'
+        ? await standaloneNavItems(userId)
+        : standaloneNavItems;
+    if (!Array.isArray(moduleNavItems) || moduleNavItems.length === 0) {
+      return [] as ResolvedModuleNavItem[];
+    }
+
+    return moduleNavItems.map((item) => ({
+      href: item.href,
+      label: item.label,
+      order: normalizeOrder(item.order),
+      exact: item.exact
+    }));
+  } catch {
+    recordModuleDispatchFailure(manifest.moduleId, 'standalone_nav_items_error');
+    return [] as ResolvedModuleNavItem[];
+  }
+}
+
 export function buildEnabledModuleNavItems({
   manifests,
   runtimeRows,
@@ -977,6 +1016,101 @@ export async function getEnabledModuleNavItems(area: ModuleNavArea) {
   const manifests = getAllModuleManifests();
   const runtimeRows = await getModuleRuntimeRows();
   return buildEnabledModuleNavItems({ manifests, runtimeRows, area });
+}
+
+export function buildEnabledStandaloneHomeComponent({
+  manifests,
+  runtimeRows
+}: {
+  manifests: ModuleManifest[];
+  runtimeRows: ModuleRuntimeRow[];
+}) {
+  const enabledIds = new Set(
+    runtimeRows
+      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
+      .map((row) => row.moduleId)
+  );
+
+  for (const manifest of manifests) {
+    if (!enabledIds.has(manifest.moduleId)) {
+      continue;
+    }
+
+    const component = resolveStandaloneHomeComponentForModule(manifest);
+    if (component) {
+      return component;
+    }
+  }
+
+  return null;
+}
+
+export async function buildEnabledStandaloneNavItems({
+  manifests,
+  runtimeRows,
+  userId
+}: {
+  manifests: ModuleManifest[];
+  runtimeRows: ModuleRuntimeRow[];
+  userId: number;
+}) {
+  const enabledIds = new Set(
+    runtimeRows
+      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
+      .map((row) => row.moduleId)
+  );
+
+  const items: ResolvedModuleNavItem[] = [];
+  for (const manifest of manifests) {
+    if (!enabledIds.has(manifest.moduleId)) {
+      continue;
+    }
+
+    const moduleItems = await resolveStandaloneNavItemsForModule(manifest, userId);
+    if (moduleItems.length > 0) {
+      items.push(...moduleItems);
+    }
+  }
+
+  return items.sort((a, b) => {
+    if (a.order !== b.order) {
+      return a.order - b.order;
+    }
+
+    return a.label.localeCompare(b.label);
+  });
+}
+
+export async function getEnabledStandaloneHomeComponent() {
+  if (!isAreaEnabled('dashboard')) {
+    return null;
+  }
+
+  if (!featureFlags.useAppModulesRuntime) {
+    return null;
+  }
+
+  const manifests = getAllModuleManifests();
+  const runtimeRows = await getModuleRuntimeRows();
+  return buildEnabledStandaloneHomeComponent({ manifests, runtimeRows });
+}
+
+export async function getEnabledStandaloneNavItems(userId: number) {
+  if (!isAreaEnabled('dashboard')) {
+    return [];
+  }
+
+  if (!featureFlags.useAppModulesRuntime) {
+    return [];
+  }
+
+  const manifests = getAllModuleManifests();
+  const runtimeRows = await getModuleRuntimeRows();
+  return buildEnabledStandaloneNavItems({
+    manifests,
+    runtimeRows,
+    userId
+  });
 }
 
 function resolveWidgetsForArea(

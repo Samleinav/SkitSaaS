@@ -1,7 +1,7 @@
 export { EVENT_HOOKS } from './events/catalog.js';
 export type { EventHook } from './events/catalog.js';
 export type { EventPayload, ModuleEventContext, EventEmitContext, ModuleEventHandler, RegisteredEventHandler, EventEnvelope, EventDispatchResult } from './events/types.js';
-export type { ModuleArea, ModuleNavArea, ModuleRouteAccess, ModuleNavItem, ModuleWidgetDefinition, ModuleRouteContext, ModuleFrontendSlotContext, ModulePageHandler, ModuleApiHandler, ModuleFrontendSlotHandler, ModuleFrontendSlotDefinition, ModuleTemplatePackEntry, ModuleTemplatePack, ModuleAuthProviderKind, ModuleAuthProviderFlow, ModuleAuthProviderCapabilities, ModuleAuthProviderRoutes, ModuleAuthProvider, ModulePaymentOrderType, ModulePaymentMethodRoutes, ModulePaymentMethod, ModuleManifest } from './modules/manifest.js';
+export type { ModuleArea, ModuleNavArea, ModuleRouteAccess, ModuleNavItem, ModuleWidgetDefinition, ModuleRouteContext, ModuleFrontendSlotContext, ModulePageHandler, ModuleApiHandler, ModuleFrontendSlotHandler, ModuleFrontendSlotDefinition, ModuleTemplatePackEntry, ModuleTemplatePack, ModuleAuthProviderKind, ModuleAuthProviderFlow, ModuleAuthProviderCapabilities, ModuleAuthProviderRoutes, ModuleAuthProvider, ModulePaymentOrderType, ModulePaymentMethodRoutes, ModulePaymentMethod, ModuleUserRole, ModuleManifest } from './modules/manifest.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
 export type { ModuleI18nNamespace, ModuleMessageTree, ModuleMessagesByLocale, ModuleMessagesByArea } from './i18n/types.js';
 export { ThemeI18nProvider, useThemeMessages, resolveThemeMessages, type ThemeMessageTree, type ThemeMessagesByLocale, type ThemeI18nRegistry } from './i18n/theme.js';

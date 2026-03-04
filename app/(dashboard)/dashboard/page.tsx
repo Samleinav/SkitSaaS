@@ -1,8 +1,14 @@
 import type { ComponentType } from 'react';
+import { redirect } from 'next/navigation';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { getEnabledDashboardModuleWidgets } from '@/lib/modules/runtime';
+import { requireAnyDashboardAccess } from '@/lib/auth/contexts';
+import {
+  getEnabledDashboardModuleWidgets,
+  getEnabledStandaloneHomeComponent
+} from '@/lib/modules/runtime';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import DashboardHomeCore from './home-core';
+import DashboardHomeNoContext from './home-no-context';
 
 type DashboardHomeModuleProps = {};
 
@@ -19,6 +25,21 @@ const CORE_DASHBOARD_HOME_MODULES: DashboardHomeModuleDefinition[] = [
 ];
 
 export default async function DashboardHomePage() {
+  const { context } = await requireAnyDashboardAccess();
+
+  if (context.type === 'system_admin') {
+    redirect('/admin');
+  }
+
+  if (context.type === 'standalone') {
+    const StandaloneHome = await getEnabledStandaloneHomeComponent();
+    if (StandaloneHome) {
+      return <StandaloneHome userId={context.userId} />;
+    }
+
+    return <DashboardHomeNoContext />;
+  }
+
   const widgets = await getEnabledDashboardModuleWidgets();
   const widgetModules: DashboardHomeModuleDefinition[] = widgets.map((widget) => ({
     id: widget.id,

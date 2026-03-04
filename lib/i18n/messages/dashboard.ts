@@ -17,6 +17,10 @@ export type DashboardMessages = {
       subscriptions: string;
     };
   };
+  homeNoContext: {
+    title: string;
+    description: string;
+  };
   team: {
     title: string;
     subscription: {
@@ -258,6 +262,11 @@ export const dashboardMessages: Record<AppLocale, DashboardMessages> = {
         security: 'Security',
         subscriptions: 'Subscriptions'
       }
+    },
+    homeNoContext: {
+      title: 'No dashboard modules available',
+      description:
+        'Your account does not have a standalone dashboard experience configured yet.'
     },
     team: {
       title: 'Team Settings',
@@ -505,6 +514,11 @@ export const dashboardMessages: Record<AppLocale, DashboardMessages> = {
         security: 'Seguridad',
         subscriptions: 'Suscripciones'
       }
+    },
+    homeNoContext: {
+      title: 'No hay modulos de dashboard disponibles',
+      description:
+        'Tu cuenta todavia no tiene una experiencia standalone configurada.'
     },
     team: {
       title: 'Configuracion del equipo',
