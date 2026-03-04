@@ -27,6 +27,10 @@ import {
   PRIVATE_LAYOUT_MODE
 } from '@/lib/layout/private-area';
 import { cn } from '@/lib/utils';
+import {
+  resolveDashboardNavItemsForContext,
+  type DashboardContextType
+} from './nav-context';
 
 type DashboardSubNavItem = {
   href: string;
@@ -106,9 +110,11 @@ function DashboardLanguageSwitcher({
 
 export default function DashboardLayout({
   children,
+  contextType,
   moduleItems = []
 }: {
   children: React.ReactNode;
+  contextType: DashboardContextType;
   moduleItems?: Array<{ href: string; label: string; exact?: boolean }>;
 }) {
   const messages = useAreaMessages('dashboard');
@@ -158,7 +164,11 @@ export default function DashboardLayout({
     label: item.label,
     exact: item.exact
   }));
-  const combinedNavItems = [...navItems, ...moduleNavItems];
+  const combinedNavItems = resolveDashboardNavItemsForContext({
+    contextType,
+    teamMemberItems: [...navItems, ...moduleNavItems],
+    standaloneItems: moduleNavItems
+  });
 
   if (DASHBOARD_LAYOUT_STYLE === 'layout_basic') {
     return (

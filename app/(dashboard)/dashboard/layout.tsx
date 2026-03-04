@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import DashboardLayoutClient from './layout-client';
 import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
-import { getEnabledModuleNavItems } from '@/lib/modules/runtime';
+import { requireAnyDashboardAccess } from '@/lib/auth/contexts';
+import {
+  getEnabledModuleNavItems,
+  getEnabledStandaloneNavItems
+} from '@/lib/modules/runtime';
 import { ThemeRuntimeProvider } from '@/components/theme/theme-runtime-provider';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
@@ -18,6 +22,7 @@ import {
 import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
+import { resolveDashboardNavItemsForContext } from './nav-context';
 
 export async function generateMetadata(): Promise<Metadata> {
   if (!isDashboardEnabled()) {
@@ -52,13 +57,34 @@ export default async function DashboardLayout({
     notFound();
   }
 
-  const moduleItems = await getEnabledModuleNavItems('dashboard');
-  const navPayload = { items: [...moduleItems] };
-  await emitEvent(
-    EVENT_HOOKS.dashboardNavItemsCompose,
-    navPayload,
-    { source: '/dashboard/layout' }
-  );
+  const { context } = await requireAnyDashboardAccess();
+  if (context.type === 'system_admin') {
+    redirect('/admin');
+  }
+
+  let teamMemberItems: Awaited<ReturnType<typeof getEnabledModuleNavItems>> = [];
+  if (context.type === 'team_member') {
+    teamMemberItems = await getEnabledModuleNavItems('dashboard');
+    const navPayload = { items: [...teamMemberItems] };
+    await emitEvent(
+      EVENT_HOOKS.dashboardNavItemsCompose,
+      navPayload,
+      { source: '/dashboard/layout' }
+    );
+    teamMemberItems = navPayload.items;
+  }
+
+  const standaloneItems =
+    context.type === 'standalone'
+      ? await getEnabledStandaloneNavItems(context.userId)
+      : [];
+
+  const moduleItems = resolveDashboardNavItemsForContext({
+    contextType: context.type,
+    teamMemberItems,
+    standaloneItems
+  });
+
   const themeSelection = await getThemeSelectionForArea('dashboard');
   const areaAssets = resolveAreaAssetHrefsBySelection({
     themeId: themeSelection.themeKey,
@@ -66,9 +92,7 @@ export default async function DashboardLayout({
   });
 
   const layoutContent = (
-    <DashboardLayoutClient
-      moduleItems={navPayload.items}
-    >
+    <DashboardLayoutClient contextType={context.type} moduleItems={moduleItems}>
       {children}
     </DashboardLayoutClient>
   );

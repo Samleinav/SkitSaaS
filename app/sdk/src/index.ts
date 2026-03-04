@@ -32,6 +32,7 @@ export type {
   ModulePaymentOrderType,
   ModulePaymentMethodRoutes,
   ModulePaymentMethod,
+  ModuleUserRole,
   ModuleManifest
 } from './modules/manifest.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';

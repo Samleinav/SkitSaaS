@@ -91,6 +91,12 @@ export type ModulePaymentMethod = {
     routes: ModulePaymentMethodRoutes;
     metadata?: Record<string, unknown>;
 };
+export type ModuleUserRole = {
+    roleId: string;
+    displayName: string;
+    description?: string;
+    detectForUser: (userId: number) => Promise<boolean>;
+};
 export type ModuleManifest = {
     moduleId: string;
     version: string;
@@ -115,6 +121,11 @@ export type ModuleManifest = {
     templatePack?: ModuleTemplatePack;
     authProviders?: ModuleAuthProvider[];
     paymentMethods?: ModulePaymentMethod[];
+    standaloneHomeComponent?: ComponentType<{
+        userId: number;
+    }>;
+    standaloneNavItems?: ModuleNavItem[] | ((userId: number) => Promise<ModuleNavItem[]>);
+    userRoles?: ModuleUserRole[];
 };
 export declare function defineModule(manifest: ModuleManifest): ModuleManifest;
 export declare function validateModuleManifest(manifest: ModuleManifest): string[];
