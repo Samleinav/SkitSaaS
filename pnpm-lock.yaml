@@ -144,25 +144,6 @@ importers:
         specifier: 16.1.6
         version: 16.1.6(@typescript-eslint/parser@8.55.0(eslint@9.39.2(jiti@2.4.2))(typescript@5.8.3))(eslint@9.39.2(jiti@2.4.2))(typescript@5.8.3)
 
-  app/sdk:
-    dependencies:
-      react:
-        specifier: ^19.0.0
-        version: 19.1.0
-      typescript:
-        specifier: ^5.8.0
-        version: 5.8.3
-    devDependencies:
-      '@types/node':
-        specifier: ^22.15.18
-        version: 22.15.18
-      '@types/react':
-        specifier: ^19.0.0
-        version: 19.1.4
-      drizzle-orm:
-        specifier: ^0.43.1
-        version: 0.43.1(gel@2.1.0)(postgres@3.4.5)
-
   themes/first-backoffice:
     dependencies:
       next:
@@ -176,8 +157,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.1
-        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.1.3
+        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/first-frontend:
     dependencies:
@@ -192,8 +173,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.1
-        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.1.3
+        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/nexustheme:
     dependencies:
@@ -307,8 +288,8 @@ importers:
         version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.4))(@types/react@19.1.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.1
-        version: 1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.1.3
+        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
 packages:
 
@@ -2381,12 +2362,6 @@ packages:
   '@simplewebauthn/types@10.0.0':
     resolution: {integrity: sha512-SFXke7xkgPRowY2E+8djKbdEznTVnD5R6GO7GPTthpHrokLvNKw8C3lFZypTxLI7KkCfGPfhtqB3d7OVGGa9jQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
-
-  '@skitsaas/sdk@1.1.1':
-    resolution: {integrity: sha512-pwtvM0M5oqvMCRAqpZDlqjYiJbd+I5qS6rXJWk8Ke0xrcjm/SGv9bnrXe3DMh+kaIv5mWbt07IVyeGQEW3m8Rw==}
-    peerDependencies:
-      drizzle-orm: ^0.43.1
-      react: ^19.0.0
 
   '@skitsaas/sdk@1.1.3':
     resolution: {integrity: sha512-SfbnkLRFC2W68pymX/hQidf93wvjylq76tLPPDeyjQiUYngqsxEgMEKVQ7F93Myz4fc6jdbazrMLJmfiZfMEQQ==}
@@ -7193,12 +7168,6 @@ snapshots:
       - encoding
 
   '@simplewebauthn/types@10.0.0': {}
-
-  '@skitsaas/sdk@1.1.1(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
-    dependencies:
-      drizzle-orm: 0.43.1(gel@2.1.0)(postgres@3.4.5)
-      react: 19.1.0
-      typescript: 5.8.3
 
   '@skitsaas/sdk@1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
     dependencies:
