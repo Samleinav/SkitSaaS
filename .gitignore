@@ -19,12 +19,16 @@ examplemodules
 templateShadcn
 plans
 tmp
+nul
 # testing
 /coverage
 # next.js
 /.next/
 /out/
 /public/.generated/
+
+# fumadocs generated source
+/.source/
 
 # production
 /build

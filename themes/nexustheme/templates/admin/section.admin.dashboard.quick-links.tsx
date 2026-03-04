@@ -10,22 +10,11 @@ export default function SectionAdminDashboardQuickLinksTemplate({
 
   return (
     <section
-      className={mergeClassNames(
-        'overflow-hidden rounded-2xl border border-border/70 bg-card/50 shadow-sm',
-        className
-      )}
+      className={mergeClassNames('min-w-0', className)}
       data-nexus-admin-dashboard-slot="quick-links"
     >
-      {title ? (
-        <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3 sm:px-5">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            {title}
-          </p>
-        </div>
-      ) : null}
-      <div className="p-4 sm:p-5">
-        {children}
-      </div>
+      {title ? <p className="sr-only">{title}</p> : null}
+      {children}
     </section>
   );
 }

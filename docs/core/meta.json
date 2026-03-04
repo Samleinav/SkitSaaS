@@ -1,0 +1,10 @@
+{
+  "title": "Core Platform",
+  "pages": [
+    "platform-capabilities",
+    "architecture-routing-actions",
+    "database-model",
+    "env-variables",
+    "theme-build-time-only-adr"
+  ]
+}

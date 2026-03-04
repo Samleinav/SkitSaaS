@@ -1,0 +1,8 @@
+{
+  "title": "Audit and Evidence",
+  "pages": [
+    "documentation-audit-phases",
+    "baseline-snapshots",
+    "canary-reports"
+  ]
+}

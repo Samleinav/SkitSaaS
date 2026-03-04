@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "00-documentation-index",
+    "core",
+    "subscriptions",
+    "operations",
+    "extensions",
+    "modules",
+    "sdk",
+    "audit"
+  ]
+}

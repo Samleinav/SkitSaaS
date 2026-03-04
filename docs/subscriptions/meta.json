@@ -1,0 +1,9 @@
+{
+  "title": "Subscriptions and Billing",
+  "pages": [
+    "features-and-quotas",
+    "payment-events-lifecycle",
+    "dashboard-subscription-management",
+    "checkout-subscription-change-checklist"
+  ]
+}

@@ -9,6 +9,6 @@
     "@skitsaas/sdk": "*"
   },
   "devDependencies": {
-    "@skitsaas/sdk": "^1.1.1"
+    "@skitsaas/sdk": "^1.1.3"
   }
 }

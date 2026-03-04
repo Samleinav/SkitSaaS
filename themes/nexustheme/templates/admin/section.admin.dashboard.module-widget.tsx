@@ -7,10 +7,7 @@ export default function SectionAdminDashboardModuleWidgetTemplate({
 }: TemplateProps) {
   return (
     <section
-      className={mergeClassNames(
-        'overflow-hidden rounded-2xl border border-border/70 bg-card/70 p-4 shadow-sm sm:p-5',
-        className
-      )}
+      className={mergeClassNames('min-w-0', className)}
       data-nexus-admin-dashboard-slot="module-widget"
     >
       {children}
