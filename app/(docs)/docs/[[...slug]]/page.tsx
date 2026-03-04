@@ -2,7 +2,7 @@ import { docsSource } from '@/lib/docs-source';
 import { getMDXComponents } from '@/mdx-components';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
 
 export default async function Page({ params }: Props) {
   const { slug } = await params;
+  if (!slug || slug.length === 0) redirect('/docs/00-documentation-index');
   const page = docsSource.getPage(slug);
   if (!page) notFound();
 

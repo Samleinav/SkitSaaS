@@ -93,6 +93,12 @@ async function PublicHeader() {
           >
             {header.pricing}
           </Link>
+          <Link
+            href="/docs"
+            className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
+          >
+            Docs
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
