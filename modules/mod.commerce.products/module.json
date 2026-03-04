@@ -3,7 +3,7 @@
   "moduleMode": "source-host",
   "version": "0.1.0",
   "sourceEntry": "src/manifest.ts",
-  "sdkRange": "^0.1.0",
+  "sdkRange": "^1.1.3",
   "db": {
     "schemaVersion": 1,
     "migrationsDir": "db/migrations"
