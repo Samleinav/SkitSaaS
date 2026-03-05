@@ -1,9 +1,13 @@
-import { eq } from 'drizzle-orm';
 import type { ComponentType } from 'react';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { appModules } from '@/lib/db/schema';
 import { featureFlags } from '@/lib/feature-flags';
+import { getResolvedAppConfig } from '@/lib/runtime-config/load-app-config';
+import type {
+  ModuleFlags,
+  ModuleRuntimeMode
+} from '@/lib/runtime-config/types';
 import { recordModuleDispatchFailure } from '@/lib/observability/migration-metrics';
 import { isAreaEnabled } from '@/lib/config/runtime-surface';
 import { getAllModuleManifests, getModuleManifest } from './registry';
@@ -251,6 +255,7 @@ const MODULE_STATUSES = new Set<ModuleRuntimeStatus>([
   'uninstalled'
 ]);
 const FRONTEND_ADMIN_ROLES = new Set(['admin']);
+const resolvedAppConfig = getResolvedAppConfig();
 
 function normalizeModuleStatus(value: string): ModuleRuntimeStatus {
   if (MODULE_STATUSES.has(value as ModuleRuntimeStatus)) {
@@ -258,6 +263,70 @@ function normalizeModuleStatus(value: string): ModuleRuntimeStatus {
   }
 
   return 'uninstalled';
+}
+
+export function resolveEnabledModuleIdSet({
+  manifests,
+  runtimeRows,
+  moduleRuntimeMode,
+  moduleFlags
+}: {
+  manifests: ModuleManifest[];
+  runtimeRows: ModuleRuntimeRow[];
+  moduleRuntimeMode: ModuleRuntimeMode;
+  moduleFlags: ModuleFlags;
+}) {
+  const manifestIds = new Set(manifests.map((manifest) => manifest.moduleId));
+  const enabledByDb = new Set(
+    runtimeRows
+      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
+      .map((row) => row.moduleId)
+      .filter((moduleId) => manifestIds.has(moduleId))
+  );
+
+  if (moduleRuntimeMode === 'db') {
+    return enabledByDb;
+  }
+
+  const enabledByConfig = new Set<string>();
+  for (const [moduleId, enabled] of Object.entries(moduleFlags)) {
+    if (!manifestIds.has(moduleId) || enabled !== true) {
+      continue;
+    }
+
+    enabledByConfig.add(moduleId);
+  }
+
+  if (moduleRuntimeMode === 'config') {
+    return enabledByConfig;
+  }
+
+  const enabledHybrid = new Set<string>(enabledByDb);
+  for (const moduleId of enabledByConfig) {
+    enabledHybrid.add(moduleId);
+  }
+  for (const [moduleId, enabled] of Object.entries(moduleFlags)) {
+    if (enabled === false) {
+      enabledHybrid.delete(moduleId);
+    }
+  }
+
+  return enabledHybrid;
+}
+
+function resolveRuntimeEnabledModuleIdSet({
+  manifests,
+  runtimeRows
+}: {
+  manifests: ModuleManifest[];
+  runtimeRows: ModuleRuntimeRow[];
+}) {
+  return resolveEnabledModuleIdSet({
+    manifests,
+    runtimeRows,
+    moduleRuntimeMode: resolvedAppConfig.moduleRuntimeMode,
+    moduleFlags: resolvedAppConfig.modules
+  });
 }
 
 export type FrontendModuleAccessOutcome =
@@ -524,6 +593,10 @@ async function getModuleRuntimeRows(): Promise<ModuleRuntimeRow[]> {
     return [];
   }
 
+  if (resolvedAppConfig.moduleRuntimeMode === 'config') {
+    return [];
+  }
+
   const rows = await db
     .select({
       moduleId: appModules.moduleId,
@@ -532,6 +605,10 @@ async function getModuleRuntimeRows(): Promise<ModuleRuntimeRow[]> {
       installMode: appModules.installMode
     })
     .from(appModules);
+
+  if (!Array.isArray(rows)) {
+    return [];
+  }
 
   return rows.map((row) => ({
     ...row,
@@ -544,14 +621,14 @@ export async function getEnabledModuleManifests() {
     return [];
   }
 
+  const manifests = getAllModuleManifests();
   const runtimeRows = await getModuleRuntimeRows();
-  const enabledIds = new Set(
+  const enabledIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => row.status === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
 
-  return getAllModuleManifests().filter((manifest) =>
+  return manifests.filter((manifest) =>
     enabledIds.has(manifest.moduleId)
   );
 }
@@ -565,11 +642,10 @@ export function buildAuthProviderRegistry({
   runtimeRows: ModuleRuntimeRow[];
   enabledOnly?: boolean;
 }): ModuleAuthProviderRegistry {
-  const enabledModuleIds = new Set(
+  const enabledModuleIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
   const providers: ResolvedModuleAuthProvider[] = [];
 
   for (const manifest of manifests) {
@@ -748,11 +824,10 @@ export function buildPaymentMethodRegistry({
   runtimeRows: ModuleRuntimeRow[];
   enabledOnly?: boolean;
 }): ModulePaymentMethodRegistry {
-  const enabledModuleIds = new Set(
+  const enabledModuleIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
   const methods: ResolvedModulePaymentMethod[] = [];
 
   for (const manifest of manifests) {
@@ -903,15 +978,17 @@ export async function isModuleEnabled(moduleId: string) {
     return false;
   }
 
-  const [row] = await db
-    .select({
-      status: appModules.status
-    })
-    .from(appModules)
-    .where(eq(appModules.moduleId, moduleId))
-    .limit(1);
+  const manifests = getAllModuleManifests();
+  if (!manifests.some((manifest) => manifest.moduleId === moduleId)) {
+    return false;
+  }
 
-  return row?.status === 'enabled';
+  const runtimeRows = await getModuleRuntimeRows();
+  const enabledModuleIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
+    runtimeRows
+  });
+  return enabledModuleIds.has(moduleId);
 }
 
 function resolveNavItemsForModule(
@@ -981,11 +1058,10 @@ export function buildEnabledModuleNavItems({
   runtimeRows: ModuleRuntimeRow[];
   area: ModuleNavArea;
 }) {
-  const enabledIds = new Set(
+  const enabledIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
 
   const items = manifests.flatMap((manifest) => {
     if (!enabledIds.has(manifest.moduleId)) {
@@ -1025,11 +1101,10 @@ export function buildEnabledStandaloneHomeComponent({
   manifests: ModuleManifest[];
   runtimeRows: ModuleRuntimeRow[];
 }) {
-  const enabledIds = new Set(
+  const enabledIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
 
   for (const manifest of manifests) {
     if (!enabledIds.has(manifest.moduleId)) {
@@ -1054,11 +1129,10 @@ export async function buildEnabledStandaloneNavItems({
   runtimeRows: ModuleRuntimeRow[];
   userId: number;
 }) {
-  const enabledIds = new Set(
+  const enabledIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
 
   const items: ResolvedModuleNavItem[] = [];
   for (const manifest of manifests) {
@@ -1131,11 +1205,10 @@ export function buildEnabledModuleWidgets({
   runtimeRows: ModuleRuntimeRow[];
   area: ModuleWidgetArea;
 }) {
-  const enabledIds = new Set(
+  const enabledIds = resolveRuntimeEnabledModuleIdSet({
+    manifests,
     runtimeRows
-      .filter((row) => normalizeModuleStatus(row.status) === 'enabled')
-      .map((row) => row.moduleId)
-  );
+  });
 
   const widgets = manifests.flatMap(
     (manifest) => {

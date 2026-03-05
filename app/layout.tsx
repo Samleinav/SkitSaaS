@@ -12,10 +12,13 @@ import { ThemeRuntimeScript } from '@/components/theme/theme-runtime-script';
 import { ThemeI18nHost } from '@/components/theme/theme-i18n-host';
 import { ThemeAreaCssGuard } from '@/components/theme/theme-area-css-guard';
 import { bootstrapModuleSdkServer } from '@/lib/modules/sdk-server-bootstrap';
+import { getResolvedAppConfig } from '@/lib/runtime-config/load-app-config';
+
+const resolvedAppConfig = getResolvedAppConfig();
 
 export const metadata: Metadata = {
-  title: 'Next.js S-Kit Saas Starter',
-  description: 'Get started quickly with Next.js, Postgres, Stripe, and PayPal.'
+  title: resolvedAppConfig.projectName,
+  description: `${resolvedAppConfig.projectName} platform.`
 };
 
 export const viewport: Viewport = {

@@ -161,6 +161,15 @@ Performance diagnostics (optional):
 | `FF_USE_APP_MODULES_RUNTIME` | Enable module runtime | `true` |
 | `FF_USE_MODULE_DISPATCHER_ROUTES` | Enable module dispatcher routes | `true` |
 
+## App runtime config overrides
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `APP_PROJECT_NAME` | Override `app.config.ts` `projectName` | empty |
+| `MODULE_RUNTIME_MODE` | Override `app.config.ts` `moduleRuntimeMode` (`db`, `config`, `hybrid`) | empty |
+| `ACTIVE_MODULES_ENABLE` | Comma-separated modules to force-enable at runtime | empty |
+| `ACTIVE_MODULES_DISABLE` | Comma-separated modules to force-disable at runtime | empty |
+
 ## Module discovery and sync
 
 | Variable | Purpose | Default |

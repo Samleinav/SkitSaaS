@@ -14,6 +14,7 @@ Core components:
 - Registry (static list): `lib/modules/registry.ts`
 - External registry (generated): `lib/modules/external.generated.ts`
 - Runtime dispatcher: `lib/modules/runtime.ts`
+- App runtime config: `app.config.ts` + `lib/runtime-config/*`
 - Events/hooks: `lib/events/*`
 - Module i18n registry: `lib/i18n/messages/modules.generated.ts`
 - Admin dispatcher route: `app/(dashboard)/admin/modules/[moduleId]/[[...slug]]/page.tsx`
@@ -31,8 +32,11 @@ Feature flags (default `true`, set `false` to disable):
 Runtime state rules:
 
 - The registry defines which modules exist.
-- The DB defines which modules are enabled.
-- A module is only visible in nav/routes when **both** registry and DB say it is enabled.
+- Runtime mode controls how enabled modules are resolved:
+  - `db`: enabled state from `app_modules` table.
+  - `config`: enabled state from `app.config.ts` `modules` map (plus env overrides).
+  - `hybrid`: DB baseline + config/env overrides.
+- A module is only visible in nav/routes when it is in registry and resolved as enabled by the active runtime mode.
 
 Module mode rules (`module.json` -> `moduleMode`):
 

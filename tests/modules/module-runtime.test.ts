@@ -12,6 +12,7 @@ import {
   evaluateFrontendModuleAccess,
   getEnabledDashboardModuleWidgets,
   mergeModuleRuntimeState,
+  resolveEnabledModuleIdSet,
   resolveFrontendRouteAccessOutcome,
   resolveFrontendRouteAccessPolicy,
   resolveFrontendSlotProvider,
@@ -34,6 +35,92 @@ const manifests = [
     displayName: 'Beta'
   })
 ];
+
+test('resolveEnabledModuleIdSet resolves db mode from runtime rows only', () => {
+  const runtimeRows: ModuleRuntimeRow[] = [
+    {
+      moduleId: 'mod.alpha',
+      status: 'enabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    },
+    {
+      moduleId: 'mod.beta',
+      status: 'disabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    }
+  ];
+
+  const enabled = resolveEnabledModuleIdSet({
+    manifests,
+    runtimeRows,
+    moduleRuntimeMode: 'db',
+    moduleFlags: {
+      'mod.beta': true
+    }
+  });
+
+  assert.deepEqual([...enabled], ['mod.alpha']);
+});
+
+test('resolveEnabledModuleIdSet resolves config mode from module flags only', () => {
+  const runtimeRows: ModuleRuntimeRow[] = [
+    {
+      moduleId: 'mod.alpha',
+      status: 'disabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    },
+    {
+      moduleId: 'mod.beta',
+      status: 'disabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    }
+  ];
+
+  const enabled = resolveEnabledModuleIdSet({
+    manifests,
+    runtimeRows,
+    moduleRuntimeMode: 'config',
+    moduleFlags: {
+      'mod.alpha': true,
+      'mod.unknown': true
+    }
+  });
+
+  assert.deepEqual([...enabled], ['mod.alpha']);
+});
+
+test('resolveEnabledModuleIdSet resolves hybrid mode with config override', () => {
+  const runtimeRows: ModuleRuntimeRow[] = [
+    {
+      moduleId: 'mod.alpha',
+      status: 'enabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    },
+    {
+      moduleId: 'mod.beta',
+      status: 'disabled',
+      version: '1.0.0',
+      installMode: 'plugin'
+    }
+  ];
+
+  const enabled = resolveEnabledModuleIdSet({
+    manifests,
+    runtimeRows,
+    moduleRuntimeMode: 'hybrid',
+    moduleFlags: {
+      'mod.alpha': false,
+      'mod.beta': true
+    }
+  });
+
+  assert.deepEqual([...enabled].sort(), ['mod.beta']);
+});
 
 test('mergeModuleRuntimeState annotates manifests with runtime status', () => {
   const runtimeRows: ModuleRuntimeRow[] = [
@@ -897,23 +984,43 @@ test('resolveModuleRouteAlias prefers longest alias match', () => {
 });
 
 function mockModuleEnabledStatus(status: 'enabled' | 'disabled') {
+  const runtimeRows = [
+    {
+      moduleId: 'mod.example.admin',
+      status,
+      version: '0.1.0',
+      installMode: 'plugin'
+    },
+    {
+      moduleId: 'mod.example.dashboard',
+      status,
+      version: '0.1.0',
+      installMode: 'plugin'
+    },
+    {
+      moduleId: 'mod.example.api',
+      status,
+      version: '0.1.0',
+      installMode: 'plugin'
+    }
+  ];
+
   return mock.method(
     db as unknown as {
       select: (...args: unknown[]) => {
-        from: (...args: unknown[]) => {
-          where: (...args: unknown[]) => {
-            limit: (...args: unknown[]) => Promise<Array<{ status: string }>>;
-          };
-        };
+        from: (...args: unknown[]) => Promise<
+          Array<{
+            moduleId: string;
+            status: string;
+            version: string;
+            installMode: string;
+          }>
+        >;
       };
     },
     'select',
     () => ({
-      from: () => ({
-        where: () => ({
-          limit: async () => [{ status }]
-        })
-      })
+      from: async () => runtimeRows
     })
   );
 }
