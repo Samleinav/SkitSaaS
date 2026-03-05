@@ -7,6 +7,7 @@ type ModuleJson = {
   db?: {
     schemaVersion?: number;
     migrationsDir?: string;
+    dependsOn?: string[];
   };
 };
 
@@ -16,6 +17,7 @@ export type ModuleMigrationTarget = {
   migrationsDirAbsolute: string;
   migrationsDirRelative: string;
   migrationFiles: string[];
+  dependsOnModuleIds: string[];
 };
 
 export type ModulesMigrateOptions = {
@@ -156,6 +158,13 @@ export function discoverModuleMigrationTargets({
       .map((entry) => entry.name)
       .sort((a, b) => a.localeCompare(b));
 
+    const dependsOnModuleIds = Array.isArray(dbConfig.dependsOn)
+      ? dbConfig.dependsOn
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      : [];
+
     targets.push({
       moduleId: moduleJson.moduleId,
       schemaVersion: resolveSchemaVersion(dbConfig.schemaVersion),
@@ -163,11 +172,89 @@ export function discoverModuleMigrationTargets({
       migrationsDirRelative: toPosixPath(
         path.relative(rootDir, migrationsDirAbsolute)
       ),
-      migrationFiles
+      migrationFiles,
+      dependsOnModuleIds
     });
   }
 
-  return targets.sort((a, b) => a.moduleId.localeCompare(b.moduleId));
+  if (targets.length <= 1) {
+    return targets;
+  }
+
+  const byModuleId = new Map(targets.map((target) => [target.moduleId, target]));
+  const inDegree = new Map<string, number>();
+  const dependents = new Map<string, string[]>();
+
+  for (const target of targets) {
+    let degree = 0;
+    for (const dependencyModuleId of target.dependsOnModuleIds) {
+      if (dependencyModuleId === target.moduleId) {
+        warnings.push(
+          `Module ${target.moduleId} declares db.dependsOn with itself; dependency ignored.`
+        );
+        continue;
+      }
+
+      if (!byModuleId.has(dependencyModuleId)) {
+        warnings.push(
+          `Module ${target.moduleId} depends on ${dependencyModuleId}, but that module is not part of current migration targets.`
+        );
+        continue;
+      }
+
+      degree += 1;
+      const next = dependents.get(dependencyModuleId) ?? [];
+      next.push(target.moduleId);
+      dependents.set(dependencyModuleId, next);
+    }
+
+    inDegree.set(target.moduleId, degree);
+  }
+
+  const queue = targets
+    .filter((target) => (inDegree.get(target.moduleId) ?? 0) === 0)
+    .map((target) => target.moduleId)
+    .sort((a, b) => a.localeCompare(b));
+  const orderedModuleIds: string[] = [];
+
+  while (queue.length > 0) {
+    const moduleId = queue.shift();
+    if (!moduleId) {
+      continue;
+    }
+
+    orderedModuleIds.push(moduleId);
+    const nextDependents = dependents.get(moduleId) ?? [];
+    nextDependents.sort((a, b) => a.localeCompare(b));
+    for (const dependentModuleId of nextDependents) {
+      const current = inDegree.get(dependentModuleId);
+      if (current === undefined) {
+        continue;
+      }
+
+      const next = current - 1;
+      inDegree.set(dependentModuleId, next);
+      if (next === 0) {
+        queue.push(dependentModuleId);
+        queue.sort((a, b) => a.localeCompare(b));
+      }
+    }
+  }
+
+  if (orderedModuleIds.length !== targets.length) {
+    const unresolved = targets
+      .map((target) => target.moduleId)
+      .filter((moduleId) => !orderedModuleIds.includes(moduleId))
+      .sort((a, b) => a.localeCompare(b));
+    warnings.push(
+      `Detected cycle in db.dependsOn for modules: ${unresolved.join(', ')}. Falling back to lexical order for unresolved modules.`
+    );
+    orderedModuleIds.push(...unresolved);
+  }
+
+  return orderedModuleIds
+    .map((moduleId) => byModuleId.get(moduleId))
+    .filter((target): target is ModuleMigrationTarget => Boolean(target));
 }
 
 export function parseSqlStatements(fileContents: string) {

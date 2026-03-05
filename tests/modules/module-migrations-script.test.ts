@@ -81,6 +81,78 @@ test('discoverModuleMigrationTargets resolves db migration dirs from module.json
   }
 });
 
+test('discoverModuleMigrationTargets orders modules by db.dependsOn', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-migrate-order-'));
+  const modulesDir = path.join(rootDir, 'modules');
+  const moduleAlphaDir = path.join(modulesDir, 'mod.alpha');
+  const moduleBetaDir = path.join(modulesDir, 'mod.beta');
+  const moduleGammaDir = path.join(modulesDir, 'mod.gamma');
+  const moduleAlphaMigrationsDir = path.join(moduleAlphaDir, 'db', 'migrations');
+  const moduleBetaMigrationsDir = path.join(moduleBetaDir, 'db', 'migrations');
+  const moduleGammaMigrationsDir = path.join(moduleGammaDir, 'db', 'migrations');
+
+  try {
+    fs.mkdirSync(moduleAlphaMigrationsDir, { recursive: true });
+    fs.mkdirSync(moduleBetaMigrationsDir, { recursive: true });
+    fs.mkdirSync(moduleGammaMigrationsDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(moduleAlphaDir, 'module.json'),
+      JSON.stringify({
+        moduleId: 'mod.alpha',
+        db: {
+          schemaVersion: 1,
+          migrationsDir: 'db/migrations'
+        }
+      }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(moduleBetaDir, 'module.json'),
+      JSON.stringify({
+        moduleId: 'mod.beta',
+        db: {
+          schemaVersion: 1,
+          migrationsDir: 'db/migrations',
+          dependsOn: ['mod.gamma']
+        }
+      }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(moduleGammaDir, 'module.json'),
+      JSON.stringify({
+        moduleId: 'mod.gamma',
+        db: {
+          schemaVersion: 1,
+          migrationsDir: 'db/migrations',
+          dependsOn: ['mod.alpha']
+        }
+      }),
+      'utf8'
+    );
+
+    fs.writeFileSync(path.join(moduleAlphaMigrationsDir, '0001_init.sql'), 'select 1;', 'utf8');
+    fs.writeFileSync(path.join(moduleBetaMigrationsDir, '0001_init.sql'), 'select 1;', 'utf8');
+    fs.writeFileSync(path.join(moduleGammaMigrationsDir, '0001_init.sql'), 'select 1;', 'utf8');
+
+    const warnings: string[] = [];
+    const targets = discoverModuleMigrationTargets({
+      rootDir,
+      modulesDir,
+      warnings
+    });
+
+    assert.equal(warnings.length, 0);
+    assert.deepEqual(
+      targets.map((target) => target.moduleId),
+      ['mod.alpha', 'mod.gamma', 'mod.beta']
+    );
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
 test('computeMigrationChecksum is stable across LF and CRLF line endings', () => {
   const lf = 'CREATE TABLE one (id integer);\nCREATE TABLE two (id integer);\n';
   const crlf = lf.replace(/\n/g, '\r\n');
