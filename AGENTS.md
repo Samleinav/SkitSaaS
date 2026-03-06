@@ -250,6 +250,10 @@ Quick guide for agents working in this repository (`saas-starter`).
   - when module development needs new primitives (route aliases, policies, helper types), evolve `app/sdk/src/*` first
   - rebuild SDK dist (`app/sdk/dist/*`) and update docs (`docs/sdk/*`, `docs/modules/*`) in the same task
   - keep host/runtime and SDK manifest types aligned (`lib/modules/manifest.ts` and `app/sdk/src/modules/manifest.ts`)
+  - any task that changes core/host runtime or SDK plus module/business code must be split into separate commits:
+    - one dedicated `core/sdk` commit containing only shared host/runtime/SDK/docs/tests changes intended to cherry-pick into `v1`
+    - one later module/product commit for `school-saas` changes
+  - do not mix `app/sdk/*`, shared host runtime, or core infrastructure changes into a module feature commit if the goal is to upstream them to `v1`
   - declare `sdkRange` in each module `module.json`; `pnpm modules:prepare` runs strict SDK compatibility checks by default (`--strict-compat`)
   - use `--warn-compat` only for local compatibility diagnostics without blocking
   - prefer importing Drizzle from `@skitsaas/sdk/db` inside modules, not directly from `drizzle-orm/*`
@@ -385,6 +389,7 @@ Default seed user (if not changed in env):
   - `tests/modules/auth-provider-registry.test.ts`
   - `tests/modules/auth-modules-scaffold.test.ts`
   - `tests/modules/module-runtime.test.ts`
+  - `tests/modules/module-route-alias-context.test.ts`
   - `tests/theme/theme-pack-manifest.test.ts`
   - `tests/theme/theme-pack-runtime.test.ts`
   - `tests/theme/theme-area-runtime.integration.test.ts`
@@ -404,6 +409,7 @@ Default seed user (if not changed in env):
   - `tests/templates/template-module-pack.test.ts`
   - `tests/templates/template-theme-pack.test.ts`
   - `tests/sdk/server-adapters.test.ts`
+  - `tests/sdk/ui-notify.test.ts`
   - `tests/sdk/template-utils.test.ts`
 
 ## Multi-agent coordination

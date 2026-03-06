@@ -87,6 +87,13 @@ export {
   createDataTableCrudApiRouter
 } from './datatables/index.js';
 
+export type {
+  SdkDataTableLabels,
+  SdkNotifyInput,
+  SdkNotifyTone
+} from './ui/index.js';
+export { DataTable, SDK_NOTIFY_EVENT, notify, sdkNotify } from './ui/index.js';
+
 export type { ClassNameValue } from './templates/utils.js';
 export {
   mergeClassNames,

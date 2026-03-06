@@ -1251,10 +1251,12 @@ export async function getEnabledDashboardModuleWidgets() {
 function buildRouteContext({
   moduleId,
   slug,
+  matchedAlias,
   searchParams
 }: {
   moduleId: string;
   slug?: string[] | string;
+  matchedAlias?: string | null;
   searchParams?: Record<string, string | string[] | undefined>;
 }): ModuleRouteContext {
   const normalizedSlug = Array.isArray(slug)
@@ -1266,6 +1268,7 @@ function buildRouteContext({
   return {
     moduleId,
     slug: normalizedSlug,
+    matchedAlias: matchedAlias ?? null,
     searchParams
   };
 }
@@ -1291,11 +1294,13 @@ export async function resolveModulePage({
   area,
   moduleId,
   slug,
+  matchedAlias,
   searchParams
 }: {
   area: 'admin' | 'dashboard' | 'frontend';
   moduleId: string;
   slug?: string[] | string;
+  matchedAlias?: string | null;
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
   if (!isAreaEnabled(area)) {
@@ -1327,7 +1332,12 @@ export async function resolveModulePage({
     return null;
   }
 
-  const context = buildRouteContext({ moduleId, slug, searchParams });
+  const context = buildRouteContext({
+    moduleId,
+    slug,
+    matchedAlias,
+    searchParams
+  });
   const handler =
     area === 'admin'
       ? manifest.adminPage
@@ -1372,6 +1382,7 @@ export async function resolveModulePageByPath({
     area,
     moduleId: match.moduleId,
     slug: match.slug,
+    matchedAlias: match.aliasPath,
     searchParams
   });
 }

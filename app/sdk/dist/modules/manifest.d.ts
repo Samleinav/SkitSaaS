@@ -20,6 +20,7 @@ export type ModuleWidgetDefinition<Props = unknown> = {
 export type ModuleRouteContext = {
     moduleId: string;
     slug: string[];
+    matchedAlias?: string | null;
     searchParams?: Record<string, string | string[] | undefined>;
 };
 export type ModuleFrontendSlotContext = {
