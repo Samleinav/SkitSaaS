@@ -25,6 +25,7 @@
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@vinejs/vine": "4.3.0",
     "typescript": "^5.8.0"
   },
   "devDependencies": {

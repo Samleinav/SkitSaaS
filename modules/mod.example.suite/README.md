@@ -104,8 +104,32 @@ The API handler and dashboard create flow read these values at runtime.
 
 ## Templates and CTC ids
 
-- This module can render module pages and widgets without requiring fixed CTC template IDs.
-- If a template pack is added later, document IDs in this section and keep host docs module-agnostic.
+Current template pack entries:
+
+- `ui.table` -> `mod.example.suite.default.table`
+- `ui.form` -> `mod.example.suite.default.form`
+- `ui.async-submit-button` -> `mod.example.suite.override.async-submit`
+
+Current structured form usage:
+
+- admin create page uses `TemplateBuildForm`
+- admin edit page uses `TemplateBuildForm` with prefills
+- admin settings page uses `TemplateBuildForm` sections for grouped settings
+- delete flow uses confirm submit through the same form system
+
+Recommended rollout order for module forms:
+
+1. create flow
+2. edit flow with prefills
+3. grouped settings flow
+4. delete/confirm flow
+
+SDK vs host ownership:
+
+- module form definitions, field rules, and validated actions stay in module code
+- reusable form contracts must come from `@skitsaas/sdk` and `@skitsaas/sdk/server`
+- host-only controller registration, DB resolver registration, and system activity logging stay in core runtime
+- if a module introduces a new `dbRef(...)` target, the host must add the resolver before enabling that form in production
 
 ## Tests and validation
 

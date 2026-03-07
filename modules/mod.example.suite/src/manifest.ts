@@ -128,6 +128,15 @@ export default defineModule({
       {
         componentId: 'ui.table',
         templateId: 'mod.example.suite.default.table'
+      },
+      {
+        componentId: 'ui.form',
+        templateId: 'mod.example.suite.default.form',
+        payload: {
+          formClassName: 'space-y-5',
+          sectionClassName: 'space-y-3',
+          checkboxWrapperClassName: 'bg-muted/20'
+        }
       }
     ],
     overrides: [

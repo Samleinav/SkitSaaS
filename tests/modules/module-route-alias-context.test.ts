@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defineModule } from '../../lib/modules/manifest';
 import { getAllModuleManifests, getModuleRegistry } from '../../lib/modules/registry';
-import { resolveModulePageByPath } from '../../lib/modules/runtime';
 import { featureFlags } from '../../lib/feature-flags';
 
 test('resolveModulePageByPath passes matchedAlias to module page context', async () => {
@@ -12,6 +11,9 @@ test('resolveModulePageByPath passes matchedAlias to module page context', async
   };
   const originalRuntime = runtimeFlags.useAppModulesRuntime;
   const originalDispatcher = runtimeFlags.useModuleDispatcherRoutes;
+  const originalModuleRuntimeMode = process.env.MODULE_RUNTIME_MODE;
+  const originalEnabledModules = process.env.ACTIVE_MODULES_ENABLE;
+  const originalDisabledModules = process.env.ACTIVE_MODULES_DISABLE;
 
   const manifest = defineModule({
     moduleId: 'mod.education.enrollment',
@@ -36,8 +38,12 @@ test('resolveModulePageByPath passes matchedAlias to module page context', async
 
   runtimeFlags.useAppModulesRuntime = true;
   runtimeFlags.useModuleDispatcherRoutes = true;
+  process.env.MODULE_RUNTIME_MODE = 'config';
+  process.env.ACTIVE_MODULES_ENABLE = manifest.moduleId;
+  delete process.env.ACTIVE_MODULES_DISABLE;
 
   try {
+    const { resolveModulePageByPath } = await import('../../lib/modules/runtime');
     const result = await resolveModulePageByPath({
       area: 'dashboard',
       path: '/dashboard/enrollment-reports'
@@ -54,5 +60,20 @@ test('resolveModulePageByPath passes matchedAlias to module page context', async
     }
     runtimeFlags.useAppModulesRuntime = originalRuntime;
     runtimeFlags.useModuleDispatcherRoutes = originalDispatcher;
+    if (typeof originalModuleRuntimeMode === 'string') {
+      process.env.MODULE_RUNTIME_MODE = originalModuleRuntimeMode;
+    } else {
+      delete process.env.MODULE_RUNTIME_MODE;
+    }
+    if (typeof originalEnabledModules === 'string') {
+      process.env.ACTIVE_MODULES_ENABLE = originalEnabledModules;
+    } else {
+      delete process.env.ACTIVE_MODULES_ENABLE;
+    }
+    if (typeof originalDisabledModules === 'string') {
+      process.env.ACTIVE_MODULES_DISABLE = originalDisabledModules;
+    } else {
+      delete process.env.ACTIVE_MODULES_DISABLE;
+    }
   }
 });

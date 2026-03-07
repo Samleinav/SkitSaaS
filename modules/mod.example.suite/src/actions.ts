@@ -1,7 +1,9 @@
 'use server';
 
+import { buildFormValidationMessage } from '@skitsaas/sdk';
 import {
   createServerActionController,
+  createValidatedServerActionController,
   revalidatePaths,
   requireAdmin,
   requireUser,
@@ -23,6 +25,12 @@ import {
   updateExampleSuiteItem,
   updateExampleSuiteSettings
 } from './data';
+import {
+  createExampleSuiteAdminEditItemFormDefinition,
+  createExampleSuiteAdminItemFormDefinition,
+  createExampleSuiteSettingsFormDefinition
+} from './forms';
+import { createBuildFormInvalidFactory } from '@/lib/forms/validation/results';
 
 type ExampleSuiteSessionUser = {
   id: number;
@@ -32,6 +40,11 @@ type ExampleSuiteSessionUser = {
 const adminAction = createServerActionController<ExampleSuiteSessionUser>({
   requireUser: async () => requireAdmin<ExampleSuiteSessionUser>()
 });
+
+const adminValidatedAction =
+  createValidatedServerActionController<ExampleSuiteSessionUser>({
+    requireUser: async () => requireAdmin<ExampleSuiteSessionUser>()
+  });
 
 const dashboardAction = createServerActionController<ExampleSuiteSessionUser>({
   requireUser: async () => requireUser<ExampleSuiteSessionUser>()
@@ -60,64 +73,75 @@ function readPositiveInteger(form: FormReader, field: string) {
   return form.positiveInt(field);
 }
 
-export const createExampleSuiteItemAdminAction = adminAction(
-  async ({ user, form }) => {
-    const title = form.string('title');
-    if (!title) {
-      return false;
-    }
-
+export const createExampleSuiteItemAdminAction = adminValidatedAction(
+  createExampleSuiteAdminItemFormDefinition(),
+  async ({ user, values }) => {
     const settings = await getExampleSuiteSettings();
     const status = normalizeExampleSuiteStatus(
-      form.lower('status'),
+      typeof values.status === 'string' ? values.status : '',
       settings.defaultStatus
     );
-    const priority = normalizeExampleSuitePriority(form.integer('priority'));
-    const isPublic = parseCheckboxValue(form.value('isPublic'));
+    const priority = normalizeExampleSuitePriority(
+      typeof values.priority === 'number' ? values.priority : null
+    );
+    const isPublic = values.isPublic === true;
 
     await createExampleSuiteItem({
-      title,
-      description: form.string('description'),
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
       status,
       priority,
       isPublic,
       ownerUserId: user.id
     });
-
-    await revalidateExampleSuiteRoutes();
+  },
+  {
+    revalidate: () => revalidateExampleSuiteRoutes()
   }
 );
 
-export const updateExampleSuiteItemAdminAction = adminAction(async ({ form }) => {
-  const itemId = readPositiveInteger(form, 'itemId');
-  if (!itemId) {
-    return false;
+export const updateExampleSuiteItemAdminAction = adminValidatedAction(
+  createExampleSuiteAdminEditItemFormDefinition(),
+  async ({ values }) => {
+    const invalid = createBuildFormInvalidFactory({ values });
+    const itemId =
+      typeof values.itemId === 'number' && Number.isInteger(values.itemId)
+        ? values.itemId
+        : null;
+
+    if (!itemId) {
+      return invalid({
+        itemId: [buildFormValidationMessage.positiveInteger('Item id')]
+      });
+    }
+
+    const existing = await getExampleSuiteItemById(itemId);
+    if (!existing) {
+      return invalid({
+        itemId: [buildFormValidationMessage.recordNotFound('Item')]
+      });
+    }
+
+    const status = normalizeExampleSuiteStatus(
+      typeof values.status === 'string' ? values.status : '',
+      normalizeExampleSuiteStatus(existing.status)
+    );
+    const priority = normalizeExampleSuitePriority(
+      typeof values.priority === 'number' ? values.priority : null,
+      existing.priority
+    );
+
+    await updateExampleSuiteItem(itemId, {
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
+      status,
+      priority,
+      isPublic: values.isPublic === true
+    });
+
+    await revalidateExampleSuiteRoutes([`${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${itemId}`]);
   }
-
-  const existing = await getExampleSuiteItemById(itemId);
-  if (!existing) {
-    return false;
-  }
-
-  const status = normalizeExampleSuiteStatus(
-    form.lower('status'),
-    normalizeExampleSuiteStatus(existing.status)
-  );
-  const priority = normalizeExampleSuitePriority(
-    form.integer('priority'),
-    existing.priority
-  );
-
-  await updateExampleSuiteItem(itemId, {
-    title: form.string('title'),
-    description: form.string('description'),
-    status,
-    priority,
-    isPublic: parseCheckboxValue(form.value('isPublic'))
-  });
-
-  await revalidateExampleSuiteRoutes([`${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${itemId}`]);
-});
+);
 
 export const deleteExampleSuiteItemAdminAction = adminAction(async ({ form }) => {
   const itemId = readPositiveInteger(form, 'itemId');
@@ -129,20 +153,22 @@ export const deleteExampleSuiteItemAdminAction = adminAction(async ({ form }) =>
   await revalidateExampleSuiteRoutes();
 });
 
-export const updateExampleSuiteSettingsAdminAction = adminAction(
-  async ({ user, form }) => {
+export const updateExampleSuiteSettingsAdminAction = adminValidatedAction(
+  createExampleSuiteSettingsFormDefinition(),
+  async ({ user, values }) => {
     await updateExampleSuiteSettings({
-      allowDashboardCreate: parseCheckboxValue(
-        form.value('allowDashboardCreate')
-      ),
+      allowDashboardCreate: values.allowDashboardCreate === true,
       apiWriteMode: normalizeExampleSuiteApiWriteMode(
-        form.lower('apiWriteMode')
+        typeof values.apiWriteMode === 'string' ? values.apiWriteMode : ''
       ),
-      defaultStatus: normalizeExampleSuiteStatus(form.lower('defaultStatus')),
+      defaultStatus: normalizeExampleSuiteStatus(
+        typeof values.defaultStatus === 'string' ? values.defaultStatus : ''
+      ),
       updatedByUserId: user.id
     });
-
-    await revalidateExampleSuiteRoutes();
+  },
+  {
+    revalidate: () => revalidateExampleSuiteRoutes()
   }
 );
 

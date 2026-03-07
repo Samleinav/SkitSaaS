@@ -161,8 +161,16 @@ Use server actions when handling form submissions from React server components.
 Use API routes for:
 
 - module APIs (`/api/modules/*`)
+- form validation preflight (`/api/forms/validate`)
 - external integrations and webhook endpoints
 - non-React or programmatic clients
+
+BuildForm preflight operational notes:
+
+- `/api/forms/validate` is intended for read-only validation, not final mutation submits
+- host deployments should pair it with a real distributed limiter via `configureBuildFormPreflightRateLimit(...)`
+- the host now emits lightweight system activity log events for blocked preflight requests and missing BuildForm DB resolvers
+- operators can inspect those signals in `/admin/logs` by filtering `eventCategory='forms'`
 
 ## 8) Checkout and Payment API (order-first)
 

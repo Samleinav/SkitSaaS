@@ -1,7 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import {
+  buildFormValidationMessage,
+  normalizeEmail,
+  parseOptionalPositiveInt
+} from '@skitsaas/sdk';
 import { hashPassword } from '@/lib/auth/session';
 import { db } from '@/lib/db/drizzle';
 import {
@@ -22,39 +27,17 @@ import {
   revalidateAdminUsers,
   revalidateDashboard
 } from '../actions/shared';
-import { adminAction } from '../controller';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizeEmail(input: string) {
-  return input.trim().toLowerCase();
-}
-
-function parseOptionalTemplateId(raw: string) {
-  if (!raw) {
-    return { value: null, valid: true } as const;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return { value: null, valid: false } as const;
-  }
-
-  return { value: parsed, valid: true } as const;
-}
-
-function parseOptionalUserId(raw: string) {
-  if (!raw) {
-    return { value: null, valid: true } as const;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return { value: null, valid: false } as const;
-  }
-
-  return { value: parsed, valid: true } as const;
-}
+import { adminValidatedAction } from '../controller';
+import {
+  createAdminCreateUserBuildFormBase,
+  createAdminDeleteUserBuildFormBase,
+  createAdminEditUserStatusBuildFormBase,
+  createAdminEditUserProfileBuildFormBase
+} from './forms';
+import {
+  adminUserValidationMessage,
+  createAdminUserInvalidFactory
+} from './validation';
 
 async function resolveUserSubscriptionTemplate(templateId: number | null) {
   if (!templateId) {
@@ -82,40 +65,43 @@ function buildDefaultTeamName({
   return `${nameSeed.slice(0, 80)}'s Team`;
 }
 
-export const createUserAction = adminAction(
-  async ({ user: currentUser, form }) => {
-    const name = form.string('name');
-    const email = normalizeEmail(form.string('email'));
-    const password = form.string('password');
-    const role = form.lower('role');
-    const templateIdPayload = parseOptionalTemplateId(
-      form.string('subscriptionTemplateId')
-    );
+const adminCreateUserBuildForm = createAdminCreateUserBuildFormBase();
+const adminDeleteUserBuildForm = createAdminDeleteUserBuildFormBase();
+const adminEditUserProfileBuildForm = createAdminEditUserProfileBuildFormBase();
+const adminEditUserStatusBuildForm = createAdminEditUserStatusBuildFormBase();
 
-    if (
-      !email ||
-      !EMAIL_REGEX.test(email) ||
-      password.length < 8 ||
-      !USER_ROLES.has(role) ||
-      !templateIdPayload.valid
-    ) {
-      return false;
+export const createUserAction = adminValidatedAction(
+  adminCreateUserBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminUserInvalidFactory(values);
+    const name = typeof values.name === 'string' ? values.name : '';
+    const email = normalizeEmail(typeof values.email === 'string' ? values.email : '');
+    const password =
+      typeof values.password === 'string' ? values.password : '';
+    const role = typeof values.role === 'string' ? values.role.trim().toLowerCase() : '';
+    const templateIdPayload = parseOptionalPositiveInt(values.subscriptionTemplateId);
+
+    if (!USER_ROLES.has(role)) {
+      return invalid({
+        role: [buildFormValidationMessage.invalidSelection('Role')]
+      });
     }
 
-
-    const existingEmail = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-
-    if (existingEmail.length > 0) {
-      return false;
+    if (!templateIdPayload.valid) {
+      return invalid({
+        subscriptionTemplateId: [
+          buildFormValidationMessage.invalidSelection('Subscription')
+        ]
+      });
     }
 
     const template = await resolveUserSubscriptionTemplate(templateIdPayload.value);
     if (templateIdPayload.value && !template) {
-      return false;
+      return invalid({
+        subscriptionTemplateId: [
+          buildFormValidationMessage.recordNotFound('Subscription template')
+        ]
+      });
     }
 
     const passwordHash = await hashPassword(password);
@@ -213,28 +199,41 @@ export const createUserAction = adminAction(
   }
 );
 
-export const updateUserProfileAction = adminAction(
-  async ({ user: currentUser, form }) => {
-    const userId = form.positiveInt('userId');
-    const name = form.string('name');
-    const email = normalizeEmail(form.string('email'));
-    const role = form.lower('role');
-    const templateIdPayload = parseOptionalTemplateId(
-      form.string('subscriptionTemplateId')
-    );
+export const updateUserProfileAction = adminValidatedAction(
+  adminEditUserProfileBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminUserInvalidFactory(values);
+    const userIdPayload = parseOptionalPositiveInt(values.userId);
+    const userId = userIdPayload.value;
+    const name = typeof values.name === 'string' ? values.name : '';
+    const email = normalizeEmail(typeof values.email === 'string' ? values.email : '');
+    const role = typeof values.role === 'string' ? values.role.trim().toLowerCase() : '';
+    const templateIdPayload = parseOptionalPositiveInt(values.subscriptionTemplateId);
 
-    if (
-      !userId ||
-      !email ||
-      !EMAIL_REGEX.test(email) ||
-      !USER_ROLES.has(role) ||
-      !templateIdPayload.valid
-    ) {
-      return false;
+    if (!userIdPayload.valid || !userId) {
+      return invalid({
+        userId: [buildFormValidationMessage.positiveInteger('User id')]
+      });
+    }
+
+    if (!USER_ROLES.has(role)) {
+      return invalid({
+        role: [buildFormValidationMessage.invalidSelection('Role')]
+      });
+    }
+
+    if (!templateIdPayload.valid) {
+      return invalid({
+        subscriptionTemplateId: [
+          buildFormValidationMessage.invalidSelection('Subscription')
+        ]
+      });
     }
 
     if (currentUser.id === userId && role === 'member') {
-      return false;
+      return invalid({
+        role: [adminUserValidationMessage.selfDemote()]
+      });
     }
 
     const targetUser = await db
@@ -247,22 +246,18 @@ export const updateUserProfileAction = adminAction(
       .limit(1);
 
     if (targetUser.length === 0 || targetUser[0].deletedAt) {
-      return false;
-    }
-
-    const emailInUse = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(eq(users.email, email), ne(users.id, userId)))
-      .limit(1);
-
-    if (emailInUse.length > 0) {
-      return false;
+      return invalid({
+        userId: [buildFormValidationMessage.recordNotFound('User')]
+      });
     }
 
     const template = await resolveUserSubscriptionTemplate(templateIdPayload.value);
     if (templateIdPayload.value && !template) {
-      return false;
+      return invalid({
+        subscriptionTemplateId: [
+          buildFormValidationMessage.recordNotFound('Subscription template')
+        ]
+      });
     }
 
     await db
@@ -346,18 +341,35 @@ export const updateUserProfileAction = adminAction(
   }
 );
 
-export const updateUserAccountStatusAction = adminAction(
-  async ({ user: currentUser, form }) => {
-    const userId = form.positiveInt('userId');
-    const accountStatus = form.lower('accountStatus');
-    const statusReason = form.string('statusReason');
+export const updateUserAccountStatusAction = adminValidatedAction(
+  adminEditUserStatusBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminUserInvalidFactory(values);
+    const userIdPayload = parseOptionalPositiveInt(values.userId);
+    const userId = userIdPayload.value;
+    const accountStatus =
+      typeof values.accountStatus === 'string'
+        ? values.accountStatus.trim().toLowerCase()
+        : '';
+    const statusReason =
+      typeof values.statusReason === 'string' ? values.statusReason.trim() : '';
 
-    if (!userId || !USER_ACCOUNT_STATUSES.has(accountStatus)) {
-      return false;
+    if (!userIdPayload.valid || !userId) {
+      return invalid({
+        userId: [buildFormValidationMessage.positiveInteger('User id')]
+      });
+    }
+
+    if (!USER_ACCOUNT_STATUSES.has(accountStatus)) {
+      return invalid({
+        accountStatus: [buildFormValidationMessage.invalidSelection('Account status')]
+      });
     }
 
     if (currentUser.id === userId && accountStatus !== 'active') {
-      return false;
+      return invalid({
+        accountStatus: [adminUserValidationMessage.selfStatusChange()]
+      });
     }
 
     const targetUser = await db
@@ -370,7 +382,9 @@ export const updateUserAccountStatusAction = adminAction(
       .limit(1);
 
     if (targetUser.length === 0 || targetUser[0].deletedAt) {
-      return false;
+      return invalid({
+        userId: [buildFormValidationMessage.recordNotFound('User')]
+      });
     }
 
     const normalizedReason =
@@ -423,24 +437,40 @@ export const updateUserAccountStatusAction = adminAction(
   }
 );
 
-export const deleteUserAction = adminAction(
-  async ({ user: currentUser, form }) => {
-    const userId = form.positiveInt('userId');
-    const transferUserPayload = parseOptionalUserId(form.string('transferUserId'));
-    const statusReason = form.string('statusReason');
+export const deleteUserAction = adminValidatedAction(
+  adminDeleteUserBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminUserInvalidFactory(values);
+    const userIdPayload = parseOptionalPositiveInt(values.userId);
+    const transferUserPayload = parseOptionalPositiveInt(values.transferUserId);
+    const userId = userIdPayload.value;
+    const statusReason =
+      typeof values.statusReason === 'string' ? values.statusReason.trim() : '';
 
-    if (!userId || !transferUserPayload.valid) {
-      return false;
+    if (!userIdPayload.valid || !userId) {
+      return invalid({
+        userId: [buildFormValidationMessage.positiveInteger('User id')]
+      });
+    }
+
+    if (!transferUserPayload.valid) {
+      return invalid({
+        transferUserId: [buildFormValidationMessage.invalidSelection('Transfer user')]
+      });
     }
 
     const transferUserId = transferUserPayload.value;
 
     if (currentUser.id === userId) {
-      return false;
+      return invalid({
+        userId: [adminUserValidationMessage.selfDelete()]
+      });
     }
 
     if (transferUserId && transferUserId === userId) {
-      return false;
+      return invalid({
+        transferUserId: [adminUserValidationMessage.transferUserSameAsTarget()]
+      });
     }
 
     const [targetUser] = await db
@@ -453,7 +483,9 @@ export const deleteUserAction = adminAction(
       .limit(1);
 
     if (!targetUser || targetUser.deletedAt) {
-      return false;
+      return invalid({
+        userId: [buildFormValidationMessage.recordNotFound('User')]
+      });
     }
 
     const ownedTeams = await db
@@ -464,7 +496,9 @@ export const deleteUserAction = adminAction(
       .where(and(eq(teamMembers.userId, userId), eq(teamMembers.role, 'owner')));
 
     if (ownedTeams.length > 0 && !transferUserId) {
-      return false;
+      return invalid({
+        transferUserId: [adminUserValidationMessage.transferUserRequired()]
+      });
     }
 
     if (transferUserId) {
@@ -483,7 +517,9 @@ export const deleteUserAction = adminAction(
         .limit(1);
 
       if (transferUser.length === 0) {
-        return false;
+        return invalid({
+          transferUserId: [adminUserValidationMessage.transferUserInactive()]
+        });
       }
     }
 

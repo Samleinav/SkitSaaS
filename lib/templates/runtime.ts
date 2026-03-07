@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { cache } from 'react';
 import { getModuleManifest } from '@/lib/modules/registry';
 import {

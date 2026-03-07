@@ -1,7 +1,8 @@
-import 'server-only';
-
 import { redirect } from 'next/navigation';
-import { createServerActionController } from '@/lib/actions/controller';
+import {
+  createServerActionController,
+  createValidatedServerActionController
+} from '@/lib/actions/controller';
 import { getUser } from '@/lib/db/queries';
 import { revalidatePath } from 'next/cache';
 import {
@@ -20,6 +21,10 @@ async function requireDashboardUser() {
 }
 
 export const dashboardAction = createServerActionController({
+  requireUser: requireDashboardUser
+});
+
+export const dashboardValidatedAction = createValidatedServerActionController({
   requireUser: requireDashboardUser
 });
 

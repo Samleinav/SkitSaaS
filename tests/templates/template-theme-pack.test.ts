@@ -259,6 +259,62 @@ test('theme template pack allows ui.alert-dialog overrides', () => {
   assert.equal(resolution.entry?.templateId, 'theme.alert.dialog');
 });
 
+test('theme template pack allows ui.form overrides with payload metadata', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'template-pack-'));
+  const manifestPath = path.join('themes', 'form', 'templates.json');
+  writeJson(path.join(tempRoot, manifestPath), {
+    templates: {
+      admin: [
+        {
+          componentId: 'ui.form',
+          templateId: 'theme.admin.form',
+          payload: {
+            formClassName: 'space-y-8',
+            actionsClassName: 'justify-start'
+          }
+        }
+      ]
+    }
+  });
+
+  const controller = createTemplateController({
+    coreTemplates: [
+      {
+        componentId: 'ui.form',
+        templateId: 'core.form',
+        render: () => 'core-form'
+      }
+    ]
+  });
+
+  const registration = registerThemeTemplatesFromSelection({
+    controller,
+    themeId: 'theme.form.admin',
+    area: 'admin',
+    packs: [
+      makePack({
+        themeId: 'theme.form.admin',
+        areas: ['admin'],
+        entryTemplatesPath: manifestPath
+      })
+    ],
+    rootDir: tempRoot
+  });
+
+  assert.equal(registration.registered, 1);
+
+  const resolution = controller.resolveTemplate('ui.form', {
+    area: 'admin',
+    themeId: 'theme.form.admin'
+  });
+  assert.equal(resolution.source, 'theme_area_override');
+  assert.equal(resolution.entry?.templateId, 'theme.admin.form');
+  assert.deepEqual(resolution.entry?.payload, {
+    formClassName: 'space-y-8',
+    actionsClassName: 'justify-start'
+  });
+});
+
 test('theme template pack returns no-op when selection has no template entry file', () => {
   const controller = createTemplateController();
 

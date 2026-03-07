@@ -4,9 +4,20 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
+import type { ComponentType } from 'react';
+import type { TOCItemType } from 'fumadocs-core/toc';
 
 type Props = {
   params: Promise<{ slug?: string[] }>;
+};
+
+type DocsPageContent = {
+  title?: string;
+  description?: string;
+  body?: ComponentType<{
+    components?: ReturnType<typeof getMDXComponents>;
+  }>;
+  toc?: unknown;
 };
 
 export default async function Page({ params }: Props) {
@@ -15,12 +26,14 @@ export default async function Page({ params }: Props) {
   const page = docsSource.getPage(slug);
   if (!page) notFound();
 
-  const MDX = page.data.body;
+  const data = page.data as DocsPageContent;
+  const MDX = data.body;
+  if (!MDX) notFound();
 
   return (
-    <DocsPage toc={page.data.toc}>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+    <DocsPage toc={data.toc as TOCItemType[] | undefined}>
+      <DocsTitle>{data.title}</DocsTitle>
+      <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
         <MDX
           components={getMDXComponents({
@@ -42,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) notFound();
 
   return {
-    title: page.data.title,
-    description: page.data.description,
+    title: (page.data as DocsPageContent).title,
+    description: (page.data as DocsPageContent).description,
   };
 }

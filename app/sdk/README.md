@@ -7,6 +7,8 @@ It provides:
 - server-side runtime helpers
 - curated Drizzle exports
 - datatable CRUD helpers
+- structured form/modal builders
+- structured form validation helpers
 - source-package build and test utilities
 
 ## Installation
@@ -59,6 +61,9 @@ export default defineModule({
   - module i18n and theme i18n types/helpers
   - theme config helper (`defineThemeConfig`)
   - datatable contracts/helpers
+  - structured form contract/helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
+  - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
+  - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
   - template utility helpers (`mergeClassNames`, value parsers)
 - `@skitsaas/sdk/server`
   - auth/session helpers (`getUser`, `requireUser`, `requireAdmin`, `setSessionForUser`)
@@ -67,6 +72,7 @@ export default defineModule({
   - db access bridge (`getDb`, `findTable`, `getTable`, `listTables`)
   - revalidation helpers (`revalidatePath`, `revalidatePaths`)
   - server action controller + form parsing helpers
+  - structured build-form validation helpers (`validateBuildFormOnServer`, `validateBuildFormWithHandler`, `createValidatedServerActionController`)
   - JSON parsing helpers
   - declarative routers (`createModuleApiRouter`, `createModulePageRouter`)
 - `@skitsaas/sdk/db`
@@ -120,6 +126,76 @@ export const apiHandler = createDataTableCrudApiRouter({
   }
 });
 ```
+
+## Structured Form Builder
+
+```ts
+import {
+  buildFormField,
+  defineBuildForm,
+  withBuildFormValues
+} from '@skitsaas/sdk';
+
+const baseForm = defineBuildForm({
+  request: { action: '/admin/items', method: 'post' },
+  fields: [
+    buildFormField.text({ name: 'title', label: 'Title', required: true }),
+    buildFormField.select({
+      name: 'status',
+      label: 'Status',
+      options: [
+        { value: 'draft', label: 'Draft' },
+        { value: 'active', label: 'Active' }
+      ]
+    })
+  ]
+});
+
+const editForm = withBuildFormValues(baseForm, {
+  title: 'Launch checklist',
+  status: 'active'
+});
+```
+
+Use the SDK to describe fields, layout, submit target, confirm flows, and prefills.
+The host app resolves rendering and theming through `TemplateBuildForm` + CTC.
+
+If you need to attach request metadata, submit UI, and prefills in one step, use `composeBuildFormDefinition(...)` instead of chaining helpers manually.
+
+Validation can be attached to the same form object:
+
+```ts
+import {
+  buildFormField,
+  buildFormRule,
+  defineBuildForm,
+  withBuildFormValidation
+} from '@skitsaas/sdk';
+
+const validatedForm = withBuildFormValidation(
+  defineBuildForm({
+    fields: [
+      buildFormField.email({ name: 'email', label: 'Email', required: true })
+    ]
+  }),
+  {
+    client: { validateOn: ['blur'] },
+    fields: {
+      email: [buildFormRule.required(), buildFormRule.email()]
+    }
+  }
+);
+```
+
+The current renderer treats `client.validateOn` as the eager-validation policy and still performs a final local validation pass on submit when local rules are present.
+
+For the common CRUD case, `buildFormValidationPreset.blur(...)` centralizes the default validation shape used by most forms and can optionally enable preflight with the standard debounce.
+
+On the server, validated actions can be wrapped with `createValidatedServerActionController(...)` so the same BuildForm definition is validated before mutation logic runs. Those validated actions are also compatible with `useActionState(...)`, and `BuildForm` now hydrates returned `fieldErrors` / `formError` automatically when the attached request action uses that validated path.
+
+For DB-aware rules, the host can wire `configureBuildFormDbValidation(...)` from `@skitsaas/sdk/server`. That keeps `dbRef(...)` tokens serializable in the form definition while letting the host resolve `unique` / `exists` lookups server-side and through preflight routes. Edit flows can then reuse the same rule graph with `fieldRef(...)`, for example `buildFormRule.unique(dbRef('core.users.email'), { ignore: fieldRef('userId') })`. The adapter request also includes `runtime`, `formId`, and `fieldName`, which is useful for host-side logging and resolver diagnostics.
+
+If host routes need custom business errors, prefer returning message descriptors instead of hardcoded strings. The SDK now exposes generic helpers like `buildFormValidationMessage.*(...)`, `normalizeEmail(...)`, and `parseOptionalPositiveInt(...)`; the host can then map descriptor keys to localized copy before returning `fieldErrors`.
 
 ## Build Helper for Source-Package Modules
 

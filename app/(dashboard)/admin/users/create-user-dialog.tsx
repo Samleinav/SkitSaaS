@@ -1,13 +1,5 @@
-import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '@/components/ui/dialog';
+import { BuildModal } from '@/components/ui/build-modal';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { AdminCreateUserForm } from './create-user-form';
 
@@ -26,35 +18,37 @@ type AdminCreateUserDialogProps = {
   themeId: string | null;
 };
 
-export async function AdminCreateUserDialog({
+export function AdminCreateUserDialog({
   messages,
   userTemplateOptions,
   locale,
   themeId
 }: AdminCreateUserDialogProps) {
   const fallbackDialog = (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button size="sm">{messages.usersPage.newUser}</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{messages.usersPage.createTitle}</DialogTitle>
-          <DialogDescription>{messages.usersPage.createDescription}</DialogDescription>
-        </DialogHeader>
-        <AdminCreateUserForm
-          messages={messages}
-          userTemplateOptions={userTemplateOptions}
-          locale={locale}
-        />
-      </DialogContent>
-    </Dialog>
+    <BuildModal
+      definition={{
+        kind: 'dialog',
+        triggerLabel: messages.usersPage.newUser,
+        triggerSize: 'sm',
+        title: messages.usersPage.createTitle,
+        description: messages.usersPage.createDescription
+      }}
+      themeId={themeId}
+      area="admin"
+      slot="admin.users.create-user-dialog"
+    >
+      <AdminCreateUserForm
+        messages={messages}
+        userTemplateOptions={userTemplateOptions}
+        locale={locale}
+      />
+    </BuildModal>
   );
 
   return (
     <ThemeCodeTemplate
-      themeId={themeId}
       id="ui.dialog"
+      themeId={themeId}
       data={{
         area: 'admin',
         slot: 'admin.users.create-user-dialog'

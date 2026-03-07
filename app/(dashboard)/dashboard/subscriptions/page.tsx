@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
-import { TemplateConfirmSubmitButton } from '@/components/ui/template-confirm-submit-button';
 import { TemplateTable } from '@/components/ui/template-table';
 import {
   TableBody,
@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { cn } from '@/lib/utils';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
 import { getCurrentUserSubscriptionManagementData } from '@/lib/db/queries';
@@ -28,9 +29,9 @@ import { getOrganizationLimits } from '@/lib/organizations/config';
 import { getCurrentUserOrganizationLimitBySubscription } from '@/lib/organizations/subscription-limits';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
-  cancelUserSubscriptionAction,
-  manageOrganizationSubscriptionAction
-} from './actions';
+  createDashboardCancelUserSubscriptionBuildFormBase,
+  createDashboardManageOrganizationSubscriptionBuildFormBase
+} from './forms';
 import {
   DashboardSubscriptionPaymentsDataTable,
   type DashboardSubscriptionPaymentRow
@@ -326,7 +327,7 @@ export default async function DashboardSubscriptionsPage({
 
     return (
       <ThemeCodeTemplate
-      themeId={themeSelection.themeKey}
+        themeId={themeSelection.themeKey}
         id="section.dashboard.table.subscriptions.organizations.cell"
         data={{
           slot,
@@ -338,6 +339,28 @@ export default async function DashboardSubscriptionsPage({
       </ThemeCodeTemplate>
     );
   };
+  const userCancelForm = subscriptionData.user.subscriptionTemplateId
+    ? composeRegisteredBuildFormDefinition(
+        'dashboard-cancel-user-subscription-form',
+        createDashboardCancelUserSubscriptionBuildFormBase(),
+        {
+          submit: {
+            idleLabel: subscriptions.userPlan.cancel,
+            pendingLabel: subscriptions.userPlan.cancelPending,
+            align: 'start',
+            variant: 'destructive',
+            confirm: {
+              title: subscriptions.userPlan.confirmCancelTitle,
+              description: subscriptions.userPlan.confirmCancelDescription,
+              confirmLabel: subscriptions.userPlan.confirmCancel,
+              cancelLabel: subscriptions.userPlan.keep,
+              triggerVariant: 'destructive',
+              confirmVariant: 'destructive'
+            }
+          }
+        }
+      )
+    : null;
 
   const fallbackPage = (
     <section className="flex-1 space-y-6 p-4 lg:p-8">
@@ -489,20 +512,15 @@ export default async function DashboardSubscriptionsPage({
                     </Link>
                   </Button>
                 </div>
-                <form id="cancel-user-subscription" action={cancelUserSubscriptionAction}>
-                  <TemplateConfirmSubmitButton
+                {userCancelForm ? (
+                  <TemplateBuildForm
+                    definition={userCancelForm}
                     area="dashboard"
                     route="/dashboard/subscriptions"
-                    formId="cancel-user-subscription"
-                    title={subscriptions.userPlan.confirmCancelTitle}
-                    description={subscriptions.userPlan.confirmCancelDescription}
-                    triggerLabel={subscriptions.userPlan.cancel}
-                    confirmLabel={subscriptions.userPlan.confirmCancel}
-                    cancelLabel={subscriptions.userPlan.keep}
-                    triggerVariant="destructive"
-                    triggerSize="default"
+                    slot="dashboard.subscriptions.user.cancel"
+                    className="space-y-3"
                   />
-                </form>
+                ) : null}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -629,6 +647,48 @@ export default async function DashboardSubscriptionsPage({
                     membership.subscriptionTemplateName ||
                     membership.planName ||
                     subscriptions.organizations.noPlan;
+                  const manageOrganizationForm =
+                    membership.paymentProvider === 'stripe' ||
+                    membership.paymentProvider === 'paypal'
+                      ? {
+                          ...composeRegisteredBuildFormDefinition(
+                            'dashboard-manage-organization-subscription-form',
+                            createDashboardManageOrganizationSubscriptionBuildFormBase(),
+                            {
+                              submit:
+                                membership.paymentProvider === 'paypal'
+                                  ? {
+                                      idleLabel: subscriptions.organizations.cancelPaypal,
+                                      align: 'end',
+                                      variant: 'outline',
+                                      size: 'sm',
+                                      confirm: {
+                                        title: subscriptions.organizations.confirmCancelTitle,
+                                        description:
+                                          subscriptions.organizations.confirmCancelDescription,
+                                        confirmLabel:
+                                          subscriptions.organizations.confirmCancel,
+                                        cancelLabel: subscriptions.organizations.keep,
+                                        triggerVariant: 'outline',
+                                        confirmVariant: 'destructive'
+                                      }
+                                    }
+                                  : {
+                                      idleLabel: subscriptions.organizations.manage,
+                                      pendingLabel:
+                                        subscriptions.organizations.managePending,
+                                      align: 'end',
+                                      variant: 'outline',
+                                      size: 'sm'
+                                    },
+                              values: {
+                                teamId: membership.teamId
+                              }
+                            }
+                          ),
+                          id: `dashboard-manage-organization-subscription-form-${membership.teamId}`
+                        }
+                      : null;
 
                   return (
                     <TableRow key={membership.teamId}>
@@ -726,45 +786,14 @@ export default async function DashboardSubscriptionsPage({
                             <span className="text-xs text-muted-foreground">-</span>
                           ) : (
                             <div className="flex flex-col items-end gap-2">
-                              {membership.paymentProvider === 'stripe' ? (
-                                <form action={manageOrganizationSubscriptionAction}>
-                                  <input
-                                    type="hidden"
-                                    name="teamId"
-                                    value={membership.teamId}
-                                  />
-                                  <TemplateAsyncSubmitButton
-                                    area="dashboard"
-                                    route="/dashboard/subscriptions"
-                                    size="sm"
-                                    variant="outline"
-                                    idleLabel={subscriptions.organizations.manage}
-                                    pendingLabel={subscriptions.organizations.managePending}
-                                  />
-                                </form>
-                              ) : membership.paymentProvider === 'paypal' ? (
-                                <form
-                                  id={`cancel-paypal-subscription-${membership.teamId}`}
-                                  action={manageOrganizationSubscriptionAction}
-                                  className="inline-flex"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="teamId"
-                                    value={membership.teamId}
-                                  />
-                                  <TemplateConfirmSubmitButton
-                                    area="dashboard"
-                                    route="/dashboard/subscriptions"
-                                    formId={`cancel-paypal-subscription-${membership.teamId}`}
-                                    title={subscriptions.organizations.confirmCancelTitle}
-                                    description={subscriptions.organizations.confirmCancelDescription}
-                                    triggerLabel={subscriptions.organizations.cancelPaypal}
-                                    confirmLabel={subscriptions.organizations.confirmCancel}
-                                    cancelLabel={subscriptions.organizations.keep}
-                                    triggerVariant="outline"
-                                  />
-                                </form>
+                              {manageOrganizationForm ? (
+                                <TemplateBuildForm
+                                  definition={manageOrganizationForm}
+                                  area="dashboard"
+                                  route="/dashboard/subscriptions"
+                                  slot="dashboard.subscriptions.organizations.manage"
+                                  className="space-y-2"
+                                />
                               ) : null}
                               <div className="flex flex-col gap-2 sm:flex-row">
                                 <Button asChild variant="ghost" size="sm">
@@ -855,4 +884,3 @@ export default async function DashboardSubscriptionsPage({
     </ThemeCodeTemplate>
   );
 }
-

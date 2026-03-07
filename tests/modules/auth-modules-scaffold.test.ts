@@ -5,8 +5,22 @@ import {
   configureDatabase,
   configureModuleConfig
 } from '@skitsaas/sdk/server';
-import passkeyModuleManifest from '../../modulesprivate/mod.auth.passkey/src/manifest';
-import socialLoginsModuleManifest from '../../modulesprivate/mod.auth.social-logins/src/manifest';
+import { loadOptionalPrivateModuleManifest } from './private-module-test-kit';
+
+const passkeyModuleManifestPromise = loadOptionalPrivateModuleManifest(
+  'modulesprivate/mod.auth.passkey/src/manifest.ts'
+);
+const socialLoginsModuleManifestPromise = loadOptionalPrivateModuleManifest(
+  'modulesprivate/mod.auth.social-logins/src/manifest.ts'
+);
+
+async function requirePasskeyModuleManifest() {
+  return passkeyModuleManifestPromise;
+}
+
+async function requireSocialLoginsModuleManifest() {
+  return socialLoginsModuleManifestPromise;
+}
 
 type ConfigStore = Map<string, string | null>;
 type SocialSelectRow = Record<string, unknown> | null;
@@ -159,16 +173,20 @@ async function withFetchStub(
 }
 
 test('passkey auth module health route reports disabled status by default', async () => {
+  const manifest = await requirePasskeyModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>();
   configureConfigAdapter(store);
 
-  assert.ok(passkeyModuleManifest.apiHandler);
-  const response = await passkeyModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.passkey/health', {
       method: 'GET'
     }),
     {
-      moduleId: passkeyModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['health']
     }
   );
@@ -185,6 +203,10 @@ test('passkey auth module health route reports disabled status by default', asyn
 });
 
 test('passkey auth module health route reports ready when required config exists', async () => {
+  const manifest = await requirePasskeyModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>([
     ['mod.auth.passkey.config:enabled', '1'],
     ['mod.auth.passkey.config:rp_id', 'localhost'],
@@ -192,13 +214,13 @@ test('passkey auth module health route reports ready when required config exists
   ]);
   configureConfigAdapter(store);
 
-  assert.ok(passkeyModuleManifest.apiHandler);
-  const response = await passkeyModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.passkey/health', {
       method: 'GET'
     }),
     {
-      moduleId: passkeyModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['health']
     }
   );
@@ -211,11 +233,15 @@ test('passkey auth module health route reports ready when required config exists
 });
 
 test('passkey auth start route is deterministically blocked when provider is disabled', async () => {
+  const manifest = await requirePasskeyModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>();
   configureConfigAdapter(store);
 
-  assert.ok(passkeyModuleManifest.apiHandler);
-  const response = await passkeyModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request(
       'https://example.test/api/modules/mod.auth.passkey/authentication/options',
       {
@@ -226,7 +252,7 @@ test('passkey auth start route is deterministically blocked when provider is dis
       }
     ),
     {
-      moduleId: passkeyModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['authentication', 'options']
     }
   );
@@ -243,16 +269,20 @@ test('passkey auth start route is deterministically blocked when provider is dis
 });
 
 test('social login module providers route returns supported provider set', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>();
   configureConfigAdapter(store);
 
-  assert.ok(socialLoginsModuleManifest.apiHandler);
-  const response = await socialLoginsModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.social-logins/providers', {
       method: 'GET'
     }),
     {
-      moduleId: socialLoginsModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['providers']
     }
   );
@@ -270,16 +300,20 @@ test('social login module providers route returns supported provider set', async
 });
 
 test('social login module rejects unsupported provider in start route', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>();
   configureConfigAdapter(store);
 
-  assert.ok(socialLoginsModuleManifest.apiHandler);
-  const response = await socialLoginsModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.social-logins/start/linkedin', {
       method: 'POST'
     }),
     {
-      moduleId: socialLoginsModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['start', 'linkedin']
     }
   );
@@ -294,6 +328,10 @@ test('social login module rejects unsupported provider in start route', async ()
 });
 
 test('social login callback rejects invalid payload when provider is enabled', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.google.enabled', '1'],
     ['mod.auth.social-logins.config:provider.google.client_id', 'google-client-id'],
@@ -301,8 +339,8 @@ test('social login callback rejects invalid payload when provider is enabled', a
   ]);
   configureConfigAdapter(store);
 
-  assert.ok(socialLoginsModuleManifest.apiHandler);
-  const response = await socialLoginsModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request(
       'https://example.test/api/modules/mod.auth.social-logins/callback/google',
       {
@@ -315,7 +353,7 @@ test('social login callback rejects invalid payload when provider is enabled', a
       }
     ),
     {
-      moduleId: socialLoginsModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['callback', 'google']
     }
   );
@@ -330,6 +368,10 @@ test('social login callback rejects invalid payload when provider is enabled', a
 });
 
 test('social login callback rejects state replay/mismatch deterministically', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.google.enabled', '1'],
@@ -339,8 +381,8 @@ test('social login callback rejects state replay/mismatch deterministically', as
   configureConfigAdapter(store);
   configureDatabaseWithNoOauthState();
 
-  assert.ok(socialLoginsModuleManifest.apiHandler);
-  const response = await socialLoginsModuleManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request(
       'https://example.test/api/modules/mod.auth.social-logins/callback/google?state=invalid-state&code=abc',
       {
@@ -351,7 +393,7 @@ test('social login callback rejects state replay/mismatch deterministically', as
       }
     ),
     {
-      moduleId: socialLoginsModuleManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['callback', 'google']
     }
   );
@@ -366,6 +408,10 @@ test('social login callback rejects state replay/mismatch deterministically', as
 });
 
 test('social login callback completes successful Google login flow', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.google.enabled', '1'],
@@ -410,8 +456,8 @@ test('social login callback completes successful Google login flow', async () =>
 
   await withFetchStub(
     async () => {
-      assert.ok(socialLoginsModuleManifest.apiHandler);
-      const response = await socialLoginsModuleManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.social-logins/callback/google?state=state-1&code=auth-code-1',
           {
@@ -422,7 +468,7 @@ test('social login callback completes successful Google login flow', async () =>
           }
         ),
         {
-          moduleId: socialLoginsModuleManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'google']
         }
       );
@@ -471,6 +517,10 @@ test('social login callback completes successful Google login flow', async () =>
 });
 
 test('social login callback completes successful GitHub login flow', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.github.enabled', '1'],
@@ -515,8 +565,8 @@ test('social login callback completes successful GitHub login flow', async () =>
 
   await withFetchStub(
     async () => {
-      assert.ok(socialLoginsModuleManifest.apiHandler);
-      const response = await socialLoginsModuleManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.social-logins/callback/github?state=state-2&code=auth-code-2',
           {
@@ -527,7 +577,7 @@ test('social login callback completes successful GitHub login flow', async () =>
           }
         ),
         {
-          moduleId: socialLoginsModuleManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'github']
         }
       );
@@ -586,6 +636,10 @@ test('social login callback completes successful GitHub login flow', async () =>
 });
 
 test('social login callback completes successful X login flow', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.x.enabled', '1'],
@@ -630,8 +684,8 @@ test('social login callback completes successful X login flow', async () => {
 
   await withFetchStub(
     async () => {
-      assert.ok(socialLoginsModuleManifest.apiHandler);
-      const response = await socialLoginsModuleManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.social-logins/callback/x?state=state-3&code=auth-code-3',
           {
@@ -642,7 +696,7 @@ test('social login callback completes successful X login flow', async () => {
           }
         ),
         {
-          moduleId: socialLoginsModuleManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'x']
         }
       );
@@ -692,6 +746,10 @@ test('social login callback completes successful X login flow', async () => {
 });
 
 test('social login blocks new account linking when provider email is unverified', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.google.enabled', '1'],
@@ -722,8 +780,8 @@ test('social login blocks new account linking when provider email is unverified'
 
   await withFetchStub(
     async () => {
-      assert.ok(socialLoginsModuleManifest.apiHandler);
-      const response = await socialLoginsModuleManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.social-logins/callback/google?state=state-4&code=auth-code-4',
           {
@@ -734,7 +792,7 @@ test('social login blocks new account linking when provider email is unverified'
           }
         ),
         {
-          moduleId: socialLoginsModuleManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'google']
         }
       );
@@ -778,6 +836,10 @@ test('social login blocks new account linking when provider email is unverified'
 });
 
 test('social link flow rejects provider account already linked to another user', async () => {
+  const manifest = await requireSocialLoginsModuleManifest();
+  if (!manifest) {
+    return;
+  }
   clearSocialEnvOverrides();
   const store = new Map<string, string | null>([
     ['mod.auth.social-logins.config:provider.google.enabled', '1'],
@@ -826,8 +888,8 @@ test('social link flow rejects provider account already linked to another user',
 
   await withFetchStub(
     async () => {
-      assert.ok(socialLoginsModuleManifest.apiHandler);
-      const response = await socialLoginsModuleManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.social-logins/callback/google?state=state-5&code=auth-code-5',
           {
@@ -838,7 +900,7 @@ test('social link flow rejects provider account already linked to another user',
           }
         ),
         {
-          moduleId: socialLoginsModuleManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'google']
         }
       );

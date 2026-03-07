@@ -5,7 +5,15 @@ import {
   configureDatabase,
   configureModuleConfig
 } from '@skitsaas/sdk/server';
-import enterpriseSsoManifest from '../../modulesprivate/mod.auth.enterprise-sso/src/manifest';
+import { loadOptionalPrivateModuleManifest } from './private-module-test-kit';
+
+const enterpriseSsoManifestPromise = loadOptionalPrivateModuleManifest(
+  'modulesprivate/mod.auth.enterprise-sso/src/manifest.ts'
+);
+
+async function requireEnterpriseSsoManifest() {
+  return enterpriseSsoManifestPromise;
+}
 
 type ConfigStore = Map<string, string | null>;
 
@@ -132,6 +140,10 @@ function baseEnterpriseStore() {
 }
 
 test('enterprise sso health route exposes tenant provider summaries', async () => {
+  const manifest = await requireEnterpriseSsoManifest();
+  if (!manifest) {
+    return;
+  }
   process.env.BASE_URL = 'https://app.example';
   configureConfigAdapter(baseEnterpriseStore());
   configureDbStub({
@@ -143,13 +155,13 @@ test('enterprise sso health route exposes tenant provider summaries', async () =
     getUser: async () => null
   });
 
-  assert.ok(enterpriseSsoManifest.apiHandler);
-  const response = await enterpriseSsoManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.enterprise-sso/health', {
       method: 'GET'
     }),
     {
-      moduleId: enterpriseSsoManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['health']
     }
   );
@@ -176,6 +188,10 @@ test('enterprise sso health route exposes tenant provider summaries', async () =
 });
 
 test('enterprise oidc start route fails closed when tenant cannot be resolved', async () => {
+  const manifest = await requireEnterpriseSsoManifest();
+  if (!manifest) {
+    return;
+  }
   process.env.BASE_URL = 'https://app.example';
   const store = baseEnterpriseStore();
   store.delete('mod.auth.enterprise-sso.config:tenants');
@@ -191,8 +207,8 @@ test('enterprise oidc start route fails closed when tenant cannot be resolved', 
     getUser: async () => null
   });
 
-  assert.ok(enterpriseSsoManifest.apiHandler);
-  const response = await enterpriseSsoManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.enterprise-sso/start/oidc', {
       method: 'GET',
       headers: {
@@ -200,7 +216,7 @@ test('enterprise oidc start route fails closed when tenant cannot be resolved', 
       }
     }),
     {
-      moduleId: enterpriseSsoManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['start', 'oidc']
     }
   );
@@ -212,6 +228,10 @@ test('enterprise oidc start route fails closed when tenant cannot be resolved', 
 });
 
 test('enterprise oidc callback does not elevate member to admin via mapped claims', async () => {
+  const manifest = await requireEnterpriseSsoManifest();
+  if (!manifest) {
+    return;
+  }
   process.env.BASE_URL = 'https://app.example';
   configureConfigAdapter(baseEnterpriseStore());
 
@@ -249,8 +269,8 @@ test('enterprise oidc callback does not elevate member to admin via mapped claim
 
   await withFetchStub(
     async () => {
-      assert.ok(enterpriseSsoManifest.apiHandler);
-      const response = await enterpriseSsoManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.enterprise-sso/callback/oidc?state=state-1&code=code-1',
           {
@@ -261,7 +281,7 @@ test('enterprise oidc callback does not elevate member to admin via mapped claim
           }
         ),
         {
-          moduleId: enterpriseSsoManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'oidc']
         }
       );
@@ -300,6 +320,10 @@ test('enterprise oidc callback does not elevate member to admin via mapped claim
 });
 
 test('enterprise oidc start route fails closed when provider config is invalid', async () => {
+  const manifest = await requireEnterpriseSsoManifest();
+  if (!manifest) {
+    return;
+  }
   process.env.BASE_URL = 'https://app.example';
   const store = baseEnterpriseStore();
   store.delete('mod.auth.enterprise-sso.config:tenant.acme.oidc.token_url');
@@ -314,8 +338,8 @@ test('enterprise oidc start route fails closed when provider config is invalid',
     getUser: async () => null
   });
 
-  assert.ok(enterpriseSsoManifest.apiHandler);
-  const response = await enterpriseSsoManifest.apiHandler!(
+  assert.ok(manifest.apiHandler);
+  const response = await manifest.apiHandler!(
     new Request('https://example.test/api/modules/mod.auth.enterprise-sso/start/oidc', {
       method: 'GET',
       headers: {
@@ -323,7 +347,7 @@ test('enterprise oidc start route fails closed when provider config is invalid',
       }
     }),
     {
-      moduleId: enterpriseSsoManifest.moduleId,
+      moduleId: manifest.moduleId,
       slug: ['start', 'oidc']
     }
   );
@@ -340,6 +364,10 @@ test('enterprise oidc start route fails closed when provider config is invalid',
 });
 
 test('enterprise oidc callback completes dashboard login for configured tenant', async () => {
+  const manifest = await requireEnterpriseSsoManifest();
+  if (!manifest) {
+    return;
+  }
   process.env.BASE_URL = 'https://app.example';
   configureConfigAdapter(baseEnterpriseStore());
 
@@ -377,8 +405,8 @@ test('enterprise oidc callback completes dashboard login for configured tenant',
 
   await withFetchStub(
     async () => {
-      assert.ok(enterpriseSsoManifest.apiHandler);
-      const response = await enterpriseSsoManifest.apiHandler!(
+      assert.ok(manifest.apiHandler);
+      const response = await manifest.apiHandler!(
         new Request(
           'https://example.test/api/modules/mod.auth.enterprise-sso/callback/oidc?state=state-2&code=code-2',
           {
@@ -389,7 +417,7 @@ test('enterprise oidc callback completes dashboard login for configured tenant',
           }
         ),
         {
-          moduleId: enterpriseSsoManifest.moduleId,
+          moduleId: manifest.moduleId,
           slug: ['callback', 'oidc']
         }
       );

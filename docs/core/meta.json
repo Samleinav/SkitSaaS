@@ -2,6 +2,7 @@
   "title": "Core Platform",
   "pages": [
     "platform-capabilities",
+    "form-build-system",
     "architecture-routing-actions",
     "database-model",
     "env-variables",

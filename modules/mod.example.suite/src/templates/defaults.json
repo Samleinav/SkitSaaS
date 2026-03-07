@@ -5,6 +5,16 @@
       "componentId": "ui.table",
       "templateId": "mod.example.suite.default.table",
       "description": "Default table template from module pack."
+    },
+    {
+      "componentId": "ui.form",
+      "templateId": "mod.example.suite.default.form",
+      "description": "Default structured form payload from module pack.",
+      "payload": {
+        "formClassName": "space-y-5",
+        "sectionClassName": "space-y-3",
+        "checkboxWrapperClassName": "bg-muted/20"
+      }
     }
   ]
 }

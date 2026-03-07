@@ -1,7 +1,12 @@
 import Link from 'next/link';
-import { ArrowLeft, PencilLine, Plus, Settings, Trash2 } from 'lucide-react';
+import { ArrowLeft, PencilLine, Plus, Settings } from 'lucide-react';
+import {
+  buildFormField,
+  composeBuildFormDefinition
+} from '@skitsaas/sdk';
 import { AsyncSubmitButton } from '@/components/ui/async-submit-button';
 import { Button } from '@/components/ui/button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import {
   Card,
   CardContent,
@@ -12,7 +17,9 @@ import {
 import {
   EXAMPLE_SUITE_ADMIN_ALIAS,
   EXAMPLE_SUITE_API_BASE,
-  EXAMPLE_SUITE_DASHBOARD_ALIAS
+  EXAMPLE_SUITE_DASHBOARD_ALIAS,
+  EXAMPLE_SUITE_DEFAULT_PRIORITY,
+  EXAMPLE_SUITE_MODULE_ID
 } from '../constants';
 import {
   createExampleSuiteItemAdminAction,
@@ -25,6 +32,11 @@ import {
   getExampleSuiteSettings,
   listExampleSuiteItemsForAdmin
 } from '../data';
+import {
+  createExampleSuiteAdminEditItemFormDefinition,
+  createExampleSuiteAdminItemFormDefinition,
+  createExampleSuiteSettingsFormDefinition
+} from '../forms';
 
 function formatDate(value: Date) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
@@ -191,6 +203,35 @@ export async function renderExampleSuiteAdminCreatePage() {
     getExampleSuiteSettings(),
     listExampleSuiteItemsForAdmin(10)
   ]);
+  const createForm = composeBuildFormDefinition(
+    {
+      ...createExampleSuiteAdminItemFormDefinition(),
+      id: 'example-suite-admin-create-form'
+    },
+    {
+      request: {
+        action: createExampleSuiteItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Create',
+        pendingLabel: 'Creating...',
+        successLabel: 'Created',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Back',
+            href: EXAMPLE_SUITE_ADMIN_ALIAS
+          }
+        ]
+      },
+      values: {
+        status: settings.defaultStatus,
+        priority: EXAMPLE_SUITE_DEFAULT_PRIORITY,
+        isPublic: false
+      }
+    }
+  );
 
   return (
     <div className="space-y-6">
@@ -203,92 +244,13 @@ export async function renderExampleSuiteAdminCreatePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={createExampleSuiteItemAdminAction} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Title
-              </label>
-              <input
-                id="title"
-                name="title"
-                required
-                maxLength={120}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                placeholder="Campaign launch checklist"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows={4}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Optional details for dashboard and API consumers."
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="status" className="text-sm font-medium">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue={settings.defaultStatus}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="draft">draft</option>
-                  <option value="active">active</option>
-                  <option value="archived">archived</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="priority" className="text-sm font-medium">
-                  Priority (1-5)
-                </label>
-                <input
-                  id="priority"
-                  name="priority"
-                  type="number"
-                  min={1}
-                  max={5}
-                  defaultValue={3}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="isPublic"
-                value="true"
-                className="h-4 w-4 rounded border-input"
-              />
-              Expose item in public API listing
-            </label>
-
-            <div className="flex flex-wrap gap-2">
-              <AsyncSubmitButton
-                size="sm"
-                idleLabel="Create"
-                pendingLabel="Creating..."
-                successLabel="Created"
-              />
-              <Button asChild size="sm" variant="outline">
-                <Link href={EXAMPLE_SUITE_ADMIN_ALIAS}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Link>
-              </Button>
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={createForm}
+            area="admin"
+            route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/create`}
+            moduleId={EXAMPLE_SUITE_MODULE_ID}
+            slot="mod.example.suite.admin.create.form"
+          />
         </CardContent>
       </Card>
 
@@ -342,6 +304,77 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
     );
   }
 
+  const baseItemForm = createExampleSuiteAdminEditItemFormDefinition();
+  const editForm = composeBuildFormDefinition(
+    {
+      ...baseItemForm,
+      id: `example-suite-admin-edit-${item.id}`
+    },
+    {
+      request: {
+        action: updateExampleSuiteItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Save',
+        pendingLabel: 'Saving...',
+        successLabel: 'Saved',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Back',
+            href: EXAMPLE_SUITE_ADMIN_ALIAS
+          }
+        ]
+      },
+      values: {
+        itemId: item.id,
+        title: item.title,
+        description: item.description ?? '',
+        status: item.status,
+        priority: item.priority,
+        isPublic: item.isPublic
+      }
+    }
+  );
+
+  const deleteForm = composeBuildFormDefinition(
+    {
+      id: `example-suite-admin-delete-${item.id}`,
+      fields: [
+        buildFormField.hidden({
+          name: 'itemId',
+          defaultValue: item.id
+        })
+      ]
+    },
+    {
+      request: {
+        action: deleteExampleSuiteItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Delete',
+        pendingLabel: 'Deleting...',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Cancel',
+            href: EXAMPLE_SUITE_ADMIN_ALIAS
+          }
+        ],
+        confirm: {
+          title: `Delete item #${item.id}?`,
+          description: 'This action permanently removes the record.',
+          confirmLabel: 'Delete',
+          cancelLabel: 'Keep item',
+          triggerVariant: 'outline',
+          confirmVariant: 'destructive'
+        }
+      }
+    }
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -352,95 +385,13 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateExampleSuiteItemAdminAction} className="space-y-4">
-            <input type="hidden" name="itemId" value={item.id} />
-
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Title
-              </label>
-              <input
-                id="title"
-                name="title"
-                required
-                maxLength={120}
-                defaultValue={item.title}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows={4}
-                defaultValue={item.description ?? ''}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="status" className="text-sm font-medium">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue={item.status}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  <option value="draft">draft</option>
-                  <option value="active">active</option>
-                  <option value="archived">archived</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="priority" className="text-sm font-medium">
-                  Priority (1-5)
-                </label>
-                <input
-                  id="priority"
-                  name="priority"
-                  type="number"
-                  min={1}
-                  max={5}
-                  defaultValue={item.priority}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="isPublic"
-                value="true"
-                defaultChecked={item.isPublic}
-                className="h-4 w-4 rounded border-input"
-              />
-              Public visibility
-            </label>
-
-            <div className="flex flex-wrap gap-2">
-              <AsyncSubmitButton
-                size="sm"
-                idleLabel="Save"
-                pendingLabel="Saving..."
-                successLabel="Saved"
-              />
-              <Button asChild size="sm" variant="outline">
-                <Link href={EXAMPLE_SUITE_ADMIN_ALIAS}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Link>
-              </Button>
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={editForm}
+            area="admin"
+            route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${item.id}`}
+            moduleId={EXAMPLE_SUITE_MODULE_ID}
+            slot="mod.example.suite.admin.edit.form"
+          />
         </CardContent>
       </Card>
 
@@ -450,21 +401,13 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
           <CardDescription>Delete this record permanently.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={deleteExampleSuiteItemAdminAction} className="flex gap-2">
-            <input type="hidden" name="itemId" value={item.id} />
-            <AsyncSubmitButton
-              size="sm"
-              variant="outline"
-              idleLabel="Delete"
-              pendingLabel="Deleting..."
-            />
-            <Button asChild size="sm" variant="outline">
-              <Link href={EXAMPLE_SUITE_ADMIN_ALIAS}>
-                <Trash2 className="h-4 w-4" />
-                Cancel
-              </Link>
-            </Button>
-          </form>
+          <TemplateBuildForm
+            definition={deleteForm}
+            area="admin"
+            route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${item.id}`}
+            moduleId={EXAMPLE_SUITE_MODULE_ID}
+            slot="mod.example.suite.admin.delete.form"
+          />
         </CardContent>
       </Card>
     </div>
@@ -473,6 +416,27 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
 
 export async function renderExampleSuiteAdminSettingsPage() {
   const settings = await getExampleSuiteSettings();
+  const baseSettingsForm = createExampleSuiteSettingsFormDefinition();
+  const settingsForm = composeBuildFormDefinition(baseSettingsForm, {
+    request: {
+      action: updateExampleSuiteSettingsAdminAction,
+      method: 'post'
+    },
+    submit: {
+      ...baseSettingsForm.submit,
+      secondaryActions: [
+        {
+          label: 'Back',
+          href: EXAMPLE_SUITE_ADMIN_ALIAS
+        }
+      ]
+    },
+    values: {
+      allowDashboardCreate: settings.allowDashboardCreate,
+      apiWriteMode: settings.apiWriteMode,
+      defaultStatus: settings.defaultStatus
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -485,63 +449,13 @@ export async function renderExampleSuiteAdminSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateExampleSuiteSettingsAdminAction} className="space-y-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="allowDashboardCreate"
-                value="true"
-                defaultChecked={settings.allowDashboardCreate}
-                className="h-4 w-4 rounded border-input"
-              />
-              Allow dashboard users to create records
-            </label>
-
-            <div className="space-y-2">
-              <label htmlFor="apiWriteMode" className="text-sm font-medium">
-                API write mode
-              </label>
-              <select
-                id="apiWriteMode"
-                name="apiWriteMode"
-                defaultValue={settings.apiWriteMode}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="authenticated">authenticated users</option>
-                <option value="admin">admins only</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="defaultStatus" className="text-sm font-medium">
-                Default status for new records
-              </label>
-              <select
-                id="defaultStatus"
-                name="defaultStatus"
-                defaultValue={settings.defaultStatus}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="draft">draft</option>
-                <option value="active">active</option>
-                <option value="archived">archived</option>
-              </select>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <AsyncSubmitButton
-                size="sm"
-                idleLabel="Save Settings"
-                pendingLabel="Saving..."
-              />
-              <Button asChild size="sm" variant="outline">
-                <Link href={EXAMPLE_SUITE_ADMIN_ALIAS}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Link>
-              </Button>
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={settingsForm}
+            area="admin"
+            route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/settings`}
+            moduleId={EXAMPLE_SUITE_MODULE_ID}
+            slot="mod.example.suite.admin.settings.form"
+          />
         </CardContent>
       </Card>
     </div>

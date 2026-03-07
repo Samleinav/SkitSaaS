@@ -8,11 +8,8 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
-import { TemplateConfirmSubmitButton } from '@/components/ui/template-confirm-submit-button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import {
   getAdminTransferCandidatesForUser,
   getAdminUserById,
@@ -20,14 +17,15 @@ import {
   getUserSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../guards';
 import { formatDateTime } from '../../utils';
 import {
-  deleteUserAction,
-  updateUserAccountStatusAction,
-  updateUserProfileAction
-} from '../actions';
+  createAdminDeleteUserBuildFormBase,
+  createAdminEditUserProfileBuildFormBase,
+  createAdminEditUserStatusBuildFormBase
+} from '../forms';
 import {
   getAdminUserStatusClassName,
   resolveAdminUserDisplayStatus
@@ -113,6 +111,106 @@ export default async function AdminUserDetailsPage({
   const saveStatusDisabled = isDeleted || isSelfProfile;
   const deleteDisabled = isDeleted || isSelfProfile;
   const themeSelection = await getThemeSelectionForArea('admin');
+  const userProfileForm = composeRegisteredBuildFormDefinition(
+    'admin-edit-user-profile-form',
+    createAdminEditUserProfileBuildFormBase({
+      copy: {
+        nameLabel: usersDetail.profileNameLabel,
+        emailLabel: usersDetail.profileEmailLabel,
+        roleLabel: usersDetail.profileRoleLabel,
+        subscriptionLabel: usersDetail.profileSubscriptionLabel,
+        noSubscription: usersDetail.noSubscription,
+        roles: usersDetail.roles
+      },
+      locale: dateLocale,
+      userTemplateOptions,
+      disabled: saveProfileDisabled
+    }),
+    {
+      submit: saveProfileDisabled
+        ? undefined
+        : {
+            idleLabel: usersDetail.saveProfile,
+            pendingLabel: usersDetail.savingProfile,
+            align: 'start'
+          },
+      values: {
+        userId: user.id,
+        name: user.name || '',
+        email: user.email,
+        role: user.role,
+        subscriptionTemplateId: user.subscriptionTemplateId ?? null
+      }
+    }
+  );
+  const userStatusForm = composeRegisteredBuildFormDefinition(
+    'admin-update-user-status-form',
+    createAdminEditUserStatusBuildFormBase({
+      copy: {
+        statusLabel: usersDetail.statusFieldLabel,
+        statusReasonLabel: usersDetail.statusReasonLabel,
+        statusReasonPlaceholder: usersDetail.statusReasonPlaceholder,
+        status: {
+          active: usersDetail.status.active,
+          suspended: usersDetail.status.suspended,
+          banned: usersDetail.status.banned
+        }
+      },
+      disabled: saveStatusDisabled
+    }),
+    {
+      submit: saveStatusDisabled
+        ? undefined
+        : {
+            idleLabel: usersDetail.saveStatus,
+            pendingLabel: usersDetail.savingStatus,
+            align: 'start'
+          },
+      values: {
+        userId: user.id,
+        accountStatus: normalizedAccountStatus,
+        statusReason: user.statusReason || ''
+      }
+    }
+  );
+  const userDeleteForm = composeRegisteredBuildFormDefinition(
+    'admin-delete-user-form',
+    createAdminDeleteUserBuildFormBase({
+      copy: {
+        transferLabel: usersDetail.transferLabel,
+        transferNone: usersDetail.transferNone,
+        deleteReasonLabel: usersDetail.deleteReasonLabel,
+        deleteReasonPlaceholder: usersDetail.deleteReasonPlaceholder
+      },
+      transferCandidates,
+      disabled: deleteDisabled
+    }),
+    {
+      submit: deleteDisabled
+        ? undefined
+        : {
+            idleLabel: usersDetail.deleteButton,
+            pendingLabel: usersDetail.confirmDelete,
+            align: 'start',
+            variant: 'destructive',
+            size: 'sm',
+            confirm: {
+              title: usersDetail.confirmDeleteTitle,
+              description: usersDetail.confirmDeleteDescription,
+              confirmLabel: usersDetail.confirmDelete,
+              cancelLabel: usersDetail.cancel,
+              triggerVariant: 'destructive',
+              confirmVariant: 'destructive'
+            }
+          },
+      values: {
+        userId: user.id,
+        requiresTransfer: user.ownedOrganizationsCount > 0 ? 'true' : 'false',
+        transferUserId: '',
+        statusReason: ''
+      }
+    }
+  );
 
   const fallbackPage = (
     <div className="space-y-6">
@@ -178,79 +276,13 @@ export default async function AdminUserDetailsPage({
           <CardTitle>{usersDetail.profileTitle}</CardTitle>
           <CardDescription>{usersDetail.profileDescription}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={updateUserProfileAction} className="grid gap-4 md:grid-cols-2">
-            <input type="hidden" name="userId" value={user.id} />
-
-            <div className="space-y-2">
-              <Label htmlFor="profile-name">{usersDetail.profileNameLabel}</Label>
-              <Input
-                id="profile-name"
-                name="name"
-                defaultValue={user.name || ''}
-                maxLength={100}
-                disabled={saveProfileDisabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profile-email">{usersDetail.profileEmailLabel}</Label>
-              <Input
-                id="profile-email"
-                name="email"
-                type="email"
-                defaultValue={user.email}
-                required
-                maxLength={255}
-                disabled={saveProfileDisabled}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profile-role">{usersDetail.profileRoleLabel}</Label>
-              <select
-                id="profile-role"
-                name="role"
-                defaultValue={user.role}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={saveProfileDisabled}
-              >
-                <option value="member">{usersDetail.roles.member}</option>
-                <option value="owner">{usersDetail.roles.owner}</option>
-                <option value="admin">{usersDetail.roles.admin}</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profile-subscription">
-                {usersDetail.profileSubscriptionLabel}
-              </Label>
-              <select
-                id="profile-subscription"
-                name="subscriptionTemplateId"
-                defaultValue={user.subscriptionTemplateId || ''}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={saveProfileDisabled}
-              >
-                <option value="">{usersDetail.noSubscription}</option>
-                {userTemplateOptions.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {`${template.name} (${template.billingInterval})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <TemplateAsyncSubmitButton
-                area="admin"
-                route={`/admin/users/${user.id}`}
-                idleLabel={usersDetail.saveProfile}
-                pendingLabel={usersDetail.savingProfile}
-                disabled={saveProfileDisabled}
-              />
-            </div>
-          </form>
+        <CardContent className="space-y-3">
+          <TemplateBuildForm
+            definition={userProfileForm}
+            area="admin"
+            route={`/admin/users/${user.id}`}
+            slot="admin.users.detail.profile"
+          />
           {isDeleted ? (
             <p className="mt-3 text-xs text-muted-foreground">
               {usersDetail.profileDisabledForDeleted}
@@ -264,47 +296,13 @@ export default async function AdminUserDetailsPage({
           <CardTitle>{usersDetail.statusTitle}</CardTitle>
           <CardDescription>{usersDetail.statusDescription}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={updateUserAccountStatusAction} className="grid gap-4 md:grid-cols-2">
-            <input type="hidden" name="userId" value={user.id} />
-
-            <div className="space-y-2">
-              <Label htmlFor="account-status">{usersDetail.statusFieldLabel}</Label>
-              <select
-                id="account-status"
-                name="accountStatus"
-                defaultValue={normalizedAccountStatus}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={saveStatusDisabled}
-              >
-                <option value="active">{usersDetail.status.active}</option>
-                <option value="suspended">{usersDetail.status.suspended}</option>
-                <option value="banned">{usersDetail.status.banned}</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status-reason">{usersDetail.statusReasonLabel}</Label>
-              <Input
-                id="status-reason"
-                name="statusReason"
-                defaultValue={user.statusReason || ''}
-                placeholder={usersDetail.statusReasonPlaceholder}
-                maxLength={250}
-                disabled={saveStatusDisabled}
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <TemplateAsyncSubmitButton
-                area="admin"
-                route={`/admin/users/${user.id}`}
-                idleLabel={usersDetail.saveStatus}
-                pendingLabel={usersDetail.savingStatus}
-                disabled={saveStatusDisabled}
-              />
-            </div>
-          </form>
+        <CardContent className="space-y-3">
+          <TemplateBuildForm
+            definition={userStatusForm}
+            area="admin"
+            route={`/admin/users/${user.id}`}
+            slot="admin.users.detail.status"
+          />
           {isSelfProfile ? (
             <p className="mt-3 text-xs text-muted-foreground">
               {usersDetail.statusSelfGuard}
@@ -395,57 +393,16 @@ export default async function AdminUserDetailsPage({
             {usersDetail.deleteHint
               .replace('{owned}', String(user.ownedOrganizationsCount))}
           </p>
-          <form id="delete-user-form" action={deleteUserAction} className="grid gap-4 md:grid-cols-2">
-            <input type="hidden" name="userId" value={user.id} />
-
-            <div className="space-y-2">
-              <Label htmlFor="transfer-user">{usersDetail.transferLabel}</Label>
-              <select
-                id="transfer-user"
-                name="transferUserId"
-                defaultValue=""
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                required={user.ownedOrganizationsCount > 0}
-                disabled={deleteDisabled}
-              >
-                <option value="">{usersDetail.transferNone}</option>
-                {transferCandidates.map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>
-                    {candidate.name || candidate.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="delete-reason">{usersDetail.deleteReasonLabel}</Label>
-              <Input
-                id="delete-reason"
-                name="statusReason"
-                placeholder={usersDetail.deleteReasonPlaceholder}
-                maxLength={250}
-                disabled={deleteDisabled}
-              />
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={userDeleteForm}
+            area="admin"
+            route={`/admin/users/${user.id}`}
+            slot="admin.users.detail.delete"
+          />
 
           {isSelfProfile ? (
             <p className="text-xs text-muted-foreground">{usersDetail.deleteSelfGuard}</p>
           ) : null}
-
-          <TemplateConfirmSubmitButton
-            area="admin"
-            route={`/admin/users/${user.id}`}
-            formId="delete-user-form"
-            title={usersDetail.confirmDeleteTitle}
-            description={usersDetail.confirmDeleteDescription}
-            triggerLabel={usersDetail.deleteButton}
-            confirmLabel={usersDetail.confirmDelete}
-            cancelLabel={usersDetail.cancel}
-            triggerVariant="destructive"
-            triggerSize="sm"
-            disabled={deleteDisabled}
-          />
         </CardContent>
       </Card>
     </div>

@@ -94,6 +94,128 @@ export type {
 } from './ui/index.js';
 export { DataTable, SDK_NOTIFY_EVENT, notify, sdkNotify } from './ui/index.js';
 
+export type {
+  BuildFormButtonVariant,
+  BuildFormButtonSize,
+  BuildFormColumns,
+  BuildFormFieldColSpan,
+  BuildFormGap,
+  BuildFormHttpMethod,
+  BuildFormFieldMask,
+  BuildFormValue,
+  BuildFormValues,
+  BuildFormRequestActionResult,
+  BuildFormRequestActionFunction,
+  BuildFormRequestAction,
+  BuildFormRequest,
+  BuildFormOption,
+  BuildFormInputFieldKind,
+  BuildFormInputFieldDefinition,
+  BuildFormNumberFieldDefinition,
+  BuildFormTextareaFieldDefinition,
+  BuildFormSelectFieldDefinition,
+  BuildFormCheckboxFieldDefinition,
+  BuildFormFieldDefinition,
+  BuildFormSectionDefinition,
+  BuildFormSecondaryAction,
+  BuildFormConfirmDefinition,
+  BuildFormSubmitDefinition,
+  BuildFormLayoutDefinition,
+  BuildFormDefinition,
+  BuildModalDefinition,
+  ComposeBuildFormDefinitionOptions
+} from './forms.js';
+export {
+  buildFormField,
+  composeBuildFormDefinition,
+  defineBuildForm,
+  defineBuildFormSection,
+  defineBuildModal,
+  withBuildFormValues,
+  withBuildFormRequest,
+  resolveBuildFormValue,
+  normalizeBuildFormColumns,
+  normalizeBuildFormGap,
+  toBuildFormValueString,
+  isBuildFormTruthyValue,
+  applyBuildFormFieldMask
+} from './forms.js';
+
+export type {
+  BuildFormValidationRuntime,
+  BuildFormValidationTrigger,
+  BuildFormBlurValidationPresetOptions,
+  BuildFormFieldRef,
+  BuildFormDbRef,
+  BuildFormValidationCondition,
+  BuildFormDbCondition,
+  BuildFormRequiredRule,
+  BuildFormEmailRule,
+  BuildFormUrlRule,
+  BuildFormMinLengthRule,
+  BuildFormMaxLengthRule,
+  BuildFormMinRule,
+  BuildFormMaxRule,
+  BuildFormRegexRule,
+  BuildFormIntegerRule,
+  BuildFormAcceptedRule,
+  BuildFormConfirmedRule,
+  BuildFormUniqueRule,
+  BuildFormExistsRule,
+  BuildFormValidationRule,
+  BuildFormValidationDefinition,
+  ValidatedBuildFormDefinition,
+  BuildFormValidationIssue,
+  BuildFormValidationResult
+} from './form-validation.js';
+export {
+  buildFormValidationPreset,
+  buildFormRule,
+  createBuildFormValidationIssue,
+  createBuildFormValidationResult,
+  createBuildFormValidationResultFromFieldErrors,
+  createBuildFormValidationResultFromFieldMessages,
+  dbRef,
+  defineValidatedBuildForm,
+  fieldRef,
+  getBuildFormFieldByName,
+  getBuildFormValidation,
+  getBuildFormValidationRulesForField,
+  getBuildFormValidationRulesForFieldRuntime,
+  isBuildFormValidationResultValid,
+  isBuildFormValidationRuntimeEnabled,
+  listBuildFormFields,
+  matchesBuildFormValidationConditions,
+  normalizeBuildFormValuesFromFormData,
+  normalizeBuildFormValuesFromInput,
+  resolveBuildFormValidationDebounceMs,
+  resolveBuildFormValidationTriggers,
+  shouldRunBuildFormPreflight,
+  validateBuildFormLocally,
+  validationCondition,
+  withBuildFormValidation
+} from './form-validation.js';
+
+export type {
+  BuildFormValidationMessageValue,
+  BuildFormValidationMessageValues,
+  BuildFormValidationMessageDescriptor,
+  BuildFormValidationMessageInput,
+  BuildFormValidationMessageResolver,
+  BuildFormValidationMessageCatalog,
+  OptionalPositiveIntParseResult
+} from './validation-messages.js';
+export {
+  DEFAULT_EMAIL_REGEX,
+  buildFormValidationMessage,
+  createBuildFormValidationMessage,
+  createCatalogBuildFormValidationMessageResolver,
+  formatBuildFormValidationMessage,
+  normalizeEmail,
+  parseOptionalPositiveInt,
+  resolveBuildFormValidationMessage
+} from './validation-messages.js';
+
 export type { ClassNameValue } from './templates/utils.js';
 export {
   mergeClassNames,

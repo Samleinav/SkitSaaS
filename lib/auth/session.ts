@@ -4,12 +4,16 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NewUser, authSessions } from '@/lib/db/schema';
 
-const authSecret = process.env.AUTH_SECRET;
-if (!authSecret) {
-  throw new Error('AUTH_SECRET is required (set it in .env).');
-}
-const key = new TextEncoder().encode(authSecret);
 const SALT_ROUNDS = 10;
+
+function getSessionKey() {
+  const authSecret = process.env.AUTH_SECRET?.trim();
+  if (!authSecret) {
+    throw new Error('AUTH_SECRET is required (set it in .env).');
+  }
+
+  return new TextEncoder().encode(authSecret);
+}
 
 export async function hashPassword(password: string) {
   return hash(password, SALT_ROUNDS);
@@ -47,11 +51,11 @@ export async function signToken(payload: SessionData) {
     .setIssuedAt()
     .setJti(tokenJti)
     .setExpirationTime(expirationValue)
-    .sign(key);
+    .sign(getSessionKey());
 }
 
 export async function verifyToken(input: string) {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify(input, getSessionKey(), {
     algorithms: ['HS256'],
   });
   return payload as SessionData;

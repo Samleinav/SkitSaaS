@@ -4,6 +4,7 @@ import { revalidatePath as nextRevalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
   configureAuth,
+  configureBuildFormDbValidation,
   configureDatabase,
   configureEventEmitter,
   configureModuleConfig,
@@ -19,6 +20,11 @@ import {
   upsertAppConfigEntry
 } from '@/lib/config/app-config-writes';
 import { adminDb, db } from '@/lib/db/drizzle';
+import { resolveBuildFormDbLookup } from '@/lib/forms/db-registry';
+import {
+  configureBuildFormValidationObservability,
+  createBuildFormSysActivityObserver
+} from '@/lib/forms/observability';
 import * as rootSchema from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
@@ -212,6 +218,14 @@ export function bootstrapModuleSdkServer() {
   configureRevalidation({
     revalidatePath: nextRevalidatePath
   });
+
+  configureBuildFormDbValidation({
+    lookup: resolveBuildFormDbLookup
+  });
+
+  configureBuildFormValidationObservability(
+    createBuildFormSysActivityObserver()
+  );
 
   bootstrapped = true;
 }

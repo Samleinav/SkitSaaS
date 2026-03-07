@@ -39,6 +39,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - `app/(dashboard)/dashboard/modules/*`: dashboard module dispatchers. 
 - `app/(dashboard)/dashboard/[...moduleAlias]`: dashboard custom module alias resolver.
 - `app/api/*`: server-side endpoints (user, team, webhooks, checkout).
+- `app/api/forms/*`: generic BuildForm preflight validation endpoints.
 - `app/api/auth/providers/*`: auth provider registry diagnostics + provider start/callback handoff.
 - `app/api/modules/*`: module API dispatchers.
 - `lib/db/*`: drizzle client, schema, queries, setup/seed.
@@ -408,7 +409,13 @@ Default seed user (if not changed in env):
   - `tests/templates/template-ui-alert-dialog-payload.test.ts`
   - `tests/templates/template-module-pack.test.ts`
   - `tests/templates/template-theme-pack.test.ts`
+  - `tests/forms/build-form-db-rules.test.ts`
+  - `tests/forms/build-form-local-validation.test.ts`
+  - `tests/forms/build-form-preflight-route.test.ts`
   - `tests/sdk/server-adapters.test.ts`
+  - `tests/sdk/build-form-server-validation.test.ts`
+  - `tests/sdk/build-form-validation-contract.test.ts`
+  - `tests/sdk/build-forms.test.ts`
   - `tests/sdk/ui-notify.test.ts`
   - `tests/sdk/template-utils.test.ts`
 

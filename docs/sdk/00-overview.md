@@ -14,7 +14,7 @@ into two layers so you can ship modules in **prebuilt**, **source-host**, or
 
 ### `@skitsaas/sdk`
 
-Types + constants only.
+Public contract types plus lightweight runtime-safe helpers.
 
 Exports:
 
@@ -32,6 +32,34 @@ Exports:
 - `EventHook`
 - `EVENT_HOOKS`
 - `ModuleMessagesByArea` (module i18n bundles)
+- structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
+- structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
+- reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
+
+Structured form contract:
+
+- `BuildFormDefinition`
+- `BuildFormSectionDefinition`
+- `BuildFormFieldDefinition`
+- `BuildModalDefinition`
+- `buildFormField.*(...)`
+- `composeBuildFormDefinition(...)`
+- `withBuildFormValues(...)`
+- `withBuildFormRequest(...)`
+- `defineValidatedBuildForm(...)`
+- `withBuildFormValidation(...)`
+- `buildFormValidationPreset.blur(...)`
+- `buildFormRule.*(...)`
+- `validationCondition.*(...)`
+- `dbRef(...)` and `fieldRef(...)`
+- `validateBuildFormLocally(...)`
+- `normalizeBuildFormValuesFromFormData(...)`
+- `createBuildFormValidationResultFromFieldMessages(...)`
+- `buildFormValidationMessage.*(...)`
+- `normalizeEmail(...)`
+- `parseOptionalPositiveInt(...)`
+
+`composeBuildFormDefinition(...)` lets core or module code apply `request`, `submit`, and `values` in one pass instead of repeating `defineBuildForm(...) + withBuildFormRequest(...) + withBuildFormValues(...)` on every page. `buildFormValidationPreset.blur(...)` centralizes the common authoring preset used by most CRUD forms (`client.validateOn=['blur']`, plus optional preflight defaults).
 
 ### `@skitsaas/sdk/server`
 
@@ -61,7 +89,12 @@ Exports:
 - `createModuleApiRouter`
 - `createModulePageRouter`
 - `createServerActionController`
+- `createValidatedServerActionController`
+- `configureBuildFormDbValidation`
 - `createFormReader`
+- `validateBuildFormOnServer`
+- `validateBuildFormWithHandler`
+- `validateBuildFormDbRules`
 - `parseJsonBody`
 - `isJsonRecord`
 - `hasOwn`
@@ -69,6 +102,10 @@ Exports:
 ### `@skitsaas/sdk/db`
 
 Curated Drizzle exports via SDK entrypoint.
+
+`createValidatedServerActionController(...)` is now compatible with both direct `<form action={...}>` usage and `useActionState(...)`, which lets host `BuildForm` instances hydrate server validation results without per-page glue.
+
+`configureBuildFormDbValidation(...)` lets the host inject DB-aware validation lookups for `unique` / `exists` rules. Host code can then reuse the same BuildForm definition for preflight and final server validation without leaking DB objects into browser bundles. Edit flows can keep those checks race-safe by pairing `dbRef(...)` with `fieldRef(...)`, for example `buildFormRule.unique(dbRef('core.users.email'), { ignore: fieldRef('userId') })`. The adapter request now also includes `runtime`, `formId`, and `fieldName`, so host runtimes can log resolver misses or route DB validation through area-specific observability.
 
 Examples:
 

@@ -1,5 +1,3 @@
-import 'server-only';
-
 import type {
   TemplateArea,
   TemplateResolutionSource
@@ -46,4 +44,3 @@ export async function resolveUiAlertDialogTemplateForArea({
     payload: normalizeUiAlertDialogTemplatePayload(resolution.entry?.payload)
   };
 }
-

@@ -21,10 +21,13 @@ Current implementation files:
 - `lib/templates/runtime.ts`
 - `lib/templates/ui-table.ts`
 - `lib/templates/ui-table-payload.ts`
+- `lib/templates/ui-form.ts`
+- `lib/templates/ui-form-payload.ts`
 - `lib/templates/ui-async-submit-button.ts`
 - `lib/templates/ui-async-submit-button-payload.ts`
 - `lib/templates/ui-alert-dialog.ts`
 - `lib/templates/ui-alert-dialog-payload.ts`
+- `components/ui/template-build-form.tsx`
 - `components/ui/template-table.tsx`
 - `components/ui/template-async-submit-button.tsx`
 - `components/ui/template-confirm-submit-button.tsx`
@@ -52,6 +55,7 @@ Compatibility helpers:
 
 Examples:
 
+- `ui.form`
 - `ui.table`
 - `ui.alert-dialog`
 - `ui.async-submit-button`
@@ -208,6 +212,41 @@ Current pages using `TemplateTable`:
 
 - `app/(dashboard)/admin/subscriptions/page.tsx`
 - `app/(dashboard)/dashboard/subscriptions/page.tsx`
+
+## `ui.form` migration (Sprint 10 pilot)
+
+Server wrapper:
+
+- `components/ui/template-build-form.tsx`
+
+Resolver:
+
+- `lib/templates/ui-form.ts`
+
+Payload keys:
+
+- `formClassName`
+- `headerClassName`
+- `titleClassName`
+- `descriptionClassName`
+- `sectionClassName`
+- `sectionHeaderClassName`
+- `sectionTitleClassName`
+- `sectionDescriptionClassName`
+- `gridClassName`
+- `fieldClassName`
+- `labelClassName`
+- `descriptionTextClassName`
+- `inputClassName`
+- `textareaClassName`
+- `selectClassName`
+- `checkboxWrapperClassName`
+- `actionsClassName`
+
+Current usages include:
+
+- `app/(dashboard)/admin/users/create-user-form.tsx`
+- `modules/mod.example.suite/src/pages/admin-pages.tsx`
 
 ## `ui.async-submit-button` migration (Fase 5 pilot)
 
@@ -463,6 +502,7 @@ Controller options:
 - `tests/templates/template-theme-pack.test.ts`
 - `tests/templates/template-module-pack.test.ts`
 - `tests/templates/template-host-module-theme.integration.test.ts`
+- `tests/templates/template-ui-form-payload.test.ts`
 - `tests/templates/template-ui-async-submit-button-payload.test.ts`
 - `tests/templates/template-ui-alert-dialog-payload.test.ts`
 - `tests/templates/template-debug-metadata.test.ts`

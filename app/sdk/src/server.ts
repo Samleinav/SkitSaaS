@@ -10,6 +10,29 @@ import type {
   ModulePageHandler,
   ModuleRouteContext
 } from './modules/manifest.js';
+import vine, { ValidationError } from '@vinejs/vine';
+import type {
+  BuildFormDefinition,
+  BuildFormFieldDefinition,
+  BuildFormValue,
+  BuildFormValues
+} from './forms.js';
+import {
+  type BuildFormDbCondition,
+  type BuildFormDbRef,
+  type BuildFormFieldRef,
+  createBuildFormValidationResultFromFieldErrors,
+  createBuildFormValidationResult,
+  createBuildFormValidationIssue,
+  getBuildFormValidationRulesForFieldRuntime,
+  getBuildFormFieldByName,
+  listBuildFormFields,
+  normalizeBuildFormValuesFromFormData,
+  type BuildFormValidationIssue,
+  type BuildFormValidationResult,
+  type BuildFormValidationRule,
+  type ValidatedBuildFormDefinition
+} from './form-validation.js';
 
 function toTrimmedString(value: unknown) {
   if (typeof value !== 'string') {
@@ -276,8 +299,63 @@ export type RevalidationAdapter = {
 
 let revalidationAdapter: RevalidationAdapter | null = null;
 
+export type BuildFormDbLookupOperator = 'unique' | 'exists';
+
+export type ResolvedBuildFormDbCondition =
+  | {
+      field: string;
+      operator: 'eq' | 'ne';
+      value: BuildFormValue | undefined;
+    }
+  | {
+      field: string;
+      operator: 'in' | 'not_in';
+      values: Array<BuildFormValue | undefined>;
+    }
+  | {
+      field: string;
+      operator: 'is_null' | 'is_not_null';
+    };
+
+export type BuildFormDbValidationRequest<
+  TUser = unknown,
+  TValues extends BuildFormValues = BuildFormValues
+> = {
+  operator: BuildFormDbLookupOperator;
+  runtime?: 'server' | 'preflight';
+  formId?: string | null;
+  fieldName?: string | null;
+  target: BuildFormDbRef;
+  value: BuildFormValue | undefined;
+  ignore?: BuildFormValue | undefined;
+  conditions: ResolvedBuildFormDbCondition[];
+  values: TValues;
+  user: TUser;
+};
+
+export type BuildFormDbValidationResult = {
+  exists: boolean;
+};
+
+export type BuildFormDbValidationAdapter = {
+  lookup: <
+    TUser = unknown,
+    TValues extends BuildFormValues = BuildFormValues
+  >(
+    request: BuildFormDbValidationRequest<TUser, TValues>
+  ) => Promise<BuildFormDbValidationResult | null>;
+};
+
+let buildFormDbValidationAdapter: BuildFormDbValidationAdapter | null = null;
+
 export function configureRevalidation(adapter: RevalidationAdapter) {
   revalidationAdapter = adapter;
+}
+
+export function configureBuildFormDbValidation(
+  adapter: BuildFormDbValidationAdapter
+) {
+  buildFormDbValidationAdapter = adapter;
 }
 
 function readRevalidationAdapter() {
@@ -317,6 +395,7 @@ type RevalidateHandler = () => void | Promise<void>;
 
 export type FormReader = {
   value: (field: string) => FormDataEntryValue | null;
+  values: (field: string) => FormDataEntryValue[];
   string: (field: string) => string;
   lower: (field: string) => string;
   number: (field: string) => number | null;
@@ -344,23 +423,94 @@ type ActionOptions = {
   revalidatePaths?: string[];
 };
 
+type ControllerActionArgs = [FormData] | [unknown, FormData];
+
 function normalizeString(value: FormDataEntryValue | null) {
   return toTrimmedString(value);
+}
+
+function resolveControllerActionFormData(args: ControllerActionArgs) {
+  if (args[0] instanceof FormData) {
+    return args[0];
+  }
+
+  if (args[1] instanceof FormData) {
+    return args[1];
+  }
+
+  throw new Error('Server action controller expected FormData payload.');
+}
+
+function isBuildFormFieldRef(value: unknown): value is BuildFormFieldRef {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return (value as { kind?: unknown }).kind === 'field_ref';
+}
+
+function resolveBuildFormDbConditionValue(
+  value: BuildFormValue | BuildFormFieldRef,
+  values: BuildFormValues
+) {
+  if (isBuildFormFieldRef(value)) {
+    return values[value.field];
+  }
+
+  return value;
+}
+
+function resolveBuildFormDbConditions(
+  conditions: BuildFormDbCondition[] | undefined,
+  values: BuildFormValues
+): ResolvedBuildFormDbCondition[] {
+  if (!conditions?.length) {
+    return [];
+  }
+
+  return conditions.map((condition) => {
+    if (condition.operator === 'eq' || condition.operator === 'ne') {
+      return {
+        field: condition.field,
+        operator: condition.operator,
+        value: resolveBuildFormDbConditionValue(condition.value, values)
+      };
+    }
+
+    if (condition.operator === 'in' || condition.operator === 'not_in') {
+      return {
+        field: condition.field,
+        operator: condition.operator,
+        values: condition.values.map((entry) =>
+          resolveBuildFormDbConditionValue(entry, values)
+        )
+      };
+    }
+
+    return {
+      field: condition.field,
+      operator: condition.operator
+    };
+  });
 }
 
 export function createFormReader(formData: FormData): FormReader {
   return {
     value(field) {
-      return formData.get(field);
+      const values = formData.getAll(field);
+      return values.length > 0 ? values[values.length - 1] ?? null : null;
+    },
+    values(field) {
+      return formData.getAll(field);
     },
     string(field) {
-      return normalizeString(formData.get(field));
+      return normalizeString(this.value(field));
     },
     lower(field) {
-      return normalizeString(formData.get(field)).toLowerCase();
+      return normalizeString(this.value(field)).toLowerCase();
     },
     number(field) {
-      const raw = normalizeString(formData.get(field));
+      const raw = normalizeString(this.value(field));
       if (!raw) {
         return null;
       }
@@ -416,7 +566,13 @@ export function createServerActionController<TUser>({
     handler: ControllerAction<TUser>,
     options?: ActionOptions
   ) {
-    return async function controlledAction(formData: FormData) {
+    async function controlledAction(formData: FormData): Promise<void>;
+    async function controlledAction(
+      previousState: unknown,
+      formData: FormData
+    ): Promise<void>;
+    async function controlledAction(...args: ControllerActionArgs) {
+      const formData = resolveControllerActionFormData(args);
       const user = await requireUser();
       const result = await handler({
         user,
@@ -429,8 +585,544 @@ export function createServerActionController<TUser>({
       }
 
       await runRevalidation(options);
-    };
+    }
+
+    return controlledAction;
   };
+}
+
+function createBuildFormValidationResultFromVineError<
+  TValues extends BuildFormValues = BuildFormValues
+>(error: ValidationError, values: TValues) {
+  const fieldErrors: Record<string, string[]> = {};
+  let formError: string | null = null;
+
+  const messages = Array.isArray(error.messages) ? error.messages : [];
+  for (const entry of messages) {
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+
+    const record = entry as Record<string, unknown>;
+    const message = toTrimmedString(record.message);
+    const field = toTrimmedString(record.field);
+
+    if (!message) {
+      continue;
+    }
+
+    if (!field) {
+      formError = formError ?? message;
+      continue;
+    }
+
+    if (!fieldErrors[field]) {
+      fieldErrors[field] = [];
+    }
+
+    fieldErrors[field].push(message);
+  }
+
+  return createBuildFormValidationResultFromFieldErrors({
+    values,
+    fieldErrors,
+    formError,
+    source: 'server'
+  });
+}
+
+function hasBuildFormRequiredValidation(
+  rules: BuildFormValidationRule[]
+) {
+  return rules.some(
+    (rule) => rule.type === 'required' || rule.type === 'accepted'
+  );
+}
+
+function normalizeBuildFormServerFieldValue({
+  field,
+  value,
+  rules
+}: {
+  field: BuildFormFieldDefinition;
+  value: BuildFormValues[string];
+  rules: BuildFormValidationRule[];
+}) {
+  if (field.kind === 'checkbox') {
+    return value;
+  }
+
+  if (!hasBuildFormRequiredValidation(rules)) {
+    if (value === '' || value === null || value === undefined) {
+      return undefined;
+    }
+  }
+
+  return value;
+}
+
+function normalizeBuildFormValuesForServerValidation(
+  definition: BuildFormDefinition,
+  values: BuildFormValues
+) {
+  const normalizedValues: BuildFormValues = {};
+
+  for (const field of listBuildFormFields(definition)) {
+    const rules = getBuildFormValidationRulesForFieldRuntime(
+      definition,
+      field.name,
+      'server',
+      values
+    );
+
+    normalizedValues[field.name] = normalizeBuildFormServerFieldValue({
+      field,
+      value: values[field.name],
+      rules
+    });
+  }
+
+  return normalizedValues;
+}
+
+function createBuildFormVineFieldSchema(
+  field: BuildFormFieldDefinition,
+  rules: BuildFormValidationRule[]
+) {
+  if (field.kind === 'checkbox') {
+    const mustAccept = rules.some(
+      (rule) => rule.type === 'accepted' || rule.type === 'required'
+    );
+    const checkboxSchema = mustAccept ? vine.accepted() : vine.boolean();
+
+    return mustAccept ? checkboxSchema : checkboxSchema.optional();
+  }
+
+  if (field.kind === 'number') {
+    let schema = vine.number();
+
+    for (const rule of rules) {
+      switch (rule.type) {
+        case 'integer':
+          schema = schema.withoutDecimals();
+          break;
+        case 'min':
+          schema = schema.min(rule.value);
+          break;
+        case 'max':
+          schema = schema.max(rule.value);
+          break;
+      }
+    }
+
+    return hasBuildFormRequiredValidation(rules) ? schema : schema.optional();
+  }
+
+  let schema = vine.string();
+
+  for (const rule of rules) {
+    switch (rule.type) {
+      case 'email':
+        schema = schema.email();
+        break;
+      case 'url':
+        schema = schema.url();
+        break;
+      case 'min_length':
+        schema = schema.minLength(rule.value);
+        break;
+      case 'max_length':
+        schema = schema.maxLength(rule.value);
+        break;
+      case 'regex':
+        schema = schema.regex(new RegExp(rule.pattern, rule.flags));
+        break;
+      case 'confirmed':
+        schema = schema.sameAs(rule.field);
+        break;
+      case 'min':
+      case 'max':
+      case 'integer':
+      case 'accepted':
+      case 'required':
+      case 'unique':
+      case 'exists':
+        break;
+    }
+  }
+
+  return hasBuildFormRequiredValidation(rules) ? schema : schema.optional();
+}
+
+function createBuildFormServerValidator(
+  definition: BuildFormDefinition,
+  values: BuildFormValues
+) {
+  const properties: Record<string, ReturnType<typeof createBuildFormVineFieldSchema>> =
+    {};
+
+  for (const field of listBuildFormFields(definition)) {
+    properties[field.name] = createBuildFormVineFieldSchema(
+      field,
+      getBuildFormValidationRulesForFieldRuntime(
+        definition,
+        field.name,
+        'server',
+        values
+      )
+    );
+  }
+
+  return vine.create(properties);
+}
+
+function isBuildFormDbRule(
+  rule: BuildFormValidationRule
+): rule is Extract<BuildFormValidationRule, { type: 'unique' | 'exists' }> {
+  return rule.type === 'unique' || rule.type === 'exists';
+}
+
+function isMissingBuildFormValue(value: BuildFormValue | undefined) {
+  if (value === undefined || value === null) {
+    return true;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length === 0;
+  }
+
+  if (typeof value === 'boolean') {
+    return value === false;
+  }
+
+  return false;
+}
+
+function resolveBuildFormDbRuleMessage({
+  field,
+  rule,
+  fallback
+}: {
+  field: BuildFormFieldDefinition;
+  rule: Extract<BuildFormValidationRule, { type: 'unique' | 'exists' }>;
+  fallback?: string;
+}) {
+  if (rule.message) {
+    return rule.message;
+  }
+
+  if (fallback) {
+    return fallback;
+  }
+
+  const label = field.label || field.name;
+  return rule.type === 'unique'
+    ? `${label} must be unique.`
+    : `${label} references an invalid record.`;
+}
+
+export async function validateBuildFormDbRules<
+  TUser = unknown,
+  TValues extends BuildFormValues = BuildFormValues
+>({
+  definition,
+  values,
+  user,
+  runtime,
+  field
+}: {
+  definition: BuildFormDefinition;
+  values: TValues;
+  user: TUser;
+  runtime: 'server' | 'preflight';
+  field?: string;
+}) {
+  const issues: BuildFormValidationIssue[] = [];
+  const fields = field
+    ? [getBuildFormFieldByName(definition, field)].filter(Boolean)
+    : listBuildFormFields(definition);
+
+  for (const currentField of fields) {
+    if (!currentField) {
+      continue;
+    }
+
+    const rules = getBuildFormValidationRulesForFieldRuntime(
+      definition,
+      currentField.name,
+      runtime,
+      values
+    );
+
+    for (const rule of rules) {
+      if (!isBuildFormDbRule(rule)) {
+        continue;
+      }
+
+      const value = values[currentField.name];
+      if (isMissingBuildFormValue(value)) {
+        continue;
+      }
+
+      const resolvedIgnore =
+        rule.type === 'unique' && rule.ignore !== undefined
+          ? resolveBuildFormDbConditionValue(rule.ignore, values)
+          : undefined;
+
+      const lookup = buildFormDbValidationAdapter
+        ? await buildFormDbValidationAdapter.lookup({
+            operator: rule.type,
+            runtime,
+            formId:
+              typeof definition.id === 'string' && definition.id.trim()
+                ? definition.id.trim()
+                : null,
+            fieldName: currentField.name,
+            target: rule.target,
+            value,
+            ignore: resolvedIgnore,
+            conditions: resolveBuildFormDbConditions(rule.where, values),
+            values,
+            user
+          })
+        : null;
+
+      if (!lookup) {
+        issues.push(
+          createBuildFormValidationIssue({
+            field: currentField.name,
+            code: 'db_validation_unavailable',
+            message: 'Validation service is unavailable.',
+            rule: rule.type,
+            source: runtime
+          })
+        );
+        continue;
+      }
+
+      const invalid =
+        rule.type === 'unique'
+          ? lookup.exists
+          : !lookup.exists;
+
+      if (!invalid) {
+        continue;
+      }
+
+      issues.push(
+        createBuildFormValidationIssue({
+          field: currentField.name,
+          code: rule.type,
+          message: resolveBuildFormDbRuleMessage({
+            field: currentField,
+            rule
+          }),
+          rule: rule.type,
+          source: runtime
+        })
+      );
+    }
+  }
+
+  return createBuildFormValidationResult({
+    values,
+    issues
+  });
+}
+
+export type BuildFormServerValidationContext<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+> = ControllerContext<TUser> & {
+  definition: BuildFormDefinition;
+  values: TValues;
+};
+
+export type BuildFormServerValidationHandler<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+> = (
+  context: BuildFormServerValidationContext<TUser, TValues>
+) =>
+  | Promise<BuildFormValidationResult<TValues>>
+  | BuildFormValidationResult<TValues>;
+
+export type ValidatedControllerAction<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+> = (
+  context: BuildFormServerValidationContext<TUser, TValues>
+) =>
+  | Promise<void | boolean | BuildFormValidationResult<TValues>>
+  | void
+  | boolean
+  | BuildFormValidationResult<TValues>;
+
+type ValidatedActionOptions<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+> = ActionOptions & {
+  validator?: BuildFormServerValidationHandler<TUser, TValues>;
+  failureFormError?: string;
+};
+
+export async function validateBuildFormWithHandler<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+>({
+  definition,
+  formData,
+  user,
+  validator
+}: {
+  definition: BuildFormDefinition;
+  formData: FormData;
+  user: TUser;
+  validator: BuildFormServerValidationHandler<TUser, TValues>;
+}) {
+  const form = createFormReader(formData);
+  const values = normalizeBuildFormValuesFromFormData(
+    definition,
+    formData
+  ) as TValues;
+
+  return validator({
+    user,
+    formData,
+    form,
+    definition,
+    values
+  });
+}
+
+export async function validateBuildFormOnServer<
+  TUser,
+  TValues extends BuildFormValues = BuildFormValues
+>({
+  definition,
+  formData,
+  user,
+  validator
+}: {
+  definition: BuildFormDefinition;
+  formData: FormData;
+  user: TUser;
+  validator?: BuildFormServerValidationHandler<TUser, TValues>;
+}) {
+  const form = createFormReader(formData);
+  const rawValues = normalizeBuildFormValuesFromFormData(
+    definition,
+    formData
+  ) as TValues;
+  let values = normalizeBuildFormValuesForServerValidation(
+    definition,
+    rawValues
+  ) as TValues;
+
+  try {
+    const compiledValidator = createBuildFormServerValidator(definition, rawValues);
+    values = (await compiledValidator.validate(values)) as TValues;
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return createBuildFormValidationResultFromVineError(error, rawValues);
+    }
+
+    throw error;
+  }
+
+  const dbValidation = await validateBuildFormDbRules({
+    definition,
+    values,
+    user,
+    runtime: 'server'
+  });
+
+  if (!dbValidation.valid) {
+    return dbValidation as BuildFormValidationResult<TValues>;
+  }
+
+  if (!validator) {
+    return createValidBuildFormResult(values);
+  }
+
+  return validator({
+    user,
+    formData,
+    form,
+    definition,
+    values
+  });
+}
+
+export function createValidatedServerActionController<TUser>({
+  requireUser
+}: ControllerOptions<TUser>) {
+  return function withValidatedController<
+    TDefinition extends BuildFormDefinition,
+    TValues extends BuildFormValues = BuildFormValues
+  >(
+    definition: TDefinition | ValidatedBuildFormDefinition<TDefinition>,
+    handler: ValidatedControllerAction<TUser, TValues>,
+    options?: ValidatedActionOptions<TUser, TValues>
+  ) {
+    async function controlledValidatedAction(
+      formData: FormData
+    ): Promise<BuildFormValidationResult<TValues>>;
+    async function controlledValidatedAction(
+      previousState: unknown,
+      formData: FormData
+    ): Promise<BuildFormValidationResult<TValues>>;
+    async function controlledValidatedAction(...args: ControllerActionArgs) {
+      const formData = resolveControllerActionFormData(args);
+      const user = await requireUser();
+      const validation = await validateBuildFormOnServer({
+        definition,
+        formData,
+        user,
+        validator: options?.validator
+      });
+
+      if (!validation.valid) {
+        return validation;
+      }
+
+      const result = await handler({
+        user,
+        formData,
+        form: createFormReader(formData),
+        definition,
+        values: validation.values as TValues
+      });
+
+      if (result === false) {
+        return createBuildFormValidationResult({
+          values: validation.values as TValues,
+          formError: options?.failureFormError ?? 'Unable to process form.'
+        });
+      }
+
+      if (result && typeof result === 'object' && 'valid' in result) {
+        if (result.valid) {
+          await runRevalidation(options);
+        }
+
+        return result;
+      }
+
+      await runRevalidation(options);
+      return createValidBuildFormResult(validation.values as TValues);
+    }
+
+    return controlledValidatedAction;
+  };
+}
+
+export function createValidBuildFormResult<
+  TValues extends BuildFormValues = BuildFormValues
+>(values: TValues) {
+  return createBuildFormValidationResult({
+    values
+  });
 }
 
 export type JsonRecord = Record<string, unknown>;

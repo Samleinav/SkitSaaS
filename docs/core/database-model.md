@@ -68,6 +68,8 @@ Financial flow:
 
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
 - Orders and transactions are separate by design.
+- `BuildForm` DB-aware validation (`unique`, `exists`) may read tables such as `users` or `subscription_templates`, but those checks are only advisory before writes.
+- Real integrity must still be enforced by database constraints such as `unique`, `foreign key`, `not null`, and `check`.
 - Legacy template backfill recommendation:
   - set `category_key` from a normalized template family key (for example normalized name/domain key)
   - set `hierarchy_rank` to `0` when no explicit commercial hierarchy is known yet

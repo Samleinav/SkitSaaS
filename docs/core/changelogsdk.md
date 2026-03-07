@@ -139,3 +139,131 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `components/ui/sdk-notify-bridge.tsx`
   - `app/layout.tsx`
 - `notes`: permite a modulos cliente emitir `notify.success|error|warning|info` desde `@skitsaas/sdk`; el host resuelve la visualizacion real
+
+## 2026-03-06 - sdk-structured-form-builder
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agrega contrato estructurado de forms/modals al SDK con helpers de fields, prefills, request config y masks reutilizables
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/forms.*`
+  - `app/sdk/dist/index.*`
+  - `app/sdk/README.md`
+  - `docs/sdk/00-overview.md`
+  - `docs/core/form-build-system.md`
+  - `docs/modules/14-template-controller.md`
+- `notes`: el host ahora puede renderizar forms consistentes desde definiciones SDK usando `TemplateBuildForm`, `BuildModal` y `ui.form`; el rollout inicial ya cubre core y `mod.example.suite`
+
+## 2026-03-06 - sdk-build-form-validation-contract
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agrega la primera capa de validacion estructurada para BuildForm con contrato canónico, runtime local browser-safe y helpers server-side de normalizacion/resultado
+- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/server.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/form-validation.*`
+  - `app/sdk/dist/server.*`
+  - `app/sdk/dist/index.*`
+  - `app/sdk/README.md`
+  - `docs/sdk/00-overview.md`
+- `notes`: cubre reglas comunes (`required`, `email`, `minLength`, `confirmed`, etc.), `dbRef`/`fieldRef`, resultados normalizados y fix de repeated fields en `FormData`; `unique`/`exists` quedan declarados pero todavia requieren compiler server/preflight para ser autoritativos
+
+## 2026-03-07 - sdk-build-form-validation-messages
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agregan helpers SDK para parseo y descriptores de mensajes de validacion reutilizables, dejando el copy final e i18n en el host
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/validation-messages.ts`
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/validation-messages.*`
+  - `app/sdk/dist/form-validation.*`
+  - `app/sdk/dist/forms.*`
+  - `app/sdk/dist/index.*`
+  - `app/sdk/README.md`
+  - `docs/sdk/00-overview.md`
+  - `docs/core/form-build-system.md`
+  - `app/(dashboard)/admin/users/actions.ts`
+  - `app/(dashboard)/admin/users/validation.ts`
+- `notes`: expone `normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage.*`, `createCatalogBuildFormValidationMessageResolver(...)` y `createBuildFormValidationResultFromFieldMessages(...)`; el piloto `admin/users` ahora usa descriptores y resolver por locale para evitar strings hardcodeados en actions
+
+## 2026-03-07 - sdk-build-form-compose-presets
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agregan helpers SDK para componer definiciones de forms y presets de validacion CRUD sin repetir request/prefills/submit ni bloques `client.validateOn`
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/forms.*`
+  - `app/sdk/dist/form-validation.*`
+  - `app/sdk/dist/index.*`
+  - `app/sdk/README.md`
+  - `docs/sdk/00-overview.md`
+  - `docs/core/form-build-system.md`
+  - `app/(dashboard)/admin/users/create-user-form.tsx`
+  - `app/(dashboard)/admin/users/[userId]/page.tsx`
+  - `modules/mod.example.suite/src/forms.ts`
+  - `modules/mod.example.suite/src/pages/admin-pages.tsx`
+- `notes`: expone `composeBuildFormDefinition(...)` y `buildFormValidationPreset.blur(...)`; el host añade `composeRegisteredBuildFormDefinition(...)` para acoplar `formId` registrado con submit action canónica
+
+## 2026-03-06 - sdk-build-form-vine-server-wrapper
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agrega validacion server-side con VineJS y wrapper reutilizable de server actions para BuildForm
+- `sdk_surface`: @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/package.json`
+  - `app/sdk/dist/*`
+  - `lib/actions/controller.ts`
+  - `app/(dashboard)/admin/controller.ts`
+  - `app/(dashboard)/dashboard/controller.ts`
+- `notes`: incorpora `validateBuildFormOnServer(...)`, `createValidatedServerActionController(...)`, mapeo de errores VineJS a `fieldErrors/formError`, y deja un piloto en `mod.example.suite`; la hidratacion via `useActionState` sigue pendiente
+
+## 2026-03-06 - sdk-build-form-db-preflight
+
+- `status`: pending_publish
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agregan reglas DB-aware (`unique` / `exists`), preflight generico por API y compatibilidad completa con `useActionState` para hidratar errores server-side en BuildForm
+- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/*`
+  - `components/ui/build-form.tsx`
+  - `lib/forms/db-registry.ts`
+  - `lib/forms/preflight.ts`
+  - `lib/forms/registry.ts`
+  - `app/api/forms/validate/route.ts`
+  - `app/(dashboard)/admin/users/forms.ts`
+  - `app/(dashboard)/admin/users/actions.ts`
+- `notes`: `BuildForm` ahora soporta preflight AJAX por field con debounce/cancelacion, el host resuelve `dbRef(...)` mediante un adapter server-side, y `/admin/users` ya usa `unique(core.users.email)` + `exists(core.subscription_templates.user)` como piloto core

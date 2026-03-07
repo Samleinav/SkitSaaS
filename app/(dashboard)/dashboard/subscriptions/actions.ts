@@ -3,12 +3,16 @@
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import {
+  buildFormValidationMessage,
+  parseOptionalPositiveInt
+} from '@skitsaas/sdk';
 import { db } from '@/lib/db/drizzle';
 import {
   getActiveTeamSubscriptionAssignment,
   getActiveUserSubscriptionAssignment
 } from '@/lib/db/queries';
-import { teams, teamMembers, users } from '@/lib/db/schema';
+import { teams, teamMembers } from '@/lib/db/schema';
 import { cancelPayPalSubscription, isPayPalConfigured } from '@/lib/payments/paypal';
 import { createCustomerPortalSession, isStripeConfigured } from '@/lib/payments/stripe';
 import {
@@ -20,7 +24,15 @@ import { createSysActivityLog } from '@/lib/system/activity-logs';
 import { suspendSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
-import { dashboardAction, revalidateDashboardRoot } from '../controller';
+import { dashboardValidatedAction, revalidateDashboardRoot } from '../controller';
+import {
+  createDashboardCancelUserSubscriptionBuildFormBase,
+  createDashboardManageOrganizationSubscriptionBuildFormBase
+} from './forms';
+import {
+  createDashboardSubscriptionInvalidFactory
+} from './validation';
+import { dashboardSubscriptionValidationMessage } from './validation-messages';
 
 function revalidateDashboardSubscriptions() {
   revalidatePath('/dashboard/subscriptions');
@@ -63,11 +75,20 @@ async function getUserTeamMembership({
   };
 }
 
-export const manageOrganizationSubscriptionAction = dashboardAction(
-  async ({ user, form }) => {
-    const teamId = form.positiveInt('teamId');
-    if (!teamId) {
-      return false;
+const dashboardManageOrganizationSubscriptionBuildForm =
+  createDashboardManageOrganizationSubscriptionBuildFormBase();
+const dashboardCancelUserSubscriptionBuildForm =
+  createDashboardCancelUserSubscriptionBuildFormBase();
+
+export const manageOrganizationSubscriptionAction = dashboardValidatedAction(
+  dashboardManageOrganizationSubscriptionBuildForm,
+  async ({ user, values }) => {
+    const invalid = await createDashboardSubscriptionInvalidFactory(values);
+    const teamIdPayload = parseOptionalPositiveInt(values.teamId);
+    const teamId = teamIdPayload.value;
+
+    if (!teamIdPayload.valid || !teamId) {
+      return invalid({}, buildFormValidationMessage.positiveInteger('Organization id'));
     }
 
     const membership = await getUserTeamMembership({
@@ -76,7 +97,10 @@ export const manageOrganizationSubscriptionAction = dashboardAction(
     });
 
     if (!membership || membership.memberRole !== 'owner') {
-      return false;
+      return invalid(
+        {},
+        dashboardSubscriptionValidationMessage.organizationUnavailable()
+      );
     }
 
     if (membership.team.paymentProvider === 'paypal') {
@@ -93,11 +117,17 @@ export const manageOrganizationSubscriptionAction = dashboardAction(
       );
 
       if (!(await isPayPalConfigured())) {
-        return false;
+        return invalid(
+          {},
+          dashboardSubscriptionValidationMessage.providerUnavailable()
+        );
       }
 
       if (!membership.team.providerReferenceId) {
-        return false;
+        return invalid(
+          {},
+          dashboardSubscriptionValidationMessage.providerUnavailable()
+        );
       }
 
       await cancelPayPalSubscription(membership.team.providerReferenceId);
@@ -156,7 +186,10 @@ export const manageOrganizationSubscriptionAction = dashboardAction(
         !membership.team.stripeCustomerId ||
         !membership.team.stripeProductId
       ) {
-        return false;
+        return invalid(
+          {},
+          dashboardSubscriptionValidationMessage.providerUnavailable()
+        );
       }
 
       const portalSession = await createCustomerPortalSession(membership.team);
@@ -174,18 +207,26 @@ export const manageOrganizationSubscriptionAction = dashboardAction(
       redirect(portalSession.url);
     }
 
-    return false;
+    return invalid(
+      {},
+      dashboardSubscriptionValidationMessage.organizationUnavailable()
+    );
   },
   {
     revalidate: [revalidateDashboardRoot, revalidateDashboardSubscriptions]
   }
 );
 
-export const cancelUserSubscriptionAction = dashboardAction(
-  async ({ user }) => {
+export const cancelUserSubscriptionAction = dashboardValidatedAction(
+  dashboardCancelUserSubscriptionBuildForm,
+  async ({ user, values }) => {
+    const invalid = await createDashboardSubscriptionInvalidFactory(values);
     const assignment = await getActiveUserSubscriptionAssignment(user.id);
     if (!assignment) {
-      return false;
+      return invalid(
+        {},
+        dashboardSubscriptionValidationMessage.userSubscriptionUnavailable()
+      );
     }
 
     await emitEventAsync(
