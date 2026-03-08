@@ -7,6 +7,31 @@ import {
 } from '../../app/sdk/src/datatables';
 import { configureAuth, configureRevalidation } from '../../app/sdk/src/server';
 
+test('sdk root keeps datatable CRUD exports on the datatables subpath only', async () => {
+  const rootSdk = await import(
+    new URL('../../app/sdk/dist/index.js', import.meta.url).href
+  );
+  const datatablesSdk = await import(
+    new URL('../../app/sdk/dist/datatables/index.js', import.meta.url).href
+  );
+
+  assert.equal(
+    'createDataTableCrudApiRouter' in rootSdk,
+    false,
+    'root entry should stay client-safe'
+  );
+  assert.equal(
+    typeof rootSdk.createDataTableTemplateContract,
+    'function',
+    'root entry should still expose datatable contract helpers'
+  );
+  assert.equal(
+    typeof datatablesSdk.createDataTableCrudApiRouter,
+    'function',
+    'datatable CRUD router should remain available from the datatables subpath'
+  );
+});
+
 test('datatable template contract creates stable namespaced component ids', () => {
   const contract = createDataTableTemplateContract({
     moduleId: 'mod.example.apikeys',

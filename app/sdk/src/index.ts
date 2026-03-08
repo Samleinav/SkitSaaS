@@ -69,7 +69,14 @@ export {
 export type {
   DataTableTemplateSlot,
   DataTableTemplateContract,
-  DataTableTemplateEntryFactoryOptions,
+  DataTableTemplateEntryFactoryOptions
+} from './datatables/contracts.js';
+export {
+  createDataTableTemplateContract,
+  createDataTableTemplateEntries
+} from './datatables/contracts.js';
+
+export type {
   DataTableCrudOperation,
   DataTableListResult,
   DataTableListHandler,
@@ -80,12 +87,7 @@ export type {
   DataTableCrudPolicies,
   DataTableCrudRevalidation,
   DataTableCrudRouterOptions
-} from './datatables/index.js';
-export {
-  createDataTableTemplateContract,
-  createDataTableTemplateEntries,
-  createDataTableCrudApiRouter
-} from './datatables/index.js';
+} from './datatables/crud.js';
 
 export type {
   SdkDataTableLabels,

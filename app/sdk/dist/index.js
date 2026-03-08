@@ -2,7 +2,7 @@ export { EVENT_HOOKS } from './events/catalog.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
 export { ThemeI18nProvider, useThemeMessages, resolveThemeMessages } from './i18n/theme.js';
 export { defineThemeConfig } from './theme/config.js';
-export { createDataTableTemplateContract, createDataTableTemplateEntries, createDataTableCrudApiRouter } from './datatables/index.js';
+export { createDataTableTemplateContract, createDataTableTemplateEntries } from './datatables/contracts.js';
 export { DataTable, SDK_NOTIFY_EVENT, notify, sdkNotify } from './ui/index.js';
 export { buildFormField, composeBuildFormDefinition, defineBuildForm, defineBuildFormSection, defineBuildModal, withBuildFormValues, withBuildFormRequest, resolveBuildFormValue, normalizeBuildFormColumns, normalizeBuildFormGap, toBuildFormValueString, isBuildFormTruthyValue, applyBuildFormFieldMask } from './forms.js';
 export { buildFormValidationPreset, buildFormRule, createBuildFormValidationIssue, createBuildFormValidationResult, createBuildFormValidationResultFromFieldErrors, createBuildFormValidationResultFromFieldMessages, dbRef, defineValidatedBuildForm, fieldRef, getBuildFormFieldByName, getBuildFormValidation, getBuildFormValidationRulesForField, getBuildFormValidationRulesForFieldRuntime, isBuildFormValidationResultValid, isBuildFormValidationRuntimeEnabled, listBuildFormFields, matchesBuildFormValidationConditions, normalizeBuildFormValuesFromFormData, normalizeBuildFormValuesFromInput, resolveBuildFormValidationDebounceMs, resolveBuildFormValidationTriggers, shouldRunBuildFormPreflight, validateBuildFormLocally, validationCondition, withBuildFormValidation } from './form-validation.js';
