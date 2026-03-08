@@ -20,6 +20,16 @@ import {
   createAdminEditUserProfileBuildFormBase,
   createAdminEditUserStatusBuildFormBase
 } from '../../app/(dashboard)/admin/users/forms';
+import { createAdminOrganizationControlsBuildFormBase } from '../../app/(dashboard)/admin/app-config/forms';
+import {
+  createAdminDeleteSubscriptionTemplateBuildFormBase,
+  createAdminRequestTemplateActiveUpdateBuildFormBase
+} from '../../app/(dashboard)/admin/subscriptions/forms';
+import {
+  createAdminClearOrganizationSubscriptionBuildFormBase,
+  createAdminManageOrganizationSubscriptionBuildFormBase,
+  createAdminUpdateUserSubscriptionBuildFormBase
+} from '../../app/(dashboard)/admin/suscriptions/forms';
 import { createDashboardUpdateAccountBuildFormBase } from '../../app/(dashboard)/dashboard/general/forms';
 import {
   createDashboardDeleteAccountBuildFormBase,
@@ -46,6 +56,12 @@ function listCurrentCoreBuildForms() {
     createAdminEditUserProfileBuildFormBase(),
     createAdminEditUserStatusBuildFormBase(),
     createAdminDeleteUserBuildFormBase(),
+    createAdminOrganizationControlsBuildFormBase(),
+    createAdminUpdateUserSubscriptionBuildFormBase(),
+    createAdminManageOrganizationSubscriptionBuildFormBase(),
+    createAdminClearOrganizationSubscriptionBuildFormBase(),
+    createAdminRequestTemplateActiveUpdateBuildFormBase(),
+    createAdminDeleteSubscriptionTemplateBuildFormBase(),
     createDashboardUpdateAccountBuildFormBase(),
     createDashboardUpdatePasswordBuildFormBase(),
     createDashboardDeleteAccountBuildFormBase(),
@@ -156,6 +172,8 @@ test('every preflight-enabled core BuildForm resolves through the host registry'
   assert.deepEqual(preflightFormIds, [
     'admin-create-user-form',
     'admin-edit-user-profile-form',
+    'admin-manage-organization-subscription-form',
+    'admin-update-user-subscription-form',
     'dashboard-update-account-form'
   ]);
 
@@ -179,6 +197,8 @@ test('every active core dbRef target is covered by the host db resolver registry
     left.localeCompare(right)
   );
   assert.deepEqual(sortedActiveTargets, [
+    'core.subscription_templates.any',
+    'core.subscription_templates.organization',
     'core.subscription_templates.user',
     'core.users.email'
   ]);

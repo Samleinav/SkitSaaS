@@ -8,19 +8,19 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
-import { TemplateConfirmSubmitButton } from '@/components/ui/template-confirm-submit-button';
-import {
-  deleteSubscriptionTemplateAction,
-  requestTemplateActiveSubscriptionsUpdateAction
-} from '../../actions';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { requireAdminAccess } from '../../../guards';
 import { SubscriptionTemplateForm } from '../../template-form';
 import {
   getSubscriptionTemplateWithFeaturesById
 } from '@/lib/db/queries';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
+import {
+  createAdminDeleteSubscriptionTemplateBuildFormBase,
+  createAdminRequestTemplateActiveUpdateBuildFormBase
+} from '../../forms';
 
 export default async function AdminEditSubscriptionTemplatePage({
   params
@@ -42,6 +42,44 @@ export default async function AdminEditSubscriptionTemplatePage({
     notFound();
   }
   const themeSelection = await getThemeSelectionForArea('admin');
+  const requestActiveUpdateForm = composeRegisteredBuildFormDefinition(
+    'admin-request-template-active-update-form',
+    createAdminRequestTemplateActiveUpdateBuildFormBase(),
+    {
+      submit: {
+        idleLabel: subscriptionsPage.activeUpdateAction,
+        pendingLabel: subscriptionsPage.activeUpdateActionPending,
+        align: 'end',
+        size: 'sm',
+        variant: 'outline'
+      },
+      values: {
+        templateId: template.id
+      }
+    }
+  );
+  const deleteTemplateForm = composeRegisteredBuildFormDefinition(
+    'admin-delete-subscription-template-form',
+    createAdminDeleteSubscriptionTemplateBuildFormBase(),
+    {
+      submit: {
+        idleLabel: subscriptionsPage.delete,
+        pendingLabel: `${subscriptionsPage.delete}...`,
+        align: 'start',
+        confirm: {
+          title: subscriptionsPage.confirmDeleteTitle,
+          description: subscriptionsPage.confirmDeleteDescription,
+          confirmLabel: subscriptionsPage.confirm,
+          cancelLabel: subscriptionsPage.cancel,
+          triggerVariant: 'destructive',
+          confirmVariant: 'destructive'
+        }
+      },
+      values: {
+        templateId: template.id
+      }
+    }
+  );
 
   const fallbackPage = (
     <Card>
@@ -59,39 +97,24 @@ export default async function AdminEditSubscriptionTemplatePage({
           <p className="mt-1 text-xs text-muted-foreground">
             {subscriptionsPage.activeUpdateDescription}
           </p>
-          <form
-            action={requestTemplateActiveSubscriptionsUpdateAction}
-            className="mt-3 flex justify-end"
-          >
-            <input type="hidden" name="templateId" value={template.id} />
-            <TemplateAsyncSubmitButton
+          <div className="mt-3">
+            <TemplateBuildForm
+              definition={requestActiveUpdateForm}
               area="admin"
               route={`/admin/subscriptions/${template.id}/edit`}
-              size="sm"
-              variant="outline"
-              idleLabel={subscriptionsPage.activeUpdateAction}
-              pendingLabel={subscriptionsPage.activeUpdateActionPending}
+              slot="admin.subscriptions.template.active-update"
             />
-          </form>
+          </div>
         </div>
         <SubscriptionTemplateForm mode="update" template={template} />
         <div className="rounded-md border border-red-200 bg-red-50 p-4">
           <p className="mb-3 text-sm text-red-700">{subscriptionsPage.deleteHint}</p>
-          <form id="delete-subscription-template" action={deleteSubscriptionTemplateAction}>
-            <input type="hidden" name="templateId" value={template.id} />
-            <TemplateConfirmSubmitButton
-              area="admin"
-              route={`/admin/subscriptions/${template.id}/edit`}
-              formId="delete-subscription-template"
-              title={subscriptionsPage.confirmDeleteTitle}
-              description={subscriptionsPage.confirmDeleteDescription}
-              triggerLabel={subscriptionsPage.delete}
-              confirmLabel={subscriptionsPage.confirm}
-              cancelLabel={subscriptionsPage.cancel}
-              triggerVariant="destructive"
-              triggerSize="sm"
-            />
-          </form>
+          <TemplateBuildForm
+            definition={deleteTemplateForm}
+            area="admin"
+            route={`/admin/subscriptions/${template.id}/edit`}
+            slot="admin.subscriptions.template.delete"
+          />
         </div>
       </CardContent>
     </Card>

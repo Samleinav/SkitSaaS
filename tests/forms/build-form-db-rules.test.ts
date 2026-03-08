@@ -289,3 +289,73 @@ test('validateBuildFormOnServer passes runtime metadata to db validation adapter
     }
   ]);
 });
+
+test('validateBuildFormOnServer resolves organization and generic template db targets', async () => {
+  const lookups: Array<Record<string, unknown>> = [];
+
+  configureBuildFormDbValidation({
+    async lookup(request) {
+      lookups.push({
+        operator: request.operator,
+        target: request.target.target,
+        value: request.value
+      });
+
+      return {
+        exists: request.value === '15'
+      };
+    }
+  });
+
+  const form = withBuildFormValidation(
+    defineBuildForm({
+      fields: [
+        buildFormField.select({
+          name: 'organizationTemplateId',
+          label: 'Organization template',
+          options: [
+            { value: '', label: 'None' },
+            { value: '15', label: 'Business' }
+          ]
+        }),
+        buildFormField.hidden({
+          name: 'templateId'
+        })
+      ]
+    }),
+    {
+      fields: {
+        organizationTemplateId: [
+          buildFormRule.exists(dbRef('core.subscription_templates.organization'))
+        ],
+        templateId: [buildFormRule.exists(dbRef('core.subscription_templates.any'))]
+      }
+    }
+  );
+
+  const formData = new FormData();
+  formData.set('organizationTemplateId', '15');
+  formData.set('templateId', '15');
+
+  const result = await validateBuildFormOnServer({
+    definition: form,
+    formData,
+    user: {
+      id: 1
+    }
+  });
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(lookups, [
+    {
+      operator: 'exists',
+      target: 'core.subscription_templates.organization',
+      value: '15'
+    },
+    {
+      operator: 'exists',
+      target: 'core.subscription_templates.any',
+      value: '15'
+    }
+  ]);
+});

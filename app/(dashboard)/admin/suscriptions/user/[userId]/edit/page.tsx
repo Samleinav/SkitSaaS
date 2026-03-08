@@ -9,17 +9,17 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
-import { Label } from '@/components/ui/label';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import {
   getAdminUserById,
   getUserSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../../../guards';
-import { updateUserSubscriptionAction } from '../../../actions';
 import { resolveAdminUserDisplayStatus } from '../../../../users/status';
+import { createAdminUpdateUserSubscriptionBuildFormBase } from '../../../forms';
 
 type PageProps = {
   params: Promise<{ userId: string }>;
@@ -52,6 +52,36 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
   const isDeleted = status === 'deleted';
   const saveLabel = messages.subscriptionsTable.save;
   const themeSelection = await getThemeSelectionForArea('admin');
+  const userSubscriptionForm = composeRegisteredBuildFormDefinition(
+    'admin-update-user-subscription-form',
+    createAdminUpdateUserSubscriptionBuildFormBase({
+      copy: {
+        templateLabel: messages.userDetailPage.profileSubscriptionLabel,
+        noTemplate: messages.subscriptionsTable.noTemplate
+      },
+      templateOptions: templates.map((template) => ({
+        id: template.id,
+        name: template.name,
+        billingInterval: template.billingInterval
+      })),
+      disabled: isDeleted
+    }),
+    {
+      request: isDeleted ? null : undefined,
+      submit: isDeleted
+        ? null
+        : {
+            idleLabel: saveLabel,
+            pendingLabel: `${saveLabel}...`,
+            align: 'start'
+          },
+      values: {
+        userId: user.id,
+        source: `/admin/suscriptions/user/${user.id}/edit`,
+        templateId: user.subscriptionTemplateId ?? null
+      }
+    }
+  );
 
   const fallbackPage = (
     <Card>
@@ -67,40 +97,24 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
         </Button>
       </CardHeader>
       <CardContent>
-        <form action={updateUserSubscriptionAction} className="grid gap-4 md:grid-cols-2">
-          <input type="hidden" name="userId" value={user.id} />
-          <input
-            type="hidden"
-            name="source"
-            value={`/admin/suscriptions/user/${user.id}/edit`}
-          />
-
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
-            <Label>{messages.userDetailPage.userLabel}</Label>
+            <p className="text-sm font-medium text-foreground">
+              {messages.userDetailPage.userLabel}
+            </p>
             <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm">
               <p className="font-medium">{user.name || messages.usersTable.unnamedUser}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="user-subscription-template">
-              {messages.userDetailPage.profileSubscriptionLabel}
-            </Label>
-            <select
-              id="user-subscription-template"
-              name="templateId"
-              defaultValue={user.subscriptionTemplateId || ''}
-              disabled={isDeleted}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{messages.subscriptionsTable.noTemplate}</option>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {`${template.name} (${template.billingInterval})`}
-                </option>
-              ))}
-            </select>
+          <div className="md:col-span-2">
+            <TemplateBuildForm
+              definition={userSubscriptionForm}
+              area="admin"
+              route={`/admin/suscriptions/user/${user.id}/edit`}
+              slot="admin.suscriptions.user.edit"
+            />
           </div>
 
           {isDeleted ? (
@@ -108,17 +122,7 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
               {messages.userDetailPage.profileDisabledForDeleted}
             </p>
           ) : null}
-
-          <div className="md:col-span-2">
-            <TemplateAsyncSubmitButton
-              area="admin"
-              route={`/admin/suscriptions/user/${user.id}/edit`}
-              idleLabel={saveLabel}
-              pendingLabel={`${saveLabel}...`}
-              disabled={isDeleted}
-            />
-          </div>
-        </form>
+        </div>
       </CardContent>
     </Card>
   );

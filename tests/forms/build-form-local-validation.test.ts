@@ -22,6 +22,11 @@ import {
   createAdminDeleteUserBuildFormBase,
   createAdminEditUserStatusBuildFormBase
 } from '../../app/(dashboard)/admin/users/forms';
+import { createAdminOrganizationControlsBuildFormBase } from '../../app/(dashboard)/admin/app-config/forms';
+import {
+  createAdminManageOrganizationSubscriptionBuildFormBase,
+  createAdminUpdateUserSubscriptionBuildFormBase
+} from '../../app/(dashboard)/admin/suscriptions/forms';
 import { createDashboardUpdateAccountBuildFormBase } from '../../app/(dashboard)/dashboard/general/forms';
 import {
   createDashboardDeleteAccountBuildFormBase,
@@ -162,6 +167,49 @@ test('createBuildFormInvalidFactory builds server-style field errors without cop
 
   assert.equal(result.valid, false);
   assert.deepEqual(result.fieldErrors.itemId, ['A valid item id is required.']);
+});
+
+test('admin organization controls form requires a positive max when multi-org is enabled', () => {
+  const form = createAdminOrganizationControlsBuildFormBase();
+  const formData = new FormData();
+  formData.set('allowMultiOrganizations', 'true');
+  formData.set('maxOrganizationsPerUser', '0');
+
+  const result = runBuildFormLocalValidation(form, formData);
+
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.fieldErrors.maxOrganizationsPerUser, [
+    'Maximum organizations per user must be at least 1.'
+  ]);
+});
+
+test('admin user subscription form accepts empty template selection locally', () => {
+  const form = createAdminUpdateUserSubscriptionBuildFormBase();
+  const formData = new FormData();
+  formData.set('userId', '7');
+  formData.set('source', '/admin/suscriptions/user/7/edit');
+  formData.set('templateId', '');
+
+  const result = runBuildFormLocalValidation(form, formData);
+
+  assert.equal(result.valid, true);
+});
+
+test('admin organization subscription form requires subscription status locally', () => {
+  const form = createAdminManageOrganizationSubscriptionBuildFormBase();
+  const formData = new FormData();
+  formData.set('teamId', '4');
+  formData.set('source', '/admin/suscriptions/organization/4/edit');
+  formData.set('paymentProvider', '');
+  formData.set('subscriptionStatus', '');
+  formData.set('templateId', '');
+
+  const result = runBuildFormLocalValidation(form, formData);
+
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.fieldErrors.subscriptionStatus, [
+    'Subscription status is required.'
+  ]);
 });
 
 test('dashboard update account form requires name and email locally', () => {

@@ -22,7 +22,7 @@ import {
   revalidateDashboard,
   revalidatePricing
 } from '../actions/shared';
-import { adminAction } from '../controller';
+import { adminAction, adminValidatedAction } from '../controller';
 import { SUBSCRIPTION_BILLING_INTERVAL_SET } from '@/lib/payments/subscription-intervals';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPE_SET } from '@/lib/payments/subscription-feature-types';
 import { SUBSCRIPTION_TARGET_SCOPE_SET } from '@/lib/payments/subscription-scopes';
@@ -45,6 +45,16 @@ import { createSysActivityLog } from '@/lib/system/activity-logs';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { buildAdminTeamSubscriptionUpdate } from './form-utils';
+import {
+  createAdminDeleteSubscriptionTemplateBuildFormBase,
+  createAdminRequestTemplateActiveUpdateBuildFormBase
+} from './forms';
+import { createAdminSubscriptionInvalidFactory } from './validation';
+import {
+  createAdminClearOrganizationSubscriptionBuildFormBase,
+  createAdminManageOrganizationSubscriptionBuildFormBase,
+  createAdminUpdateUserSubscriptionBuildFormBase
+} from '../suscriptions/forms';
 
 function normalizeTemplateBillingInterval(input: string) {
   const normalized = input.trim().toLowerCase();
@@ -251,6 +261,17 @@ function parseTemplateFeatures(
 
   return Array.from(featuresMap.values());
 }
+
+const adminRequestTemplateActiveUpdateBuildForm =
+  createAdminRequestTemplateActiveUpdateBuildFormBase();
+const adminDeleteSubscriptionTemplateBuildForm =
+  createAdminDeleteSubscriptionTemplateBuildFormBase();
+const adminUpdateUserSubscriptionBuildForm =
+  createAdminUpdateUserSubscriptionBuildFormBase();
+const adminManageOrganizationSubscriptionBuildForm =
+  createAdminManageOrganizationSubscriptionBuildFormBase();
+const adminClearOrganizationSubscriptionBuildForm =
+  createAdminClearOrganizationSubscriptionBuildFormBase();
 
 export const createSubscriptionTemplateAction = adminAction(
   async ({ form, formData }) => {
@@ -516,16 +537,26 @@ export const updateSubscriptionTemplateAction = adminAction(
   }
 );
 
-export const requestTemplateActiveSubscriptionsUpdateAction = adminAction(
-  async ({ user: currentUser, form }) => {
-    const templateId = form.positiveInt('templateId');
+export const requestTemplateActiveSubscriptionsUpdateAction = adminValidatedAction(
+  adminRequestTemplateActiveUpdateBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminSubscriptionInvalidFactory(values);
+    const templateId =
+      typeof values.templateId === 'number' && values.templateId > 0
+        ? values.templateId
+        : null;
+
     if (!templateId) {
-      return false;
+      return invalid({
+        templateId: ['A valid template is required.']
+      });
     }
 
     const template = await getSubscriptionTemplateById(templateId);
     if (!template) {
-      return false;
+      return invalid({
+        templateId: ['Selected template was not found.']
+      });
     }
 
     await emitTemplateActiveSubscriptionsUpdateRequestedEvent({
@@ -559,8 +590,10 @@ export const requestTemplateActiveSubscriptionsUpdateAction = adminAction(
   }
 );
 
-export const deleteSubscriptionTemplateAction = adminAction(
-  async ({ form }) => {
+export const deleteSubscriptionTemplateAction = adminValidatedAction(
+  adminDeleteSubscriptionTemplateBuildForm,
+  async ({ values }) => {
+    const invalid = await createAdminSubscriptionInvalidFactory(values);
     if (
       isSubscriptionMutationBlocked(
         'admin.subscriptions.delete_subscription_template_action'
@@ -569,9 +602,14 @@ export const deleteSubscriptionTemplateAction = adminAction(
       return false;
     }
 
-    const templateId = form.positiveInt('templateId');
+    const templateId =
+      typeof values.templateId === 'number' && values.templateId > 0
+        ? values.templateId
+        : null;
     if (!templateId) {
-      return false;
+      return invalid({
+        templateId: ['A valid template is required.']
+      });
     }
 
     await db
@@ -606,8 +644,10 @@ export const deleteSubscriptionTemplateAction = adminAction(
   }
 );
 
-export const updateUserSubscriptionAction = adminAction(
-  async ({ user: currentUser, form }) => {
+export const updateUserSubscriptionAction = adminValidatedAction(
+  adminUpdateUserSubscriptionBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminSubscriptionInvalidFactory(values);
     if (
       isSubscriptionMutationBlocked(
         'admin.subscriptions.update_user_subscription_action'
@@ -616,17 +656,24 @@ export const updateUserSubscriptionAction = adminAction(
       return false;
     }
 
-    const userId = form.positiveInt('userId');
-    const templatePayload = parseOptionalTemplateId(form.string('templateId'));
-
-    if (!userId || !templatePayload.valid) {
-      return false;
-    }
-
+    const userId =
+      typeof values.userId === 'number' && values.userId > 0
+        ? values.userId
+        : null;
+    const templateId =
+      typeof values.templateId === 'number' && values.templateId > 0
+        ? values.templateId
+        : null;
     const source = normalizeSource(
-      form.string('source'),
-      `/admin/suscriptions/user/${userId}/edit`
+      typeof values.source === 'string' ? values.source : '',
+      `/admin/suscriptions/user/${userId ?? 'unknown'}/edit`
     );
+
+    if (!userId) {
+      return invalid({
+        userId: ['A valid user is required.']
+      });
+    }
 
     const [targetUser] = await db
       .select({
@@ -639,15 +686,19 @@ export const updateUserSubscriptionAction = adminAction(
       .limit(1);
 
     if (!targetUser || targetUser.deletedAt) {
-      return false;
+      return invalid({
+        userId: ['Selected user was not found.']
+      });
     }
 
-    const template = templatePayload.value
-      ? await getSubscriptionTemplateById(templatePayload.value)
+    const template = templateId
+      ? await getSubscriptionTemplateById(templateId)
       : null;
 
-    if (templatePayload.value && (!template || template.targetScope !== 'user')) {
-      return false;
+    if (templateId && (!template || template.targetScope !== 'user')) {
+      return invalid({
+        templateId: ['Selected subscription template was not found.']
+      });
     }
 
     const currentAssignment = await getActiveUserSubscriptionAssignment(userId);
@@ -718,8 +769,10 @@ export const updateUserSubscriptionAction = adminAction(
   }
 );
 
-export const updateTeamSubscriptionAction = adminAction(
-  async ({ user: currentUser, form }) => {
+export const updateTeamSubscriptionAction = adminValidatedAction(
+  adminManageOrganizationSubscriptionBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminSubscriptionInvalidFactory(values);
     if (
       isSubscriptionMutationBlocked(
         'admin.subscriptions.update_team_subscription_action'
@@ -728,17 +781,29 @@ export const updateTeamSubscriptionAction = adminAction(
       return false;
     }
 
-    const teamId = form.positiveInt('teamId');
-    const paymentProviderInput = form.lower('paymentProvider');
-    const subscriptionStatusInput = form.lower('subscriptionStatus');
-    const templatePayload = parseOptionalTemplateId(form.string('templateId'));
+    const teamId =
+      typeof values.teamId === 'number' && values.teamId > 0
+        ? values.teamId
+        : null;
+    const paymentProviderInput =
+      typeof values.paymentProvider === 'string' ? values.paymentProvider : '';
+    const subscriptionStatusInput =
+      typeof values.subscriptionStatus === 'string'
+        ? values.subscriptionStatus
+        : '';
+    const templateId =
+      typeof values.templateId === 'number' && values.templateId > 0
+        ? values.templateId
+        : null;
     const source = normalizeSource(
-      form.string('source'),
-      `/admin/suscriptions/organization/${teamId}/edit`
+      typeof values.source === 'string' ? values.source : '',
+      `/admin/suscriptions/organization/${teamId ?? 'unknown'}/edit`
     );
 
-    if (!teamId || !templatePayload.valid) {
-      return false;
+    if (!teamId) {
+      return invalid({
+        teamId: ['A valid organization is required.']
+      });
     }
 
     const [currentTeam] = await db
@@ -751,18 +816,21 @@ export const updateTeamSubscriptionAction = adminAction(
       .limit(1);
 
     if (!currentTeam) {
-      return false;
+      return invalid({
+        teamId: ['Selected organization was not found.']
+      });
     }
 
     const currentAssignment = await getActiveTeamSubscriptionAssignment(teamId);
 
-    const template =
-      templatePayload.value
-        ? await getSubscriptionTemplateById(templatePayload.value)
-        : null;
+    const template = templateId
+      ? await getSubscriptionTemplateById(templateId)
+      : null;
 
-    if (template && template.targetScope !== 'organization') {
-      return false;
+    if (templateId && (!template || template.targetScope !== 'organization')) {
+      return invalid({
+        templateId: ['Selected subscription template was not found.']
+      });
     }
 
     const resolvedUpdate = buildAdminTeamSubscriptionUpdate({
@@ -866,8 +934,10 @@ export const updateTeamSubscriptionAction = adminAction(
   }
 );
 
-export const clearTeamSubscriptionAction = adminAction(
-  async ({ user: currentUser, form }) => {
+export const clearTeamSubscriptionAction = adminValidatedAction(
+  adminClearOrganizationSubscriptionBuildForm,
+  async ({ user: currentUser, values }) => {
+    const invalid = await createAdminSubscriptionInvalidFactory(values);
     if (
       isSubscriptionMutationBlocked(
         'admin.subscriptions.clear_team_subscription_action'
@@ -876,13 +946,18 @@ export const clearTeamSubscriptionAction = adminAction(
       return false;
     }
 
-    const teamId = form.positiveInt('teamId');
+    const teamId =
+      typeof values.teamId === 'number' && values.teamId > 0
+        ? values.teamId
+        : null;
     if (!teamId) {
-      return false;
+      return invalid({
+        teamId: ['A valid organization is required.']
+      });
     }
 
     const source = normalizeSource(
-      form.string('source'),
+      typeof values.source === 'string' ? values.source : '',
       `/admin/suscriptions/organization/${teamId}/edit`
     );
 
@@ -896,7 +971,9 @@ export const clearTeamSubscriptionAction = adminAction(
       .limit(1);
 
     if (!currentTeam) {
-      return false;
+      return invalid({
+        teamId: ['Selected organization was not found.']
+      });
     }
 
     const currentAssignment = await getActiveTeamSubscriptionAssignment(teamId);

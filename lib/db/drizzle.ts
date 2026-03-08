@@ -7,6 +7,7 @@ dotenv.config();
 
 type PostgresClient = ReturnType<typeof postgres>;
 type DrizzleDatabase = ReturnType<typeof drizzle<typeof schema>>;
+type CallableTarget = ((...args: unknown[]) => unknown) & object;
 
 let appClient: PostgresClient | null = null;
 let appDb: DrizzleDatabase | null = null;
@@ -25,15 +26,18 @@ function readRequiredDatabaseUrl(
   throw new Error(`${envName} environment variable is not set`);
 }
 
-function createLazyProxy<TTarget extends object>(resolve: () => TTarget): TTarget {
-  return new Proxy({} as TTarget, {
+function createLazyProxyHandler<TTarget extends object>(
+  resolve: () => TTarget
+): ProxyHandler<TTarget> {
+  return {
     get(target, property, receiver) {
       if (Reflect.has(target, property)) {
         return Reflect.get(target, property, receiver);
       }
 
-      const value = Reflect.get(resolve() as object, property, receiver);
-      return typeof value === 'function' ? value.bind(resolve()) : value;
+      const resolved = resolve();
+      const value = Reflect.get(resolved as object, property, resolved as object);
+      return typeof value === 'function' ? value.bind(resolved) : value;
     },
     has(target, property) {
       return Reflect.has(target, property) || property in resolve();
@@ -54,6 +58,25 @@ function createLazyProxy<TTarget extends object>(resolve: () => TTarget): TTarge
     },
     getPrototypeOf() {
       return Object.getPrototypeOf(resolve() as object);
+    }
+  };
+}
+
+function createLazyObjectProxy<TTarget extends object>(resolve: () => TTarget): TTarget {
+  return new Proxy({} as TTarget, createLazyProxyHandler(resolve));
+}
+
+function createLazyFunctionProxy<TTarget extends CallableTarget>(
+  resolve: () => TTarget
+): TTarget {
+  const target = function lazyProxyTarget() {
+    return undefined;
+  } as unknown as TTarget;
+
+  return new Proxy(target, {
+    ...createLazyProxyHandler(resolve),
+    apply(_target, thisArg, argArray) {
+      return Reflect.apply(resolve(), thisArg, argArray);
     }
   });
 }
@@ -103,11 +126,11 @@ function getAdminDb() {
 
 // App-level client — used by dashboard and frontend.
 // When RLS is active this connection runs as `saas_app` role (user-scoped access only).
-export const client = createLazyProxy<PostgresClient>(getClient);
-export const db = createLazyProxy<DrizzleDatabase>(getDb);
+export const client = createLazyFunctionProxy<PostgresClient>(getClient);
+export const db = createLazyObjectProxy<DrizzleDatabase>(getDb);
 
 // Admin-level client — used exclusively by the /admin area.
 // Uses ADMIN_POSTGRES_URL (saas_admin role, full access) when set;
 // falls back to POSTGRES_URL in local dev where a single role is used.
-export const adminClient = createLazyProxy<PostgresClient>(getAdminClient);
-export const adminDb = createLazyProxy<DrizzleDatabase>(getAdminDb);
+export const adminClient = createLazyFunctionProxy<PostgresClient>(getAdminClient);
+export const adminDb = createLazyObjectProxy<DrizzleDatabase>(getAdminDb);

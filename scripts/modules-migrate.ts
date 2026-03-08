@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import postgres from 'postgres';
 
 type ModuleJson = {
   moduleId?: string;
@@ -59,6 +60,42 @@ type SqlClient = {
 };
 
 const DEFAULT_TIMEOUT_MS = 30000;
+
+function describeSqlClientCandidate(value: unknown) {
+  if (value === null) {
+    return 'null';
+  }
+
+  const valueType = typeof value;
+  if (valueType !== 'function' && valueType !== 'object') {
+    return valueType;
+  }
+
+  const keys = Reflect.ownKeys(value as object)
+    .filter((entry): entry is string => typeof entry === 'string')
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, 10);
+
+  return `${valueType} keys=[${keys.join(', ')}]`;
+}
+
+export function assertSqlClient(
+  value: unknown,
+  label = 'sql client'
+): SqlClient {
+  if (
+    typeof value === 'function' &&
+    typeof (value as SqlClient).unsafe === 'function' &&
+    typeof (value as SqlClient).begin === 'function' &&
+    typeof (value as SqlClient).end === 'function'
+  ) {
+    return value as SqlClient;
+  }
+
+  throw new TypeError(
+    `Expected ${label} to be a callable postgres client; received ${describeSqlClientCandidate(value)}.`
+  );
+}
 
 function toPosixPath(value: string) {
   return value.replace(/\\/g, '/');
@@ -469,8 +506,15 @@ async function applyModuleMigration({
 }
 
 async function loadSqlClient() {
-  const { client } = await import('@/lib/db/drizzle');
-  return client as unknown as SqlClient;
+  const databaseUrl =
+    process.env.ADMIN_POSTGRES_URL?.trim() ?? process.env.POSTGRES_URL?.trim();
+  if (!databaseUrl) {
+    throw new Error(
+      'ADMIN_POSTGRES_URL or POSTGRES_URL environment variable is not set'
+    );
+  }
+
+  return assertSqlClient(postgres(databaseUrl), 'modules:migrate database client');
 }
 
 export async function runModulesMigrate(
@@ -530,7 +574,10 @@ export async function runModulesMigrate(
     };
   }
 
-  const sql = options.sqlClient ?? (await loadSqlClient());
+  const sql = assertSqlClient(
+    options.sqlClient ?? (await loadSqlClient()),
+    options.sqlClient ? 'runModulesMigrate options.sqlClient' : 'modules:migrate database client'
+  );
   await ensureModuleMigrationsTable(sql, timeoutMs);
 
   for (const target of targets) {

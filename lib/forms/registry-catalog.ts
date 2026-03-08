@@ -9,6 +9,16 @@ import {
   createAdminEditUserStatusBuildFormBase,
   createAdminEditUserProfileBuildFormBase
 } from '@/app/(dashboard)/admin/users/forms';
+import { createAdminOrganizationControlsBuildFormBase } from '@/app/(dashboard)/admin/app-config/forms';
+import {
+  createAdminDeleteSubscriptionTemplateBuildFormBase,
+  createAdminRequestTemplateActiveUpdateBuildFormBase
+} from '@/app/(dashboard)/admin/subscriptions/forms';
+import {
+  createAdminClearOrganizationSubscriptionBuildFormBase,
+  createAdminManageOrganizationSubscriptionBuildFormBase,
+  createAdminUpdateUserSubscriptionBuildFormBase
+} from '@/app/(dashboard)/admin/suscriptions/forms';
 import {
   createDashboardCancelUserSubscriptionBuildFormBase,
   createDashboardManageOrganizationSubscriptionBuildFormBase
@@ -56,6 +66,48 @@ const buildFormControllerCatalog: BuildFormControllerCatalogEntry[] = [
     access: 'admin',
     route: '/admin/users/[userId]',
     resolveDefinition: () => createAdminDeleteUserBuildFormBase()
+  },
+  {
+    formId: 'admin-app-config-general-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/app-config/general',
+    resolveDefinition: () => createAdminOrganizationControlsBuildFormBase()
+  },
+  {
+    formId: 'admin-update-user-subscription-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/suscriptions/user/[userId]/edit',
+    resolveDefinition: () => createAdminUpdateUserSubscriptionBuildFormBase()
+  },
+  {
+    formId: 'admin-manage-organization-subscription-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/suscriptions/organization/[teamId]/edit',
+    resolveDefinition: () => createAdminManageOrganizationSubscriptionBuildFormBase()
+  },
+  {
+    formId: 'admin-clear-organization-subscription-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/suscriptions/organization/[teamId]/edit',
+    resolveDefinition: () => createAdminClearOrganizationSubscriptionBuildFormBase()
+  },
+  {
+    formId: 'admin-request-template-active-update-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/subscriptions/[templateId]/edit',
+    resolveDefinition: () => createAdminRequestTemplateActiveUpdateBuildFormBase()
+  },
+  {
+    formId: 'admin-delete-subscription-template-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/subscriptions/[templateId]/edit',
+    resolveDefinition: () => createAdminDeleteSubscriptionTemplateBuildFormBase()
   },
   {
     formId: 'dashboard-cancel-user-subscription-form',

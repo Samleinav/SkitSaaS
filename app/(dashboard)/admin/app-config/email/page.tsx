@@ -8,11 +8,13 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
+import { composeBuildFormDefinition } from '@skitsaas/sdk';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { upsertProviderConfigBatchAction } from '../actions';
 import { getAdminAppConfigData } from '../config';
+import { createAdminProviderConfigBuildFormBase } from '../forms';
 
 export default async function AdminAppConfigEmailPage() {
   const messages = await getServerMessages('admin');
@@ -23,6 +25,32 @@ export default async function AdminAppConfigEmailPage() {
   const { emailRows } = await getAdminAppConfigData();
   const emailProvider = emailRows[0]?.provider || 'smtp';
   const themeSelection = await getThemeSelectionForArea('admin');
+  const emailConfigForm = composeBuildFormDefinition(
+    createAdminProviderConfigBuildFormBase({
+      formId: 'admin-app-config-email-form',
+      provider: emailProvider,
+      rows: emailRows,
+      copy: {
+        envPrefix: appConfig.envPrefix,
+        sourcePrefix: appConfig.sourcePrefix,
+        overriddenByEnv: appConfig.overriddenByEnv,
+        dbFallbackValue: appConfig.dbFallbackValue
+      }
+    }),
+    {
+      request: {
+        action: upsertProviderConfigBatchAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: appConfig.save,
+        pendingLabel: savingLabel,
+        align: 'end',
+        size: 'sm',
+        variant: 'outline'
+      }
+    }
+  );
 
   const fallbackPage = (
     <div className="space-y-6">
@@ -42,46 +70,12 @@ export default async function AdminAppConfigEmailPage() {
           <CardDescription>{emailMessages.smtpConfigDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <form action={upsertProviderConfigBatchAction} className="space-y-3">
-            <input type="hidden" name="provider" value={emailProvider} />
-            {emailRows.map((row) => (
-              <div
-                key={`${row.provider}:${row.configKey}`}
-                className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3"
-              >
-                <p className="text-sm font-medium text-foreground">
-                  {row.provider}.{row.configKey}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {appConfig.envPrefix}: {row.envKey}
-                </p>
-                <input
-                  name={`configValues.${row.configKey}`}
-                  type={row.configKey.includes('password') ? 'password' : 'text'}
-                  defaultValue={row.dbValue}
-                  placeholder={
-                    row.source === 'env'
-                      ? appConfig.overriddenByEnv
-                      : appConfig.dbFallbackValue
-                  }
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {appConfig.sourcePrefix}: {row.source}
-                </p>
-              </div>
-            ))}
-            <div className="flex justify-end">
-              <TemplateAsyncSubmitButton
-                area="admin"
-                route="/admin/app-config/email"
-                size="sm"
-                variant="outline"
-                idleLabel={appConfig.save}
-                pendingLabel={savingLabel}
-              />
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={emailConfigForm}
+            area="admin"
+            route="/admin/app-config/email"
+            slot="admin.app-config.email"
+          />
         </CardContent>
       </Card>
 

@@ -8,11 +8,13 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
+import { composeBuildFormDefinition } from '@skitsaas/sdk';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { upsertProviderConfigBatchAction } from '../actions';
 import { getAdminAppConfigData, PROVIDER_ORDER, type ProviderId } from '../config';
+import { createAdminProviderConfigBuildFormBase } from '../forms';
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -38,6 +40,32 @@ export default async function AdminAppConfigPaymentMethodsPage({
     (row) => !row.configKey.startsWith('plan_id')
   );
   const themeSelection = await getThemeSelectionForArea('admin');
+  const paymentConfigForm = composeBuildFormDefinition(
+    createAdminProviderConfigBuildFormBase({
+      formId: `admin-app-config-payment-provider-form-${selectedProvider}`,
+      provider: selectedProvider,
+      rows: providerRows,
+      copy: {
+        envPrefix: appConfig.envPrefix,
+        sourcePrefix: appConfig.sourcePrefix,
+        overriddenByEnv: appConfig.overriddenByEnv,
+        dbFallbackValue: appConfig.dbFallbackValue
+      }
+    }),
+    {
+      request: {
+        action: upsertProviderConfigBatchAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: appConfig.save,
+        pendingLabel: savingLabel,
+        align: 'end',
+        size: 'sm',
+        variant: 'outline'
+      }
+    }
+  );
 
   const fallbackPage = (
     <div className="space-y-6">
@@ -77,57 +105,12 @@ export default async function AdminAppConfigPaymentMethodsPage({
           </div>
         </CardHeader>
         <CardContent>
-          <form action={upsertProviderConfigBatchAction} className="space-y-3">
-            <input type="hidden" name="provider" value={selectedProvider} />
-            {providerRows.map((row) => (
-              <div
-                key={`${row.provider}:${row.configKey}`}
-                className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3"
-              >
-                <p className="text-sm font-medium text-foreground">
-                  {row.provider}.{row.configKey}
-                </p>
-                {row.configKey === 'enabled' ? (
-                  <select
-                    name={`configValues.${row.configKey}`}
-                    defaultValue={row.dbValue || row.value || 'true'}
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                ) : (
-                  <input
-                    name={`configValues.${row.configKey}`}
-                    defaultValue={row.dbValue}
-                    placeholder={
-                      row.source === 'env'
-                        ? appConfig.overriddenByEnv
-                        : appConfig.dbFallbackValue
-                    }
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {appConfig.envPrefix}: {row.envKey}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {appConfig.sourcePrefix}: {row.source}
-                </p>
-              </div>
-            ))}
-
-            <div className="flex justify-end">
-              <TemplateAsyncSubmitButton
-                area="admin"
-                route="/admin/app-config/payments-methods"
-                size="sm"
-                variant="outline"
-                idleLabel={appConfig.save}
-                pendingLabel={savingLabel}
-              />
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={paymentConfigForm}
+            area="admin"
+            route="/admin/app-config/payments-methods"
+            slot="admin.app-config.payment-methods"
+          />
         </CardContent>
       </Card>
     </div>

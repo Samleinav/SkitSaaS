@@ -8,13 +8,14 @@ import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';
 import { getOrganizationConfigDefinitionsForAdmin } from '@/lib/organizations/config';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
-import { adminAction } from '../controller';
+import { adminAction, adminValidatedAction } from '../controller';
 import {
   revalidateAdminAppConfig,
   revalidateAdminPayments,
   revalidateDashboard,
   revalidatePricing
 } from '../actions/shared';
+import { createAdminOrganizationControlsBuildFormBase } from './forms';
 
 const organizationConfigDefinitions = getOrganizationConfigDefinitionsForAdmin();
 const organizationProvider =
@@ -53,15 +54,8 @@ function hasAllowedAppConfigKey({
   return appConfigKeysByProvider.get(provider)?.has(configKey) ?? false;
 }
 
-function parseBooleanInput(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return (
-    normalized === 'true' ||
-    normalized === '1' ||
-    normalized === 'yes' ||
-    normalized === 'on'
-  );
-}
+const adminOrganizationControlsBuildForm =
+  createAdminOrganizationControlsBuildFormBase();
 
 export const upsertPaymentProviderConfigAction = adminAction(
   async ({ user, form }) => {
@@ -193,22 +187,16 @@ export const upsertProviderConfigBatchAction = adminAction(
   }
 );
 
-export const upsertOrganizationControlsAction = adminAction(
-  async ({ user, form }) => {
-    const allowMultiOrganizations = parseBooleanInput(
-      form.string('allowMultiOrganizations')
-    );
-    const maxOrganizationsPerUserRaw = form.string('maxOrganizationsPerUser');
-
-    let maxOrganizationsPerUser: number | null = null;
-    if (maxOrganizationsPerUserRaw) {
-      const parsedMax = Number(maxOrganizationsPerUserRaw);
-      if (!Number.isInteger(parsedMax) || parsedMax <= 0) {
-        return false;
-      }
-
-      maxOrganizationsPerUser = parsedMax;
-    }
+export const upsertOrganizationControlsAction = adminValidatedAction(
+  adminOrganizationControlsBuildForm,
+  async ({ user, values }) => {
+    const allowMultiOrganizations = values.allowMultiOrganizations === true;
+    const maxOrganizationsPerUser =
+      typeof values.maxOrganizationsPerUser === 'number' &&
+      Number.isInteger(values.maxOrganizationsPerUser) &&
+      values.maxOrganizationsPerUser > 0
+        ? values.maxOrganizationsPerUser
+        : null;
 
     await writeProviderConfig({
       provider: organizationProvider,

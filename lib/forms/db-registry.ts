@@ -90,6 +90,52 @@ function bootstrapBuildFormDbRegistry() {
     }
   );
 
+  registerBuildFormDbResolver(
+    'core.subscription_templates.organization',
+    async ({ value }) => {
+      const templateId = parsePositiveInteger(value);
+      if (!templateId) {
+        return {
+          exists: false
+        };
+      }
+
+      const templates = await db
+        .select({ id: subscriptionTemplates.id })
+        .from(subscriptionTemplates)
+        .where(
+          and(
+            eq(subscriptionTemplates.id, templateId),
+            eq(subscriptionTemplates.targetScope, 'organization')
+          )
+        )
+        .limit(1);
+
+      return {
+        exists: templates.length > 0
+      };
+    }
+  );
+
+  registerBuildFormDbResolver('core.subscription_templates.any', async ({ value }) => {
+    const templateId = parsePositiveInteger(value);
+    if (!templateId) {
+      return {
+        exists: false
+      };
+    }
+
+    const templates = await db
+      .select({ id: subscriptionTemplates.id })
+      .from(subscriptionTemplates)
+      .where(eq(subscriptionTemplates.id, templateId))
+      .limit(1);
+
+    return {
+      exists: templates.length > 0
+    };
+  });
+
   hasBootstrappedBuildFormDbResolvers = true;
 }
 

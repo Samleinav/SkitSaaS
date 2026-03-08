@@ -6,11 +6,12 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
-import { upsertOrganizationControlsAction } from '../actions';
 import { getAdminAppConfigData } from '../config';
+import { createAdminOrganizationControlsBuildFormBase } from '../forms';
 
 export default async function AdminAppConfigGeneralPage() {
   const messages = await getServerMessages('admin');
@@ -24,6 +25,41 @@ export default async function AdminAppConfigGeneralPage() {
     maxOrganizationsPerUser
   } = await getAdminAppConfigData();
   const themeSelection = await getThemeSelectionForArea('admin');
+  const organizationControlsForm = composeRegisteredBuildFormDefinition(
+    'admin-app-config-general-form',
+    createAdminOrganizationControlsBuildFormBase({
+      copy: {
+        allowMultiOrganizationsLabel:
+          appConfig.organization.allowMultiOrganizationsLabel,
+        allowMultiOrganizationsHint:
+          appConfig.organization.allowMultiOrganizationsHint,
+        maxOrganizationsPerUserLabel:
+          appConfig.organization.maxOrganizationsPerUserLabel,
+        maxOrganizationsPerUserHint:
+          appConfig.organization.maxOrganizationsPerUserHint,
+        unlimitedPlaceholder: appConfig.organization.unlimitedPlaceholder,
+        envPrefix: appConfig.envPrefix,
+        sourcePrefix: appConfig.sourcePrefix
+      },
+      allowMultiOrganizationsEnvKey: organizationAllowMultiConfig.envKey,
+      allowMultiOrganizationsSource: organizationAllowMultiConfig.source,
+      maxOrganizationsPerUserEnvKey: organizationMaxConfig.envKey,
+      maxOrganizationsPerUserSource: organizationMaxConfig.source
+    }),
+    {
+      submit: {
+        idleLabel: appConfig.save,
+        pendingLabel: savingLabel,
+        align: 'end',
+        size: 'sm',
+        variant: 'outline'
+      },
+      values: {
+        allowMultiOrganizations,
+        maxOrganizationsPerUser: maxOrganizationsPerUser ?? null
+      }
+    }
+  );
 
   const fallbackPage = (
     <div className="space-y-6">
@@ -43,60 +79,12 @@ export default async function AdminAppConfigGeneralPage() {
           <CardDescription>{appConfig.organization.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={upsertOrganizationControlsAction} className="space-y-4">
-            <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <input
-                  type="checkbox"
-                  name="allowMultiOrganizations"
-                  value="true"
-                  defaultChecked={allowMultiOrganizations}
-                  className="h-4 w-4 rounded border-input bg-background"
-                />
-                {appConfig.organization.allowMultiOrganizationsLabel}
-              </label>
-              <p className="text-xs text-muted-foreground">
-                {appConfig.organization.allowMultiOrganizationsHint}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {appConfig.envPrefix}: {organizationAllowMultiConfig.envKey} -{' '}
-                {appConfig.sourcePrefix}: {organizationAllowMultiConfig.source}
-              </p>
-            </div>
-
-            <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3">
-              <p className="text-sm font-medium text-foreground">
-                {appConfig.organization.maxOrganizationsPerUserLabel}
-              </p>
-              <input
-                type="number"
-                name="maxOrganizationsPerUser"
-                min={1}
-                step={1}
-                defaultValue={maxOrganizationsPerUser ?? ''}
-                placeholder={appConfig.organization.unlimitedPlaceholder}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                {appConfig.organization.maxOrganizationsPerUserHint}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {appConfig.envPrefix}: {organizationMaxConfig.envKey} -{' '}
-                {appConfig.sourcePrefix}: {organizationMaxConfig.source}
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <TemplateAsyncSubmitButton
-                area="admin"
-                route="/admin/app-config/general"
-                size="sm"
-                variant="outline"
-                idleLabel={appConfig.save}
-                pendingLabel={savingLabel}
-              />
-            </div>
-          </form>
+          <TemplateBuildForm
+            definition={organizationControlsForm}
+            area="admin"
+            route="/admin/app-config/general"
+            slot="admin.app-config.general"
+          />
         </CardContent>
       </Card>
     </div>

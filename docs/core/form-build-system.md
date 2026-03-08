@@ -5,10 +5,10 @@ description: Technical design and current implementation status for structured f
 
 # Form Build System
 
-Status: In progress
+Status: Production default for standard core forms
 Last review: 2026-03-07
 
-This document explains the current `form build` system architecture for SkitSaaS and the remaining rollout plan.
+This document explains the current `form build` system architecture for SkitSaaS and the remaining rollout boundaries.
 
 A pilot implementation already exists in:
 
@@ -68,9 +68,9 @@ The validation layer is now split into two implementation states:
   - field-level AJAX preflight from `BuildForm` with debounce/cancellation handling
   - optional host-owned preflight rate-limit hook with `429` / `Retry-After` support
   - no-JS submit fallback for confirm flows through `<noscript>` submit buttons
-- still pending:
-  - broader form registry coverage beyond the current pilots
-  - more module-owned DB targets in the resolver registry
+- intentionally left outside the default path:
+  - highly dynamic collection editors that need richer field-array primitives
+  - client-heavy flows that depend on custom client orchestration beyond standard submit/preflight/confirm behavior
 
 Current local validation is intentionally limited to browser-safe rules.
 
@@ -103,9 +103,15 @@ That means the generic renderer can now:
 - submit the same action to the server for authoritative validation
 - render `fieldErrors` / `formError` returned by the server without custom page glue
 
-The current core pilot for that flow is no longer admin-only:
+The current production rollout for that flow now covers:
 
 - `/admin/users` create-user plus `/admin/users/[userId]` profile, status, and delete flows
+- `/admin/app-config/general`
+- `/admin/app-config/email`
+- `/admin/app-config/payments-methods`
+- `/admin/suscriptions/user/[userId]/edit`
+- `/admin/suscriptions/organization/[teamId]/edit`
+- `/admin/subscriptions/[templateId]/edit` request-active-update and delete flows
 - `/dashboard/general` account update flow
 - `/dashboard/security` password update and delete-account flows
 - `/dashboard/subscriptions` user subscription cancel and organization subscription manage/cancel flows
@@ -121,6 +127,31 @@ The current DB-aware pilot is also `/admin/users`:
 - the host registry now resolves both preflight metadata and the canonical submit action for these pilots
 - `/admin/users/[userId]` status updates also run through the same controller registry + validated action path
 - `/admin/users/[userId]` delete now uses a BuildForm confirm flow instead of a standalone form + confirm button pair
+- `/admin/suscriptions/*` now uses the same registry + validated action path for user/team subscription management
+- `/admin/subscriptions/[templateId]/edit` now routes auxiliary update/delete actions through BuildForm instead of standalone forms
+
+## Standard boundary
+
+BuildForm is now the default production path for:
+
+- CRUD forms with stable field sets
+- settings/configuration forms
+- destructive confirms
+- hidden-id mutation forms
+- server-rendered dashboard/admin account and subscription settings
+
+BuildForm is not mandatory for every route.
+
+Current intentional exceptions in core are:
+
+- `app/(dashboard)/dashboard/home-core.tsx`
+  - still uses client-heavy `useActionState`, SWR, and custom radio-group/notification orchestration
+- `app/(dashboard)/admin/subscriptions/template-form.tsx`
+  - dynamic feature-row editor that needs field-array style primitives
+- `app/(dashboard)/admin/orders/**/*`
+  - order flows with conditional target switching and heavier admin-specific UX
+
+Those routes are not blockers for production readiness of the BuildForm system itself. They are candidates for future primitives, not proof that the standard path is incomplete.
 
 ## Design goals
 

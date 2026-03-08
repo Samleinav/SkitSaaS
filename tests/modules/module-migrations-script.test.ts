@@ -5,10 +5,12 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {
+  assertSqlClient,
   computeMigrationChecksum,
   discoverModuleMigrationTargets,
   isMigrationChecksumCompatible,
-  parseSqlStatements
+  parseSqlStatements,
+  runModulesMigrate
 } from '../../scripts/modules-migrate';
 
 test('parseSqlStatements splits by drizzle statement breakpoints', () => {
@@ -153,6 +155,105 @@ test('discoverModuleMigrationTargets orders modules by db.dependsOn', () => {
   }
 });
 
+test('runModulesMigrate applies and skips module migrations with a callable sql client', async () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-migrate-run-'));
+  const modulesDir = path.join(rootDir, 'modules');
+  const moduleDir = path.join(modulesDir, 'mod.alpha');
+  const migrationsDir = path.join(moduleDir, 'db', 'migrations');
+  const executedStatements: string[] = [];
+  const ledger = new Map<
+    string,
+    {
+      checksum: string;
+      moduleSchemaVersion: number;
+    }
+  >();
+
+  try {
+    fs.mkdirSync(migrationsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(moduleDir, 'module.json'),
+      JSON.stringify({
+        moduleId: 'mod.alpha',
+        db: {
+          schemaVersion: 3,
+          migrationsDir: 'db/migrations'
+        }
+      }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(migrationsDir, '0001_init.sql'),
+      `
+        CREATE TABLE mod_alpha_items (id integer);
+        --> statement-breakpoint
+        ALTER TABLE mod_alpha_items ADD COLUMN title text;
+      `,
+      'utf8'
+    );
+
+    const sqlClient = createFakeSqlClient({
+      ledger,
+      executedStatements
+    });
+
+    const firstRun = await runModulesMigrate({
+      rootDir,
+      sqlClient,
+      logWarnings: false
+    });
+    const secondRun = await runModulesMigrate({
+      rootDir,
+      sqlClient,
+      logWarnings: false
+    });
+
+    assert.equal(firstRun.totalModules, 1);
+    assert.equal(firstRun.totalMigrations, 1);
+    assert.equal(firstRun.applied, 1);
+    assert.equal(firstRun.skipped, 0);
+    assert.equal(secondRun.applied, 0);
+    assert.equal(secondRun.skipped, 1);
+    assert.deepEqual([...ledger.keys()], ['mod.alpha:0001_init.sql']);
+    assert.equal(
+      ledger.get('mod.alpha:0001_init.sql')?.moduleSchemaVersion,
+      3
+    );
+    assert.ok(
+      executedStatements.some((statement) =>
+        statement.includes('CREATE TABLE mod_alpha_items (id integer);')
+      )
+    );
+    assert.ok(
+      executedStatements.some((statement) =>
+        statement.includes('ALTER TABLE mod_alpha_items ADD COLUMN title text;')
+      )
+    );
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('assertSqlClient rejects non-callable clients even if they expose sql methods', () => {
+  type NonCallableSqlClient = {
+    unsafe: () => Promise<unknown[]>;
+    begin: <T>(callback: (tx: NonCallableSqlClient) => Promise<T>) => Promise<T>;
+    end: () => Promise<void>;
+  };
+
+  const nonCallableSqlClient: NonCallableSqlClient = {
+    unsafe: async () => [],
+    begin: async <T>(callback: (tx: NonCallableSqlClient) => Promise<T>) =>
+      callback(nonCallableSqlClient),
+    end: async () => {}
+  };
+
+  assert.throws(
+    () => assertSqlClient(nonCallableSqlClient, 'test sql client'),
+    /Expected test sql client to be a callable postgres client/
+  );
+});
+
 test('computeMigrationChecksum is stable across LF and CRLF line endings', () => {
   const lf = 'CREATE TABLE one (id integer);\nCREATE TABLE two (id integer);\n';
   const crlf = lf.replace(/\n/g, '\r\n');
@@ -180,4 +281,94 @@ test('isMigrationChecksumCompatible rejects checksums from different contents', 
 
 function createSha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function createFakeSqlClient({
+  ledger,
+  executedStatements
+}: {
+  ledger: Map<
+    string,
+    {
+      checksum: string;
+      moduleSchemaVersion: number;
+    }
+  >;
+  executedStatements: string[];
+}) {
+  type FakeSqlClient = {
+    unsafe: (query: string) => Promise<unknown>;
+    begin: <T>(
+      callback: (tx: FakeSqlClient) => Promise<T>
+    ) => Promise<T>;
+    <T extends object = object>(
+      strings: TemplateStringsArray,
+      ...params: unknown[]
+    ): Promise<T[]>;
+    end: () => Promise<void>;
+  };
+
+  const sql = (async <T extends object = object>(
+    strings: TemplateStringsArray,
+    ...params: unknown[]
+  ) => {
+    const statement = normalizeSql(strings.join(' '));
+
+    if (statement.includes('SELECT checksum FROM app_module_migrations')) {
+      const [moduleId, migrationName] = params as [string, string];
+      const row = ledger.get(`${moduleId}:${migrationName}`);
+      return row ? ([{ checksum: row.checksum }] as T[]) : [];
+    }
+
+    throw new Error(`Unexpected query: ${statement}`);
+  }) as FakeSqlClient;
+
+  sql.unsafe = async (query: string) => {
+    executedStatements.push(normalizeSql(query));
+    return [];
+  };
+
+  sql.begin = async <T>(callback: (tx: FakeSqlClient) => Promise<T>) => {
+    const tx = (async <U extends object = object>(
+      strings: TemplateStringsArray,
+      ...params: unknown[]
+    ) => {
+      const statement = normalizeSql(strings.join(' '));
+
+      if (statement.includes('INSERT INTO app_module_migrations')) {
+        const [moduleId, migrationName, checksum, moduleSchemaVersion] = params as [
+          string,
+          string,
+          string,
+          number
+        ];
+        ledger.set(`${moduleId}:${migrationName}`, {
+          checksum,
+          moduleSchemaVersion
+        });
+        return [] as U[];
+      }
+
+      throw new Error(`Unexpected transaction query: ${statement}`);
+    }) as FakeSqlClient;
+
+    tx.unsafe = async (query: string) => {
+      executedStatements.push(normalizeSql(query));
+      return [];
+    };
+    tx.begin = async () => {
+      throw new Error('Nested transactions are not supported in this test.');
+    };
+    tx.end = async () => {};
+
+    return callback(tx);
+  };
+
+  sql.end = async () => {};
+
+  return sql;
+}
+
+function normalizeSql(value: string) {
+  return value.replace(/\s+/g, ' ').trim();
 }
