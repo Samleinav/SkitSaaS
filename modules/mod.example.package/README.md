@@ -15,6 +15,8 @@ This module demonstrates:
 - module-owned DB tables and migrations
 - module actions using SDK server adapters
 - module-owned JS and CSS UI primitives (`src/ui/*`)
+- SDK-first datatables from `@skitsaas/sdk` in both admin and dashboard pages
+- remote search/pagination via module API plus request actions with built-in confirm flows
 
 ## Module metadata
 

@@ -127,6 +127,96 @@ export const apiHandler = createDataTableCrudApiRouter({
 });
 ```
 
+## Structured BuildTable
+
+```ts
+import {
+  DataTable,
+  buildTableAction,
+  buildTableColumn,
+  buildTableFilter,
+  defineBuildTable
+} from '@skitsaas/sdk';
+
+const table = defineBuildTable({
+  data: [
+    { id: 1, name: 'Ada Lovelace', status: 'active' }
+  ],
+  columns: [
+    buildTableColumn.text({ key: 'name', header: 'Name' }),
+    buildTableColumn.text({ key: 'status', header: 'Status' })
+  ],
+  header: {
+    title: 'Users',
+    description: 'Example SDK-first datatable definition.',
+    actions: [
+      buildTableAction.link({
+        label: 'Create user',
+        href: '/admin/users/create'
+      }),
+      buildTableAction.button({
+        label: 'Export',
+        type: 'button'
+      }),
+      buildTableAction.request({
+        label: 'Sync',
+        request: {
+          url: '/api/users/sync',
+          method: 'POST',
+          successMessage: 'Users synchronized.'
+        },
+        confirm: {
+          title: 'Sync users now?',
+          confirmLabel: 'Sync',
+          cancelLabel: 'Cancel'
+        }
+      })
+    ]
+  },
+  toolbar: {
+    search: {
+      enabled: true,
+      placeholder: 'Search users'
+    },
+    filters: [
+      buildTableFilter.select({
+        id: 'status',
+        label: 'Status',
+        column: 'status',
+        options: [
+          { value: 'active', label: 'Active' },
+          { value: 'draft', label: 'Draft' }
+        ]
+      })
+    ]
+  },
+  pagination: {
+    pageSize: 10,
+    pageSizeOptions: [10, 25, 50]
+  },
+  source: {
+    url: '/api/users',
+    debounceMs: 250
+  }
+});
+
+export function UsersTable() {
+  return <DataTable definition={table} />;
+}
+```
+
+This is the first structured datatable layer in the SDK. It already supports:
+
+- typed table definitions
+- reusable column helpers
+- default link/button/request actions with optional confirm flows
+- header actions, row actions, and custom header content
+- toolbar content/actions
+- search, filters, sorting, and pagination state
+- remote list loading for query-driven tables (`source.url`)
+- query parse/serialize helpers for URL-driven tables
+- portable rendering without host imports
+
 ## Structured Form Builder
 
 ```ts

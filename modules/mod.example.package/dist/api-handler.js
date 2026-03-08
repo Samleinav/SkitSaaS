@@ -1,3 +1,4 @@
+import { parseBuildTableQueryState } from '@skitsaas/sdk';
 import { createModuleApiRouter, parseJsonBody } from '@skitsaas/sdk/server';
 import {
   EXAMPLE_PACKAGE_MODULE_ID,
@@ -9,6 +10,7 @@ import {
 } from './constants.js';
 import {
   createExamplePackageItem,
+  deleteExamplePackageItem,
   getExamplePackageItemById,
   getExamplePackageSettings,
   listExamplePackageItemsForAdmin,
@@ -23,6 +25,57 @@ function jsonError(status, error) {
 
 function hasOwn(source, key) {
   return Object.prototype.hasOwnProperty.call(source, key);
+}
+
+function applyItemsTableQuery(items, searchParams) {
+  const query = parseBuildTableQueryState(searchParams);
+  const searchValue = query.search?.trim().toLowerCase() || '';
+  const statusFilter = query.filters?.status?.trim().toLowerCase() || '';
+  const page = Number.isInteger(query.page) && query.page > 0 ? query.page : 1;
+  const pageSize =
+    Number.isInteger(query.pageSize) && query.pageSize > 0 ? query.pageSize : 10;
+
+  let filtered = [...items];
+
+  if (searchValue) {
+    filtered = filtered.filter((item) =>
+      [item.title, item.ownerName, item.ownerEmail]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(searchValue))
+    );
+  }
+
+  if (statusFilter) {
+    filtered = filtered.filter(
+      (item) => String(item.status).toLowerCase() === statusFilter
+    );
+  }
+
+  if (query.sorting?.columnId === 'title') {
+    filtered.sort((left, right) =>
+      left.title.localeCompare(right.title, undefined, {
+        sensitivity: 'base'
+      })
+    );
+  } else if (query.sorting?.columnId === 'priority') {
+    filtered.sort((left, right) => left.priority - right.priority);
+  } else if (query.sorting?.columnId === 'updatedAt') {
+    filtered.sort((left, right) => left.updatedAt.getTime() - right.updatedAt.getTime());
+  }
+
+  if (query.sorting?.direction === 'desc') {
+    filtered.reverse();
+  }
+
+  const total = filtered.length;
+  const start = (page - 1) * pageSize;
+
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize
+  };
 }
 
 export const examplePackageApiHandler = createModuleApiRouter({
@@ -49,7 +102,10 @@ export const examplePackageApiHandler = createModuleApiRouter({
 
         if (scope === 'admin' && user && isAdminRole(user.role)) {
           const items = await listExamplePackageItemsForAdmin(200);
-          return Response.json({ scope: 'admin', total: items.length, items });
+          return Response.json({
+            scope: 'admin',
+            ...applyItemsTableQuery(items, searchParams)
+          });
         }
 
         if (user) {
@@ -57,11 +113,17 @@ export const examplePackageApiHandler = createModuleApiRouter({
             userId: user.id,
             limit: 200
           });
-          return Response.json({ scope: 'user', total: items.length, items });
+          return Response.json({
+            scope: 'user',
+            ...applyItemsTableQuery(items, searchParams)
+          });
         }
 
         const items = await listExamplePackagePublicItems(200);
-        return Response.json({ scope: 'public', total: items.length, items });
+        return Response.json({
+          scope: 'public',
+          ...applyItemsTableQuery(items, searchParams)
+        });
       }
     },
     {
@@ -155,6 +217,24 @@ export const examplePackageApiHandler = createModuleApiRouter({
         }
 
         return Response.json({ ok: true, item: updated });
+      }
+    },
+    {
+      method: 'DELETE',
+      path: '/items/:itemId',
+      auth: 'admin',
+      handler: async ({ params }) => {
+        const itemId = toPositiveInt(params.itemId);
+        if (!itemId) {
+          return jsonError(400, 'Invalid item id.');
+        }
+
+        const deleted = await deleteExamplePackageItem(itemId);
+        if (!deleted) {
+          return jsonError(404, 'Item not found.');
+        }
+
+        return Response.json({ ok: true, id: itemId });
       }
     }
   ]

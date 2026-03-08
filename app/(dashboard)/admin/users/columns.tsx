@@ -1,6 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import {
+  buildTableColumn,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@/app/sdk/src/datatables/definition';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -227,4 +232,153 @@ export function getColumns(
   ];
 }
 
+export function getUserTableDefinition({
+  data,
+  messages
+}: {
+  data: AdminUserRow[];
+  messages: AdminMessages;
+}): BuildTableDefinition<AdminUserRow> {
+  const usersTable = messages.usersTable;
+  const definition: BuildTableDefinition<AdminUserRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<AdminUserRow>({
+        key: 'email',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="header.user.sort"
+          >
+            <span>{usersTable.userHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        searchable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="cell.user"
+            data={{
+              userId: row.id
+            }}
+          >
+            <div className="min-w-[220px]">
+              <p className="font-medium text-foreground">
+                {row.name || usersTable.unnamedUser}
+              </p>
+              <p className="text-xs text-muted-foreground">{row.email}</p>
+            </div>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminUserRow>({
+        key: 'role',
+        header: usersTable.roleHeader,
+        cell: (row) => <span className="text-sm capitalize">{row.role}</span>
+      }),
+      buildTableColumn.text<AdminUserRow>({
+        key: 'status',
+        header: usersTable.statusHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="cell.status"
+            data={{
+              status: row.status
+            }}
+          >
+            <div className="space-y-1">
+              <span
+                className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getAdminUserStatusClassName(
+                  row.status
+                )}`}
+              >
+                {getStatusLabel(row.status, usersTable)}
+              </span>
+              {row.statusReason ? (
+                <p className="max-w-[180px] truncate text-xs text-muted-foreground">
+                  {row.statusReason}
+                </p>
+              ) : null}
+            </div>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminUserRow>({
+        key: 'subscriptionTemplateName',
+        header: usersTable.subscriptionHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">
+            {row.subscriptionTemplateName || usersTable.noSubscription}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminUserRow>({
+        key: 'organizationsCount',
+        header: usersTable.organizationsHeader,
+        cell: (row) => (
+          <div className="text-xs text-muted-foreground">
+            {usersTable.organizationsCount
+              .replace('{count}', String(row.organizationsCount))
+              .replace('{owned}', String(row.ownedOrganizationsCount))}
+          </div>
+        )
+      }),
+      buildTableColumn.text<AdminUserRow>({
+        key: 'createdAt',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="header.created-at.sort"
+          >
+            <span>{usersTable.createdHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="cell.created-at"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.createdAtLabel}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.custom<AdminUserRow>({
+        key: 'actions',
+        header: usersTable.actionsHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.users.cell"
+            slot="cell.actions.manage"
+            data={{
+              userId: row.id
+            }}
+          >
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/users/${row.id}`}>{usersTable.manage}</Link>
+            </Button>
+          </AdminTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: messages.usersPage.filterPlaceholder,
+        columns: ['email']
+      }
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<AdminUserRow, BuildTableDefinition<AdminUserRow>>(
+    definition
+  );
+}
 

@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  buildTableColumn,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@/app/sdk/src/datatables/definition';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -260,6 +265,164 @@ function getPaymentColumns(
   ];
 }
 
+function getPaymentTableDefinition({
+  data,
+  labels
+}: {
+  data: DashboardSubscriptionPaymentRow[];
+  labels: DashboardSubscriptionPaymentsDataTableProps['labels'];
+}): BuildTableDefinition<DashboardSubscriptionPaymentRow> {
+  const definition: BuildTableDefinition<DashboardSubscriptionPaymentRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'updatedAt',
+        header: (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="header.date.sort"
+          >
+            <span>{labels.columns.date}</span>
+          </DashboardTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.date"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.updatedAtLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'scopeLabel',
+        header: labels.columns.scope,
+        searchable: true,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.scope"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.scopeLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'provider',
+        header: labels.columns.provider,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.provider"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.provider}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'status',
+        header: labels.columns.status,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.status"
+            data={{
+              status: row.status
+            }}
+          >
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                getStatusClassName(row.status)
+              )}
+            >
+              {row.statusLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'eventType',
+        header: labels.columns.event,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.event"
+          >
+            <span className="block max-w-[320px] truncate text-xs text-muted-foreground">
+              {row.eventType}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'amountLabel',
+        header: labels.columns.amount,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.amount"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.amountLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'externalPaymentId',
+        header: labels.columns.paymentRef,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.payment-reference"
+          >
+            <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+              {row.externalPaymentId}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionPaymentRow>({
+        key: 'externalOrderId',
+        header: labels.columns.orderRef,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.payments.cell"
+            slot="cell.order-reference"
+          >
+            <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+              {row.externalOrderId}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: labels.filterPlaceholder,
+        columns: ['scopeLabel']
+      }
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    DashboardSubscriptionPaymentRow,
+    BuildTableDefinition<DashboardSubscriptionPaymentRow>
+  >(definition);
+}
+
 export function DashboardSubscriptionPaymentsDataTable({
   data,
   labels,
@@ -267,15 +430,14 @@ export function DashboardSubscriptionPaymentsDataTable({
 }: DashboardSubscriptionPaymentsDataTableProps) {
   return (
     <DataTable
-      columns={getPaymentColumns(labels)}
-      data={data}
+      definition={getPaymentTableDefinition({
+        data,
+        labels
+      })}
       labels={labels.table}
       template={tableTemplate}
-      filterColumn="scopeLabel"
-      filterPlaceholder={labels.filterPlaceholder}
       emptyMessage={labels.empty}
       tableClassName="min-w-[1300px]"
     />
   );
 }
-

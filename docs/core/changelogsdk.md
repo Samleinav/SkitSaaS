@@ -1,5 +1,6 @@
 ---
 title: SDK Change Log
+sidebar_position: 99
 ---
 
 # SDK Change Log (`changelogsdk.md`)
@@ -90,7 +91,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `sdk_surface`: @skitsaas/sdk/server
 - `files`:
   - `docs/core/changelogsdk.md`
-  - `modules/mod.education.attendance/*`
+  - `mod.education.attendance`
 - `notes`: hoy el modulo no puede subir un PDF a `mod.files` sin importar codigo directo del host o del modulo `mod.files`; requiere adapter o contrato de file storage en SDK/server
 
 ## 2026-03-05 - sdk-file-storage-adapter
@@ -222,8 +223,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `docs/core/form-build-system.md`
   - `app/(dashboard)/admin/users/create-user-form.tsx`
   - `app/(dashboard)/admin/users/[userId]/page.tsx`
-  - `modules/mod.example.suite/src/forms.ts`
-  - `modules/mod.example.suite/src/pages/admin-pages.tsx`
+  - `modules/mod.example.suite/README.md`
 - `notes`: expone `composeBuildFormDefinition(...)` y `buildFormValidationPreset.blur(...)`; el host añade `composeRegisteredBuildFormDefinition(...)` para acoplar `formId` registrado con submit action canónica
 
 ## 2026-03-06 - sdk-build-form-vine-server-wrapper

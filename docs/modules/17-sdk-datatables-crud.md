@@ -1,93 +1,405 @@
 ---
-title: SDK Datatables CRUD
+title: SDK BuildTable
+description: How module authors define and render SDK-first datatables with remote search, filters, pagination, and actions.
 sidebar_position: 17
 ---
 
-# SDK Datatables CRUD
+# SDK BuildTable
 
-`@skitsaas/sdk` now exposes a datatable helper focused on module CRUD endpoints and theme contract IDs.
+Use `BuildTable` when a module needs a datatable that is fully defined from `@skitsaas/sdk`.
 
-## Exports
+This is now the recommended path for module datatables because it gives you:
 
-- `createDataTableCrudApiRouter`
-- `createDataTableTemplateContract`
-- `createDataTableTemplateEntries`
+- one portable table contract for `source-package` and `source-host`
+- default rendering for headers, toolbar, search, filters, sorting, pagination, and empty states
+- declarative row actions and header actions
+- built-in request actions with optional confirm dialogs
+- remote list loading through your own module API without importing host-only table code
 
-Available from:
+Current reference implementation:
 
-- `@skitsaas/sdk`
-- `@skitsaas/sdk/datatables`
+- `modules/mod.example.package/src/module-data-tables.jsx`
+- `modules/mod.example.package/src/api-handler.js`
 
-## CRUD API router helper
+## Imports
 
-Use `createDataTableCrudApiRouter` to build list/create/update/delete endpoints with:
+Most modules only need these imports:
 
-- route-level auth/roles policies (reusing module API router policies)
-- JSON body parsing + validation hooks
-- ID parsing hook (`parseId`)
-- operation-level revalidation paths
-- standard JSON response shape (`{ ok, operation, data }`)
+```tsx
+import {
+  DataTable,
+  buildTableAction,
+  buildTableColumn,
+  buildTableFilter,
+  defineBuildTable
+} from '@skitsaas/sdk';
+```
 
-Example:
+Server-side query helpers are also available from the root SDK entry:
 
 ```ts
-import { createDataTableCrudApiRouter } from '@skitsaas/sdk/datatables';
+import { parseBuildTableQueryState } from '@skitsaas/sdk';
+```
 
-export const api = createDataTableCrudApiRouter({
-  basePath: '/records',
-  policies: {
-    list: { auth: 'admin' },
-    create: { auth: 'admin' },
-    update: { auth: 'admin' },
-    delete: { auth: 'admin' }
+## Mental model
+
+The normal setup is:
+
+1. define a table with `defineBuildTable(...)`
+2. render it with `<DataTable definition={table} />`
+3. if the list is remote, set `source.url`
+4. if a row needs mutations, use `buildTableAction.request(...)`
+5. if a mutation is destructive, add `confirm`
+
+In the common case you do not need a custom renderer for the whole table.
+
+Use `buildTableColumn.custom(...)` or `buildTableAction.custom(...)` only when the default text/link/request primitives are not enough.
+
+## Minimal local table
+
+This is the smallest useful SDK-first table:
+
+```tsx
+'use client';
+
+import { DataTable, buildTableColumn, defineBuildTable } from '@skitsaas/sdk';
+
+const usersTable = defineBuildTable({
+  data: [
+    { id: 1, name: 'Ada Lovelace', status: 'active' },
+    { id: 2, name: 'Grace Hopper', status: 'draft' }
+  ],
+  columns: [
+    buildTableColumn.text({
+      key: 'name',
+      header: 'Name',
+      searchable: true,
+      sortable: true
+    }),
+    buildTableColumn.text({
+      key: 'status',
+      header: 'Status'
+    })
+  ],
+  header: {
+    title: 'Users',
+    description: 'Simple local table rendered only from SDK.'
   },
-  parseId: (raw) => {
-    const id = Number(raw);
-    return Number.isInteger(id) && id > 0 ? id : null;
+  toolbar: {
+    search: {
+      enabled: true,
+      placeholder: 'Search users'
+    }
   },
-  handlers: {
-    list: async () => ({ items: [] }),
-    create: async ({ input }) => input,
-    update: async ({ id, input }) => ({ id, ...input }),
-    delete: async ({ id }) => ({ id })
+  pagination: {
+    pageSize: 10
+  }
+});
+
+export function UsersTable() {
+  return <DataTable definition={usersTable} />;
+}
+```
+
+## Header actions and custom header content
+
+You can add default actions in the table header without writing extra wrapper UI:
+
+```tsx
+const table = defineBuildTable({
+  data,
+  columns,
+  header: {
+    title: 'Projects',
+    description: 'Manage module projects.',
+    actions: [
+      buildTableAction.link({
+        label: 'Create project',
+        href: '/admin/projects/create'
+      }),
+      buildTableAction.button({
+        label: 'Export',
+        type: 'button'
+      })
+    ],
+    content: <div className="text-sm text-muted-foreground">Custom summary</div>
   }
 });
 ```
 
-## Theme component ID contract helper
+Use:
 
-Use `createDataTableTemplateContract` to generate stable module-scoped IDs:
+- `header.actions` for standard buttons and links
+- `header.content` for extra JSX such as counters, badges, or custom summaries
 
-```ts
-import { createDataTableTemplateContract } from '@skitsaas/sdk/datatables';
+The toolbar also supports `toolbar.actions` and `toolbar.content` for secondary controls.
 
-const contract = createDataTableTemplateContract({
-  moduleId: 'mod.example.apikeys',
-  resource: 'api-keys'
+## Row actions with default request handling
+
+Row actions are the main replacement for module-specific action cells.
+
+Use `buildTableColumn.actions(...)` so the table renders the action column for you:
+
+```tsx
+buildTableColumn.actions({
+  key: 'actions',
+  header: 'Actions',
+  actions: (item) => [
+    buildTableAction.link({
+      label: 'Edit',
+      href: `/admin/projects/${item.id}`
+    }),
+    buildTableAction.request({
+      label: 'Delete',
+      request: {
+        url: `/api/modules/mod.example.projects/items/${item.id}`,
+        method: 'DELETE',
+        reload: true,
+        successMessage: 'Project deleted.'
+      },
+      confirm: {
+        title: 'Delete project?',
+        description: `This removes "${item.title}".`,
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel'
+      }
+    })
+  ]
 });
 ```
 
-Generated slots:
+`buildTableAction.request(...)` already handles:
 
-- `table`
-- `toolbar`
-- `row-actions`
-- `create-form`
-- `edit-form`
-- `delete-action`
+- `fetch(...)`
+- request body serialization
+- success/error notifications
+- optional table reload after success
+- confirm dialog when `confirm` is present
 
-Then convert to manifest entries with `createDataTableTemplateEntries` and inject them in `ModuleManifest.templatePack`.
+Supported request body formats:
 
-## Host UI integration notes
+- `json` (default)
+- `formData`
+- `searchParams`
 
-In host app routes, pass `componentId` + `themeId` + `area` to the client
-datatable component (`components/ui/data-table.tsx`). The datatable resolves a
-code template (`ui.table`) from the active theme registry and falls back to the
-core UI when the template does not exist.
+## Remote search, filters, sorting, and pagination
 
-`theme.first.backoffice` applies this with a code template in:
+To make the table fully ajax-driven, set `source.url`.
 
-- `themes/first-backoffice/templates/ui.table.tsx`
+```tsx
+const projectsTable = defineBuildTable({
+  data: initialItems,
+  columns: [
+    buildTableColumn.text({
+      key: 'title',
+      header: 'Title',
+      searchable: true,
+      sortable: true
+    }),
+    buildTableColumn.text({
+      key: 'status',
+      header: 'Status',
+      sortable: true
+    }),
+    buildTableColumn.text({
+      key: 'updatedAt',
+      header: 'Updated',
+      sortable: true
+    })
+  ],
+  source: {
+    url: '/api/modules/mod.example.projects/items?scope=admin',
+    debounceMs: 250
+  },
+  toolbar: {
+    search: {
+      enabled: true,
+      placeholder: 'Search projects',
+      columns: ['title']
+    },
+    filters: [
+      buildTableFilter.select({
+        id: 'status',
+        label: 'Status',
+        column: 'status',
+        options: [
+          { value: 'active', label: 'Active' },
+          { value: 'draft', label: 'Draft' }
+        ]
+      })
+    ]
+  },
+  pagination: {
+    pageSize: 10,
+    pageSizeOptions: [10, 25, 50]
+  }
+});
+```
 
-The same `ui.table` template is used for `admin` and `dashboard`, branching by
-`data.area` when needed.
+With `source.url` enabled, the SDK table sends query state to your endpoint and expects a response with:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+Default response keys:
+
+- `items`
+- `total`
+- `page`
+- `pageSize`
+
+If your endpoint uses different names, map them with `source.response`:
+
+```tsx
+source: {
+  url: '/api/modules/mod.example.projects/items',
+  response: {
+    itemsKey: 'data.rows',
+    totalKey: 'data.total',
+    pageKey: 'meta.page',
+    pageSizeKey: 'meta.pageSize'
+  }
+}
+```
+
+## Server-side query parsing
+
+On the server, parse the table query with `parseBuildTableQueryState(...)`.
+
+```ts
+import { parseBuildTableQueryState } from '@skitsaas/sdk';
+
+function applyItemsTableQuery(items, searchParams) {
+  const query = parseBuildTableQueryState(searchParams);
+  const searchValue = query.search?.trim().toLowerCase() || '';
+  const statusFilter = query.filters?.status?.trim().toLowerCase() || '';
+  const page = Number.isInteger(query.page) && query.page > 0 ? query.page : 1;
+  const pageSize =
+    Number.isInteger(query.pageSize) && query.pageSize > 0 ? query.pageSize : 10;
+
+  let filtered = [...items];
+
+  if (searchValue) {
+    filtered = filtered.filter((item) =>
+      item.title.toLowerCase().includes(searchValue)
+    );
+  }
+
+  if (statusFilter) {
+    filtered = filtered.filter((item) => item.status === statusFilter);
+  }
+
+  const total = filtered.length;
+  const start = (page - 1) * pageSize;
+
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize
+  };
+}
+```
+
+This is the same approach used in `modules/mod.example.package/src/api-handler.js`.
+
+## Query contract
+
+By default the SDK table uses these query parameters:
+
+- `search`
+- `sort`
+- `dir`
+- `page`
+- `pageSize`
+- `filter.<id>`
+
+Example:
+
+```text
+/api/modules/mod.example.projects/items?search=ada&sort=updatedAt&dir=desc&page=2&pageSize=10&filter.status=active
+```
+
+If you need a different shape, set `source.queryOptions`.
+
+```tsx
+source: {
+  url: '/api/modules/mod.example.projects/items',
+  queryOptions: {
+    searchKey: 'q',
+    sortKey: 'orderBy',
+    directionKey: 'orderDir',
+    pageKey: 'p',
+    pageSizeKey: 'limit',
+    filterPrefix: 'where.'
+  }
+}
+```
+
+Parse the same shape on the server:
+
+```ts
+const query = parseBuildTableQueryState(searchParams, {
+  searchKey: 'q',
+  sortKey: 'orderBy',
+  directionKey: 'orderDir',
+  pageKey: 'p',
+  pageSizeKey: 'limit',
+  filterPrefix: 'where.'
+});
+```
+
+## When to use custom cells
+
+Default table primitives should cover most module tables:
+
+- `buildTableColumn.text(...)`
+- `buildTableColumn.actions(...)`
+- `buildTableAction.link(...)`
+- `buildTableAction.button(...)`
+- `buildTableAction.request(...)`
+
+Use `buildTableColumn.custom(...)` only when the cell truly needs custom JSX, for example:
+
+- a status badge
+- a composed avatar/title block
+- a special link layout
+
+The example module does this for its badge-based `status` cell in `modules/mod.example.package/src/module-data-tables.jsx`.
+
+## Relationship with `createDataTableCrudApiRouter`
+
+`createDataTableCrudApiRouter(...)` still exists in `@skitsaas/sdk/datatables`, but it is not the full `BuildTable` system.
+
+Use it when you want help generating CRUD endpoints.
+
+Use `BuildTable` when you want to define the client-side datatable itself:
+
+- columns
+- actions
+- filters
+- pagination
+- remote source
+- confirm flows
+
+You can use both together, but they solve different layers.
+
+## Recommended default
+
+For most module datatables, start here:
+
+1. Define the table with `defineBuildTable(...)`.
+2. Render it with `<DataTable definition={...} />`.
+3. Add `source.url` for ajax loading.
+4. Add `toolbar.search`.
+5. Add `buildTableColumn.actions(...)` for row actions.
+6. Use `buildTableAction.request(...)` for delete/archive/toggle flows.
+7. Add `confirm` for destructive actions.
+
+That gives you a usable datatable without building a custom renderer or importing host-only admin table code.

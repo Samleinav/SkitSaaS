@@ -5,7 +5,10 @@ import {
   DataTable,
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
-import { getColumns, type AdminUserRow } from './columns';
+import {
+  getUserTableDefinition,
+  type AdminUserRow
+} from './columns';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 
 type AdminUsersDataTableProps = {
@@ -23,12 +26,12 @@ export function AdminUsersDataTable({
 }: AdminUsersDataTableProps) {
   return (
     <DataTable
-      columns={getColumns(messages)}
-      data={data}
+      definition={getUserTableDefinition({
+        data,
+        messages
+      })}
       labels={messages.dataTable}
       template={tableTemplate}
-      filterColumn="email"
-      filterPlaceholder={messages.usersPage.filterPlaceholder}
       tableClassName="min-w-[1020px]"
       toolbarActions={toolbarActions}
     />

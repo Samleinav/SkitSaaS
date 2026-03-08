@@ -7,7 +7,6 @@ import {
 } from '../constants';
 import {
   createExamplePackageItemAdminAction,
-  deleteExamplePackageItemAdminAction,
   updateExamplePackageItemAdminAction,
   updateExamplePackageSettingsAdminAction
 } from '../actions';
@@ -18,8 +17,6 @@ import {
 } from '../data';
 import {
   ActionLink,
-  Badge,
-  DataTable,
   FieldLabel,
   FormActions,
   InfoText,
@@ -30,6 +27,7 @@ import {
   TextArea,
   TextInput
 } from '../ui/module-ui.jsx';
+import { ExamplePackageAdminItemsDataTable } from '../module-data-tables.jsx';
 
 function formatDate(value) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
@@ -65,22 +63,16 @@ export async function renderExamplePackageAdminHomePage() {
     listExamplePackageItemsForAdmin(100)
   ]);
 
-  const rows = items.map((item) => [
-    <code key={`id-${item.id}`}>{item.id}</code>,
-    <strong key={`title-${item.id}`}>{item.title}</strong>,
-    <Badge key={`status-${item.id}`} value={item.status} />,
-    String(item.priority),
-    item.isPublic ? 'public' : 'private',
-    item.ownerName || item.ownerEmail || '-',
-    <code key={`updated-${item.id}`}>{formatDate(item.updatedAt)}</code>,
-    <div key={`actions-${item.id}`}>
-      <a href={`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`}>Edit</a>{' '}
-      <form action={deleteExamplePackageItemAdminAction} style={{ display: 'inline' }}>
-        <input type="hidden" name="itemId" value={item.id} />
-        <SubmitButton label="Delete" tone="danger" />
-      </form>
-    </div>
-  ]);
+  const tableItems = items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    status: item.status,
+    priority: item.priority,
+    visibilityLabel: item.isPublic ? 'public' : 'private',
+    ownerLabel: item.ownerName || item.ownerEmail || '-',
+    updatedAt: item.updatedAt.getTime(),
+    updatedAtLabel: formatDate(item.updatedAt)
+  }));
 
   return (
     <ModuleLayout
@@ -117,21 +109,12 @@ export async function renderExamplePackageAdminHomePage() {
         title="Stored Records"
         description="Backed by mod_example_package_items."
       >
-        {rows.length === 0 ? (
+        {tableItems.length === 0 ? (
           <InfoText>No records yet.</InfoText>
         ) : (
-          <DataTable
-            headers={[
-              'Id',
-              'Title',
-              'Status',
-              'Priority',
-              'Visibility',
-              'Owner',
-              'Updated',
-              'Actions'
-            ]}
-            rows={rows}
+          <ExamplePackageAdminItemsDataTable
+            items={tableItems}
+            adminAlias={EXAMPLE_PACKAGE_ADMIN_ALIAS}
           />
         )}
       </ModuleCard>

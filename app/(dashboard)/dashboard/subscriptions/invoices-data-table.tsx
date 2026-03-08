@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  buildTableColumn,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@/app/sdk/src/datatables/definition';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -193,6 +198,131 @@ function getInvoiceColumns(
   ];
 }
 
+function getInvoiceTableDefinition({
+  data,
+  labels
+}: {
+  data: DashboardSubscriptionInvoiceRow[];
+  labels: DashboardSubscriptionInvoicesDataTableProps['labels'];
+}): BuildTableDefinition<DashboardSubscriptionInvoiceRow> {
+  const definition: BuildTableDefinition<DashboardSubscriptionInvoiceRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'updatedAt',
+        header: (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="header.date.sort"
+            data={{
+              sortKey: 'updatedAt'
+            }}
+          >
+            <span>{labels.columns.date}</span>
+          </DashboardTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.date"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.updatedAtLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'scopeLabel',
+        header: labels.columns.scope,
+        searchable: true,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.scope"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.scopeLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'planLabel',
+        header: labels.columns.plan,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.plan"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.planLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'provider',
+        header: labels.columns.provider,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.provider"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.provider}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'amountLabel',
+        header: labels.columns.amount,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.amount"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.amountLabel}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<DashboardSubscriptionInvoiceRow>({
+        key: 'reference',
+        header: labels.columns.reference,
+        cell: (row) => (
+          <DashboardTableSlotTemplate
+            templateId="section.dashboard.table.subscriptions.invoices.cell"
+            slot="cell.reference"
+          >
+            <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+              {row.reference}
+            </span>
+          </DashboardTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: labels.filterPlaceholder,
+        columns: ['scopeLabel']
+      }
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    DashboardSubscriptionInvoiceRow,
+    BuildTableDefinition<DashboardSubscriptionInvoiceRow>
+  >(definition);
+}
+
 export function DashboardSubscriptionInvoicesDataTable({
   data,
   labels,
@@ -200,15 +330,14 @@ export function DashboardSubscriptionInvoicesDataTable({
 }: DashboardSubscriptionInvoicesDataTableProps) {
   return (
     <DataTable
-      columns={getInvoiceColumns(labels)}
-      data={data}
+      definition={getInvoiceTableDefinition({
+        data,
+        labels
+      })}
       labels={labels.table}
       template={tableTemplate}
-      filterColumn="scopeLabel"
-      filterPlaceholder={labels.filterPlaceholder}
       emptyMessage={labels.empty}
       tableClassName="min-w-[1120px]"
     />
   );
 }
-

@@ -5,7 +5,7 @@ import {
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
 import {
-  getPaymentDataColumns,
+  getPaymentTableDefinition,
   type AdminPaymentDataRow
 } from './payment-data-columns';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
@@ -23,12 +23,12 @@ export function AdminPaymentsDataTable({
 }: AdminPaymentsDataTableProps) {
   return (
     <DataTable
-      columns={getPaymentDataColumns(messages)}
-      data={data}
+      definition={getPaymentTableDefinition({
+        data,
+        messages
+      })}
       labels={messages.dataTable}
       template={tableTemplate}
-      filterColumn="payer"
-      filterPlaceholder={messages.paymentsPage.filterPlaceholder}
       tableClassName="min-w-[1560px]"
     />
   );

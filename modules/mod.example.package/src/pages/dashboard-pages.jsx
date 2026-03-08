@@ -10,7 +10,6 @@ import {
 import {
   ActionLink,
   Badge,
-  DataTable,
   FieldLabel,
   FormActions,
   InfoText,
@@ -20,6 +19,7 @@ import {
   TextArea,
   TextInput
 } from '../ui/module-ui.jsx';
+import { ExamplePackageDashboardItemsDataTable } from '../module-data-tables.jsx';
 
 function formatDate(value) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
@@ -36,16 +36,15 @@ export async function renderExamplePackageDashboardHomePage() {
     listExamplePackageItemsForUser({ userId: user.id, limit: 120 })
   ]);
 
-  const rows = items.map((item) => [
-    <code key={`id-${item.id}`}>{item.id}</code>,
-    <a key={`title-${item.id}`} href={`${EXAMPLE_PACKAGE_DASHBOARD_ALIAS}/items/${item.id}`}>
-      {item.title}
-    </a>,
-    <Badge key={`status-${item.id}`} value={item.status} />,
-    String(item.priority),
-    item.isPublic ? 'public' : 'private',
-    <code key={`updated-${item.id}`}>{formatDate(item.updatedAt)}</code>
-  ]);
+  const tableItems = items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    status: item.status,
+    priority: item.priority,
+    visibilityLabel: item.isPublic ? 'public' : 'private',
+    updatedAt: item.updatedAt.getTime(),
+    updatedAtLabel: formatDate(item.updatedAt)
+  }));
 
   return (
     <ModuleLayout
@@ -69,12 +68,12 @@ export async function renderExamplePackageDashboardHomePage() {
         title="Records"
         description="Shows public records and records you own."
       >
-        {rows.length === 0 ? (
+        {tableItems.length === 0 ? (
           <InfoText>No records visible.</InfoText>
         ) : (
-          <DataTable
-            headers={['Id', 'Title', 'Status', 'Priority', 'Visibility', 'Updated']}
-            rows={rows}
+          <ExamplePackageDashboardItemsDataTable
+            items={tableItems}
+            dashboardAlias={EXAMPLE_PACKAGE_DASHBOARD_ALIAS}
           />
         )}
       </ModuleCard>

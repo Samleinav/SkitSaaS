@@ -1,6 +1,7 @@
 ---
 title: Form Build System
 description: Technical design and current implementation status for structured form and modal building across SDK, core, and modules.
+sidebar_position: 2
 ---
 
 # Form Build System
@@ -25,7 +26,7 @@ A pilot implementation already exists in:
 - `app/(dashboard)/admin/users/create-user-form.tsx`
 - `app/(dashboard)/admin/users/[userId]/page.tsx`
 - `app/(dashboard)/admin/users/create-user-dialog.tsx`
-- `modules/mod.example.suite/src/pages/admin-pages.tsx`
+- `modules/mod.example.suite/README.md`
 
 Related execution plan:
 

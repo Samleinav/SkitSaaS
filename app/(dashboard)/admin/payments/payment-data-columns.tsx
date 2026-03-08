@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  buildTableColumn,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@/app/sdk/src/datatables/definition';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -393,3 +398,193 @@ export function getPaymentDataColumns(
   ];
 }
 
+export function getPaymentTableDefinition({
+  data,
+  messages
+}: {
+  data: AdminPaymentDataRow[];
+  messages: AdminMessages;
+}): BuildTableDefinition<AdminPaymentDataRow> {
+  const table = messages.paymentsPage.table;
+  const sourceLabels: Record<PaymentSource, string> = {
+    checkout: table.checkout,
+    webhook: table.webhook,
+    dashboard: table.dashboard,
+    system: table.system
+  };
+  const definition: BuildTableDefinition<AdminPaymentDataRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'paidAt',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="header.paid-at.sort"
+          >
+            <span>{table.paidAtHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.paid-at"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.paidAtLabel}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'payer',
+        header: table.whoHeader,
+        searchable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.payer"
+            data={{
+              paymentId: row.id
+            }}
+          >
+            <p className="min-w-[170px] font-medium text-foreground">{row.payer}</p>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'reason',
+        header: table.reasonHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.reason"
+          >
+            <span className="min-w-[220px] text-xs text-muted-foreground">
+              {row.reason}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'provider',
+        header: table.providerHeader
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'source',
+        header: table.originHeader,
+        cell: (row) => {
+          const source = normalizeSource(row.source);
+          return (
+            <AdminTableSlotTemplate
+              templateId="section.admin.table.payments.cell"
+              slot="cell.source"
+              data={{
+                source
+              }}
+            >
+              <span className="text-xs text-muted-foreground">
+                {sourceLabels[source]}
+              </span>
+            </AdminTableSlotTemplate>
+          );
+        }
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'paymentType',
+        header: table.typeHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.payment-type"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.paymentType}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'amountLabel',
+        header: table.amountHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.amount"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.amountLabel}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'paymentReference',
+        header: table.paymentReferenceHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.payment-reference"
+          >
+            <span className="block max-w-[230px] truncate text-xs text-muted-foreground">
+              {row.paymentReference || table.none}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminPaymentDataRow>({
+        key: 'purchaseOrderReference',
+        header: table.purchaseOrderHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.purchase-order-reference"
+            data={{
+              paymentId: row.id
+            }}
+          >
+            <div className="min-w-[200px] space-y-1 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">
+                {table.orderLabel.replace('{id}', String(row.id))}
+              </p>
+              <p className="break-all">
+                {row.purchaseOrderReference || table.none}
+              </p>
+            </div>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.custom<AdminPaymentDataRow>({
+        key: 'actions',
+        header: table.actionsHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.payments.cell"
+            slot="cell.actions.preview"
+            data={{
+              paymentId: row.id
+            }}
+          >
+            <PaymentPreviewDialog row={row} messages={messages} />
+          </AdminTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: messages.paymentsPage.filterPlaceholder,
+        columns: ['payer']
+      }
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    AdminPaymentDataRow,
+    BuildTableDefinition<AdminPaymentDataRow>
+  >(definition);
+}

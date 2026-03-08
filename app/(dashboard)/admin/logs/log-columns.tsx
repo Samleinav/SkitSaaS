@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  buildTableColumn,
+  buildTableFilter,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@/app/sdk/src/datatables/definition';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -187,4 +193,161 @@ export function getLogColumns(
   ];
 }
 
+export function getLogTableDefinition({
+  data,
+  messages
+}: {
+  data: AdminSystemLogRow[];
+  messages: AdminMessages;
+}): BuildTableDefinition<AdminSystemLogRow> {
+  const table = messages.logsPage.table;
+  const statusLabels: Record<string, string> = {
+    info: table.info,
+    success: table.success,
+    warning: table.warning,
+    failed: table.failed
+  };
 
+  const definition: BuildTableDefinition<AdminSystemLogRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'createdAt',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.logs.cell"
+            slot="header.created-at.sort"
+          >
+            <span>{table.createdHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.logs.cell"
+            slot="cell.created-at"
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.createdAtLabel}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'eventType',
+        header: table.eventHeader,
+        searchable: true,
+        cell: (row) => (
+          <span className="min-w-[220px] text-xs text-muted-foreground">
+            {row.eventType}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'eventCategory',
+        header: table.categoryHeader
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'action',
+        header: table.actionHeader
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'status',
+        header: table.statusHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.logs.cell"
+            slot="cell.status"
+            data={{
+              status: row.status
+            }}
+          >
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                getStatusClassName(row.status)
+              )}
+            >
+              {statusLabels[row.status] || row.status}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'actorLabel',
+        header: table.actorHeader,
+        cell: (row) => (
+          <span className="block max-w-[260px] truncate text-xs text-muted-foreground">
+            {row.actorLabel}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'targetLabel',
+        header: table.targetHeader
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'teamLabel',
+        header: table.teamHeader
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'entityLabel',
+        header: table.entityHeader,
+        cell: (row) => (
+          <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+            {row.entityLabel}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'sourceLabel',
+        header: table.sourceHeader
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'ipAddress',
+        header: table.ipHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">{row.ipAddress}</span>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
+        key: 'message',
+        header: table.messageHeader,
+        cell: (row) => (
+          <span className="block max-w-[320px] truncate text-xs text-muted-foreground">
+            {row.message}
+          </span>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: messages.logsPage.filterPlaceholder,
+        columns: ['eventType']
+      },
+      filters: [
+        buildTableFilter.select<AdminSystemLogRow>({
+          id: 'status',
+          label: table.statusHeader,
+          column: 'status',
+          placeholder: table.statusHeader,
+          options: [
+            { value: 'info', label: table.info },
+            { value: 'success', label: table.success },
+            { value: 'warning', label: table.warning },
+            { value: 'failed', label: table.failed }
+          ]
+        })
+      ]
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    AdminSystemLogRow,
+    BuildTableDefinition<AdminSystemLogRow>
+  >(definition);
+}

@@ -67,6 +67,72 @@ export {
 } from './theme/config.js';
 
 export type {
+  BuildTableLabels,
+  BuildTableValue,
+  BuildTableColumnKey,
+  BuildTableActionButtonType,
+  BuildTableRequestMethod,
+  BuildTableRequestBodyFormat,
+  BuildTableSortDirection,
+  BuildTableFilterKind,
+  BuildTableQueryParamOptions,
+  BuildTableSortingState,
+  BuildTableQueryFilters,
+  BuildTableQueryState,
+  BuildTableConfirmDefinition,
+  BuildTableRequestDefinition,
+  BuildTableLinkActionDefinition,
+  BuildTableButtonActionDefinition,
+  BuildTableRequestActionDefinition,
+  BuildTableCustomActionDefinition,
+  BuildTableActionDefinition,
+  BuildTableFilterOption,
+  BuildTableFilterDefinition,
+  BuildTableToolbarSearchDefinition,
+  BuildTableColumn,
+  BuildTableHeaderDefinition,
+  BuildTableToolbarDefinition,
+  BuildTablePaginationDefinition,
+  BuildTableRemoteSourceResponseDefinition,
+  BuildTableRemoteSourceDefinition,
+  BuildTableDefinition,
+  ComposeBuildTableDefinitionOptions,
+  ComposedBuildTableDefinition
+} from './datatables/definition.js';
+export {
+  buildTableAction,
+  buildTableFilter,
+  buildTableColumn,
+  composeBuildTableDefinition,
+  defineBuildTable,
+  withBuildTableData,
+  withBuildTableQuery
+} from './datatables/definition.js';
+export type { ResolvedBuildTableView } from './datatables/state.js';
+export {
+  DEFAULT_BUILD_TABLE_PAGE,
+  DEFAULT_BUILD_TABLE_PAGE_SIZE,
+  filterBuildTableData,
+  formatBuildTablePaginationSummary,
+  normalizeBuildTablePage,
+  normalizeBuildTablePageSize,
+  normalizeBuildTableQueryState,
+  normalizeBuildTableSortDirection,
+  paginateBuildTableData,
+  resolveBuildTableView,
+  sortBuildTableData
+} from './datatables/state.js';
+export {
+  createBuildTableQuerySearchParams,
+  parseBuildTableQueryState
+} from './datatables/query.js';
+export type { BuildTableRemoteListResult } from './datatables/remote.js';
+export {
+  createBuildTableRequestDescriptor,
+  resolveBuildTableRemoteListResult,
+  resolveBuildTableRemoteListUrl
+} from './datatables/remote.js';
+export type {
   DataTableTemplateSlot,
   DataTableTemplateContract,
   DataTableTemplateEntryFactoryOptions
@@ -90,6 +156,7 @@ export type {
 } from './datatables/crud.js';
 
 export type {
+  SdkDataTableColumn,
   SdkDataTableLabels,
   SdkNotifyInput,
   SdkNotifyTone

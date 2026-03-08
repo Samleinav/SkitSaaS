@@ -21,11 +21,6 @@ const MODULE_STYLE = `
 .example-package-badge-active { border-color: rgba(5,150,105,.6); background: rgba(5,150,105,.12); color: #065f46; }
 .example-package-badge-archived { border-color: rgba(100,116,139,.6); background: rgba(100,116,139,.12); color: #334155; }
 .example-package-badge-draft { border-color: rgba(217,119,6,.6); background: rgba(217,119,6,.12); color: #92400e; }
-.example-package-table-wrap { overflow-x: auto; }
-.example-package-table { width: 100%; min-width: 680px; border-collapse: collapse; }
-.example-package-table-head-cell { text-align: left; font-size: .72rem; letter-spacing: .03em; text-transform: uppercase; color: rgba(15,23,42,.65); padding: .45rem; }
-.example-package-table-row { border-top: 1px solid rgba(148,163,184,.45); }
-.example-package-table-cell { padding: .5rem .45rem; vertical-align: top; font-size: .86rem; }
 .example-package-label { display: block; font-size: .84rem; font-weight: 600; margin: 0 0 .25rem; }
 .example-package-input, .example-package-textarea, .example-package-select { width: 100%; border-radius: .5rem; border: 1px solid rgba(148,163,184,.65); background: #fff; color: #0f172a; padding: .45rem .6rem; font-size: .88rem; }
 .example-package-textarea { min-height: 6rem; resize: vertical; }
@@ -72,9 +67,6 @@ export function Badge({ value }) {
         toneClass = 'example-package-badge-archived';
     }
     return (_jsx("span", { className: joinClassNames('example-package-badge', toneClass), children: normalized }));
-}
-export function DataTable({ headers, rows }) {
-    return (_jsx("div", { className: "example-package-table-wrap", children: _jsxs("table", { className: "example-package-table", children: [_jsx("thead", { children: _jsx("tr", { children: headers.map((header) => (_jsx("th", { className: "example-package-table-head-cell", children: header }, header))) }) }), _jsx("tbody", { children: rows.map((cells, rowIndex) => (_jsx("tr", { className: "example-package-table-row", children: cells.map((cell, cellIndex) => (_jsx("td", { className: "example-package-table-cell", children: cell }, `${rowIndex}-${cellIndex}`))) }, rowIndex))) })] }) }));
 }
 export function FieldLabel({ htmlFor, label }) {
     return (_jsx("label", { htmlFor: htmlFor, className: "example-package-label", children: label }));

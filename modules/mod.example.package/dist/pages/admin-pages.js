@@ -1,9 +1,10 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import React from 'react';
 import { EXAMPLE_PACKAGE_ADMIN_ALIAS, EXAMPLE_PACKAGE_API_BASE, EXAMPLE_PACKAGE_DASHBOARD_ALIAS, toPositiveInt } from '../constants.js';
-import { createExamplePackageItemAdminAction, deleteExamplePackageItemAdminAction, updateExamplePackageItemAdminAction, updateExamplePackageSettingsAdminAction } from '../actions.js';
+import { createExamplePackageItemAdminAction, updateExamplePackageItemAdminAction, updateExamplePackageSettingsAdminAction } from '../actions.js';
 import { getExamplePackageItemById, getExamplePackageSettings, listExamplePackageItemsForAdmin } from '../data.js';
-import { ActionLink, Badge, DataTable, FieldLabel, FormActions, InfoText, ModuleCard, ModuleLayout, SelectInput, SubmitButton, TextArea, TextInput } from '../ui/module-ui.js';
+import { ActionLink, FieldLabel, FormActions, InfoText, ModuleCard, ModuleLayout, SelectInput, SubmitButton, TextArea, TextInput } from '../ui/module-ui.js';
+import { ExamplePackageAdminItemsDataTable } from '../module-data-tables.js';
 function formatDate(value) {
     return value.toISOString().replace('T', ' ').slice(0, 16);
 }
@@ -18,29 +19,20 @@ export async function renderExamplePackageAdminHomePage() {
         getExamplePackageSettings(),
         listExamplePackageItemsForAdmin(100)
     ]);
-    const rows = items.map((item) => [
-        _jsx("code", { children: item.id }, `id-${item.id}`),
-        _jsx("strong", { children: item.title }, `title-${item.id}`),
-        _jsx(Badge, { value: item.status }, `status-${item.id}`),
-        String(item.priority),
-        item.isPublic ? 'public' : 'private',
-        item.ownerName || item.ownerEmail || '-',
-        _jsx("code", { children: formatDate(item.updatedAt) }, `updated-${item.id}`),
-        _jsxs("div", { children: [_jsx("a", { href: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`, children: "Edit" }), ' ', _jsxs("form", { action: deleteExamplePackageItemAdminAction, style: { display: 'inline' }, children: [_jsx("input", { type: "hidden", name: "itemId", value: item.id }), _jsx(SubmitButton, { label: "Delete", tone: "danger" })] })] }, `actions-${item.id}`)
-    ]);
+    const tableItems = items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        priority: item.priority,
+        visibilityLabel: item.isPublic ? 'public' : 'private',
+        ownerLabel: item.ownerName || item.ownerEmail || '-',
+        updatedAt: item.updatedAt.getTime(),
+        updatedAtLabel: formatDate(item.updatedAt)
+    }));
     return (_jsxs(ModuleLayout, { title: "Example Package Admin", description: "Full source-package example with module-owned actions, API and DB.", children: [_jsxs(ModuleCard, { title: "Summary", description: "Runtime module settings and route aliases.", actions: [
                     _jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/create`, label: "Create Record" }, "create"),
                     _jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/settings`, label: "Settings" }, "settings")
-                ], children: [_jsxs(InfoText, { children: ["Admin alias: ", EXAMPLE_PACKAGE_ADMIN_ALIAS] }), _jsxs(InfoText, { children: ["Dashboard alias: ", EXAMPLE_PACKAGE_DASHBOARD_ALIAS] }), _jsxs(InfoText, { children: ["API base: ", EXAMPLE_PACKAGE_API_BASE] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled', " | API write mode: ", settings.apiWriteMode, " | Default status:", ' ', settings.defaultStatus] })] }), _jsx(ModuleCard, { title: "Stored Records", description: "Backed by mod_example_package_items.", children: rows.length === 0 ? (_jsx(InfoText, { children: "No records yet." })) : (_jsx(DataTable, { headers: [
-                        'Id',
-                        'Title',
-                        'Status',
-                        'Priority',
-                        'Visibility',
-                        'Owner',
-                        'Updated',
-                        'Actions'
-                    ], rows: rows })) })] }));
+                ], children: [_jsxs(InfoText, { children: ["Admin alias: ", EXAMPLE_PACKAGE_ADMIN_ALIAS] }), _jsxs(InfoText, { children: ["Dashboard alias: ", EXAMPLE_PACKAGE_DASHBOARD_ALIAS] }), _jsxs(InfoText, { children: ["API base: ", EXAMPLE_PACKAGE_API_BASE] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled', " | API write mode: ", settings.apiWriteMode, " | Default status:", ' ', settings.defaultStatus] })] }), _jsx(ModuleCard, { title: "Stored Records", description: "Backed by mod_example_package_items.", children: tableItems.length === 0 ? (_jsx(InfoText, { children: "No records yet." })) : (_jsx(ExamplePackageAdminItemsDataTable, { items: tableItems, adminAlias: EXAMPLE_PACKAGE_ADMIN_ALIAS })) })] }));
 }
 export async function renderExamplePackageAdminCreatePage() {
     const settings = await getExamplePackageSettings();

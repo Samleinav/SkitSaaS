@@ -1,10 +1,11 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
 import React from 'react';
 import { getUser } from '@skitsaas/sdk/server';
 import { EXAMPLE_PACKAGE_DASHBOARD_ALIAS } from '../constants.js';
 import { createExamplePackageItemDashboardAction } from '../actions.js';
 import { getEditableExamplePackageItemForUser, getExamplePackageSettings, listExamplePackageItemsForUser } from '../data.js';
-import { ActionLink, Badge, DataTable, FieldLabel, FormActions, InfoText, ModuleCard, ModuleLayout, SubmitButton, TextArea, TextInput } from '../ui/module-ui.js';
+import { ActionLink, Badge, FieldLabel, FormActions, InfoText, ModuleCard, ModuleLayout, SubmitButton, TextArea, TextInput } from '../ui/module-ui.js';
+import { ExamplePackageDashboardItemsDataTable } from '../module-data-tables.js';
 function formatDate(value) {
     return value.toISOString().replace('T', ' ').slice(0, 16);
 }
@@ -17,15 +18,16 @@ export async function renderExamplePackageDashboardHomePage() {
         getExamplePackageSettings(),
         listExamplePackageItemsForUser({ userId: user.id, limit: 120 })
     ]);
-    const rows = items.map((item) => [
-        _jsx("code", { children: item.id }, `id-${item.id}`),
-        _jsx("a", { href: `${EXAMPLE_PACKAGE_DASHBOARD_ALIAS}/items/${item.id}`, children: item.title }, `title-${item.id}`),
-        _jsx(Badge, { value: item.status }, `status-${item.id}`),
-        String(item.priority),
-        item.isPublic ? 'public' : 'private',
-        _jsx("code", { children: formatDate(item.updatedAt) }, `updated-${item.id}`)
-    ]);
-    return (_jsxs(ModuleLayout, { title: "Example Package Dashboard", description: "Dashboard view for source-package module.", children: [_jsxs(ModuleCard, { title: "Visibility", children: [_jsxs(InfoText, { children: ["Visible records: ", items.length] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled'] }), settings.allowDashboardCreate ? (_jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_DASHBOARD_ALIAS}/create`, label: "Create Record" })) : null] }), _jsx(ModuleCard, { title: "Records", description: "Shows public records and records you own.", children: rows.length === 0 ? (_jsx(InfoText, { children: "No records visible." })) : (_jsx(DataTable, { headers: ['Id', 'Title', 'Status', 'Priority', 'Visibility', 'Updated'], rows: rows })) })] }));
+    const tableItems = items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        status: item.status,
+        priority: item.priority,
+        visibilityLabel: item.isPublic ? 'public' : 'private',
+        updatedAt: item.updatedAt.getTime(),
+        updatedAtLabel: formatDate(item.updatedAt)
+    }));
+    return (_jsxs(ModuleLayout, { title: "Example Package Dashboard", description: "Dashboard view for source-package module.", children: [_jsxs(ModuleCard, { title: "Visibility", children: [_jsxs(InfoText, { children: ["Visible records: ", items.length] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled'] }), settings.allowDashboardCreate ? (_jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_DASHBOARD_ALIAS}/create`, label: "Create Record" })) : null] }), _jsx(ModuleCard, { title: "Records", description: "Shows public records and records you own.", children: tableItems.length === 0 ? (_jsx(InfoText, { children: "No records visible." })) : (_jsx(ExamplePackageDashboardItemsDataTable, { items: tableItems, dashboardAlias: EXAMPLE_PACKAGE_DASHBOARD_ALIAS })) })] }));
 }
 export async function renderExamplePackageDashboardCreatePage() {
     const [user, settings] = await Promise.all([getUser(), getExamplePackageSettings()]);
