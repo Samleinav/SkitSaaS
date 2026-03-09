@@ -24,7 +24,7 @@ import {
   inviteTeamMember,
   removeTeamMember
 } from './actions';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useAreaMessages, useI18n } from '@/lib/i18n/client';
 
 type ActionState = {
   error?: string;
@@ -223,6 +223,7 @@ function InviteTeamMemberSkeleton() {
 function InviteTeamMember() {
   const messages = useAreaMessages('dashboard');
   const invite = messages.team.invite;
+  const t = useI18n();
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const isOwner = user?.role === 'owner';
   const notify = useNotify();
@@ -237,7 +238,7 @@ function InviteTeamMember() {
     }
 
     event.preventDefault();
-    notify.warning(invite.ownerRequired);
+    notify.warning(t('You must be a team owner to invite new members.'));
   }
 
   return (

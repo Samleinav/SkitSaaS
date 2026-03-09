@@ -102,6 +102,24 @@ The API handler and dashboard create flow read these values at runtime.
 - Runtime options are persisted in module settings (`mod_example_suite_settings`).
 - No dedicated env override matrix is required for this reference module.
 
+## Module i18n contract
+
+This module can ship both module i18n formats:
+
+- nested area messages:
+  - `i18n/<area>/<locale>.json`
+  - or compiled `dist/i18n/<area>/<locale>.json`
+- flat natural-key translations:
+  - `i18n/translations/<locale>.json`
+  - or compiled `dist/i18n/translations/<locale>.json`
+
+Use nested area files for `messages.mod['mod.example.suite'].*`.
+Use flat files for ad-hoc lookups through `createTranslator()` / `useI18n()`.
+
+If the module ever moves to `source-package`, the build output must include the
+same files under `dist/i18n/...`, because the host prefers compiled artifacts
+when `dist/i18n` exists.
+
 ## Templates and CTC ids
 
 Current template pack entries:
@@ -146,6 +164,7 @@ SDK vs host ownership:
    - `pnpm modules:build`
    - `pnpm modules:prepare`
    - `pnpm modules:i18n` (safe even if no module i18n files)
+   - `pnpm i18n:prepare` (required for flat translation files)
 3. Run DB migrations:
    - `pnpm modules:migrate`
    - if this is a fresh environment, run core migrations too: `pnpm db:migrate`

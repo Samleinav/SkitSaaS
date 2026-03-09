@@ -13,9 +13,12 @@ import {
 } from 'lucide-react';
 import { ActivityType } from '@/lib/db/schema';
 import { getActivityLogs } from '@/lib/db/queries';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import {
+  getServerLocaleAndMessages,
+  getServerTranslator
+} from '@/lib/i18n/server';
+import { formatRelativeTimeLabel } from '@/lib/i18n/formatting';
 import type { DashboardMessages } from '@/lib/i18n/messages/dashboard';
-import type { AppLocale } from '@/lib/i18n/config';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 
@@ -32,42 +35,6 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.ACCEPT_INVITATION]: CheckCircle,
   [ActivityType.RESET_PASSWORD]: Lock,
 };
-
-const DATE_LOCALE_BY_APP_LOCALE: Record<AppLocale, string> = {
-  en: 'en-US',
-  es: 'es-ES'
-};
-
-function interpolate(template: string, vars: Record<string, string | number>) {
-  return Object.entries(vars).reduce(
-    (result, [key, value]) => result.replace(`{${key}}`, String(value)),
-    template
-  );
-}
-
-function getRelativeTime(
-  date: Date,
-  messages: DashboardMessages['activity'],
-  locale: AppLocale
-) {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return messages.time.justNow;
-  if (diffInSeconds < 3600)
-    return interpolate(messages.time.minutesAgo, {
-      count: Math.floor(diffInSeconds / 60)
-    });
-  if (diffInSeconds < 86400)
-    return interpolate(messages.time.hoursAgo, {
-      count: Math.floor(diffInSeconds / 3600)
-    });
-  if (diffInSeconds < 604800)
-    return interpolate(messages.time.daysAgo, {
-      count: Math.floor(diffInSeconds / 86400)
-    });
-  return date.toLocaleDateString(DATE_LOCALE_BY_APP_LOCALE[locale]);
-}
 
 function formatAction(
   action: ActivityType,
@@ -102,10 +69,11 @@ function formatAction(
 }
 
 export default async function ActivityPage() {
-  const [{ locale, messages }, logs, themeSelection] = await Promise.all([
+  const [{ locale, messages }, logs, themeSelection, t] = await Promise.all([
     getServerLocaleAndMessages('dashboard'),
     getActivityLogs(),
-    getThemeSelectionForArea('dashboard')
+    getThemeSelectionForArea('dashboard'),
+    getServerTranslator()
   ]);
   const activity = messages.activity;
   const fallbackPage = (
@@ -138,7 +106,11 @@ export default async function ActivityPage() {
                         {log.ipAddress && ` ${activity.fromIp} ${log.ipAddress}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {getRelativeTime(new Date(log.timestamp), activity, locale)}
+                        {formatRelativeTimeLabel({
+                          date: new Date(log.timestamp),
+                          locale,
+                          t
+                        })}
                       </p>
                     </div>
                   </li>

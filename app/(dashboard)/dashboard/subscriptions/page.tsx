@@ -24,6 +24,7 @@ import {
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { cn } from '@/lib/utils';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getCurrentUserSubscriptionManagementData } from '@/lib/db/queries';
 import { getOrganizationLimits } from '@/lib/organizations/config';
 import { getCurrentUserOrganizationLimitBySubscription } from '@/lib/organizations/subscription-limits';
@@ -230,7 +231,7 @@ export default async function DashboardSubscriptionsPage({
   }
 
   const subscriptions = messages.subscriptions;
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const themeSelection = await getThemeSelectionForArea('dashboard');
   const requestedTeamId = parsePositiveInt(
     getFirstSearchParam(resolvedSearchParams.teamId)

@@ -1,13 +1,13 @@
 import type { BuildFormValues } from '@skitsaas/sdk';
 import { createBuildFormValidationMessage } from '@skitsaas/sdk';
 import type { AppLocale } from '@/lib/i18n/config';
-import { createCoreBuildFormValidationMessageResolver } from '@/lib/forms/validation/catalog';
+import {
+  createCoreBuildFormValidationMessageResolver,
+  type LocalizedBuildFormValidationCatalog
+} from '@/lib/forms/validation/catalog';
 import { createLocalizedBuildFormInvalidFactory } from '@/lib/forms/validation/server';
 
-const DASHBOARD_ACCOUNT_VALIDATION_CATALOG: Record<
-  AppLocale,
-  Record<string, string>
-> = {
+const DASHBOARD_ACCOUNT_VALIDATION_CATALOG: LocalizedBuildFormValidationCatalog = {
   en: {
     'dashboard.account.validation.request_invalid':
       'Unable to process this account request.',

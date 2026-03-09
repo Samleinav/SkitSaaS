@@ -1,11 +1,11 @@
 import { createBuildFormValidationMessage } from '@skitsaas/sdk';
 import type { AppLocale } from '@/lib/i18n/config';
-import { createCoreBuildFormValidationMessageResolver } from '@/lib/forms/validation/catalog';
+import {
+  createCoreBuildFormValidationMessageResolver,
+  type LocalizedBuildFormValidationCatalog
+} from '@/lib/forms/validation/catalog';
 
-const DASHBOARD_SUBSCRIPTION_VALIDATION_CATALOG: Record<
-  AppLocale,
-  Record<string, string>
-> = {
+const DASHBOARD_SUBSCRIPTION_VALIDATION_CATALOG: LocalizedBuildFormValidationCatalog = {
   en: {
     'dashboard.subscriptions.validation.organization_unavailable':
       'Subscription management is not available for this organization.',

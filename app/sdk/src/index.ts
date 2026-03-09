@@ -40,10 +40,15 @@ export { defineModule, validateModuleManifest } from './modules/manifest.js';
 
 export type {
   ModuleI18nNamespace,
+  FlatTranslationsByLocale,
+  FlatTranslationConflict,
+  Translator,
   ModuleMessageTree,
   ModuleMessagesByLocale,
   ModuleMessagesByArea
 } from './i18n/types.js';
+export type { CreateTranslatorOptions } from './i18n/translator.js';
+export { createTranslator } from './i18n/translator.js';
 
 export {
   ThemeI18nProvider,

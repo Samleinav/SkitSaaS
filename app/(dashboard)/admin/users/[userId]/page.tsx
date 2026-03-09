@@ -17,6 +17,7 @@ import {
   getUserSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../guards';
@@ -54,7 +55,7 @@ export default async function AdminUserDetailsPage({
 }) {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
   const usersDetail = messages.userDetailPage;
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const currentUser = await requireAdminAccess();
 
   const { userId } = await params;

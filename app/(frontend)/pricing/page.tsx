@@ -7,6 +7,7 @@ import { isPayPalConfigured } from '@/lib/payments/paypal';
 import { cacheLife } from 'next/cache';
 import { SubmitButton } from './submit-button';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
 import {
@@ -132,7 +133,7 @@ export default async function PricingPage({
 }) {
   const { locale, messages } = await getServerLocaleAndMessages('global');
   const { header, pricing } = messages;
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const teamsEnabled = areTeamsEnabled();
 
   const [templates, paymentConfig, team, user] = await Promise.all([

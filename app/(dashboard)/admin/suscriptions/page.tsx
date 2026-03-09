@@ -24,6 +24,7 @@ import {
   getAdminSubscriptionTargetIdsWithOrders
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
@@ -158,7 +159,7 @@ export default async function AdminSuscriptionsPage({ searchParams }: PageProps)
   ]);
 
   const scope = resolveScopeFilter(resolvedSearchParams.scope);
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const subscriptionsPage = messages.subscriptionsPage;
   const subscriptionsTable = messages.subscriptionsTable;
   const billingPage = messages.billingPage;

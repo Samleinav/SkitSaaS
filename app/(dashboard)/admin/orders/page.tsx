@@ -12,6 +12,7 @@ import {
   getPaymentOrdersForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
@@ -77,7 +78,7 @@ function MetricCard({ label, value }: MetricCardProps) {
 
 export default async function AdminOrdersPage() {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const ordersPage = messages.ordersPage;
   const ordersTable = ordersPage.table;
 

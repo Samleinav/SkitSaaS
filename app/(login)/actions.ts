@@ -43,6 +43,7 @@ import {
   getUser,
   getUserWithTeam
 } from '@/lib/db/queries';
+import { getActionTranslator } from '@/lib/i18n/server';
 import { createSysActivityLog } from '@/lib/system/activity-logs';
 import {
   validatedAction,
@@ -69,17 +70,6 @@ async function logActivity(
 }
 
 type AuthArea = 'admin' | 'dashboard';
-
-const BREAK_GLASS_PASSKEY_REQUIRED_MESSAGE =
-  'Password sign-in is disabled for this account. Use passkey sign-in.';
-const BREAK_GLASS_LOCKED_OUT_MESSAGE =
-  'Too many failed attempts. Try again later or use passkey sign-in.';
-const PASSWORD_SIGN_IN_DISABLED_MESSAGE =
-  'Password sign-in is disabled for this area. Use an enabled provider.';
-const PASSWORD_SIGN_UP_DISABLED_MESSAGE =
-  'Account creation with password is disabled for this area.';
-const ADMIN_ACCESS_REQUIRED_MESSAGE =
-  'This account does not have admin access. Sign in from /login instead.';
 
 function resolveSignInSource(authArea: AuthArea) {
   return authArea === 'admin' ? '/admin/login' : '/login';
@@ -127,6 +117,7 @@ async function signInByArea(
 ) {
   const { email, password } = data;
   const signInSource = resolveSignInSource(authArea);
+  const t = await getActionTranslator();
 
   if (!isPasswordLoginAllowedForArea(authArea)) {
     await emitEventAsync(
@@ -135,7 +126,7 @@ async function signInByArea(
       { source: signInSource }
     );
     return {
-      error: PASSWORD_SIGN_IN_DISABLED_MESSAGE,
+      error: t('Password sign-in is disabled for this area. Use an enabled provider.'),
       email,
       password
     };
@@ -191,8 +182,8 @@ async function signInByArea(
     return {
       error:
         breakGlassDecision.reason === 'locked_out'
-          ? BREAK_GLASS_LOCKED_OUT_MESSAGE
-          : BREAK_GLASS_PASSKEY_REQUIRED_MESSAGE,
+          ? t('Too many failed attempts. Try again later or use passkey sign-in.')
+          : t('Password sign-in is disabled for this account. Use passkey sign-in.'),
       email,
       password
     };
@@ -265,14 +256,14 @@ async function signInByArea(
 
     if (failureState?.isLocked) {
       return {
-        error: BREAK_GLASS_LOCKED_OUT_MESSAGE,
+        error: t('Too many failed attempts. Try again later or use passkey sign-in.'),
         email,
         password
       };
     }
 
     return {
-      error: 'Invalid email or password. Please try again.',
+      error: t('Invalid email or password. Please try again.'),
       email,
       password
     };
@@ -335,14 +326,14 @@ async function signInByArea(
 
     if (failureState?.isLocked) {
       return {
-        error: BREAK_GLASS_LOCKED_OUT_MESSAGE,
+        error: t('Too many failed attempts. Try again later or use passkey sign-in.'),
         email,
         password
       };
     }
 
     return {
-      error: 'Invalid email or password. Please try again.',
+      error: t('Invalid email or password. Please try again.'),
       email,
       password
     };
@@ -355,7 +346,7 @@ async function signInByArea(
       { source: signInSource }
     );
     return {
-      error: 'This account has been deleted. Contact support for assistance.',
+      error: t('This account has been deleted. Contact support for assistance.'),
       email,
       password
     };
@@ -368,7 +359,7 @@ async function signInByArea(
       { source: signInSource }
     );
     return {
-      error: 'This account is banned. Contact support for assistance.',
+      error: t('This account is banned. Contact support for assistance.'),
       email,
       password
     };
@@ -381,7 +372,7 @@ async function signInByArea(
       { source: signInSource }
     );
     return {
-      error: 'This account is suspended. Contact support for assistance.',
+      error: t('This account is suspended. Contact support for assistance.'),
       email,
       password
     };
@@ -400,7 +391,7 @@ async function signInByArea(
       { source: signInSource }
     );
     return {
-      error: ADMIN_ACCESS_REQUIRED_MESSAGE,
+      error: t('This account does not have admin access. Sign in from /login instead.'),
       email,
       password
     };
@@ -490,6 +481,7 @@ const signUpSchema = z.object({
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const { email, password, inviteId } = data;
   const teamsEnabled = areTeamsEnabled();
+  const t = await getActionTranslator();
 
   if (!isPasswordLoginAllowedForArea('dashboard')) {
     await emitEventAsync(
@@ -498,7 +490,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       { source: '/sign-up' }
     );
     return {
-      error: PASSWORD_SIGN_UP_DISABLED_MESSAGE,
+      error: t('Account creation with password is disabled for this area.'),
       email,
       password
     };
@@ -511,7 +503,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       { source: '/sign-up' }
     );
     return {
-      error: 'Team invitations are disabled for this deployment.',
+      error: t('Team invitations are disabled for this deployment.'),
       email,
       password
     };
@@ -536,7 +528,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       { source: '/sign-up' }
     );
     return {
-      error: 'Failed to create user. Please try again.',
+      error: t('Failed to create user. Please try again.'),
       email,
       password
     };
@@ -559,7 +551,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       { source: '/sign-up' }
     );
     return {
-      error: 'Failed to create user. Please try again.',
+      error: t('Failed to create user. Please try again.'),
       email,
       password
     };
@@ -617,7 +609,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         .where(eq(teams.id, teamId))
         .limit(1);
     } else {
-      return { error: 'Invalid or expired invitation.', email, password };
+      return {
+        error: t('Invalid or expired invitation.'),
+        email,
+        password
+      };
     }
   } else if (teamsEnabled) {
     // Create a new team if there's no invitation
@@ -634,7 +630,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         { source: '/sign-up' }
       );
       return {
-        error: 'Failed to create team. Please try again.',
+        error: t('Failed to create team. Please try again.'),
         email,
         password
       };

@@ -5,13 +5,13 @@ import {
   createBuildFormValidationMessage
 } from '@skitsaas/sdk';
 import type { AppLocale } from '@/lib/i18n/config';
-import { createCoreBuildFormValidationMessageResolver } from '@/lib/forms/validation/catalog';
+import {
+  createCoreBuildFormValidationMessageResolver,
+  type LocalizedBuildFormValidationCatalog
+} from '@/lib/forms/validation/catalog';
 import { createLocalizedBuildFormInvalidFactory } from '@/lib/forms/validation/server';
 
-const ADMIN_USER_VALIDATION_CATALOG: Record<
-  AppLocale,
-  Record<string, string>
-> = {
+const ADMIN_USER_VALIDATION_CATALOG: LocalizedBuildFormValidationCatalog = {
   en: {
     'admin.users.validation.self_demote':
       'You cannot demote your own admin account.',

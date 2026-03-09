@@ -4,6 +4,18 @@ export type ModuleMessageTree = {
   [key: string]: string | ModuleMessageTree;
 };
 
+export type FlatTranslationsByLocale = Record<string, Record<string, string>>;
+
+export type FlatTranslationConflict = {
+  key: string;
+  firstValue: string;
+  secondValue: string;
+  firstPath: string;
+  secondPath: string;
+};
+
+export type Translator = (key: string) => string;
+
 export type ModuleMessagesByLocale = Record<
   string,
   Record<ModuleI18nNamespace, ModuleMessageTree>

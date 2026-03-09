@@ -6,11 +6,20 @@ import {
   type I18nArea,
   getAreaMessages
 } from './messages';
+import { createTranslator, type Translator } from './translator';
+
+async function readLocaleFromCookies(): Promise<AppLocale> {
+  const cookieStore = await cookies();
+  return resolveLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
+}
 
 export async function getRequestLocale(): Promise<AppLocale> {
   await connection();
-  const cookieStore = await cookies();
-  return resolveLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value);
+  return readLocaleFromCookies();
+}
+
+export async function getActionLocale(): Promise<AppLocale> {
+  return readLocaleFromCookies();
 }
 
 export async function getServerMessages<TArea extends I18nArea>(
@@ -28,4 +37,14 @@ export async function getServerLocaleAndMessages<TArea extends I18nArea>(
     locale,
     messages: getAreaMessages(area, locale)
   };
+}
+
+export async function getServerTranslator(): Promise<Translator> {
+  const locale = await getRequestLocale();
+  return createTranslator(locale);
+}
+
+export async function getActionTranslator(): Promise<Translator> {
+  const locale = await getActionLocale();
+  return createTranslator(locale);
 }

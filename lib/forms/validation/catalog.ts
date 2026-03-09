@@ -1,15 +1,15 @@
 import type { BuildFormValidationMessageCatalog } from '@skitsaas/sdk';
 import { createCatalogBuildFormValidationMessageResolver } from '@skitsaas/sdk';
-import type { AppLocale } from '@/lib/i18n/config';
+import {
+  DEFAULT_LOCALE,
+  type AppLocale
+} from '@/lib/i18n/config';
 
 export type LocalizedBuildFormValidationCatalog = Partial<
   Record<AppLocale, BuildFormValidationMessageCatalog>
 >;
 
-const CORE_BUILD_FORM_VALIDATION_CATALOG: Record<
-  AppLocale,
-  BuildFormValidationMessageCatalog
-> = {
+const CORE_BUILD_FORM_VALIDATION_CATALOG: LocalizedBuildFormValidationCatalog = {
   en: {
     'build_form.validation.required': '{label} is required.',
     'build_form.validation.invalid_email': '{label} must be a valid email address.',
@@ -33,15 +33,32 @@ const CORE_BUILD_FORM_VALIDATION_CATALOG: Record<
   }
 };
 
+function getCatalogMessagesForLocale(
+  locale: AppLocale,
+  catalog: LocalizedBuildFormValidationCatalog
+) {
+  return catalog[locale] ?? {};
+}
+
 export function resolveBuildFormValidationCatalog(
   locale: AppLocale,
   extraCatalog: LocalizedBuildFormValidationCatalog = {}
 ) {
+  const catalogs = [CORE_BUILD_FORM_VALIDATION_CATALOG, extraCatalog];
+
   return {
-    ...(CORE_BUILD_FORM_VALIDATION_CATALOG.en ?? {}),
-    ...(extraCatalog.en ?? {}),
-    ...(locale === 'en' ? {} : CORE_BUILD_FORM_VALIDATION_CATALOG[locale] ?? {}),
-    ...(locale === 'en' ? {} : extraCatalog[locale] ?? {})
+    ...Object.assign(
+      {},
+      ...catalogs.map((catalog) =>
+        getCatalogMessagesForLocale(DEFAULT_LOCALE, catalog)
+      )
+    ),
+    ...(locale === DEFAULT_LOCALE
+      ? {}
+      : Object.assign(
+          {},
+          ...catalogs.map((catalog) => getCatalogMessagesForLocale(locale, catalog))
+        ))
   };
 }
 

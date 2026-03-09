@@ -1,8 +1,13 @@
-import { DEFAULT_LOCALE, type AppLocale } from '@/lib/i18n/config';
-import { adminMessages, type AdminMessages } from './admin';
-import { dashboardMessages, type DashboardMessages } from './dashboard';
-import { globalMessages, type GlobalMessages } from './global';
-import { loginMessages, type LoginMessages } from './login';
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  type AppLocale
+} from '@/lib/i18n/config';
+import { coreMessagesByArea } from '../core-messages.generated';
+import type { AdminMessages } from './admin';
+import type { DashboardMessages } from './dashboard';
+import type { GlobalMessages } from './global';
+import type { LoginMessages } from './login';
 import type {
   ModuleI18nNamespace,
   ModuleMessageTree
@@ -29,13 +34,10 @@ export type AreaMessagesMap = {
 
 export type I18nArea = keyof AreaMessagesMap;
 
-const coreMessagesByArea: {
+const typedCoreMessagesByArea: {
   [K in I18nArea]: Record<AppLocale, CoreAreaMessagesMap[K]>;
-} = {
-  global: globalMessages,
-  dashboard: dashboardMessages,
-  admin: adminMessages,
-  login: loginMessages
+} = coreMessagesByArea as {
+  [K in I18nArea]: Record<AppLocale, CoreAreaMessagesMap[K]>;
 };
 
 function mergeModuleMessages<TMessages>(
@@ -54,7 +56,7 @@ function getCoreMessages<TArea extends I18nArea>(
   area: TArea,
   locale: AppLocale
 ): CoreAreaMessagesMap[TArea] {
-  const areaMessages = coreMessagesByArea[area];
+  const areaMessages = typedCoreMessagesByArea[area];
   return areaMessages[locale] ?? areaMessages[DEFAULT_LOCALE];
 }
 
@@ -77,20 +79,32 @@ export function getAreaMessages<TArea extends I18nArea>(
 export const messagesByArea: {
   [K in I18nArea]: Record<string, AreaMessagesMap[K]>;
 } = {
-  global: {
-    en: mergeModuleMessages(coreMessagesByArea.global.en, 'global', 'en'),
-    es: mergeModuleMessages(coreMessagesByArea.global.es, 'global', 'es')
-  },
-  dashboard: {
-    en: mergeModuleMessages(coreMessagesByArea.dashboard.en, 'dashboard', 'en'),
-    es: mergeModuleMessages(coreMessagesByArea.dashboard.es, 'dashboard', 'es')
-  },
-  admin: {
-    en: mergeModuleMessages(coreMessagesByArea.admin.en, 'admin', 'en'),
-    es: mergeModuleMessages(coreMessagesByArea.admin.es, 'admin', 'es')
-  },
-  login: {
-    en: mergeModuleMessages(coreMessagesByArea.login.en, 'login', 'en'),
-    es: mergeModuleMessages(coreMessagesByArea.login.es, 'login', 'es')
-  }
+  global: Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [
+      locale,
+      mergeModuleMessages(getCoreMessages('global', locale), 'global', locale)
+    ])
+  ) as Record<string, AreaMessagesMap['global']>,
+  dashboard: Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [
+      locale,
+      mergeModuleMessages(
+        getCoreMessages('dashboard', locale),
+        'dashboard',
+        locale
+      )
+    ])
+  ) as Record<string, AreaMessagesMap['dashboard']>,
+  admin: Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [
+      locale,
+      mergeModuleMessages(getCoreMessages('admin', locale), 'admin', locale)
+    ])
+  ) as Record<string, AreaMessagesMap['admin']>,
+  login: Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [
+      locale,
+      mergeModuleMessages(getCoreMessages('login', locale), 'login', locale)
+    ])
+  ) as Record<string, AreaMessagesMap['login']>
 };

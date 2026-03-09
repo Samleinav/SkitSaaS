@@ -1,5 +1,6 @@
 export { EVENT_HOOKS } from './events/catalog.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
+export { createTranslator } from './i18n/translator.js';
 export { ThemeI18nProvider, useThemeMessages, resolveThemeMessages } from './i18n/theme.js';
 export { defineThemeConfig } from './theme/config.js';
 export { buildTableAction, buildTableFilter, buildTableColumn, composeBuildTableDefinition, defineBuildTable, withBuildTableData, withBuildTableQuery } from './datatables/definition.js';

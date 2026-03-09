@@ -14,6 +14,7 @@ import { formatDate } from '../utils';
 import type { AdminUserRow } from './columns';
 import { AdminUsersDataTable } from './users-data-table';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { AdminCreateUserDialog } from './create-user-dialog';
 import { resolveAdminUserDisplayStatus } from './status';
@@ -42,7 +43,7 @@ function MetricCard({ label, value }: MetricCardProps) {
 
 async function AdminUsersTable() {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   await requireAdminAccess();
 
   const [allUsers, userTemplateOptions] = await Promise.all([

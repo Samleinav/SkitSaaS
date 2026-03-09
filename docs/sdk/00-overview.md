@@ -32,6 +32,7 @@ Exports:
 - `EventHook`
 - `EVENT_HOOKS`
 - `ModuleMessagesByArea` (module i18n bundles)
+- `createTranslator` and `FlatTranslationsByLocale` (flat natural-key i18n helper)
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
 - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
@@ -290,38 +291,44 @@ Useful options:
 
 ## Module I18n
 
-Modules can provide translations as JSON files, one per area and locale.
+Modules can provide translations through two parallel contracts:
 
-Locations:
+- nested area messages for `messages.mod['mod.<moduleId>']`
+- flat natural-key translations for `createTranslator(...)`
+
+Nested area JSON:
 
 - `modules/<moduleId>/i18n/<area>/<locale>.json`
-- `modules/<moduleId>/dist/i18n/<area>/<locale>.json` (prebuilt)
+- `modules/<moduleId>/dist/i18n/<area>/<locale>.json`
 
-Namespacing is required:
+Flat natural-key JSON:
 
-- Access under `messages.mod['mod.<moduleId>']`
+- `modules/<moduleId>/i18n/translations/<locale>.json`
+- `modules/<moduleId>/dist/i18n/translations/<locale>.json`
 
-Example JSON:
+Example flat JSON:
 
 ```json
 {
-  "title": "Analytics",
-  "nav": {
-    "overview": "Overview"
-  }
+  "Create item": "Crear elemento",
+  "Settings saved": "Configuracion guardada"
 }
 ```
 
-Locales are inferred from filenames, so any locale is supported. Core messages
-fall back to `DEFAULT_LOCALE` when a locale is missing.
+Rules:
 
-Build registry:
+- flat files must be a single-level object of `English key -> translated value`
+- if `dist/i18n/translations` exists, the host reads `dist` for that module
+- conflicting `locale + key` values fail `pnpm i18n:prepare`
 
-```
+Build commands:
+
+```bash
 pnpm modules:i18n
+pnpm i18n:prepare
 ```
 
-See `docs/modules/12-i18n.md` for full details.
+See `docs/modules/12-i18n.md` for the full contract.
 
 ## Server Helpers (Optional)
 
@@ -527,7 +534,8 @@ npx tsx scripts/modules-prepare.ts --warn-compat
 3. Run `pnpm modules:build`.
 4. Run `pnpm modules:prepare`.
 5. Run `pnpm modules:i18n`.
-6. Build the app.
+6. Run `pnpm i18n:prepare`.
+7. Build the app.
 
 For step-by-step migration from legacy module imports to SDK-first patterns, see
 `docs/sdk/01-sdk-first-migration.md`.

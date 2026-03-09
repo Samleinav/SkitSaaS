@@ -10,6 +10,7 @@ import {
   getPaymentTransactionsForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
@@ -73,7 +74,7 @@ function normalizeOrderSource(
 
 export default async function AdminPaymentsPage() {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const paymentsPage = messages.paymentsPage;
 
   await requireAdminAccess();

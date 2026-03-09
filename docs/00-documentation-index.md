@@ -49,7 +49,8 @@ Exceptions (allowed in core docs):
 6. [Data Table Build System](./core/build-table-system.md)
 7. [Database Model Overview](./core/database-model.md)
 8. [Environment Variables and Runtime Config](./core/env-variables.md)
-9. [Theme Build-Time Only ADR](./core/theme-build-time-only-adr.md)
+9. [I18n Runtime](./core/i18n-runtime.md)
+10. [Theme Build-Time Only ADR](./core/theme-build-time-only-adr.md)
 
 ## Billing and Subscription Flows
 

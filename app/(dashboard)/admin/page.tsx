@@ -5,6 +5,7 @@ import {
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { createPerfTrace } from '@/lib/observability/perf-trace';
 import { getEnabledAdminDashboardModules } from './admin-dashboard/modules';
@@ -39,7 +40,7 @@ export default async function AdminPage() {
     perfTrace.step('getServerLocaleAndMessages', {
       locale
     });
-    const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+    const dateLocale = getDateLocale(locale);
 
     const [summary, activityLogs] = await Promise.all([
       getAdminDashboardSummary(),

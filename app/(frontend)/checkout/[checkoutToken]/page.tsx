@@ -13,6 +13,7 @@ import {
   markCheckoutOrderCanceled
 } from '@/lib/payments/checkout-orders';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { isStripeConfigured } from '@/lib/payments/stripe';
 import {
   getPayPalClientId,
@@ -105,7 +106,7 @@ export default async function CheckoutPage({
 }) {
   const { locale, messages } = await getServerLocaleAndMessages('global');
   const { pricing } = messages;
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
 
   const user = await getUser();
   if (!user) {

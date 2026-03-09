@@ -11,12 +11,13 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { setLocaleAction } from '@/app/actions/locale';
-import { type AppLocale } from '@/lib/i18n/config';
+import { SUPPORTED_LOCALES, type AppLocale } from '@/lib/i18n/config';
+import { getLocaleDisplayName } from '@/lib/i18n/formatting';
 import { useAreaMessages } from '@/lib/i18n/client';
 import { type I18nArea } from '@/lib/i18n/messages';
 import { useLocale } from './language-provider';
 
-const LOCALE_OPTIONS: AppLocale[] = ['en', 'es'];
+const LOCALE_OPTIONS = SUPPORTED_LOCALES;
 
 export function LanguageSwitcher({
   area,
@@ -30,13 +31,7 @@ export function LanguageSwitcher({
   const locale = useLocale();
   const messages = useAreaMessages(area);
   const language = messages.language;
-
-  const localeLabels: Record<AppLocale, string> = {
-    en: language.english,
-    es: language.spanish
-  };
-
-  const currentLabel = localeLabels[locale] ?? locale.toUpperCase();
+  const currentLabel = getLocaleDisplayName(locale, locale);
 
   function handleChange(nextLocale: AppLocale) {
     if (nextLocale === locale) {
@@ -66,19 +61,23 @@ export function LanguageSwitcher({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {LOCALE_OPTIONS.map((option) => (
-          <DropdownMenuItem
-            key={option}
-            onSelect={(event) => {
-              event.preventDefault();
-              handleChange(option);
-            }}
-            className="flex cursor-pointer items-center justify-between gap-3"
-          >
-            <span>{localeLabels[option]}</span>
-            {locale === option ? <Check className="h-4 w-4" /> : null}
-          </DropdownMenuItem>
-        ))}
+        {LOCALE_OPTIONS.map((option) => {
+          const optionLabel = getLocaleDisplayName(option, locale);
+
+          return (
+            <DropdownMenuItem
+              key={option}
+              onSelect={(event) => {
+                event.preventDefault();
+                handleChange(option);
+              }}
+              className="flex cursor-pointer items-center justify-between gap-3"
+            >
+              <span>{optionLabel}</span>
+              {locale === option ? <Check className="h-4 w-4" /> : null}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

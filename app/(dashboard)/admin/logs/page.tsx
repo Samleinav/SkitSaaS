@@ -13,6 +13,7 @@ import {
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
@@ -120,7 +121,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
   const logsPage = messages.logsPage;
   const emailMessages = messages.appConfig.email;
-  const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const dateLocale = getDateLocale(locale);
   const resolvedSearchParams = await searchParams;
   const selectedTab = resolveLogTab(resolvedSearchParams.tab);
 

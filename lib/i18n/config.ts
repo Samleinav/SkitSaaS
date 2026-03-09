@@ -1,4 +1,6 @@
-export const SUPPORTED_LOCALES = ['en', 'es'] as const;
+import { SUPPORTED_LOCALES as generatedSupportedLocales } from './supported-locales.generated';
+
+export const SUPPORTED_LOCALES = generatedSupportedLocales;
 
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 
