@@ -7,7 +7,7 @@ sidebar_position: 16
 
 This guide documents the minimum contract to create a theme pack compatible with host runtime and CTC.
 
-Transition note (2026-02-13): build-time-only theme selection is being rolled out. The target contract is documented in [Theme Build-Time Only ADR](../core/theme-build-time-only-adr.md).
+Transition note (2026-02-13): build-time-only theme selection is being rolled out. The target contract is documented in [Theme Build-Time Only ADR](./04-theme-build-adr.md).
 
 ## Minimal structure
 

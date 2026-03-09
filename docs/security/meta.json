@@ -1,0 +1,4 @@
+{
+  "title": "Security",
+  "pages": ["01-rls-setup", "02-auth-provider-spi"]
+}

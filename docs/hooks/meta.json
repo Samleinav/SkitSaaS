@@ -1,0 +1,4 @@
+{
+  "title": "Hooks & Events",
+  "pages": ["01-events-hooks", "02-events-hooks-emitters"]
+}

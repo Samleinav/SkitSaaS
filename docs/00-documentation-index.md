@@ -1,7 +1,7 @@
 ---
 title: Documentation Index
 sidebar_position: 0
-description: Entry index for core, subscriptions, operations, extensions, SDK, modules, and audit docs.
+description: Entry index for the S-Kit SaaS Starter platform documentation.
 ---
 
 # Documentation Index
@@ -10,21 +10,110 @@ description: Entry index for core, subscriptions, operations, extensions, SDK, m
 
 This index organizes the technical documentation for the S-Kit SaaS Starter core platform.
 
-## First Steps
+## Getting Started
 
-- [Simple SaaS](./first-steps/01-simple-saas.md) — single Next.js deployment: install, configure, run.
-- [Multi-Service](./first-steps/02-multi-service.md) — split admin, dashboard, frontend, and API across separate services.
+- [Simple SaaS](./getting-started/01-simple-saas.md) — single Next.js deployment: install, configure, run.
+- [Multi-Service](./getting-started/02-multi-service.md) — split admin, dashboard, frontend, and API across separate services.
 
-## Documentation Taxonomy
+## Proxies
 
-- `docs/first-steps/*`: onboarding guides for simple and multi-service deployments.
-- `docs/core/*`: host runtime architecture and platform contracts.
-- `docs/subscriptions/*`: subscription features, quotas, checkout lifecycle and guards.
-- `docs/operations/*`: operational guidance for core surfaces (admin/logs/email/events).
-- `docs/extensions/*`: entrypoint to extension surfaces documentation.
-- `docs/modules/*`: host-side module runtime contracts (not per-module implementation docs).
-- `docs/sdk/*`: SDK contracts and migration guidance.
-- `docs/audit/*`: evidence and audit artifacts.
+Laravel-inspired proxy chains — define auth rules, role guards, and rate limits per route.
+
+- [Routing System (RouteBuilder + Proxy Chains)](./proxies/01-routing-system.md)
+- [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./proxies/02-security.md)
+
+## Routing
+
+- [Routing and Actions Architecture](./routing/01-architecture.md)
+
+## Forms
+
+Declarative BuildForm system with local, preflight, and server validation layers.
+
+- [Form Build System](./forms/01-form-build-system.md)
+
+## Datatables
+
+SDK-first BuildTable contract with remote loading, filters, sorting, pagination, and actions.
+
+- [Data Table Build System](./datatables/01-build-table-system.md)
+- [SDK Datatables & CRUD](./datatables/02-sdk-datatables-crud.md)
+
+## Security
+
+- [Row-Level Security (RLS) Setup](./security/01-rls-setup.md) — PostgreSQL dual-role tenant isolation.
+- [Auth Provider SPI](./security/02-auth-provider-spi.md) — pluggable authentication provider interface.
+
+## Context & Areas
+
+Serve different content per user role within the same `/dashboard` path (e.g. guardian / teacher / admin).
+
+- [Frontend Routing and Slots](./context-area/01-frontend-routing-slots.md)
+
+## Modules
+
+Host-side module runtime: manifest, routing, permissions, migrations, API, and i18n.
+
+- [Modules Overview](./modules/00-overview.md)
+- [Manifest Registry](./modules/01-manifest-registry.md)
+- [Runtime Routing](./modules/02-runtime-routing.md)
+- [Permissions and Actions](./modules/03-permissions-actions.md)
+- [Database Migrations](./modules/04-database-migrations.md)
+- [Config](./modules/05-config.md)
+- [Nav Widgets](./modules/06-nav-widgets.md)
+- [API Modules](./modules/07-api-modules.md)
+- [Testing](./modules/09-testing.md)
+- [Ops Runbook](./modules/10-ops-runbook.md)
+- [Example Module](./modules/11-example-module.md)
+- [I18n](./modules/12-i18n.md)
+- [Source Package Template](./modules/13-source-package-template.md)
+
+## Themes
+
+Build-time theme selection (ENV-driven), CTC template resolution, and theme authoring conventions.
+
+- [Theme Runtime](./themes/01-theme-runtime.md)
+- [Theme Authoring Guide](./themes/02-theme-authoring-guide.md)
+- [Template Controller (CTC)](./themes/03-template-controller.md)
+- [Theme Build-Time Only ADR](./themes/04-theme-build-adr.md)
+
+## Hooks & Events
+
+Cross-module event bus with optional Redis queue.
+
+- [Events and Hooks](./hooks/01-events-hooks.md)
+- [Events and Hooks Emitters Checklist](./hooks/02-events-hooks-emitters.md)
+
+## Subscriptions and Billing
+
+- [Features and Quotas](./subscriptions/features-and-quotas.md)
+- [Payment Events and Subscription Lifecycle](./subscriptions/payment-events-lifecycle.md)
+- [Dashboard Subscription Management](./subscriptions/dashboard-subscription-management.md)
+- [Checkout Subscription Change Checklist](./subscriptions/checkout-subscription-change-checklist.md)
+
+## Operations
+
+- [Admin Dashboard Modules](./operations/admin-dashboard.md)
+- [System Activity Logs](./operations/system-activity-logs.md)
+- [Email System (SMTP)](./operations/email-system.md)
+- [Ops Validation Pack](./operations/ops-validation-pack.md)
+- [Ops Canary Pack](./operations/ops-canary-pack.md)
+
+## Platform Reference
+
+- [Platform Technical Capabilities](./reference/01-platform-capabilities.md)
+- [Database Model Overview](./reference/02-database-model.md)
+- [Environment Variables and Runtime Config](./reference/03-env-variables.md)
+- [I18n Runtime](./reference/04-i18n-runtime.md)
+- [SDK Changelog](./reference/05-sdk-changelog.md)
+
+## SDK
+
+- [SDK Overview](./sdk/00-overview.md)
+
+## Extensions
+
+- [Extensions Index](./extensions/module-development-index.md)
 
 ## Ownership Policy
 
@@ -33,48 +122,6 @@ This index organizes the technical documentation for the S-Kit SaaS Starter core
   - `modules/<moduleId>/README.md`
   - `modules/<moduleId>/docs/*` (optional)
 - Core docs should link to module docs instead of duplicating module internals.
-
-Exceptions (allowed in core docs):
-
-- A short module mention for platform capability mapping.
-- Stable host-side integration contract references (for example, dispatcher paths, manifest contract points, extension hook surfaces).
-
-## Core Platform (Read First)
-
-1. [Platform Technical Capabilities](./core/platform-capabilities.md)
-2. [Routing and Actions Architecture](./core/architecture-routing-actions.md)
-3. [Routing System (RouteBuilder + Proxy Chains)](./core/routing-system.md)
-4. [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./core/security.md)
-5. [Form Build System](./core/form-build-system.md)
-6. [Data Table Build System](./core/build-table-system.md)
-7. [Database Model Overview](./core/database-model.md)
-8. [Environment Variables and Runtime Config](./core/env-variables.md)
-9. [I18n Runtime](./core/i18n-runtime.md)
-10. [Theme Build-Time Only ADR](./core/theme-build-time-only-adr.md)
-
-## Billing and Subscription Flows
-
-1. [Features and Quotas](./subscriptions/features-and-quotas.md)
-2. [Payment Events and Subscription Lifecycle](./subscriptions/payment-events-lifecycle.md)
-3. [Dashboard Subscription Management](./subscriptions/dashboard-subscription-management.md)
-4. [Checkout Subscription Change Checklist](./subscriptions/checkout-subscription-change-checklist.md)
-
-## Admin and Operations
-
-1. [Admin Dashboard Modules](./operations/admin-dashboard.md)
-2. [System Activity Logs](./operations/system-activity-logs.md)
-3. [Email System (SMTP)](./operations/email-system.md)
-4. [Events and Hooks](./operations/events-hooks.md)
-5. [Events and Hooks Emitters Checklist](./operations/events-hooks-emitters.md)
-6. [Row-Level Security (RLS) Setup](./operations/rls-setup.md)
-7. [Ops Validation Pack](./operations/ops-validation-pack.md)
-8. [Ops Canary Pack](./operations/ops-canary-pack.md)
-
-## Extension Surfaces
-
-1. [Extensions Index](./extensions/module-development-index.md)
-2. [Modules Overview](./modules/00-overview.md)
-3. [SDK Overview](./sdk/00-overview.md)
 
 ## Internal Audit Tracking
 

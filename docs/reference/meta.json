@@ -1,0 +1,4 @@
+{
+  "title": "Platform Reference",
+  "pages": ["01-platform-capabilities", "02-database-model", "03-env-variables", "04-i18n-runtime", "05-sdk-changelog"]
+}

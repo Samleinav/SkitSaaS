@@ -4,9 +4,6 @@
     "admin-dashboard",
     "system-activity-logs",
     "email-system",
-    "events-hooks",
-    "events-hooks-emitters",
-    "rls-setup",
     "ops-validation-pack",
     "ops-canary-pack",
     "ops-commerce-onetime-runbook"

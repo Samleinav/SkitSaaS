@@ -9,18 +9,12 @@
     "05-config",
     "06-nav-widgets",
     "07-api-modules",
-    "08-themes",
     "09-testing",
     "10-ops-runbook",
     "11-example-module",
     "12-i18n",
     "13-source-package-template",
-    "14-auth-provider-spi",
-    "14-template-controller",
     "15-commerce-products",
-    "16-commerce-one-time-payments",
-    "16-theme-authoring-guide",
-    "17-sdk-datatables-crud",
-    "frontend-routing-and-slots"
+    "16-commerce-one-time-payments"
   ]
 }

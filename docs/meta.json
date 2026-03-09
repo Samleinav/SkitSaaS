@@ -2,13 +2,21 @@
   "title": "Documentation",
   "pages": [
     "00-documentation-index",
-    "first-steps",
-    "core",
+    "getting-started",
+    "proxies",
+    "routing",
+    "forms",
+    "datatables",
+    "security",
+    "context-area",
+    "modules",
+    "themes",
+    "hooks",
     "subscriptions",
     "operations",
-    "extensions",
-    "modules",
+    "reference",
     "sdk",
+    "extensions",
     "audit"
   ]
 }

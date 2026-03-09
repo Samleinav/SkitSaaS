@@ -265,7 +265,7 @@ All services connect to the **same** PostgreSQL database, but each service shoul
 | Admin | `saas_admin` | `saas_app` connection (fallback) | `saas_admin` connection | All tables; RLS bypassed (`BYPASSRLS`) |
 | API | `saas_api` *(custom)* or `saas_admin` | `saas_api` connection | — | Module tables + selected host tables; own RLS rules |
 
-> The `saas_app` and `saas_admin` roles are created by the RLS migration (`0026_rls_setup.sql`). See [RLS Setup](../operations/rls-setup.md) for the full setup guide.
+> The `saas_app` and `saas_admin` roles are created by the RLS migration (`0026_rls_setup.sql`). See [RLS Setup](../security/01-rls-setup.md) for the full setup guide.
 
 ### App service — `saas_app` (RLS enforced)
 
@@ -371,7 +371,7 @@ Run the RLS migration once (as superuser) to create the `saas_app` and `saas_adm
 psql "$SUPERUSER_POSTGRES_URL" -f lib/db/migrations/0026_rls_setup.sql
 ```
 
-After that, set role passwords and build your connection strings — see [RLS Setup Steps 2–3](../operations/rls-setup.md).
+After that, set role passwords and build your connection strings — see [RLS Setup Steps 2–3](../security/01-rls-setup.md).
 
 Only the primary service (usually App) needs to run `modules:sync` to register module state. If running separate build pipelines, ensure `pnpm modules:migrate && pnpm modules:sync` runs once per deployment.
 
@@ -416,7 +416,7 @@ export const ModXRoutes = {
 
 ## Further reading
 
-- [Environment Variables Reference](../core/env-variables.md) — full variable list with defaults
-- [Routing System](../core/routing-system.md) — how `configureAreaBases()` and `configureApiCors()` work internally
-- [Deployment Surface Mode](../core/env-variables.md#deployment-surface-mode) — `APP_SURFACE_MODE` details
-- [Security Architecture](../core/security.md) — session handling across services
+- [Environment Variables Reference](../reference/03-env-variables.md) — full variable list with defaults
+- [Routing System](../proxies/01-routing-system.md) — how `configureAreaBases()` and `configureApiCors()` work internally
+- [Deployment Surface Mode](../reference/03-env-variables.md#deployment-surface-mode) — `APP_SURFACE_MODE` details
+- [Security Architecture](../proxies/02-security.md) — session handling across services

@@ -9,7 +9,7 @@ Transition status (2026-02-14): build-time-only selection is active for host ren
 
 Canonical target contract and migration decisions:
 
-- [Theme Build-Time Only ADR](../core/theme-build-time-only-adr.md)
+- [Theme Build-Time Only ADR](./04-theme-build-adr.md)
 
 Theme runtime is powered by:
 
