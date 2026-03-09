@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createDataTableCrudApiRouter,
   createDataTableTemplateContract,
   createDataTableTemplateEntries
 } from '../../app/sdk/src/datatables';
+import { createDataTableCrudApiRouter } from '../../app/sdk/src/datatables/server';
 import { configureAuth, configureRevalidation } from '../../app/sdk/src/server';
 
 test('sdk root keeps datatable CRUD exports on the datatables subpath only', async () => {
   const rootSdk = await import(
     new URL('../../app/sdk/dist/index.js', import.meta.url).href
   );
-  const datatablesSdk = await import(
-    new URL('../../app/sdk/dist/datatables/index.js', import.meta.url).href
+  const datatablesServerSdk = await import(
+    new URL('../../app/sdk/dist/datatables/server.js', import.meta.url).href
   );
 
   assert.equal(
@@ -26,9 +26,9 @@ test('sdk root keeps datatable CRUD exports on the datatables subpath only', asy
     'root entry should still expose datatable contract helpers'
   );
   assert.equal(
-    typeof datatablesSdk.createDataTableCrudApiRouter,
+    typeof datatablesServerSdk.createDataTableCrudApiRouter,
     'function',
-    'datatable CRUD router should remain available from the datatables subpath'
+    'datatable CRUD router should be available from datatables/server subpath'
   );
 });
 

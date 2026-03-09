@@ -3,4 +3,3 @@ export { DEFAULT_BUILD_TABLE_PAGE, DEFAULT_BUILD_TABLE_PAGE_SIZE, filterBuildTab
 export { createBuildTableQuerySearchParams, parseBuildTableQueryState } from './query.js';
 export { createBuildTableRequestDescriptor, resolveBuildTableRemoteListResult, resolveBuildTableRemoteListUrl } from './remote.js';
 export { createDataTableTemplateContract, createDataTableTemplateEntries } from './contracts.js';
-export { createDataTableCrudApiRouter } from './crud.js';

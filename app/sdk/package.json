@@ -11,6 +11,7 @@
     "./server": "./dist/server.js",
     "./db": "./dist/db.js",
     "./datatables": "./dist/datatables/index.js",
+    "./datatables/server": "./dist/datatables/server.js",
     "./build": "./dist/build.js",
     "./testing": "./dist/testing.js"
   },

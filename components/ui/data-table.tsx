@@ -8,19 +8,15 @@ import {
   type BuildTableDefinition,
   type BuildTableQueryState,
   type BuildTableRequestActionDefinition,
-  type BuildTableSortDirection
-} from '@/app/sdk/src/datatables/definition';
-import {
+  type BuildTableSortDirection,
   createBuildTableRequestDescriptor,
   resolveBuildTableRemoteListResult,
-  resolveBuildTableRemoteListUrl
-} from '@/app/sdk/src/datatables/remote';
-import { createBuildTableQuerySearchParams } from '@/app/sdk/src/datatables/query';
-import {
+  resolveBuildTableRemoteListUrl,
+  createBuildTableQuerySearchParams,
   formatBuildTablePaginationSummary,
   normalizeBuildTableQueryState,
   resolveBuildTableView
-} from '@/app/sdk/src/datatables/state';
+} from '@skitsaas/sdk/datatables';
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -63,7 +59,7 @@ import {
 } from '@/components/ui/table';
 import { ThemeTemplate } from '@/components/ui/theme-template';
 import { useThemeRuntime } from '@/components/theme/theme-runtime-provider';
-import { notify } from '@/app/sdk/src/ui/notify';
+import { notify } from '@skitsaas/sdk';
 import { cn } from '@/lib/utils';
 
 export type DataTableLabels = {

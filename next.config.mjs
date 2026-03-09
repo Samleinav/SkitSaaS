@@ -50,6 +50,12 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   cacheComponents: true,
+  experimental: {
+    extensionAlias: {
+      '.js': ['.ts', '.tsx', '.js', '.jsx'],
+      '.jsx': ['.tsx', '.jsx'],
+    },
+  },
 
   async headers() {
     return [
