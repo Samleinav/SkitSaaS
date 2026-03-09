@@ -3,22 +3,28 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { LayoutDashboard, PanelLeft, Search } from 'lucide-react';
-import { mergeClassNames } from '@skitsaas/sdk';
+import { mergeClassNames, useI18n } from '@skitsaas/sdk';
 import { NexusThemeToggle } from '../components/nexus-theme-toggle';
 
 type LayoutPrivateHeaderData = {
+  area?: string;
   controlsSlot?: ReactNode;
 };
 
 type LayoutPrivateHeaderTemplateProps = {
   data?: LayoutPrivateHeaderData;
   className?: string;
+  themeId?: string;
 };
 
 export default function LayoutPrivateHeaderTemplate({
   data,
-  className
+  className,
+  themeId
 }: LayoutPrivateHeaderTemplateProps) {
+  const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
+  const t = useI18n({ themeId, area });
+
   return (
     <header
       data-nexus-private-header
@@ -43,7 +49,7 @@ export default function LayoutPrivateHeaderTemplate({
       {/* Sidebar toggle — all sizes */}
       <button
         type="button"
-        aria-label="Toggle sidebar"
+        aria-label={t('Toggle sidebar')}
         onClick={() => {
           const isDesktop = window.matchMedia('(min-width: 1280px)').matches;
           if (isDesktop) {
@@ -64,7 +70,7 @@ export default function LayoutPrivateHeaderTemplate({
           className="inline-flex h-9 w-full max-w-sm items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/60"
         >
           <Search className="h-3.5 w-3.5 shrink-0" />
-          <span>Search...</span>
+          <span>{t('Search...')}</span>
           <span className="ml-auto rounded border border-border/80 px-1.5 py-0.5 text-[10px] tracking-wide uppercase">
             Ctrl K
           </span>
@@ -74,7 +80,7 @@ export default function LayoutPrivateHeaderTemplate({
       {/* Search icon — mobile */}
       <button
         type="button"
-        aria-label="Search"
+        aria-label={t('Search')}
         className="md:hidden ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
       >
         <Search className="h-4 w-4" />

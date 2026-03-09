@@ -9,10 +9,15 @@ import {
   LogOut
 } from 'lucide-react';
 import Link from 'next/link';
+import { useI18n } from '@skitsaas/sdk';
 
 type User = {
   name?: string | null;
   email?: string | null;
+};
+
+type NexusSidebarUserProps = {
+  themeId?: string;
 };
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -27,7 +32,8 @@ function getInitials(name?: string | null, email?: string | null): string {
   return '??';
 }
 
-export function NexusSidebarUser() {
+export function NexusSidebarUser({ themeId }: NexusSidebarUserProps) {
+  const t = useI18n({ themeId, area: 'admin' });
   const [user, setUser] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,7 +96,7 @@ export function NexusSidebarUser() {
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <BadgeCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Account
+              {t('Account')}
             </Link>
             <Link
               href="/dashboard/subscriptions"
@@ -98,7 +104,7 @@ export function NexusSidebarUser() {
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Billing
+              {t('Billing')}
             </Link>
             <Link
               href="/dashboard/security"
@@ -106,7 +112,7 @@ export function NexusSidebarUser() {
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Notifications
+              {t('Notifications')}
             </Link>
           </div>
 
@@ -119,7 +125,7 @@ export function NexusSidebarUser() {
               className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut className="h-4 w-4 shrink-0 text-muted-foreground" />
-              Log out
+              {t('Log out')}
             </button>
           </div>
         </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { mergeClassNames } from '@skitsaas/sdk';
+import { mergeClassNames, useI18n } from '@skitsaas/sdk';
 import type { TemplateData as BaseTemplateData, TemplateProps } from '../template-types';
 import {
   ChevronRight,
@@ -40,15 +40,10 @@ type AdminNavTemplateData = BaseTemplateData & {
   navItems?: TemplateNavItem[];
 };
 
+type AdminNavTemplateProps = TemplateProps<AdminNavTemplateData> & { themeId?: string };
+
 // 'settings' is never in NAV_GROUP_ORDER — it's pinned below the scroll area
 type NavGroupKey = 'dashboards' | 'apps' | 'settings';
-
-const NAV_GROUP_ORDER: NavGroupKey[] = ['dashboards', 'apps'];
-const NAV_GROUP_LABEL: Record<NavGroupKey, string> = {
-  dashboards: 'Dashboards',
-  apps: 'Apps',
-  settings: 'Settings'
-};
 
 const iconMap: Record<string, LucideIcon> = {
   'layout-dashboard': LayoutDashboard,
@@ -104,11 +99,15 @@ function resolveNavGroup(item: TemplateNavItem): NavGroupKey {
   return 'apps';
 }
 
+const NAV_GROUP_ORDER: NavGroupKey[] = ['dashboards', 'apps'];
+
 export default function SectionAdminNavTemplate({
   data,
   className,
-  children
-}: TemplateProps<AdminNavTemplateData>) {
+  children,
+  themeId
+}: AdminNavTemplateProps) {
+  const t = useI18n({ themeId, area: 'admin' });
   const pathname = usePathname();
 
   // Filter out Logs — it lives in App Config instead
@@ -217,7 +216,7 @@ export default function SectionAdminNavTemplate({
                   [item.href]: !isExpanded
                 }));
               }}
-              aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+              aria-label={`${isExpanded ? t('Collapse') : t('Expand')} ${item.label}`}
               aria-expanded={isExpanded}
             >
               <ChevronRight
@@ -286,7 +285,7 @@ export default function SectionAdminNavTemplate({
           return (
             <section key={groupKey} className="space-y-0.5">
               <p className="px-2 pt-1 pb-1 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-                {NAV_GROUP_LABEL[groupKey]}
+                {t(groupKey === 'dashboards' ? 'Dashboards' : groupKey === 'apps' ? 'Apps' : 'Settings')}
               </p>
               <div className="space-y-0.5">{items.map(renderItem)}</div>
             </section>
@@ -294,7 +293,7 @@ export default function SectionAdminNavTemplate({
         })}
       </div>
 
-      {/* App Config — always pinned at bottom */}
+      {/* Settings — always pinned at bottom */}
       {groupedItems['settings'].length > 0 && (
         <div className="shrink-0 border-t border-sidebar-border/70 p-2 space-y-0.5">
           {groupedItems['settings'].map(renderItem)}

@@ -1,3 +1,17 @@
 {
-  "Admin table": "Tableau d'administration"
+  "Account": "Compte",
+  "Admin Dashboard": "Tableau de bord Admin",
+  "Admin table": "Tableau d'administration",
+  "Apps": "Applications",
+  "Billing": "Facturation",
+  "Close sidebar": "Fermer le panneau",
+  "Collapse": "Réduire",
+  "Dashboards": "Tableaux de bord",
+  "Expand": "Développer",
+  "Log out": "Se déconnecter",
+  "Notifications": "Notifications",
+  "Search": "Rechercher",
+  "Search...": "Rechercher...",
+  "Settings": "Paramètres",
+  "Toggle sidebar": "Basculer le panneau"
 }

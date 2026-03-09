@@ -1,3 +1,10 @@
 {
-  "Dashboard table": "Tableau du dashboard"
+  "Account": "Compte",
+  "Billing": "Facturation",
+  "Dashboard table": "Tableau du dashboard",
+  "Log out": "Se déconnecter",
+  "Notifications": "Notifications",
+  "Search": "Rechercher",
+  "Search...": "Rechercher...",
+  "Toggle sidebar": "Basculer le panneau"
 }

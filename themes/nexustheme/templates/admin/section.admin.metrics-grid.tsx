@@ -20,11 +20,13 @@ export default function SectionAdminMetricsGridTemplate({
   return (
     <section
       className={mergeClassNames(
-        '@container/metrics grid gap-4',
-        columnClassName,
+        '@container/metrics',
         variant === 'users' ? '2xl:max-w-5xl' : null,
-        // Apply gradient styling to all direct card children
-        '*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-sm',
+        // Apply gradient styling to any descendant card (works even when cards
+        // are wrapped in the page's own grid div passed as children)
+        '[&_[data-slot=card]]:from-primary/5 [&_[data-slot=card]]:to-card',
+        'dark:[&_[data-slot=card]]:bg-card [&_[data-slot=card]]:bg-gradient-to-t',
+        '[&_[data-slot=card]]:shadow-sm',
         className
       )}
       data-metrics-columns={columns}
