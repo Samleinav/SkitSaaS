@@ -3,5 +3,5 @@
   "moduleMode": "source-host",
   "version": "0.1.0",
   "sourceEntry": "src/manifest.ts",
-  "sdkRange": "^1.1.3"
+  "sdkRange": "^1.3.0"
 }

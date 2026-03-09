@@ -24,7 +24,7 @@ importers:
         version: 10.0.1
       '@skitsaas/sdk':
         specifier: file:app/sdk
-        version: file:app/sdk(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        version: file:app/sdk(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
       '@tailwindcss/postcss':
         specifier: 4.1.7
         version: 4.1.7
@@ -160,8 +160,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.3
-        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.3.0
+        version: 1.3.0(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/first-frontend:
     dependencies:
@@ -176,8 +176,8 @@ importers:
         version: 19.1.0(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.3
-        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.3.0
+        version: 1.3.0(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
   themes/nexustheme:
     dependencies:
@@ -291,8 +291,8 @@ importers:
         version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.4))(@types/react@19.1.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@skitsaas/sdk':
-        specifier: ^1.1.3
-        version: 1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
+        specifier: ^1.3.0
+        version: 1.3.0(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)
 
 packages:
 
@@ -2392,15 +2392,17 @@ packages:
     resolution: {integrity: sha512-SFXke7xkgPRowY2E+8djKbdEznTVnD5R6GO7GPTthpHrokLvNKw8C3lFZypTxLI7KkCfGPfhtqB3d7OVGGa9jQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
-  '@skitsaas/sdk@1.1.3':
-    resolution: {integrity: sha512-SfbnkLRFC2W68pymX/hQidf93wvjylq76tLPPDeyjQiUYngqsxEgMEKVQ7F93Myz4fc6jdbazrMLJmfiZfMEQQ==}
+  '@skitsaas/sdk@1.3.0':
+    resolution: {integrity: sha512-N0Qd4tIBM//rCwXrQqQ6s8xhHZSM8r0J1uL7D9mxC5kQ6XmDIC+d2+OxtH28GGt/RkDyg0GhlK5ueBjh6u3t6g==}
     peerDependencies:
+      '@tanstack/react-table': ^8.21.3
       drizzle-orm: ^0.43.1
       react: ^19.0.0
 
   '@skitsaas/sdk@file:app/sdk':
     resolution: {directory: app/sdk, type: directory}
     peerDependencies:
+      '@tanstack/react-table': ^8.21.3
       drizzle-orm: ^0.43.1
       react: ^19.0.0
 
@@ -7253,14 +7255,17 @@ snapshots:
 
   '@simplewebauthn/types@10.0.0': {}
 
-  '@skitsaas/sdk@1.1.3(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
+  '@skitsaas/sdk@1.3.0(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
     dependencies:
+      '@tanstack/react-table': 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@vinejs/vine': 4.3.0
       drizzle-orm: 0.43.1(gel@2.1.0)(postgres@3.4.5)
       react: 19.1.0
       typescript: 5.8.3
 
-  '@skitsaas/sdk@file:app/sdk(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
+  '@skitsaas/sdk@file:app/sdk(@tanstack/react-table@8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(drizzle-orm@0.43.1(gel@2.1.0)(postgres@3.4.5))(react@19.1.0)':
     dependencies:
+      '@tanstack/react-table': 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@vinejs/vine': 4.3.0
       drizzle-orm: 0.43.1(gel@2.1.0)(postgres@3.4.5)
       react: 19.1.0
