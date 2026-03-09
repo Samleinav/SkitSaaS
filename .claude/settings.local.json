@@ -16,7 +16,9 @@
       "Bash(ls:*)",
       "WebFetch",
       "Bash(pnpm build)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(cat /app/serviceentomai/s-kit-saas/app/\\\\\\(dashboard\\\\\\)/admin/orders/[orderId]/edit/page.tsx)",
+      "Bash(pnpm install)"
     ]
   }
 }

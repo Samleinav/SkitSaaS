@@ -14,15 +14,15 @@ export type ThemeAreaAssetsBundle = {
 
 export const CORE_ASSETS_BY_AREA: Record<ThemeSelectionArea, CoreAreaAssetsBundle> = {
   "admin": {
-    "cssHref": "/.generated/core-assets/admin/core-61a20be4ceaf.css",
+    "cssHref": "/.generated/core-assets/admin/core-78bfc8e991b5.css",
     "scriptHref": null
   },
   "dashboard": {
-    "cssHref": "/.generated/core-assets/dashboard/core-61a20be4ceaf.css",
+    "cssHref": "/.generated/core-assets/dashboard/core-78bfc8e991b5.css",
     "scriptHref": null
   },
   "frontend": {
-    "cssHref": "/.generated/core-assets/frontend/core-61a20be4ceaf.css",
+    "cssHref": "/.generated/core-assets/frontend/core-78bfc8e991b5.css",
     "scriptHref": null
   }
 };
@@ -87,7 +87,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     "admin": {
       "cssHrefs": [
         "/.generated/theme-assets/theme.nexus/admin/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-296229c1dd1e.css"
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-b559a65c2fc2.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -96,7 +96,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     "dashboard": {
       "cssHrefs": [
         "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-296229c1dd1e.css"
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-b559a65c2fc2.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,

@@ -71,6 +71,39 @@ export type ModuleTemplatePack = {
   overrides?: ModuleTemplatePackEntry[];
 };
 
+export type ModuleRuntimeConfigFieldKind =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'
+  | 'password'
+  | 'select';
+
+export type ModuleRuntimeConfigFieldOption = {
+  value: string;
+  label: string;
+};
+
+export type ModuleRuntimeConfigField = {
+  configKey: string;
+  label: string;
+  description?: string;
+  namespace?: string;
+  envKey?: string;
+  kind?: ModuleRuntimeConfigFieldKind;
+  placeholder?: string;
+  defaultValue?: string;
+  secret?: boolean;
+  options?: ModuleRuntimeConfigFieldOption[];
+};
+
+export type ModuleRuntimeConfig = {
+  namespace?: string;
+  title?: string;
+  description?: string;
+  fields: ModuleRuntimeConfigField[];
+};
+
 export type ModuleAuthProviderKind =
   | 'passkey'
   | 'oauth2'
@@ -162,6 +195,7 @@ export type ModuleManifest = {
   apiRoutes?: ApiRouteEntry[];
   eventHandlers?: ModuleEventHandler[];
   templatePack?: ModuleTemplatePack;
+  runtimeConfig?: ModuleRuntimeConfig;
   authProviders?: ModuleAuthProvider[];
   paymentMethods?: ModulePaymentMethod[];
   standaloneHomeComponent?: ComponentType<{ userId: number }>;
@@ -181,6 +215,11 @@ export function validateModuleManifest(manifest: ModuleManifest) {
   const slotIdPattern = componentIdPattern;
   const authProviderIdPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
   const paymentMethodIdPattern = authProviderIdPattern;
+  const runtimeConfigNamespacePattern =
+    /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
+  const runtimeConfigKeyPattern =
+    /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
+  const runtimeConfigEnvKeyPattern = /^[A-Z][A-Z0-9_]*$/;
 
   if (!manifest.moduleId || !manifest.moduleId.trim()) {
     errors.push('module_id_missing');
@@ -302,6 +341,102 @@ export function validateModuleManifest(manifest: ModuleManifest) {
   if (manifest.templatePack) {
     validateTemplateEntries(manifest.templatePack.defaults, 'defaults');
     validateTemplateEntries(manifest.templatePack.overrides, 'overrides');
+  }
+
+  if (manifest.runtimeConfig) {
+    const namespace = manifest.runtimeConfig.namespace?.trim();
+    if (
+      namespace !== undefined &&
+      (!namespace || !runtimeConfigNamespacePattern.test(namespace))
+    ) {
+      errors.push('module_runtime_config_namespace_invalid');
+    }
+
+    if (
+      !Array.isArray(manifest.runtimeConfig.fields) ||
+      manifest.runtimeConfig.fields.length === 0
+    ) {
+      errors.push('module_runtime_config_fields_missing');
+    } else {
+      const seenFieldIds = new Set<string>();
+
+      for (let index = 0; index < manifest.runtimeConfig.fields.length; index += 1) {
+        const field = manifest.runtimeConfig.fields[index];
+        const configKey = String(field?.configKey ?? '').trim();
+        const fieldNamespace = field?.namespace?.trim();
+        const fieldId = `${fieldNamespace ?? namespace ?? ''}:${configKey}`;
+
+        if (!configKey || !runtimeConfigKeyPattern.test(configKey)) {
+          errors.push(`module_runtime_config_key_invalid:${index}`);
+          continue;
+        }
+
+        if (!field?.label || !String(field.label).trim()) {
+          errors.push(`module_runtime_config_label_invalid:${index}`);
+        }
+
+        if (
+          fieldNamespace !== undefined &&
+          (!fieldNamespace || !runtimeConfigNamespacePattern.test(fieldNamespace))
+        ) {
+          errors.push(`module_runtime_config_namespace_invalid:${index}`);
+        }
+
+        if (
+          field?.envKey !== undefined &&
+          (!field.envKey.trim() ||
+            !runtimeConfigEnvKeyPattern.test(field.envKey.trim()))
+        ) {
+          errors.push(`module_runtime_config_env_key_invalid:${index}`);
+        }
+
+        const kind = field?.kind ?? 'text';
+        if (
+          kind !== 'text' &&
+          kind !== 'textarea' &&
+          kind !== 'number' &&
+          kind !== 'boolean' &&
+          kind !== 'password' &&
+          kind !== 'select'
+        ) {
+          errors.push(`module_runtime_config_kind_invalid:${index}`);
+        }
+
+        if (seenFieldIds.has(fieldId)) {
+          errors.push(`module_runtime_config_duplicate:${fieldId}`);
+        } else {
+          seenFieldIds.add(fieldId);
+        }
+
+        if (kind === 'select') {
+          if (!Array.isArray(field?.options) || field.options.length === 0) {
+            errors.push(`module_runtime_config_select_options_missing:${index}`);
+          } else {
+            const seenOptionValues = new Set<string>();
+            for (const option of field.options) {
+              const optionValue = String(option?.value ?? '').trim();
+              const optionLabel = String(option?.label ?? '').trim();
+              if (!optionValue) {
+                errors.push(`module_runtime_config_select_option_value_invalid:${index}`);
+                continue;
+              }
+
+              if (!optionLabel) {
+                errors.push(`module_runtime_config_select_option_label_invalid:${index}`);
+              }
+
+              if (seenOptionValues.has(optionValue)) {
+                errors.push(
+                  `module_runtime_config_select_option_duplicate:${index}:${optionValue}`
+                );
+              } else {
+                seenOptionValues.add(optionValue);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   if (manifest.authProviders) {

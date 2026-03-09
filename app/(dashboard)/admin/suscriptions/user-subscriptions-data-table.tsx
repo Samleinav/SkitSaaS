@@ -5,7 +5,7 @@ import {
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
 import {
-  getUserSubscriptionsColumns,
+  getUserSubscriptionsTableDefinition,
   type AdminUserSubscriptionRow
 } from './user-subscriptions-columns';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
@@ -23,12 +23,9 @@ export function AdminUserSubscriptionsDataTable({
 }: AdminUserSubscriptionsDataTableProps) {
   return (
     <DataTable
-      columns={getUserSubscriptionsColumns(messages)}
-      data={data}
+      definition={getUserSubscriptionsTableDefinition({ data, messages })}
       labels={messages.dataTable}
       template={tableTemplate}
-      filterColumn="email"
-      filterPlaceholder={messages.usersPage.filterPlaceholder}
       tableClassName="min-w-[860px]"
     />
   );

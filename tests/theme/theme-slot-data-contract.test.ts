@@ -255,6 +255,13 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
+    filePath: 'app/(dashboard)/admin/app-config/modules/page.tsx',
+    renderer: 'ThemeCodeTemplate',
+    requiredSnippets: ['id="page.admin.app-config.modules"'],
+    requiredDataKeys: ['title', 'description', 'runtimeMode'],
+    requiresFallbackProp: true
+  },
+  {
     filePath: 'app/(dashboard)/admin/app-config/email/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="page.admin.app-config.email"'],

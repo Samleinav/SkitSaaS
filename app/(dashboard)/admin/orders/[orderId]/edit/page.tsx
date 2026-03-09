@@ -7,32 +7,19 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateAsyncSubmitButton } from '@/components/ui/template-async-submit-button';
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { Button } from '@/components/ui/button';
+import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import {
   getPaymentOrderForAdminById,
   getPaymentOrderFormOptionsForAdmin
 } from '@/lib/db/queries.admin';
 import { getServerMessages } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
-import { updatePaymentOrderAction } from '../../actions';
 import { requireAdminAccess } from '../../../guards';
-import {
-  ORDER_PROVIDERS,
-  ORDER_STATUSES,
-  toTemplateAmountLabel
-} from '../../form-utils';
-
-function toMajorAmount(amountInCents: number | null) {
-  if (amountInCents === null) {
-    return '';
-  }
-
-  return (amountInCents / 100).toFixed(2);
-}
+import { toTemplateAmountLabel } from '../../form-utils';
+import { createAdminEditOrderBuildFormBase } from '../../forms';
 
 export default async function AdminEditOrderPage({
   params
@@ -58,18 +45,79 @@ export default async function AdminEditOrderPage({
     notFound();
   }
 
-  const amountMajorDefault = toMajorAmount(order.amount);
-  const isTemplateMaintenanceEvent = order.eventType.startsWith(
-    'subscription.template.'
-  );
-
-  const statusLabelMap = {
-    pending: ordersPage.table.pending,
-    received: ordersPage.table.received,
-    canceled: ordersPage.table.canceled,
-    failed: ordersPage.table.failed
-  } as const;
+  const isLegacyEvent = order.eventType.startsWith('subscription.template.');
   const themeSelection = await getThemeSelectionForArea('admin');
+  const intervalLabels = messages.templateForm.intervals;
+
+  const editOrderForm = composeRegisteredBuildFormDefinition(
+    'admin-edit-order-form',
+    createAdminEditOrderBuildFormBase({
+      copy: {
+        providerLabel: ordersPage.form.providerLabel,
+        statusLabel: ordersPage.form.statusLabel,
+        eventTypeLabel: ordersPage.form.eventTypeLabel,
+        teamIdLabel: ordersPage.form.teamIdLabel,
+        teamIdHint: ordersPage.form.teamIdHint,
+        templateIdLabel: ordersPage.form.templateIdLabel,
+        templateIdHint: ordersPage.form.templateIdHint,
+        paymentMethodLabel: ordersPage.form.paymentMethodLabel,
+        planNameLabel: ordersPage.form.planNameLabel,
+        amountMajorLabel: ordersPage.form.amountMajorLabel,
+        amountMajorHint: ordersPage.form.amountMajorHint,
+        currencyLabel: ordersPage.form.currencyLabel,
+        messageLabel: ordersPage.form.messageLabel,
+        messagePlaceholder: ordersPage.form.messagePlaceholder,
+        providerPlanIdLabel: ordersPage.form.providerPlanIdLabel,
+        externalPaymentIdLabel: ordersPage.form.externalPaymentIdLabel,
+        externalOrderIdLabel: ordersPage.form.externalOrderIdLabel,
+        statusLabels: {
+          pending: ordersPage.table.pending,
+          received: ordersPage.table.received,
+          canceled: ordersPage.table.canceled,
+          failed: ordersPage.table.failed
+        }
+      }
+    }),
+    {
+      submit: {
+        idleLabel: ordersPage.saveOrder,
+        pendingLabel: ordersPage.savingOrder,
+        successLabel: ordersPage.savedOrder,
+        align: 'start'
+      },
+      values: {
+        orderId: order.id,
+        status: order.status,
+        provider: order.provider,
+        paymentMethod: order.paymentMethod ?? '',
+        planName: order.planName ?? '',
+        message: order.message ?? '',
+        teamId: order.teamId ?? null,
+        subscriptionTemplateId: order.subscriptionTemplateId ?? null,
+        amountMajor:
+          order.amount !== null ? String((order.amount / 100).toFixed(2)) : '',
+        currency: order.currency ?? '',
+        providerPlanId: order.providerPlanId ?? '',
+        externalPaymentId: order.externalPaymentId ?? '',
+        externalOrderId: order.externalOrderId ?? ''
+      },
+      dynamicOptions: {
+        teamOptions: formOptions.teams.map((t) => ({
+          value: t.id,
+          label: `${t.name} (#${t.id})`
+        })),
+        templateOptions: formOptions.templates.map((t) => {
+          const intervalLabel =
+            intervalLabels[t.billingInterval as keyof typeof intervalLabels] ||
+            t.billingInterval;
+          return {
+            value: t.id,
+            label: `${t.name} (#${t.id}) — ${intervalLabel} — ${toTemplateAmountLabel(t.priceCents, t.currency)}`
+          };
+        })
+      }
+    }
+  );
 
   const fallbackPage = (
     <Card>
@@ -82,206 +130,62 @@ export default async function AdminEditOrderPage({
           <Link href="/admin/orders">{ordersPage.backToOrders}</Link>
         </Button>
       </CardHeader>
-      <CardContent>
-        <form action={updatePaymentOrderAction} className="grid gap-4 md:grid-cols-2">
-          <input type="hidden" name="orderId" value={order.id} />
-
-          {isTemplateMaintenanceEvent ? (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 md:col-span-2">
-              {ordersPage.legacySystemEventWarning}
+      <CardContent className="space-y-4">
+        {isLegacyEvent && (
+          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+            {ordersPage.legacySystemEventWarning}
+          </div>
+        )}
+        {(order.providerPlanId ||
+          order.externalPaymentId ||
+          order.externalOrderId) && (
+          <div className="space-y-2 rounded-lg border border-border/60 bg-muted/10 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Provider References
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Managed by the payment provider — read only.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {order.providerPlanId && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {ordersPage.form.providerPlanIdLabel}
+                  </p>
+                  <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
+                    {order.providerPlanId}
+                  </p>
+                </div>
+              )}
+              {order.externalPaymentId && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {ordersPage.form.externalPaymentIdLabel}
+                  </p>
+                  <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
+                    {order.externalPaymentId}
+                  </p>
+                </div>
+              )}
+              {order.externalOrderId && (
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {ordersPage.form.externalOrderIdLabel}
+                  </p>
+                  <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
+                    {order.externalOrderId}
+                  </p>
+                </div>
+              )}
             </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <Label htmlFor="order-provider">{ordersPage.form.providerLabel}</Label>
-            <select
-              id="order-provider"
-              name="provider"
-              defaultValue={order.provider}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {ORDER_PROVIDERS.map((provider) => (
-                <option key={provider} value={provider}>
-                  {provider}
-                </option>
-              ))}
-            </select>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-status">{ordersPage.form.statusLabel}</Label>
-            <select
-              id="order-status"
-              name="status"
-              defaultValue={order.status}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {ORDER_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {statusLabelMap[status]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground md:col-span-2">
-            {`${ordersPage.form.eventTypeLabel}: ${order.eventType}`}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-team-id">{ordersPage.form.teamIdLabel}</Label>
-            <select
-              id="order-team-id"
-              name="teamId"
-              defaultValue={order.teamId ? String(order.teamId) : ''}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{ordersPage.table.none}</option>
-              {formOptions.teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {`${team.name} (#${team.id})`}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              {ordersPage.form.teamIdHint}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-template-id">
-              {ordersPage.form.templateIdLabel}
-            </Label>
-            <select
-              id="order-template-id"
-              name="subscriptionTemplateId"
-              defaultValue={
-                order.subscriptionTemplateId
-                  ? String(order.subscriptionTemplateId)
-                  : ''
-              }
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{ordersPage.table.none}</option>
-              {formOptions.templates.map((template) => {
-                const intervalLabel =
-                  messages.templateForm.intervals[
-                    template.billingInterval as keyof typeof messages.templateForm.intervals
-                  ] || template.billingInterval;
-
-                return (
-                  <option key={template.id} value={template.id}>
-                    {`${template.name} (#${template.id}) - ${intervalLabel} - ${toTemplateAmountLabel(template.priceCents, template.currency)}`}
-                  </option>
-                );
-              })}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              {ordersPage.form.templateIdHint}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-payment-method">
-              {ordersPage.form.paymentMethodLabel}
-            </Label>
-            <Input
-              id="order-payment-method"
-              name="paymentMethod"
-              defaultValue={order.paymentMethod || ''}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-plan-name">{ordersPage.form.planNameLabel}</Label>
-            <Input
-              id="order-plan-name"
-              name="planName"
-              defaultValue={order.planName || ''}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-provider-plan-id">
-              {ordersPage.form.providerPlanIdLabel}
-            </Label>
-            <Input
-              id="order-provider-plan-id"
-              name="providerPlanId"
-              defaultValue={order.providerPlanId || ''}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-amount-major">
-              {ordersPage.form.amountMajorLabel}
-            </Label>
-            <Input
-              id="order-amount-major"
-              name="amountMajor"
-              type="number"
-              min={0}
-              step="0.01"
-              inputMode="decimal"
-              defaultValue={amountMajorDefault}
-            />
-            <p className="text-xs text-muted-foreground">
-              {ordersPage.form.amountMajorHint}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-currency">{ordersPage.form.currencyLabel}</Label>
-            <Input
-              id="order-currency"
-              name="currency"
-              defaultValue={order.currency || ''}
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="order-message">{ordersPage.form.messageLabel}</Label>
-            <textarea
-              id="order-message"
-              name="message"
-              defaultValue={order.message || ''}
-              placeholder={ordersPage.form.messagePlaceholder}
-              className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-external-payment-id">
-              {ordersPage.form.externalPaymentIdLabel}
-            </Label>
-            <Input
-              id="order-external-payment-id"
-              name="externalPaymentId"
-              defaultValue={order.externalPaymentId || ''}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="order-external-order-id">
-              {ordersPage.form.externalOrderIdLabel}
-            </Label>
-            <Input
-              id="order-external-order-id"
-              name="externalOrderId"
-              defaultValue={order.externalOrderId || ''}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <TemplateAsyncSubmitButton
-              area="admin"
-              route={`/admin/orders/${order.id}/edit`}
-              idleLabel={ordersPage.saveOrder}
-              pendingLabel={ordersPage.savingOrder}
-              successLabel={ordersPage.savedOrder}
-            />
-          </div>
-        </form>
+        )}
+        <TemplateBuildForm
+          definition={editOrderForm}
+          area="admin"
+          route={`/admin/orders/${order.id}/edit`}
+          slot="admin.orders.edit"
+        />
       </CardContent>
     </Card>
   );

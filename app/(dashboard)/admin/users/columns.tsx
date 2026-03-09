@@ -106,7 +106,9 @@ export function getColumns(
       accessorKey: 'role',
       header: usersTable.roleHeader,
       cell: ({ row }) => (
-        <span className="text-sm capitalize">{row.original.role}</span>
+        <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-foreground">
+          {row.original.role}
+        </span>
       )
     },
     {
@@ -116,7 +118,7 @@ export function getColumns(
         const fallbackCell = (
           <div className="space-y-1">
             <span
-              className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getAdminUserStatusClassName(
+              className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getAdminUserStatusClassName(
                 row.original.status
               )}`}
             >
@@ -275,7 +277,11 @@ export function getUserTableDefinition({
       buildTableColumn.text<AdminUserRow>({
         key: 'role',
         header: usersTable.roleHeader,
-        cell: (row) => <span className="text-sm capitalize">{row.role}</span>
+        cell: (row) => (
+          <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-foreground">
+            {row.role}
+          </span>
+        )
       }),
       buildTableColumn.text<AdminUserRow>({
         key: 'status',
@@ -290,7 +296,7 @@ export function getUserTableDefinition({
           >
             <div className="space-y-1">
               <span
-                className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getAdminUserStatusClassName(
+                className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${getAdminUserStatusClassName(
                   row.status
                 )}`}
               >

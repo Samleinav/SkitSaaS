@@ -17,8 +17,10 @@ import {
 import { upsertOrganizationControlsAction } from '@/app/(dashboard)/admin/app-config/actions';
 import {
   clearTeamSubscriptionAction,
+  createSubscriptionTemplateAction,
   deleteSubscriptionTemplateAction,
   requestTemplateActiveSubscriptionsUpdateAction,
+  updateSubscriptionTemplateAction,
   updateTeamSubscriptionAction,
   updateUserSubscriptionAction
 } from '@/app/(dashboard)/admin/subscriptions/actions';
@@ -26,6 +28,10 @@ import {
   cancelUserSubscriptionAction,
   manageOrganizationSubscriptionAction
 } from '@/app/(dashboard)/dashboard/subscriptions/actions';
+import {
+  createPaymentOrderAction,
+  updatePaymentOrderAction
+} from '@/app/(dashboard)/admin/orders/actions';
 import { updateAccount } from '@/app/(dashboard)/dashboard/general/actions';
 import {
   deleteAccount,
@@ -72,6 +78,8 @@ export const registerBuildForm = registerBuildFormController;
 const buildFormControllerSubmitActions: Partial<
   Record<string, BuildFormRequestActionFunction>
 > = {
+  'admin-create-order-form': createPaymentOrderAction,
+  'admin-edit-order-form': updatePaymentOrderAction,
   'admin-create-user-form': createUserAction,
   'admin-edit-user-profile-form': updateUserProfileAction,
   'admin-update-user-status-form': updateUserAccountStatusAction,
@@ -80,6 +88,8 @@ const buildFormControllerSubmitActions: Partial<
   'admin-update-user-subscription-form': updateUserSubscriptionAction,
   'admin-manage-organization-subscription-form': updateTeamSubscriptionAction,
   'admin-clear-organization-subscription-form': clearTeamSubscriptionAction,
+  'admin-create-subscription-template-form': createSubscriptionTemplateAction,
+  'admin-edit-subscription-template-form': updateSubscriptionTemplateAction,
   'admin-request-template-active-update-form':
     requestTemplateActiveSubscriptionsUpdateAction,
   'admin-delete-subscription-template-form': deleteSubscriptionTemplateAction,

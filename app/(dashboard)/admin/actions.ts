@@ -19,7 +19,9 @@ export {
 export {
   upsertOrganizationControlsAction,
   upsertPaymentProviderConfigAction,
-  upsertProviderConfigBatchAction
+  upsertProviderConfigBatchAction,
+  upsertModuleRuntimeConfigAction,
+  setModuleRuntimeStatusAction
 } from './app-config/actions';
 export {
   createPaymentOrderAction,

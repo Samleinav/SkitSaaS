@@ -2,6 +2,7 @@ import type { InputHTMLAttributes } from 'react';
 import type {
   BuildFormColumns,
   BuildFormCheckboxFieldDefinition,
+  BuildFormRepeaterFieldDefinition,
   BuildFormDefinition,
   BuildFormFieldColSpan,
   BuildFormFieldDefinition,
@@ -127,10 +128,11 @@ export function resolveBuildFormFieldValue(
   definition: BuildFormDefinition,
   field: BuildFormFieldDefinition
 ): BuildFormValue | undefined {
+  const fallback = 'defaultValue' in field ? field.defaultValue : undefined;
   return resolveBuildFormValue({
     definition,
     fieldName: field.name,
-    fallback: field.defaultValue
+    fallback
   });
 }
 
@@ -150,8 +152,11 @@ export function resolveBuildFormCheckboxChecked(
 
 function buildFormFieldSupportsInputMode(
   field: BuildFormFieldDefinition
-): field is Exclude<BuildFormFieldDefinition, BuildFormCheckboxFieldDefinition> {
-  return field.kind !== 'checkbox';
+): field is Exclude<
+  BuildFormFieldDefinition,
+  BuildFormCheckboxFieldDefinition | BuildFormRepeaterFieldDefinition
+> {
+  return field.kind !== 'checkbox' && field.kind !== 'repeater';
 }
 
 export function resolveBuildFormInputMode(

@@ -294,13 +294,70 @@ const messages = {
       general: 'General',
       paymentMethods: 'Payment methods',
       email: 'Email',
+      modules: 'Modules',
       theme: 'Theme'
     },
     sectionDescriptions: {
       general: 'Core organization settings and shared behavior.',
       paymentMethods: 'Configure Stripe/PayPal runtime keys and provider options.',
       email: 'Configure SMTP delivery and inspect notification logs.',
+      modules:
+        'Review installed modules, edit manifest-defined runtime values, and disable modules in an emergency.',
       theme: 'Control theme mode and default experiences per area.'
+    },
+    modules: {
+      title: 'Modules',
+      description:
+        'Review module runtime state, edit manifest-defined DB fallback values, and use the DB emergency switch when allowed.',
+      inventoryTitle: 'Module inventory',
+      inventoryDescription:
+        'Effective runtime status depends on module runtime mode plus any app.config/env overrides.',
+      runtimeModeLabel: 'Runtime mode',
+      runtimeModeDescription:
+        'DB mode uses app_modules state. Hybrid merges DB with app.config/env overrides. Config mode ignores DB status.',
+      runtimeModes: {
+        db: 'DB',
+        hybrid: 'Hybrid',
+        config: 'Config'
+      },
+      table: {
+        module: 'Module',
+        dbStatus: 'DB status',
+        effectiveStatus: 'Effective status',
+        installMode: 'Install mode',
+        runtimeFields: 'Runtime fields',
+        actions: 'Actions'
+      },
+      versionLabel: 'Version',
+      manage: 'Manage',
+      save: 'Save module config',
+      saving: 'Saving module config...',
+      enable: 'Enable',
+      enabling: 'Enabling...',
+      disable: 'Disable',
+      disabling: 'Disabling...',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      installed: 'Installed',
+      uninstalled: 'Uninstalled',
+      toggleTitle: 'Runtime status',
+      toggleDescription:
+        'Use this as an emergency switch when DB status participates in runtime resolution.',
+      toggleLockedConfigMode:
+        'This installation is running in config mode. DB status does not control the effective module state.',
+      toggleLockedOverride:
+        'This module is explicitly overridden by app.config/env. Remove that override to use the DB emergency switch.',
+      configTitle: 'Runtime config',
+      configDescription:
+        'Editable fallback values declared by the module manifest. Environment values still have priority.',
+      noConfigTitle: 'No editable runtime config',
+      noConfigDescription:
+        'This module does not declare runtime fields for BuildForm rendering.',
+      noRuntimeFields: 'No runtime fields',
+      oneRuntimeField: '1 field',
+      multipleRuntimeFields: '{count} fields',
+      overrideEnabled: 'Forced enabled by app.config/env',
+      overrideDisabled: 'Forced disabled by app.config/env'
     },
     organization: {
       title: 'Organizations',

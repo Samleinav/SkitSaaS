@@ -245,6 +245,45 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `app/(dashboard)/dashboard/controller.ts`
 - `notes`: incorpora `validateBuildFormOnServer(...)`, `createValidatedServerActionController(...)`, mapeo de errores VineJS a `fieldErrors/formError`, y deja un piloto en `mod.example.suite`; la hidratacion via `useActionState` sigue pendiente
 
+## 2026-03-09 - sdk-build-form-dynamic-options
+
+- `status`: pending_publish
+- `sprint`: sprint-11
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agrega soporte de opciones dinámicas (`optionsKey` / `dynamicOptions`) en campos `select` del FormBuilder para pasar listas cargadas desde DB sin romper la serialización del contrato
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/forms.*`
+  - `app/sdk/dist/index.*`
+  - `components/ui/build-form.tsx`
+  - `lib/forms/definition.ts`
+- `notes`: `BuildFormSelectFieldDefinition` ahora acepta `optionsKey?: string`; `BuildFormDefinition` acepta `dynamicOptions?: Record<string, BuildFormOption[]>`; el renderer resuelve las opciones en tiempo de render; `composeBuildFormDefinition(...)` acepta `dynamicOptions` como opción de composición; se agrega helper `withBuildFormDynamicOptions(...)`
+
+## 2026-03-09 - sdk-build-form-repeater-field
+
+- `status`: pending_publish
+- `sprint`: sprint-11
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: se agrega tipo de campo `repeater` al FormBuilder para tablas de filas dinámicas con add/remove, sub-campos tipados y lógica de `disableWhen` por fila
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/dist/forms.*`
+  - `app/sdk/dist/form-validation.*`
+  - `app/sdk/dist/index.*`
+  - `components/ui/build-form.tsx`
+  - `lib/forms/runtime.ts`
+  - `app/(dashboard)/admin/subscriptions/forms.ts`
+  - `app/(dashboard)/admin/subscriptions/create/page.tsx`
+  - `app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx`
+- `notes`: nuevo tipo `BuildFormRepeaterFieldDefinition` con `subFields`, `addLabel`, `removeLabel`, `minRows`, `emptyRow`; sub-campos soportan `text`, `number`, `select`, `checkbox` y `disableWhen: { field, equals }`; filas se serializan como `{name}[]` (row IDs) + `{subField}_{rowId}`; `BuildFormDefinition` acepta `repeaterRows?: BuildFormRepeaterRows` para precarga de filas desde el servidor; `form-validation.ts` salta campos repeater en normalización; rollout inicial en `/admin/subscriptions/create` y `/admin/subscriptions/[templateId]/edit` reemplazando `template-form.tsx`
+
 ## 2026-03-06 - sdk-build-form-db-preflight
 
 - `status`: pending_publish

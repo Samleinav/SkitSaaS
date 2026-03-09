@@ -4,7 +4,7 @@ import {
   DataTable,
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
-import { getOrderColumns, type AdminOrderRow } from './order-columns';
+import { getOrderTableDefinition, type AdminOrderRow } from './order-columns';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 
 type AdminOrdersDataTableProps = {
@@ -20,12 +20,9 @@ export function AdminOrdersDataTable({
 }: AdminOrdersDataTableProps) {
   return (
     <DataTable
-      columns={getOrderColumns(messages)}
-      data={data}
+      definition={getOrderTableDefinition({ data, messages })}
       labels={messages.dataTable}
       template={tableTemplate}
-      filterColumn="teamName"
-      filterPlaceholder={messages.ordersPage.filterPlaceholder}
       tableClassName="min-w-[1940px]"
     />
   );

@@ -49,6 +49,7 @@ export function revalidateAdminAppConfig() {
   revalidatePath('/admin/app-config/general');
   revalidatePath('/admin/app-config/payments-methods');
   revalidatePath('/admin/app-config/email');
+  revalidatePath('/admin/app-config/modules');
 }
 
 export function revalidateAdminBilling() {

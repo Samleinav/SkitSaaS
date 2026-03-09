@@ -23,6 +23,7 @@ import {
 import { adminDb } from './drizzle';
 import {
   appConfigs,
+  appModules,
   emailLogs,
   paymentLogs,
   paymentOrders,
@@ -561,6 +562,36 @@ export async function getPaymentProviderConfigsForAdmin() {
     const byProvider = a.provider.localeCompare(b.provider);
     return byProvider !== 0 ? byProvider : a.configKey.localeCompare(b.configKey);
   });
+}
+
+export async function getAppConfigEntriesForAdmin() {
+  return adminDb
+    .select({
+      namespace: appConfigs.namespace,
+      configKey: appConfigs.configKey,
+      configValue: appConfigs.configValue,
+      isSecret: appConfigs.isSecret,
+      updatedAt: appConfigs.updatedAt
+    })
+    .from(appConfigs)
+    .orderBy(asc(appConfigs.namespace), asc(appConfigs.configKey));
+}
+
+export async function getAppModulesForAdmin() {
+  return adminDb
+    .select({
+      moduleId: appModules.moduleId,
+      version: appModules.version,
+      status: appModules.status,
+      installMode: appModules.installMode,
+      installedAt: appModules.installedAt,
+      enabledAt: appModules.enabledAt,
+      disabledAt: appModules.disabledAt,
+      uninstalledAt: appModules.uninstalledAt,
+      updatedAt: appModules.updatedAt
+    })
+    .from(appModules)
+    .orderBy(asc(appModules.moduleId));
 }
 
 export async function getPaymentLogsForAdmin(limit = 200) {

@@ -245,11 +245,19 @@ export function getLogTableDefinition({
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'eventCategory',
-        header: table.categoryHeader
+        header: table.categoryHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">
+            {row.eventCategory}
+          </span>
+        )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'action',
-        header: table.actionHeader
+        header: table.actionHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">{row.action}</span>
+        )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'status',
@@ -284,11 +292,17 @@ export function getLogTableDefinition({
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'targetLabel',
-        header: table.targetHeader
+        header: table.targetHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">{row.targetLabel}</span>
+        )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'teamLabel',
-        header: table.teamHeader
+        header: table.teamHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">{row.teamLabel}</span>
+        )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'entityLabel',
@@ -301,7 +315,10 @@ export function getLogTableDefinition({
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'sourceLabel',
-        header: table.sourceHeader
+        header: table.sourceHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">{row.sourceLabel}</span>
+        )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
         key: 'ipAddress',

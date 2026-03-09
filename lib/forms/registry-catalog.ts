@@ -11,7 +11,13 @@ import {
 } from '@/app/(dashboard)/admin/users/forms';
 import { createAdminOrganizationControlsBuildFormBase } from '@/app/(dashboard)/admin/app-config/forms';
 import {
+  createAdminCreateOrderBuildFormBase,
+  createAdminEditOrderBuildFormBase
+} from '@/app/(dashboard)/admin/orders/forms';
+import {
+  createAdminCreateSubscriptionTemplateBuildFormBase,
   createAdminDeleteSubscriptionTemplateBuildFormBase,
+  createAdminEditSubscriptionTemplateBuildFormBase,
   createAdminRequestTemplateActiveUpdateBuildFormBase
 } from '@/app/(dashboard)/admin/subscriptions/forms';
 import {
@@ -39,6 +45,20 @@ export type BuildFormControllerCatalogEntry = {
 };
 
 const buildFormControllerCatalog: BuildFormControllerCatalogEntry[] = [
+  {
+    formId: 'admin-create-order-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/orders/create',
+    resolveDefinition: () => createAdminCreateOrderBuildFormBase()
+  },
+  {
+    formId: 'admin-edit-order-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/orders/[orderId]/edit',
+    resolveDefinition: () => createAdminEditOrderBuildFormBase()
+  },
   {
     formId: 'admin-create-user-form',
     area: 'admin',
@@ -94,6 +114,20 @@ const buildFormControllerCatalog: BuildFormControllerCatalogEntry[] = [
     access: 'admin',
     route: '/admin/suscriptions/organization/[teamId]/edit',
     resolveDefinition: () => createAdminClearOrganizationSubscriptionBuildFormBase()
+  },
+  {
+    formId: 'admin-create-subscription-template-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/subscriptions/create',
+    resolveDefinition: () => createAdminCreateSubscriptionTemplateBuildFormBase()
+  },
+  {
+    formId: 'admin-edit-subscription-template-form',
+    area: 'admin',
+    access: 'admin',
+    route: '/admin/subscriptions/[templateId]/edit',
+    resolveDefinition: () => createAdminEditSubscriptionTemplateBuildFormBase()
   },
   {
     formId: 'admin-request-template-active-update-form',

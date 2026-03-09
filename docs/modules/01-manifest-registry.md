@@ -29,6 +29,7 @@ Optional fields:
 - `apiHandler`
 - `eventHandlers`
 - `templatePack` (`defaults` / `overrides`)
+- `runtimeConfig` (`namespace`, manifest-defined editable BuildForm fields for `/admin/app-config/modules`)
 - `authProviders`
 - `paymentMethods`
 
@@ -98,6 +99,7 @@ defineModule({
 - `frontendRouteAccess` enum validation
 - `frontendSlots` (`slotId` format/duplicates + handler function)
 - `templatePack.defaults/overrides` component ID format + duplicate checks
+- `runtimeConfig` namespace/field validation (keys, kinds, env keys, select options, duplicates)
 - `authProviders` (`providerId`, `kind`, `flow`, routes) validation
 - `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`) validation
 

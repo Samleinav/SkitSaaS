@@ -43,8 +43,29 @@ export const buildFormField = {
     },
     checkbox(input) {
         return { kind: 'checkbox', ...input };
+    },
+    repeater(input) {
+        return { kind: 'repeater', ...input };
     }
 };
+export function withBuildFormDynamicOptions(definition, dynamicOptions) {
+    return {
+        ...definition,
+        dynamicOptions: {
+            ...(definition.dynamicOptions ?? {}),
+            ...dynamicOptions
+        }
+    };
+}
+export function withBuildFormRepeaterRows(definition, repeaterRows) {
+    return {
+        ...definition,
+        repeaterRows: {
+            ...(definition.repeaterRows ?? {}),
+            ...repeaterRows
+        }
+    };
+}
 export function withBuildFormValues(definition, values) {
     return {
         ...definition,
@@ -90,6 +111,28 @@ export function composeBuildFormDefinition(definition, options = {}) {
             nextDefinition = defineBuildForm({
                 ...nextDefinition,
                 values: undefined
+            });
+        }
+    }
+    if (hasOwnKey(options, 'dynamicOptions')) {
+        if (options.dynamicOptions) {
+            nextDefinition = withBuildFormDynamicOptions(nextDefinition, options.dynamicOptions);
+        }
+        else {
+            nextDefinition = defineBuildForm({
+                ...nextDefinition,
+                dynamicOptions: undefined
+            });
+        }
+    }
+    if (hasOwnKey(options, 'repeaterRows')) {
+        if (options.repeaterRows) {
+            nextDefinition = withBuildFormRepeaterRows(nextDefinition, options.repeaterRows);
+        }
+        else {
+            nextDefinition = defineBuildForm({
+                ...nextDefinition,
+                repeaterRows: undefined
             });
         }
     }

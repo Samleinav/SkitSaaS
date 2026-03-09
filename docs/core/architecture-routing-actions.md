@@ -56,6 +56,7 @@ Module dispatchers:
 - `/admin/payments`
 - `/admin/logs`
 - `/admin/app-config`
+- `/admin/app-config/modules`
 - `/admin/app-config/general`
 - `/admin/app-config/payments-methods`
 - `/admin/app-config/email`

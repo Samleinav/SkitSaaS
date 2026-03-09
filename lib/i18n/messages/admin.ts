@@ -292,13 +292,61 @@ export type AdminMessages = {
       general: string;
       paymentMethods: string;
       email: string;
+      modules: string;
       theme: string;
     };
     sectionDescriptions: {
       general: string;
       paymentMethods: string;
       email: string;
+      modules: string;
       theme: string;
+    };
+    modules: {
+      title: string;
+      description: string;
+      inventoryTitle: string;
+      inventoryDescription: string;
+      runtimeModeLabel: string;
+      runtimeModeDescription: string;
+      runtimeModes: {
+        db: string;
+        hybrid: string;
+        config: string;
+      };
+      table: {
+        module: string;
+        dbStatus: string;
+        effectiveStatus: string;
+        installMode: string;
+        runtimeFields: string;
+        actions: string;
+      };
+      versionLabel: string;
+      manage: string;
+      save: string;
+      saving: string;
+      enable: string;
+      enabling: string;
+      disable: string;
+      disabling: string;
+      enabled: string;
+      disabled: string;
+      installed: string;
+      uninstalled: string;
+      toggleTitle: string;
+      toggleDescription: string;
+      toggleLockedConfigMode: string;
+      toggleLockedOverride: string;
+      configTitle: string;
+      configDescription: string;
+      noConfigTitle: string;
+      noConfigDescription: string;
+      noRuntimeFields: string;
+      oneRuntimeField: string;
+      multipleRuntimeFields: string;
+      overrideEnabled: string;
+      overrideDisabled: string;
     };
     organization: {
       title: string;

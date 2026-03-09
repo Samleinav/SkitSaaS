@@ -294,13 +294,70 @@ const messages = {
       general: 'General',
       paymentMethods: 'Metodos de pago',
       email: 'Correo',
+      modules: 'Modulos',
       theme: 'Tema'
     },
     sectionDescriptions: {
       general: 'Ajustes base de organizaciones y comportamiento global.',
       paymentMethods: 'Configura claves runtime de Stripe/PayPal y opciones por proveedor.',
       email: 'Configura envio SMTP y revisa logs de notificaciones.',
+      modules:
+        'Revisa modulos instalados, edita valores runtime definidos en el manifest y desactiva modulos en emergencia.',
       theme: 'Controla el modo de tema y el default por area.'
+    },
+    modules: {
+      title: 'Modulos',
+      description:
+        'Revisa el estado runtime de cada modulo, edita fallback values definidos en el manifest y usa el switch de emergencia en DB cuando aplique.',
+      inventoryTitle: 'Inventario de modulos',
+      inventoryDescription:
+        'El estado runtime efectivo depende del modo de runtime y de cualquier override en app.config/env.',
+      runtimeModeLabel: 'Modo de runtime',
+      runtimeModeDescription:
+        'DB usa el estado de app_modules. Hybrid mezcla DB con overrides de app.config/env. Config ignora el estado de DB.',
+      runtimeModes: {
+        db: 'DB',
+        hybrid: 'Hybrid',
+        config: 'Config'
+      },
+      table: {
+        module: 'Modulo',
+        dbStatus: 'Estado DB',
+        effectiveStatus: 'Estado efectivo',
+        installMode: 'Modo de instalacion',
+        runtimeFields: 'Campos runtime',
+        actions: 'Acciones'
+      },
+      versionLabel: 'Version',
+      manage: 'Gestionar',
+      save: 'Guardar config del modulo',
+      saving: 'Guardando config del modulo...',
+      enable: 'Habilitar',
+      enabling: 'Habilitando...',
+      disable: 'Deshabilitar',
+      disabling: 'Deshabilitando...',
+      enabled: 'Habilitado',
+      disabled: 'Deshabilitado',
+      installed: 'Instalado',
+      uninstalled: 'No instalado',
+      toggleTitle: 'Estado runtime',
+      toggleDescription:
+        'Usa esto como switch de emergencia cuando el estado de DB participa en la resolucion runtime.',
+      toggleLockedConfigMode:
+        'Esta instalacion corre en modo config. El estado en DB no controla el estado efectivo del modulo.',
+      toggleLockedOverride:
+        'Este modulo esta sobrescrito explicitamente por app.config/env. Quita ese override para usar el switch de emergencia de DB.',
+      configTitle: 'Config runtime',
+      configDescription:
+        'Valores fallback editables declarados por el manifest del modulo. Los valores de entorno siguen teniendo prioridad.',
+      noConfigTitle: 'Sin config runtime editable',
+      noConfigDescription:
+        'Este modulo no declara campos runtime para renderizado con BuildForm.',
+      noRuntimeFields: 'Sin campos runtime',
+      oneRuntimeField: '1 campo',
+      multipleRuntimeFields: '{count} campos',
+      overrideEnabled: 'Forzado como habilitado por app.config/env',
+      overrideDisabled: 'Forzado como deshabilitado por app.config/env'
     },
     organization: {
       title: 'Organizaciones',

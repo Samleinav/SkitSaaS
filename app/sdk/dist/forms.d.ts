@@ -58,14 +58,50 @@ export type BuildFormTextareaFieldDefinition = BaseBuildFormFieldDefinition & {
 };
 export type BuildFormSelectFieldDefinition = BaseBuildFormFieldDefinition & {
     kind: 'select';
-    options: BuildFormOption[];
+    options?: BuildFormOption[];
+    optionsKey?: string;
 };
 export type BuildFormCheckboxFieldDefinition = Omit<BaseBuildFormFieldDefinition, 'inputMode' | 'minLength' | 'maxLength' | 'mask'> & {
     kind: 'checkbox';
     checkedValue?: string;
     uncheckedValue?: string;
 };
-export type BuildFormFieldDefinition = BuildFormInputFieldDefinition | BuildFormNumberFieldDefinition | BuildFormTextareaFieldDefinition | BuildFormSelectFieldDefinition | BuildFormCheckboxFieldDefinition;
+export type BuildFormRepeaterSubFieldKind = 'text' | 'number' | 'select' | 'checkbox';
+export type BuildFormRepeaterSubFieldDefinition = {
+    name: string;
+    label?: string;
+    kind: BuildFormRepeaterSubFieldKind;
+    options?: BuildFormOption[];
+    optionsKey?: string;
+    placeholder?: string;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    step?: number | 'any';
+    checkedValue?: string;
+    disableWhen?: {
+        field: string;
+        equals: BuildFormValue;
+    };
+};
+export type BuildFormRepeaterRow = {
+    id: string;
+    [key: string]: BuildFormValue;
+};
+export type BuildFormRepeaterFieldDefinition = {
+    kind: 'repeater';
+    name: string;
+    label?: string;
+    description?: string;
+    colSpan?: BuildFormFieldColSpan;
+    className?: string;
+    subFields: BuildFormRepeaterSubFieldDefinition[];
+    addLabel?: string;
+    removeLabel?: string;
+    minRows?: number;
+    emptyRow?: Record<string, BuildFormValue>;
+};
+export type BuildFormFieldDefinition = BuildFormInputFieldDefinition | BuildFormNumberFieldDefinition | BuildFormTextareaFieldDefinition | BuildFormSelectFieldDefinition | BuildFormCheckboxFieldDefinition | BuildFormRepeaterFieldDefinition;
 export type BuildFormSectionDefinition = {
     id?: string;
     title?: string;
@@ -103,6 +139,8 @@ export type BuildFormLayoutDefinition = {
     columns?: BuildFormColumns;
     gap?: BuildFormGap;
 };
+export type BuildFormDynamicOptions = Record<string, BuildFormOption[]>;
+export type BuildFormRepeaterRows = Record<string, BuildFormRepeaterRow[]>;
 export type BuildFormDefinition = {
     id?: string;
     title?: string;
@@ -113,6 +151,8 @@ export type BuildFormDefinition = {
     sections?: BuildFormSectionDefinition[];
     submit?: BuildFormSubmitDefinition;
     values?: BuildFormValues;
+    dynamicOptions?: BuildFormDynamicOptions;
+    repeaterRows?: BuildFormRepeaterRows;
 };
 export type BuildModalDefinition = {
     kind?: 'dialog' | 'confirm';
@@ -130,6 +170,8 @@ export type ComposeBuildFormDefinitionOptions<TDefinition extends BuildFormDefin
     request?: BuildFormRequest | null;
     values?: BuildFormValues | null;
     submit?: BuildFormDefinition['submit'] | null;
+    dynamicOptions?: BuildFormDynamicOptions | null;
+    repeaterRows?: BuildFormRepeaterRows | null;
 };
 export type ComposedBuildFormDefinition<TDefinition extends BuildFormDefinition = BuildFormDefinition> = TDefinition & Pick<BuildFormDefinition, 'request' | 'submit' | 'values'>;
 export declare function defineBuildForm<TDefinition extends BuildFormDefinition>(definition: TDefinition): TDefinition;
@@ -328,7 +370,8 @@ export declare const buildFormField: {
         readonly inputClassName?: string;
         readonly colSpan?: BuildFormFieldColSpan;
         readonly defaultValue?: BuildFormValue;
-        readonly options: BuildFormOption[];
+        readonly options?: BuildFormOption[];
+        readonly optionsKey?: string;
         readonly kind: "select";
     };
     checkbox(input: Omit<BuildFormCheckboxFieldDefinition, "kind">): {
@@ -348,6 +391,25 @@ export declare const buildFormField: {
         readonly uncheckedValue?: string;
         readonly kind: "checkbox";
     };
+    repeater(input: Omit<BuildFormRepeaterFieldDefinition, "kind">): {
+        readonly name: string;
+        readonly label?: string;
+        readonly description?: string;
+        readonly className?: string;
+        readonly colSpan?: BuildFormFieldColSpan;
+        readonly subFields: BuildFormRepeaterSubFieldDefinition[];
+        readonly addLabel?: string;
+        readonly removeLabel?: string;
+        readonly minRows?: number;
+        readonly emptyRow?: Record<string, BuildFormValue>;
+        readonly kind: "repeater";
+    };
+};
+export declare function withBuildFormDynamicOptions<TDefinition extends BuildFormDefinition>(definition: TDefinition, dynamicOptions: BuildFormDynamicOptions): TDefinition & {
+    dynamicOptions: BuildFormDynamicOptions;
+};
+export declare function withBuildFormRepeaterRows<TDefinition extends BuildFormDefinition>(definition: TDefinition, repeaterRows: BuildFormRepeaterRows): TDefinition & {
+    repeaterRows: BuildFormRepeaterRows;
 };
 export declare function withBuildFormValues<TDefinition extends BuildFormDefinition>(definition: TDefinition, values: BuildFormValues): TDefinition & {
     values: BuildFormValues;

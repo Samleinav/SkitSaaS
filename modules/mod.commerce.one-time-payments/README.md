@@ -86,6 +86,16 @@ DB assets are owned by this module under `modules/mod.commerce.one-time-payments
 - This module currently runs without a dedicated `MOD_COMMERCE_ONETIME_*` env matrix.
 - Runtime behavior is resolved from module config storage and host payment runtime configuration.
 - Stripe/PayPal operational credentials remain host-level payment configuration inputs (see core docs and payment provider setup).
+- Core Admin can edit this module's DB fallback values from `/admin/app-config/modules` using the manifest-declared runtime config form.
+- Current editable fallback keys declared by the manifest:
+  - `payments.stripe.enabled`
+  - `payments.stripe.secret_key`
+  - `payments.stripe.webhook_secret`
+  - `payments.paypal.enabled`
+  - `payments.paypal.environment`
+  - `payments.paypal.client_id`
+  - `payments.paypal.client_secret`
+  - `payments.paypal.webhook_id`
 
 ## UI planning decisions (Sprint 6, 2026-02-17)
 

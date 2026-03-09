@@ -124,6 +124,7 @@ Backoffice-required component IDs (build enforcement):
 - `page.admin.app-config.general`
 - `page.admin.app-config.payment-methods`
 - `page.admin.app-config.email`
+- `page.admin.app-config.modules`
 - `page.admin.app-config.theme`
 - `section.admin.nav`
 - `section.admin.breadcrumb`
@@ -191,6 +192,7 @@ The minimum v1 contract is:
 - `page.admin.app-config.general`: `title`, `description`.
 - `page.admin.app-config.payment-methods`: `title`, `description`, `provider`.
 - `page.admin.app-config.email`: `title`, `description`, `provider`.
+- `page.admin.app-config.modules`: `title`, `description`, `runtimeMode`.
 - `page.admin.app-config.theme`: `title`, `description`, `mode`.
 - `page.admin.users`: `title`.
 - `page.admin.user.detail`: `title`, `description`, `userId`.

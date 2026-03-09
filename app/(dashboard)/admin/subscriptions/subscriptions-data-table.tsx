@@ -5,7 +5,7 @@ import {
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
 import {
-  getColumns,
+  getSubscriptionsTableDefinition,
   type AdminSubscriptionRow,
   type AdminSubscriptionTemplateOption
 } from './columns';
@@ -20,20 +20,15 @@ type AdminSubscriptionsDataTableProps = {
 
 export function AdminSubscriptionsDataTable({
   data,
-  templateOptions,
   messages,
   tableTemplate
 }: AdminSubscriptionsDataTableProps) {
   return (
     <DataTable
-      columns={getColumns(templateOptions, messages)}
-      data={data}
+      definition={getSubscriptionsTableDefinition({ data, messages })}
       labels={messages.dataTable}
       template={tableTemplate}
-      filterColumn="name"
-      filterPlaceholder={messages.subscriptionsPage.filterPlaceholder}
       tableClassName="min-w-[860px]"
-      initialColumnVisibility={{ ids: false }}
     />
   );
 }

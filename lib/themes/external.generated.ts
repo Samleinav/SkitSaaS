@@ -68,6 +68,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/first-backoffice/templates/admin/page.admin.app-config.home.tsx"
       },
       {
+        "componentId": "page.admin.app-config.modules",
+        "filePath": "themes/first-backoffice/templates/admin/page.admin.app-config.modules.tsx"
+      },
+      {
         "componentId": "page.admin.app-config.payment-methods",
         "filePath": "themes/first-backoffice/templates/admin/page.admin.app-config.payment-methods.tsx"
       },
@@ -381,6 +385,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
       {
         "componentId": "page.admin.app-config.home",
         "filePath": "themes/nexustheme/templates/admin/page.admin.app-config.home.tsx"
+      },
+      {
+        "componentId": "page.admin.app-config.modules",
+        "filePath": "themes/nexustheme/templates/admin/page.admin.app-config.modules.tsx"
       },
       {
         "componentId": "page.admin.app-config.payment-methods",

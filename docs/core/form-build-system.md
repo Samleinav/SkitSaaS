@@ -7,7 +7,7 @@ sidebar_position: 2
 # Form Build System
 
 Status: Production default for standard core forms
-Last review: 2026-03-07
+Last review: 2026-03-09
 
 This document explains the current `form build` system architecture for SkitSaaS and the remaining rollout boundaries.
 
@@ -112,7 +112,10 @@ The current production rollout for that flow now covers:
 - `/admin/app-config/payments-methods`
 - `/admin/suscriptions/user/[userId]/edit`
 - `/admin/suscriptions/organization/[teamId]/edit`
-- `/admin/subscriptions/[templateId]/edit` request-active-update and delete flows
+- `/admin/subscriptions/create` subscription template create flow (uses `repeater`)
+- `/admin/subscriptions/[templateId]/edit` full template edit plus request-active-update and delete flows (uses `repeater`)
+- `/admin/orders/create` manual order create flow (uses `dynamicOptions`)
+- `/admin/orders/[orderId]/edit` order edit flow (uses `dynamicOptions`)
 - `/dashboard/general` account update flow
 - `/dashboard/security` password update and delete-account flows
 - `/dashboard/subscriptions` user subscription cancel and organization subscription manage/cancel flows
@@ -147,12 +150,8 @@ Current intentional exceptions in core are:
 
 - `app/(dashboard)/dashboard/home-core.tsx`
   - still uses client-heavy `useActionState`, SWR, and custom radio-group/notification orchestration
-- `app/(dashboard)/admin/subscriptions/template-form.tsx`
-  - dynamic feature-row editor that needs field-array style primitives
-- `app/(dashboard)/admin/orders/**/*`
-  - order flows with conditional target switching and heavier admin-specific UX
 
-Those routes are not blockers for production readiness of the BuildForm system itself. They are candidates for future primitives, not proof that the standard path is incomplete.
+Those routes are not blockers for production readiness of the BuildForm system itself.
 
 ## Design goals
 
@@ -316,9 +315,7 @@ Notes about this model:
 - local validation can now be attached to the same definition through `withBuildFormValidation(...)` or `defineValidatedBuildForm(...)`
 - preflight can now be attached through `validation.preflight`
 
-## Current v1 field capabilities
-
-The current implementation focuses on a narrow field catalog.
+## Current field capabilities
 
 Current supported field types:
 
@@ -328,12 +325,14 @@ Current supported field types:
 - `password`
 - `tel`
 - `url`
+- `date`
 - `number`
 - `textarea`
-- `select`
+- `select` — supports static `options` or server-loaded `optionsKey` (see Dynamic options)
 - `checkbox`
+- `repeater` — dynamic add/remove row table with typed sub-fields (see Repeater field)
 
-Recommended shared field options:
+Shared field options (on most field types):
 
 - `name`
 - `label`
@@ -346,6 +345,90 @@ Recommended shared field options:
 - `colSpan`
 - `className`
 - `inputClassName`
+- `mask` — normalized input behavior (`digits`, `decimal`, `currency`, `phone`, `slug`, `upper`, `lower`)
+
+## Dynamic options for `select`
+
+When select options must be loaded from the database at request time, use `optionsKey` instead of inline `options`:
+
+```ts
+buildFormField.select({
+  name: 'teamId',
+  label: 'Team',
+  optionsKey: 'teamOptions'
+})
+```
+
+Pass the resolved options at compose time through `dynamicOptions`:
+
+```ts
+composeRegisteredBuildFormDefinition('my-form', baseForm, {
+  dynamicOptions: {
+    teamOptions: teams.map((t) => ({ value: t.id, label: t.name }))
+  }
+})
+```
+
+The renderer resolves `optionsKey` against `definition.dynamicOptions` at render time. This keeps the form definition serializable while still supporting DB-driven option lists.
+
+Helper: `withBuildFormDynamicOptions(definition, dynamicOptions)` for manual composition.
+
+## Repeater field
+
+Use `repeater` for dynamic tables where the user can add and remove rows, each with multiple sub-fields.
+
+```ts
+buildFormField.repeater({
+  name: 'featureRowId',        // name used for the hidden row-ID inputs
+  addLabel: 'Add feature',
+  removeLabel: 'Remove',
+  minRows: 1,
+  emptyRow: { featureValueType: 'text', featureIsPublic: true },
+  subFields: [
+    { name: 'featureKey', kind: 'text', label: 'Key', placeholder: 'e.g. seats' },
+    { name: 'featureLabel', kind: 'text', label: 'Label' },
+    { name: 'featureValueType', kind: 'select', label: 'Type', options: valueTypeOptions },
+    {
+      name: 'featureValue', kind: 'text', label: 'Value',
+      disableWhen: { field: 'featureValueType', equals: 'null' }
+    },
+    { name: 'featureIsPublic', kind: 'checkbox', label: 'Public' }
+  ]
+})
+```
+
+Sub-field kinds: `text`, `number`, `select`, `checkbox`.
+
+`disableWhen` disables a sub-field when a sibling sub-field in the same row equals a given value.
+
+**FormData serialization:**
+- `featureRowId` — multiple values, one per row (the row IDs)
+- `featureKey_{rowId}`, `featureValueType_{rowId}`, etc. — one value per sub-field per row
+
+**Server-side reading** (same pattern already used by `parseTemplateFeatures` in subscriptions):
+```ts
+const rowIds = formData.getAll('featureRowId').map(String);
+for (const rowId of rowIds) {
+  const key = formData.get(`featureKey_${rowId}`);
+  // ...
+}
+```
+
+**Preloading rows** for edit forms:
+```ts
+composeRegisteredBuildFormDefinition('my-form', baseForm, {
+  repeaterRows: {
+    featureRowId: template.features.map((f) => ({
+      id: String(f.id),
+      featureKey: f.key,
+      featureValueType: f.valueType,
+      featureIsPublic: f.isPublic
+    }))
+  }
+})
+```
+
+Helper: `withBuildFormRepeaterRows(definition, repeaterRows)` for manual composition.
 
 ## Current runtime model
 
@@ -396,6 +479,16 @@ Current core controllers:
 - `admin-edit-user-profile-form`
 - `admin-update-user-status-form`
 - `admin-delete-user-form`
+- `admin-app-config-general-form`
+- `admin-create-order-form`
+- `admin-edit-order-form`
+- `admin-create-subscription-template-form`
+- `admin-edit-subscription-template-form`
+- `admin-request-template-active-update-form`
+- `admin-delete-subscription-template-form`
+- `admin-update-user-subscription-form`
+- `admin-manage-organization-subscription-form`
+- `admin-clear-organization-subscription-form`
 - `dashboard-update-account-form`
 - `dashboard-update-password-form`
 - `dashboard-delete-account-form`
@@ -662,10 +755,12 @@ That means the first implementation should keep the contract reusable even if a 
 
 ### Phase 3
 
-- pending: broader rollout across existing admin/dashboard forms
-- pending: richer masks only after real use cases appear
-- pending: migration guidance for legacy forms with custom action-state UX
+- completed: broader rollout across admin/dashboard forms (orders, subscriptions)
+- completed: `dynamicOptions` / `optionsKey` for DB-loaded select options
+- completed: `repeater` field type for dynamic row tables
 - completed: host-side observability for preflight abuse signals and resolver misses
+- pending: migration guidance for legacy forms with custom action-state UX
+- pending: richer masks only after real use cases appear
 
 ## New validated form checklist
 

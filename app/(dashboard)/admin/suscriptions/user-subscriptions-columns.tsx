@@ -4,6 +4,12 @@ import Link from 'next/link';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  buildTableColumn,
+  buildTableFilter,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@skitsaas/sdk/datatables';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { cn } from '@/lib/utils';
 import type { AdminUserDisplayStatus } from '../users/status';
@@ -193,4 +199,140 @@ export function getUserSubscriptionsColumns(
   ];
 }
 
+export function getUserSubscriptionsTableDefinition({
+  data,
+  messages
+}: {
+  data: AdminUserSubscriptionRow[];
+  messages: AdminMessages;
+}): BuildTableDefinition<AdminUserSubscriptionRow> {
+  const usersTable = messages.usersTable;
+  const subscriptionsPage = messages.subscriptionsPage;
 
+  const definition: BuildTableDefinition<AdminUserSubscriptionRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<AdminUserSubscriptionRow>({
+        key: 'email',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.suscriptions.user.cell"
+            slot="header.user.sort"
+          >
+            <span>{usersTable.userHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        searchable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.suscriptions.user.cell"
+            slot="cell.user"
+            data={{ userId: row.id }}
+          >
+            <div className="min-w-[220px]">
+              <p className="font-medium text-foreground">
+                {row.name || usersTable.unnamedUser}
+              </p>
+              <p className="text-xs text-muted-foreground">{row.email}</p>
+            </div>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminUserSubscriptionRow>({
+        key: 'role',
+        header: usersTable.roleHeader,
+        cell: (row) => (
+          <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-foreground">
+            {row.role}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminUserSubscriptionRow>({
+        key: 'status',
+        header: usersTable.statusHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.suscriptions.user.cell"
+            slot="cell.status"
+            data={{ status: row.status }}
+          >
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                getStatusClassName(row.status)
+              )}
+            >
+              {getStatusLabel(row.status, messages)}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminUserSubscriptionRow>({
+        key: 'subscriptionTemplateName',
+        header: usersTable.subscriptionHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">
+            {row.subscriptionTemplateName || usersTable.noSubscription}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminUserSubscriptionRow>({
+        key: 'organizationsCount',
+        header: usersTable.organizationsHeader,
+        cell: (row) => (
+          <span className="text-xs text-muted-foreground">
+            {usersTable.organizationsCount
+              .replace('{count}', String(row.organizationsCount))
+              .replace('{owned}', String(row.ownedOrganizationsCount))}
+          </span>
+        )
+      }),
+      buildTableColumn.custom<AdminUserSubscriptionRow>({
+        key: 'actions',
+        header: usersTable.actionsHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.suscriptions.user.cell"
+            slot="cell.actions.edit"
+            data={{ userId: row.id }}
+          >
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/suscriptions/user/${row.id}/edit`}>
+                {subscriptionsPage.edit}
+              </Link>
+            </Button>
+          </AdminTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: messages.usersPage.filterPlaceholder,
+        columns: ['email']
+      },
+      filters: [
+        buildTableFilter.select<AdminUserSubscriptionRow>({
+          id: 'status',
+          label: usersTable.statusHeader,
+          column: 'status',
+          placeholder: usersTable.statusHeader,
+          options: [
+            { value: 'active', label: messages.userDetailPage.status.active },
+            { value: 'suspended', label: messages.userDetailPage.status.suspended },
+            { value: 'banned', label: messages.userDetailPage.status.banned }
+          ]
+        })
+      ]
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    AdminUserSubscriptionRow,
+    BuildTableDefinition<AdminUserSubscriptionRow>
+  >(definition);
+}

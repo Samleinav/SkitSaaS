@@ -113,6 +113,11 @@ export const upsertPaymentProviderConfigAction = adminAction(
   }
 );
 
+export {
+  setModuleRuntimeStatusAction,
+  upsertModuleRuntimeConfigAction
+} from './modules/actions';
+
 export const upsertProviderConfigBatchAction = adminAction(
   async ({ user, form, formData }) => {
     const provider = form.lower('provider');

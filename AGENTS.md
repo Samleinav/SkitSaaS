@@ -33,6 +33,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - `app/(frontend)/pricing/*`: plan discovery and checkout start.
 - `app/(frontend)/checkout/[checkoutToken]`: tokenized checkout page (single payment-method render context).
 - `app/(dashboard)/admin/*`: admin (app config, users, subscriptions, suscriptions, payments).
+- `app/(dashboard)/admin/app-config/modules/*`: admin modules runtime controls (`/admin/app-config/modules`).
 - `app/(dashboard)/admin/not-found.tsx`: admin-scoped not-found renderer (theme-aware fallback).
 - `app/(dashboard)/admin/modules/*`: admin module dispatchers.
 - `app/(dashboard)/admin/[...moduleAlias]`: admin custom module alias resolver.
@@ -77,6 +78,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 
 - Routes:
   - `/admin/app-config`
+  - `/admin/app-config/modules`
   - `/admin/users`
   - `/admin/subscriptions`
   - `/admin/suscriptions`
@@ -101,6 +103,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 
 - Each subroute has its own actions:
   - `app/(dashboard)/admin/app-config/actions.ts`
+  - `app/(dashboard)/admin/app-config/modules/actions.ts`
   - `app/(dashboard)/admin/users/actions.ts`
   - `app/(dashboard)/admin/subscriptions/actions.ts`
   - `app/(dashboard)/admin/suscriptions/actions.ts`

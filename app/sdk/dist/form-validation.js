@@ -151,7 +151,7 @@ function normalizeBuildFormFieldValue(field, value) {
     if (!normalized) {
         return '';
     }
-    if (!field.mask) {
+    if (field.kind === 'repeater' || !('mask' in field) || !field.mask) {
         return normalized;
     }
     return applyBuildFormFieldMask(normalized, field.mask);
@@ -364,6 +364,9 @@ export function getBuildFormValidationRulesForField(definition, fieldName) {
 export function normalizeBuildFormValuesFromInput(definition, input) {
     const normalizedValues = {};
     for (const field of listBuildFormFields(definition)) {
+        if (field.kind === 'repeater') {
+            continue;
+        }
         const rawValue = readInputValue(input, field.name);
         const fallbackValue = resolveBuildFormValue({
             definition,

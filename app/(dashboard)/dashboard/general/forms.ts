@@ -30,6 +30,7 @@ export function createDashboardUpdateAccountBuildFormBase({
   return withBuildFormValidation(
     defineBuildForm({
       id: 'dashboard-update-account-form',
+      layout: { columns: 2 },
       fields: [
         buildFormField.hidden({
           name: 'userId'

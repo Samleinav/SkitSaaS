@@ -4,6 +4,12 @@ import Link from 'next/link';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  buildTableColumn,
+  buildTableFilter,
+  defineBuildTable,
+  type BuildTableDefinition
+} from '@skitsaas/sdk/datatables';
 import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { cn } from '@/lib/utils';
 import { AdminTableSlotTemplate } from '../table-slot-template';
@@ -269,4 +275,198 @@ export function getColumns(
   ];
 }
 
+export function getSubscriptionsTableDefinition({
+  data,
+  messages
+}: {
+  data: AdminSubscriptionRow[];
+  messages: AdminMessages;
+}): BuildTableDefinition<AdminSubscriptionRow> {
+  const table = messages.subscriptionsTable;
+  const statusLabels: Record<SubscriptionStatus, string> = {
+    free: table.free,
+    trialing: table.trialing,
+    active: table.active,
+    unpaid: table.unpaid,
+    canceled: table.canceled
+  };
 
+  const definition: BuildTableDefinition<AdminSubscriptionRow> = {
+    data,
+    columns: [
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'name',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.cell"
+            slot="header.team.sort"
+          >
+            <span>{table.teamHeader}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        searchable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.cell"
+            slot="cell.team"
+            data={{ teamId: row.id }}
+          >
+            <div className="min-w-[220px]">
+              <p className="font-medium text-foreground">{row.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {table.createdLabel} {row.createdAtLabel}
+              </p>
+            </div>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'membersCount',
+        header: table.membersHeader,
+        cell: (row) => (
+          <span className="font-medium text-foreground">{row.membersCount}</span>
+        )
+      }),
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'paymentProvider',
+        header: table.providerHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.cell"
+            slot="cell.provider"
+            data={{ provider: row.paymentProvider }}
+          >
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                getProviderClassName(row.paymentProvider)
+              )}
+            >
+              {row.paymentProvider || table.none}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'subscriptionStatus',
+        header: table.statusHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.cell"
+            slot="cell.status"
+            data={{ status: row.subscriptionStatus }}
+          >
+            <span
+              className={cn(
+                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
+                getStatusClassName(row.subscriptionStatus)
+              )}
+            >
+              {statusLabels[row.subscriptionStatus]}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'planName',
+        header: table.planHeader,
+        cell: (row) => (
+          <div className="min-w-[150px] space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {row.planName || table.free}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {row.subscriptionTemplateId
+                ? `#${row.subscriptionTemplateId}`
+                : table.noTemplate}
+            </p>
+          </div>
+        )
+      }),
+      buildTableColumn.text<AdminSubscriptionRow>({
+        key: 'stripeSubscriptionId',
+        header: table.idsHeader,
+        cell: (row) => (
+          <div className="min-w-[250px] space-y-1.5 text-xs">
+            <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+              <span className="font-medium text-foreground">{table.stripe}:</span>{' '}
+              <span
+                className="font-mono text-[11px] text-muted-foreground"
+                title={row.stripeSubscriptionId || '-'}
+              >
+                {row.stripeSubscriptionId || '-'}
+              </span>
+            </p>
+            <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+              <span className="font-medium text-foreground">{table.paypal}:</span>{' '}
+              <span
+                className="font-mono text-[11px] text-muted-foreground"
+                title={row.paypalSubscriptionId || '-'}
+              >
+                {row.paypalSubscriptionId || '-'}
+              </span>
+            </p>
+          </div>
+        )
+      }),
+      buildTableColumn.custom<AdminSubscriptionRow>({
+        key: 'actions',
+        header: table.actionsHeader,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.cell"
+            slot="cell.actions.edit"
+            data={{ teamId: row.id }}
+          >
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/suscriptions/organization/${row.id}/edit`}>
+                {messages.subscriptionsPage.edit}
+              </Link>
+            </Button>
+          </AdminTableSlotTemplate>
+        )
+      })
+    ],
+    toolbar: {
+      search: {
+        enabled: true,
+        placeholder: messages.subscriptionsPage.filterPlaceholder,
+        columns: ['name']
+      },
+      filters: [
+        buildTableFilter.select<AdminSubscriptionRow>({
+          id: 'subscriptionStatus',
+          label: table.statusHeader,
+          column: 'subscriptionStatus',
+          placeholder: table.statusHeader,
+          options: [
+            { value: 'active', label: table.active },
+            { value: 'trialing', label: table.trialing },
+            { value: 'free', label: table.free },
+            { value: 'unpaid', label: table.unpaid },
+            { value: 'canceled', label: table.canceled }
+          ]
+        }),
+        buildTableFilter.select<AdminSubscriptionRow>({
+          id: 'paymentProvider',
+          label: table.providerHeader,
+          column: 'paymentProvider',
+          placeholder: table.providerHeader,
+          options: [
+            { value: 'stripe', label: 'Stripe' },
+            { value: 'paypal', label: 'PayPal' }
+          ]
+        })
+      ]
+    },
+    pagination: {
+      pageSize: 10
+    }
+  };
+
+  return defineBuildTable<
+    AdminSubscriptionRow,
+    BuildTableDefinition<AdminSubscriptionRow>
+  >(definition);
+}

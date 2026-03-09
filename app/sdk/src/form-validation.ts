@@ -438,7 +438,7 @@ function normalizeBuildFormFieldValue(
     return '';
   }
 
-  if (!field.mask) {
+  if (field.kind === 'repeater' || !('mask' in field) || !field.mask) {
     return normalized;
   }
 
@@ -727,6 +727,10 @@ export function normalizeBuildFormValuesFromInput(
   const normalizedValues: BuildFormValues = {};
 
   for (const field of listBuildFormFields(definition)) {
+    if (field.kind === 'repeater') {
+      continue;
+    }
+
     const rawValue = readInputValue(input, field.name);
     const fallbackValue = resolveBuildFormValue({
       definition,

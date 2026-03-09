@@ -25,6 +25,7 @@ const ADMIN_REQUIRED_CODE_TEMPLATE_IDS = [
   'page.admin.app-config.general',
   'page.admin.app-config.payment-methods',
   'page.admin.app-config.email',
+  'page.admin.app-config.modules',
   'page.admin.app-config.theme',
   'section.admin.nav',
   'section.admin.breadcrumb',

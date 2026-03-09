@@ -16,7 +16,7 @@ import { ThemeTemplate } from '@/components/ui/theme-template';
 import { useAreaMessages } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 
-type AppConfigSectionKey = 'general' | 'paymentMethods' | 'email';
+type AppConfigSectionKey = 'general' | 'paymentMethods' | 'email' | 'modules';
 
 type AppConfigSectionItem = {
   href: string;
@@ -48,6 +48,11 @@ const SECTION_ITEMS: AppConfigSectionItem[] = [
     href: '/admin/app-config/email',
     icon: Mail,
     key: 'email'
+  },
+  {
+    href: '/admin/app-config/modules',
+    icon: Package,
+    key: 'modules'
   },
   {
     href: '/admin/logs',

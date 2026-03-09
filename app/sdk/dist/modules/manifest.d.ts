@@ -52,6 +52,29 @@ export type ModuleTemplatePack = {
     defaults?: ModuleTemplatePackEntry[];
     overrides?: ModuleTemplatePackEntry[];
 };
+export type ModuleRuntimeConfigFieldKind = 'text' | 'textarea' | 'number' | 'boolean' | 'password' | 'select';
+export type ModuleRuntimeConfigFieldOption = {
+    value: string;
+    label: string;
+};
+export type ModuleRuntimeConfigField = {
+    configKey: string;
+    label: string;
+    description?: string;
+    namespace?: string;
+    envKey?: string;
+    kind?: ModuleRuntimeConfigFieldKind;
+    placeholder?: string;
+    defaultValue?: string;
+    secret?: boolean;
+    options?: ModuleRuntimeConfigFieldOption[];
+};
+export type ModuleRuntimeConfig = {
+    namespace?: string;
+    title?: string;
+    description?: string;
+    fields: ModuleRuntimeConfigField[];
+};
 export type ModuleAuthProviderKind = 'passkey' | 'oauth2' | 'oidc' | 'saml' | 'local' | 'custom';
 export type ModuleAuthProviderFlow = 'login' | 'link' | 'both';
 export type ModuleAuthProviderCapabilities = {
@@ -128,6 +151,7 @@ export type ModuleManifest = {
     apiRoutes?: ApiRouteEntry[];
     eventHandlers?: ModuleEventHandler[];
     templatePack?: ModuleTemplatePack;
+    runtimeConfig?: ModuleRuntimeConfig;
     authProviders?: ModuleAuthProvider[];
     paymentMethods?: ModulePaymentMethod[];
     standaloneHomeComponent?: ComponentType<{

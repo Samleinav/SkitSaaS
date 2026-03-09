@@ -29,6 +29,7 @@ test('theme registries expose required frontend routes and backoffice templates'
   assert.ok(backofficeRegistry.templates['page.admin.app-config.general']);
   assert.ok(backofficeRegistry.templates['page.admin.app-config.payment-methods']);
   assert.ok(backofficeRegistry.templates['page.admin.app-config.email']);
+  assert.ok(backofficeRegistry.templates['page.admin.app-config.modules']);
   assert.ok(backofficeRegistry.templates['page.admin.app-config.theme']);
   assert.ok(backofficeRegistry.templates['page.admin.users']);
   assert.ok(backofficeRegistry.templates['page.admin.user.detail']);
@@ -317,6 +318,11 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       filePath: 'app/(dashboard)/admin/app-config/payments-methods/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.app-config.payment-methods"'
+    },
+    {
+      filePath: 'app/(dashboard)/admin/app-config/modules/page.tsx',
+      renderer: 'ThemeCodeTemplate',
+      expectedSnippet: 'id="page.admin.app-config.modules"'
     },
     {
       filePath: 'app/(dashboard)/admin/users/page.tsx',
