@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
 import { mergeClassNames, useI18n } from '@skitsaas/sdk';
-import { NexusSidebarUser } from '../../components/nexus-sidebar-user';
+import { NexusSidebarUser } from '../components/nexus-sidebar-user';
 import type {
   TemplateData as BaseTemplateData,
   TemplateProps
