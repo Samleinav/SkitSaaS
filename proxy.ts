@@ -1,13 +1,26 @@
-import { NextResponse } from 'next/server';
+/**
+ * Next.js v16+ proxy (formerly middleware).
+ *
+ * Proxy chains are composable: each route carries area-level defaults
+ * (proxyAdmin for /admin/*, proxyAuth for /dashboard/*) plus any per-route
+ * extras registered via RouteBuilder.proxy([...]).
+ *
+ * The registry is populated via lib/routing/all-routes.ts.
+ * Add module route files there to include their custom proxy chains.
+ */
+import '@/lib/routing/all-routes';
+
 import type { NextRequest } from 'next/server';
-import { signToken, verifyToken } from '@/lib/auth/session';
-import { db } from '@/lib/db/drizzle';
-import { users } from '@/lib/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import type { AppSurfaceMode } from '@/lib/config/runtime-surface';
 import {
-  getAppSurfaceMode,
-  type AppSurfaceMode
+  getAppSurfaceMode
 } from '@/lib/config/runtime-surface';
+import { matchRouteProxyChain } from '@skitsaas/sdk';
+import { executeProxyChain } from '@/lib/routing/proxies';
+
+// ---------------------------------------------------------------------------
+// Legacy helper exports — kept for backward compatibility with existing tests
+// ---------------------------------------------------------------------------
 
 const DASHBOARD_ROOT = '/dashboard';
 const ADMIN_ROOT = '/admin';
@@ -19,24 +32,16 @@ function matchesAreaRoute(pathname: string, basePath: string) {
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
 }
 
-function isDashboardRoute(pathname: string) {
-  return matchesAreaRoute(pathname, DASHBOARD_ROOT);
-}
-
-function isAdminRoute(pathname: string) {
-  return matchesAreaRoute(pathname, ADMIN_ROOT);
-}
-
 export function isPathDisabledBySurfaceMode(
   pathname: string,
   mode: AppSurfaceMode = getAppSurfaceMode()
 ) {
   if (mode === 'dashboard-only') {
-    return isAdminRoute(pathname);
+    return matchesAreaRoute(pathname, ADMIN_ROOT);
   }
 
   if (mode === 'admin-only') {
-    return !isAdminRoute(pathname);
+    return !matchesAreaRoute(pathname, ADMIN_ROOT);
   }
 
   return false;
@@ -47,87 +52,34 @@ export function isPublicAuthRoute(pathname: string) {
 }
 
 export function resolveUnauthenticatedRedirect(pathname: string) {
-  if (isAdminRoute(pathname) && !isPublicAuthRoute(pathname)) {
+  if (matchesAreaRoute(pathname, ADMIN_ROOT) && !isPublicAuthRoute(pathname)) {
     return ADMIN_LOGIN;
   }
 
-  if (isDashboardRoute(pathname)) {
+  if (matchesAreaRoute(pathname, DASHBOARD_ROOT)) {
     return LEGACY_SIGN_IN;
   }
 
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Proxy function
+// ---------------------------------------------------------------------------
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Surface mode gating (disabled areas → 404 before any auth check)
   if (isPathDisabledBySurfaceMode(pathname)) {
+    const { NextResponse } = await import('next/server');
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  const sessionCookie = request.cookies.get('session');
-  const unauthenticatedRedirect = resolveUnauthenticatedRedirect(pathname);
-  const isProtectedRoute = unauthenticatedRedirect !== null;
-
-  if (isProtectedRoute && !sessionCookie) {
-    return NextResponse.redirect(new URL(unauthenticatedRedirect, request.url));
-  }
-
-  let res = NextResponse.next();
-
-  if (sessionCookie && request.method === 'GET') {
-    try {
-      const parsed = await verifyToken(sessionCookie.value);
-
-      if (
-        isProtectedRoute &&
-        (!parsed?.user || typeof parsed.user.id !== 'number')
-      ) {
-        res.cookies.delete('session');
-        return NextResponse.redirect(new URL(unauthenticatedRedirect, request.url));
-      }
-
-      if (isProtectedRoute && typeof parsed?.user?.id === 'number') {
-        const account = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(
-            and(
-              eq(users.id, parsed.user.id),
-              isNull(users.deletedAt),
-              eq(users.accountStatus, 'active')
-            )
-          )
-          .limit(1);
-
-        if (account.length === 0) {
-          res.cookies.delete('session');
-          return NextResponse.redirect(new URL(unauthenticatedRedirect, request.url));
-        }
-      }
-
-      const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-      res.cookies.set({
-        name: 'session',
-        value: await signToken({
-          ...parsed,
-          expires: expiresInOneDay.toISOString()
-        }),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        expires: expiresInOneDay
-      });
-    } catch (error) {
-      console.error('Error updating session:', error);
-      res.cookies.delete('session');
-      if (isProtectedRoute) {
-        return NextResponse.redirect(new URL(unauthenticatedRedirect, request.url));
-      }
-    }
-  }
-
-  return res;
+  // Resolve and execute the proxy chain for this path.
+  // matchRouteProxyChain returns area-level defaults if no named route matches.
+  const chain = matchRouteProxyChain(pathname);
+  return executeProxyChain(chain, request);
 }
 
 export const config = {

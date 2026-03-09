@@ -154,22 +154,23 @@ In your Vercel project settings (or during deployment), add all the necessary en
 2. `POSTGRES_URL`: Set this to your production database URL.
 3. `AUTH_SECRET`: Set this to a random string. `openssl rand -base64 32` will generate one.
 4. `APP_SURFACE_MODE` (optional): `full`, `dashboard-only`, or `admin-only` depending on the deployment surface.
-5. `STRIPE_ENABLED` (optional): Toggle Stripe checkout on/off (leave empty to use DB config).
-6. `STRIPE_SECRET_KEY` (optional): Set this only if Stripe payments are enabled.
-7. `STRIPE_WEBHOOK_SECRET` (optional): Set this only if Stripe webhooks are enabled.
-8. `PAYPAL_ENABLED` (optional): Toggle PayPal checkout on/off (leave empty to use DB config).
-9. `PAYPAL_ENVIRONMENT` (optional): `sandbox` or `production` if PayPal is enabled.
-10. `PAYPAL_CLIENT_ID` (optional): Required if PayPal is enabled.
-11. `PAYPAL_CLIENT_SECRET` (optional): Required if PayPal is enabled.
-12. `NEXT_PUBLIC_PAYPAL_CLIENT_ID` (optional): Usually the same value as `PAYPAL_CLIENT_ID`.
-13. `PAYPAL_WEBHOOK_ID` (optional): Needed to verify PayPal webhook signatures.
-14. `PAYPAL_CURRENCY` (optional): Defaults to `USD`.
-15. PayPal plan ids are created dynamically from subscription templates during checkout (no static plan env vars required).
-16. You can also configure payment keys in `/admin/app-config/payments-methods`; env values always have priority over DB fallback values.
-17. `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_REPLY_TO_EMAIL` (optional): External SMTP delivery config. You can manage these in `/admin/app-config/email` and review delivery logs in `/admin/logs?tab=email`.
-18. `ADMIN_DASHBOARD_ENABLED_MODULES` (optional): Comma-separated admin modules to show at `/admin`.
-19. `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_TEAM_NAME` (optional): Seed controls for manual bootstrap.
-20. `ALLOW_PRODUCTION_SEED` (optional): Must be `true` to allow `pnpm db:seed` in production-like environments.
+5. `TEAMS_ENABLED` (optional): Set `false` for standalone SaaS products that do not use teams/organizations.
+6. `STRIPE_ENABLED` (optional): Toggle Stripe checkout on/off (leave empty to use DB config).
+7. `STRIPE_SECRET_KEY` (optional): Set this only if Stripe payments are enabled.
+8. `STRIPE_WEBHOOK_SECRET` (optional): Set this only if Stripe webhooks are enabled.
+9. `PAYPAL_ENABLED` (optional): Toggle PayPal checkout on/off (leave empty to use DB config).
+10. `PAYPAL_ENVIRONMENT` (optional): `sandbox` or `production` if PayPal is enabled.
+11. `PAYPAL_CLIENT_ID` (optional): Required if PayPal is enabled.
+12. `PAYPAL_CLIENT_SECRET` (optional): Required if PayPal is enabled.
+13. `NEXT_PUBLIC_PAYPAL_CLIENT_ID` (optional): Usually the same value as `PAYPAL_CLIENT_ID`.
+14. `PAYPAL_WEBHOOK_ID` (optional): Needed to verify PayPal webhook signatures.
+15. `PAYPAL_CURRENCY` (optional): Defaults to `USD`.
+16. PayPal plan ids are created dynamically from subscription templates during checkout (no static plan env vars required).
+17. You can also configure payment keys in `/admin/app-config/payments-methods`; env values always have priority over DB fallback values.
+18. `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_REPLY_TO_EMAIL` (optional): External SMTP delivery config. You can manage these in `/admin/app-config/email` and review delivery logs in `/admin/logs?tab=email`.
+19. `ADMIN_DASHBOARD_ENABLED_MODULES` (optional): Comma-separated admin modules to show at `/admin`.
+20. `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_TEAM_NAME` (optional): Seed controls for manual bootstrap (`SEED_TEAM_NAME` is ignored when `TEAMS_ENABLED=false`).
+21. `ALLOW_PRODUCTION_SEED` (optional): Must be `true` to allow `pnpm db:seed` in production-like environments.
 
 ### Optional one-time production bootstrap
 
@@ -189,5 +190,4 @@ You can run separate environments with different route surfaces:
 - `APP_SURFACE_MODE=admin-only`: admin enabled, dashboard/frontend disabled.
 
 For stronger isolation, pair this with separate DB roles/credentials and DB-level RLS policies per environment.
-
 

@@ -3,6 +3,7 @@ import { db } from './drizzle';
 import { users, teams, teamMembers } from './schema';
 import { hashPassword } from '@/lib/auth/session';
 import { eq } from 'drizzle-orm';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 function isTruthyEnvFlag(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
@@ -144,6 +145,11 @@ async function seed() {
 
   if (!user) {
     throw new Error('Failed to create or load seed user.');
+  }
+
+  if (!areTeamsEnabled()) {
+    console.log('Teams disabled. Skipping bootstrap team creation.');
+    return;
   }
 
   const [existingTeamMember] = await db

@@ -1,7 +1,7 @@
 export { EVENT_HOOKS } from './events/catalog.js';
 export type { EventHook } from './events/catalog.js';
 export type { EventPayload, ModuleEventContext, EventEmitContext, ModuleEventHandler, RegisteredEventHandler, EventEnvelope, EventDispatchResult } from './events/types.js';
-export type { ModuleArea, ModuleNavArea, ModuleRouteAccess, ModuleNavItem, ModuleWidgetDefinition, ModuleRouteContext, ModuleFrontendSlotContext, ModulePageHandler, ModuleApiHandler, ModuleFrontendSlotHandler, ModuleFrontendSlotDefinition, ModuleTemplatePackEntry, ModuleTemplatePack, ModuleAuthProviderKind, ModuleAuthProviderFlow, ModuleAuthProviderCapabilities, ModuleAuthProviderRoutes, ModuleAuthProvider, ModulePaymentOrderType, ModulePaymentMethodRoutes, ModulePaymentMethod, ModuleUserRole, ModuleManifest } from './modules/manifest.js';
+export type { ModuleArea, ModuleNavArea, ModuleRouteAccess, ModuleNavItem, ModuleWidgetDefinition, ModuleRouteContext, ModuleFrontendSlotContext, ModulePageHandler, ModuleApiHandler, ModuleFrontendSlotHandler, ModuleFrontendSlotDefinition, ModuleTemplatePackEntry, ModuleTemplatePack, ModuleAuthProviderKind, ModuleAuthProviderFlow, ModuleAuthProviderCapabilities, ModuleAuthProviderRoutes, ModuleAuthProvider, ModulePaymentOrderType, ModulePaymentMethodRoutes, ModulePaymentMethod, ModuleUserRole, ModuleManifest, ApiRouteEntry, } from './modules/manifest.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
 export type { ModuleI18nNamespace, ModuleMessageTree, ModuleMessagesByLocale, ModuleMessagesByArea } from './i18n/types.js';
 export { ThemeI18nProvider, useThemeMessages, resolveThemeMessages, type ThemeMessageTree, type ThemeMessagesByLocale, type ThemeI18nRegistry } from './i18n/theme.js';
@@ -26,3 +26,15 @@ export type { BuildFormValidationMessageValue, BuildFormValidationMessageValues,
 export { DEFAULT_EMAIL_REGEX, buildFormValidationMessage, createBuildFormValidationMessage, createCatalogBuildFormValidationMessageResolver, formatBuildFormValidationMessage, normalizeEmail, parseOptionalPositiveInt, resolveBuildFormValidationMessage } from './validation-messages.js';
 export type { ClassNameValue } from './templates/utils.js';
 export { mergeClassNames, readString, toStringOrNull, toStringOrFallback, toNumberOrFallback } from './templates/utils.js';
+export type { RouteProxyFn, RouteParamMap } from './routing/types.js';
+export type { RouteArea as RouteAreaName } from './routing/types.js';
+export type { RouteRegistryEntry } from './routing/registry.js';
+export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoundError, route } from './routing/registry.js';
+export { RouteBuilder } from './routing/builder.js';
+export type { AreaBases } from './routing/area.js';
+export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './routing/area.js';
+export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';
+export type { HttpMethod, ApiAuthLevel, ApiRouteProxyFn, ApiHandlerFn, } from './routing/api-route.js';
+export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
+export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './routing/rate-limit.js';
+export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';

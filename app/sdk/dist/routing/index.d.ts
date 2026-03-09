@@ -1,0 +1,12 @@
+export type { RouteProxyFn, RouteParamMap } from './types.js';
+export type { RouteArea as RouteAreaName } from './types.js';
+export type { HttpMethod, ApiAuthLevel, ApiRouteProxyFn, ApiHandlerFn, ApiRouteEntry, } from './api-route.js';
+export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './api-route.js';
+export type { RouteRegistryEntry } from './registry.js';
+export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoundError, route } from './registry.js';
+export { RouteBuilder } from './builder.js';
+export type { AreaBases } from './area.js';
+export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './area.js';
+export { matchRouteProxyChain, resolveAreaFallbackChain } from './matcher.js';
+export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './rate-limit.js';
+export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './rate-limit.js';

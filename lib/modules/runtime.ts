@@ -10,6 +10,7 @@ import type {
 } from '@/lib/runtime-config/types';
 import { recordModuleDispatchFailure } from '@/lib/observability/migration-metrics';
 import { isAreaEnabled } from '@/lib/config/runtime-surface';
+import { dispatchApiRoutes } from '@skitsaas/sdk';
 import { getAllModuleManifests, getModuleManifest } from './registry';
 import { resolveModuleRouteAlias } from './routes';
 import type {
@@ -1418,6 +1419,15 @@ export async function resolveModuleApiHandler({
     return null;
   }
 
+  // New style: typed API routes via RouteApi(...).METHOD().handler(fn)
+  if (manifest.apiRoutes?.length) {
+    const response = await dispatchApiRoutes(manifest.apiRoutes, request);
+    if (response) return response;
+    recordModuleDispatchFailure(moduleId, 'handler_missing');
+    return null;
+  }
+
+  // Legacy style: apiHandler from createModuleApiRouter
   const handler: ModuleApiHandler | undefined = manifest.apiHandler;
   if (!handler) {
     recordModuleDispatchFailure(moduleId, 'handler_missing');

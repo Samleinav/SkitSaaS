@@ -4,6 +4,7 @@ import { connection } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { teamMembers, type User } from '@/lib/db/schema';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 export type UserContext =
   | { type: 'system_admin' }
@@ -32,6 +33,13 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
 
   if (user.role === 'admin') {
     return { type: 'system_admin' };
+  }
+
+  if (!areTeamsEnabled()) {
+    return {
+      type: 'standalone',
+      userId: user.id
+    };
   }
 
   const teamMembership = await getTeamMembership(user.id);

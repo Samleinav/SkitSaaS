@@ -21,6 +21,7 @@ import {
   type SubscriptionPlanTemplateLike
 } from '@/lib/payments/subscription-policy';
 import { supportsSelfServiceSubscriptionTemplateScope } from '@/lib/payments/subscription-scope';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 function interpolate(template: string, vars: Record<string, string | number>) {
   return Object.entries(vars).reduce(
@@ -132,11 +133,12 @@ export default async function PricingPage({
   const { locale, messages } = await getServerLocaleAndMessages('global');
   const { header, pricing } = messages;
   const dateLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const teamsEnabled = areTeamsEnabled();
 
   const [templates, paymentConfig, team, user] = await Promise.all([
     getPricingTemplates(),
     getPricingPaymentConfig(),
-    getTeamForUser(),
+    teamsEnabled ? getTeamForUser() : Promise.resolve(null),
     getUser()
   ]);
   const activeUserAssignment = user
@@ -161,14 +163,14 @@ export default async function PricingPage({
   const scheduledStartDate = scheduledStartTime
     ? new Date(scheduledStartTime)
     : null;
-  const showChangeMode = Boolean(team?.subscriptionTemplateId);
+  const showChangeMode = teamsEnabled && Boolean(team?.subscriptionTemplateId);
   const themeSelection = await getThemeSelectionForArea('frontend');
   const userTemplates = templates.filter((template) => template.targetScope === 'user');
-  const organizationTemplates = templates.filter(
-    (template) => template.targetScope === 'organization'
-  );
+  const organizationTemplates = teamsEnabled
+    ? templates.filter((template) => template.targetScope === 'organization')
+    : [];
   const currentOrganizationTemplate =
-    team?.subscriptionTemplateId
+    teamsEnabled && team?.subscriptionTemplateId
       ? templates.find(
           (template) =>
             template.id === team.subscriptionTemplateId &&
@@ -184,6 +186,9 @@ export default async function PricingPage({
         ) || null
       : null;
   const hasAnyTemplate = userTemplates.length > 0 || organizationTemplates.length > 0;
+  const pricingSummary = teamsEnabled
+    ? `${pricing.userPlansDescription} ${pricing.organizationPlansDescription}`
+    : pricing.userPlansDescription;
   const pricingBody = (
     <>
       {!hasAnyTemplate ? (
@@ -270,19 +275,21 @@ export default async function PricingPage({
           themeId={themeSelection?.themeKey ?? null}
         />
 
-        <PricingSection
-          title={pricing.organizationPlansTitle}
-          description={pricing.organizationPlansDescription}
-          emptyLabel={pricing.noOrganizationPlansConfigured}
-          templates={organizationTemplates}
-          pricing={pricing}
-          dateLocale={dateLocale}
-          stripeEnabled={paymentConfig.stripeEnabled}
-          payPalEnabled={paymentConfig.payPalEnabled}
-          changeMode={changeMode}
-          currentTemplate={currentOrganizationTemplate}
-          themeId={themeSelection?.themeKey ?? null}
-        />
+        {teamsEnabled ? (
+          <PricingSection
+            title={pricing.organizationPlansTitle}
+            description={pricing.organizationPlansDescription}
+            emptyLabel={pricing.noOrganizationPlansConfigured}
+            templates={organizationTemplates}
+            pricing={pricing}
+            dateLocale={dateLocale}
+            stripeEnabled={paymentConfig.stripeEnabled}
+            payPalEnabled={paymentConfig.payPalEnabled}
+            changeMode={changeMode}
+            currentTemplate={currentOrganizationTemplate}
+            themeId={themeSelection?.themeKey ?? null}
+          />
+        ) : null}
       </div>
     </>
   );
@@ -297,7 +304,7 @@ export default async function PricingPage({
           {pricing.headline}
         </h1>
         <p className="max-w-3xl text-base text-zinc-400">
-          {pricing.userPlansDescription} {pricing.organizationPlansDescription}
+          {pricingSummary}
         </p>
       </section>
       {pricingBody}
@@ -315,7 +322,7 @@ export default async function PricingPage({
       data={{
         badgeLabel: header.pricing,
         title: pricing.headline,
-        subtitle: `${pricing.userPlansDescription} ${pricing.organizationPlansDescription}`
+        subtitle: pricingSummary
       }}
       fallback={fallbackPage}
     >

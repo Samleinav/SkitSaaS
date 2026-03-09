@@ -2,6 +2,7 @@
   "title": "Documentation",
   "pages": [
     "00-documentation-index",
+    "first-steps",
     "core",
     "subscriptions",
     "operations",

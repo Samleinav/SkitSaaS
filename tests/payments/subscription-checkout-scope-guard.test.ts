@@ -60,7 +60,31 @@ test('invalid target types or scopes are rejected', () => {
 });
 
 test('self-service checkout supports organization templates only', () => {
-  assert.equal(supportsSelfServiceSubscriptionTemplateScope('organization'), true);
-  assert.equal(supportsSelfServiceSubscriptionTemplateScope('user'), false);
-  assert.equal(supportsSelfServiceSubscriptionTemplateScope('invalid'), false);
+  assert.equal(
+    supportsSelfServiceSubscriptionTemplateScope('organization', {
+      teamsEnabled: true
+    }),
+    true
+  );
+  assert.equal(
+    supportsSelfServiceSubscriptionTemplateScope('user', {
+      teamsEnabled: true
+    }),
+    false
+  );
+  assert.equal(
+    supportsSelfServiceSubscriptionTemplateScope('invalid', {
+      teamsEnabled: true
+    }),
+    false
+  );
+});
+
+test('self-service organization checkout is disabled when teams are disabled', () => {
+  assert.equal(
+    supportsSelfServiceSubscriptionTemplateScope('organization', {
+      teamsEnabled: false
+    }),
+    false
+  );
 });

@@ -152,9 +152,66 @@ and handle subroutes with `slug`:
 
 ## API handlers
 
-`apiHandler` must return a `Response`. If you return `null`, the dispatcher will answer 404.
+### Typed API routes (preferred)
 
-Example:
+Use `RouteApi(...).METHOD()` in `routes.ts` (edge-safe) and attach handlers in `manifest.ts`:
+
+**`src/routes.ts`** — metadata only, no handler imports:
+
+```ts
+import { RouteApi } from '@skitsaas/sdk'
+
+const BASE = '/api/modules/mod.my-feature'
+
+export const MyApiRoutes = {
+  health: RouteApi(`${BASE}/health`).GET().name('my-feature.api.health'),
+  list:   RouteApi(`${BASE}/items`).GET().auth('user').name('my-feature.api.items.list'),
+  create: RouteApi(`${BASE}/items`).POST().auth('admin')
+            .rateLimit({ limit: 10, windowSeconds: 60 }).name('my-feature.api.items.create'),
+  get:    RouteApi(`${BASE}/items/{id}`).GET().auth('user').name('my-feature.api.items.get'),
+  delete: RouteApi(`${BASE}/items/{id}`).DELETE().auth('admin').name('my-feature.api.items.delete'),
+} as const
+```
+
+**`src/manifest.ts`** — attach handlers:
+
+```ts
+import { MyApiRoutes } from './routes'
+import { listItems, createItem, getItem, deleteItem } from './handlers'
+
+defineModule({
+  moduleId: 'mod.my-feature',
+  apiRoutes: [
+    MyApiRoutes.health.handler(() => Response.json({ ok: true })),
+    MyApiRoutes.list.handler(listItems),
+    MyApiRoutes.create.handler(createItem),
+    MyApiRoutes.get.handler(getItem),       // params.id extracted from path
+    MyApiRoutes.delete.handler(deleteItem),
+  ]
+})
+```
+
+Handler signature:
+
+```ts
+// params contains path params extracted from {id}, {slug}, etc.
+(request: Request, params: Record<string, string>) => Response | Promise<Response>
+```
+
+Available builder methods:
+
+| Method | Description |
+|--------|-------------|
+| `.GET() / .POST() / .PUT() / .PATCH() / .DELETE()` | Set HTTP method |
+| `.auth('none' \| 'user' \| 'admin')` | Set auth requirement |
+| `.rateLimit({ limit, windowSeconds, ... })` | Add rate limiting |
+| `.proxy([fn, ...])` | Add extra proxy functions |
+| `.name('route.name')` | Register in named route registry |
+| `.handler(fn)` | Attach handler → returns `ApiRouteEntry` |
+
+### Legacy: `createModuleApiRouter`
+
+Still supported for backward compatibility — use when migrating from existing modules:
 
 ```ts
 import { createModuleApiRouter } from '@skitsaas/sdk/server';
@@ -165,7 +222,11 @@ const apiHandler = createModuleApiRouter({
     { method: 'POST', path: '/items', auth: 'user', handler: () => Response.json({ ok: true }) }
   ]
 });
+
+defineModule({ moduleId: 'mod.my-feature', apiHandler })
 ```
+
+`apiRoutes` takes precedence over `apiHandler` when both are present — prefer `apiRoutes` for new modules.
 
 ## Feature flag gates
 

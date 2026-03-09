@@ -12,11 +12,11 @@ imports (`@/lib/*`, `@/app/*`) to the public SDK contract.
 
 After migration, module code should depend on:
 
-- `@skitsaas/sdk` for manifest/types/events
-- `@skitsaas/sdk/server` for server capabilities (auth, revalidate, config, DB adapter)
+- `@skitsaas/sdk` for manifest/types/events, forms, datatables, typed route factories (`RouteAdmin`, `RouteDashboard`, etc.), and rate limiting (`withRateLimit`, `configureRateLimitBackend`)
+- `@skitsaas/sdk/server` for server capabilities (auth, revalidate, config, DB adapter, `createValidatedServerActionController`, `createModuleApiRouter`)
 - `@skitsaas/sdk/db` for Drizzle query/table helpers
 
-And should **not** import host internals from module source files.
+And should **not** import host internals from module source files (`@/lib/*`, `@/app/*`, `@/components/*`).
 
 ## 1. Update `module.json`
 
@@ -115,11 +115,50 @@ source-package`):
 - keep `sdkRange` aligned with host SDK version policy
 - `modules:build` validates those peers in strict mode by default
 
+## 8. Routes (typed, SDK-first)
+
+Replace hardcoded strings with typed route factories:
+
+```ts
+// Before
+adminRouteAliases: ['/admin/custom/my-module']
+
+// After
+import { RouteAdmin } from '@skitsaas/sdk'
+export const MyModuleRoutes = {
+  admin: { home: RouteAdmin('/custom/my-module').name('my-module.admin.home') }
+} as const
+
+// In manifest:
+adminRouteAliases: [String(MyModuleRoutes.admin.home)]
+```
+
+Module `routes.ts` files import only from `@skitsaas/sdk` — no `@/lib/routing/area-setup` needed.
+
+## 9. Rate limiting (SDK-first)
+
+Replace any custom per-route rate limit logic with `withRateLimit` from the SDK:
+
+```ts
+import { withRateLimit } from '@skitsaas/sdk'
+
+export const myHandler = withRateLimit(
+  { limit: 10, windowSeconds: 60 },
+  async (request) => Response.json({ ok: true })
+)
+```
+
+Never import from `@/lib/routing/rate-limit` in module code — that path is host-only.
+
 ## Migration Checklist
 
 - [ ] No `@/lib/*` imports in module source.
 - [ ] No `@/app/*` imports in module source.
+- [ ] No `@/components/*` imports in source-package modules.
 - [ ] Module declares `moduleMode` in `module.json`.
 - [ ] Module declares `sdkRange` in `module.json`.
+- [ ] Routes use `RouteAdmin`/`RouteDashboard` from SDK — no hardcoded strings.
+- [ ] Rate limiting uses `withRateLimit` from SDK.
+- [ ] Server actions use `createValidatedServerActionController` from `@skitsaas/sdk/server`.
 - [ ] Module builds and resolves through dispatcher routes.
 - [ ] Module tests pass after migration.

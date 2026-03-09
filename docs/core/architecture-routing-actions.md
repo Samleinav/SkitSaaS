@@ -146,13 +146,20 @@ Domain action files:
 
 ## 6) Modules and actions
 
-Module runtime currently dispatches pages and API handlers. It does not auto-register server actions.
+Module runtime dispatches pages and API handlers. It does not auto-register server actions.
 
-If module code needs mutations:
+If module code needs mutations, place actions next to module feature code and use the SDK controller:
 
-- place actions next to module feature code
-- wrap with `adminAction` or `dashboardAction`
-- enforce role/plan/feature checks inside the action handler
+```ts
+'use server'
+import { createValidatedServerActionController } from '@skitsaas/sdk/server'
+import { myItemForm } from './forms'
+
+const controller = createValidatedServerActionController(myItemForm)
+export const createItemAction = controller.action(async ({ values }) => { ... })
+```
+
+Do **not** use `adminAction`/`dashboardAction` from host internals in module code — those are core-host utilities not available to SDK-only modules.
 
 ## 7) API routes vs server actions
 

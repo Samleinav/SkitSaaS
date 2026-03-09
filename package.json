@@ -1,7 +1,7 @@
 {
   "name": "skitsaas",
   "private": true,
-  "version": "1.4.8.3",
+  "version": "1.5.12",
   "scripts": {
     "dev": "next dev --turbopack",
     "predev": "pnpm themes:prepare && pnpm modules:build && pnpm modules:prepare && pnpm modules:i18n && pnpm modules:migrate && pnpm modules:sync",

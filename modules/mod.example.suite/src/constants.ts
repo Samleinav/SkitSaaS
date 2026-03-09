@@ -1,7 +1,11 @@
 export const EXAMPLE_SUITE_MODULE_ID = 'mod.example.suite';
-export const EXAMPLE_SUITE_ADMIN_ALIAS = '/admin/custom/example-suite';
-export const EXAMPLE_SUITE_DASHBOARD_ALIAS = '/dashboard/custom/example-suite';
-export const EXAMPLE_SUITE_API_BASE = `/api/modules/${EXAMPLE_SUITE_MODULE_ID}`;
+
+// Route paths — source of truth is now ExampleRoutes in ./routes.ts.
+// Re-exported here for backward compatibility.
+import { ExampleRoutes } from './routes';
+export const EXAMPLE_SUITE_ADMIN_ALIAS = String(ExampleRoutes.admin.home);
+export const EXAMPLE_SUITE_DASHBOARD_ALIAS = String(ExampleRoutes.dashboard.home);
+export const EXAMPLE_SUITE_API_BASE = ExampleRoutes.apiBase;
 
 export const EXAMPLE_SUITE_ITEM_STATUSES = [
   'draft',

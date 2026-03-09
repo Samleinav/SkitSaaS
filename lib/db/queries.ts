@@ -36,6 +36,7 @@ import {
   SUBSCRIPTION_TARGET_SCOPE_SORT_WEIGHT,
   type SubscriptionTargetScope
 } from '@/lib/payments/subscription-scopes';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 export async function getUser() {
   const sessionCookie = (await cookies()).get('session');
@@ -158,6 +159,10 @@ export async function getActivityLogs() {
 }
 
 export async function getTeamForUser() {
+  if (!areTeamsEnabled()) {
+    return null;
+  }
+
   const user = await getUser();
   if (!user) {
     return null;
@@ -212,6 +217,10 @@ export async function getTeamForUser() {
 }
 
 export async function getOrganizationCountForUser(userId: number) {
+  if (!areTeamsEnabled()) {
+    return 0;
+  }
+
   const [result] = await db
     .select({
       count: sql<number>`cast(count(*) as int)`
@@ -992,4 +1001,4 @@ export async function getPaymentProviderConfigValue(
 
   return appResult?.configValue || null;
 }
-
+

@@ -60,6 +60,36 @@ test('getUserContext returns team_member when membership exists', async () => {
   }
 });
 
+test('getUserContext returns standalone when teams are disabled', async () => {
+  const previousTeamsEnabled = process.env.TEAMS_ENABLED;
+  process.env.TEAMS_ENABLED = 'false';
+
+  const findFirstMock = mock.method(
+    db.query.teamMembers,
+    'findFirst',
+    async () => ({
+      teamId: 7,
+      role: 'owner'
+    })
+  );
+
+  try {
+    const context = await getUserContext(createUser({ id: 88 }));
+    assert.deepEqual(context, {
+      type: 'standalone',
+      userId: 88
+    });
+    assert.equal(findFirstMock.mock.calls.length, 0);
+  } finally {
+    if (previousTeamsEnabled === undefined) {
+      delete process.env.TEAMS_ENABLED;
+    } else {
+      process.env.TEAMS_ENABLED = previousTeamsEnabled;
+    }
+    findFirstMock.mock.restore();
+  }
+});
+
 test('getUserContext returns standalone for authenticated users without team', async () => {
   const findFirstMock = mock.method(
     db.query.teamMembers,

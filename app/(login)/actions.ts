@@ -48,6 +48,7 @@ import {
   validatedAction,
   validatedActionWithUser
 } from '@/lib/auth/middleware';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 async function logActivity(
   teamId: number | null | undefined,
@@ -488,6 +489,7 @@ const signUpSchema = z.object({
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const { email, password, inviteId } = data;
+  const teamsEnabled = areTeamsEnabled();
 
   if (!isPasswordLoginAllowedForArea('dashboard')) {
     await emitEventAsync(
@@ -497,6 +499,19 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     );
     return {
       error: PASSWORD_SIGN_UP_DISABLED_MESSAGE,
+      email,
+      password
+    };
+  }
+
+  if (inviteId && !teamsEnabled) {
+    await emitEventAsync(
+      EVENT_HOOKS.authSignUpFailed,
+      { email, reason: 'teams_disabled' },
+      { source: '/sign-up' }
+    );
+    return {
+      error: 'Team invitations are disabled for this deployment.',
       email,
       password
     };
@@ -550,8 +565,8 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  let teamId: number;
-  let userRole: string;
+  let teamId: number | null = null;
+  let userRole = 'owner';
   let createdTeam: typeof teams.$inferSelect | null = null;
 
   if (inviteId) {
@@ -604,7 +619,7 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     } else {
       return { error: 'Invalid or expired invitation.', email, password };
     }
-  } else {
+  } else if (teamsEnabled) {
     // Create a new team if there's no invitation
     const newTeam: NewTeam = {
       name: `${email}'s Team`
@@ -655,17 +670,21 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     );
   }
 
-  const newTeamMember: NewTeamMember = {
-    userId: createdUser.id,
-    teamId: teamId,
-    role: userRole
-  };
-
-  await Promise.all([
-    db.insert(teamMembers).values(newTeamMember),
+  const signUpOperations: Promise<unknown>[] = [
     logActivity(teamId, createdUser.id, ActivityType.SIGN_UP),
     setSession(createdUser)
-  ]);
+  ];
+
+  if (teamId !== null) {
+    const newTeamMember: NewTeamMember = {
+      userId: createdUser.id,
+      teamId,
+      role: userRole
+    };
+    signUpOperations.unshift(db.insert(teamMembers).values(newTeamMember));
+  }
+
+  await Promise.all(signUpOperations);
 
   await emitEventAsync(
     EVENT_HOOKS.authSignUpCreated,
@@ -692,6 +711,10 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
     const template = await getSubscriptionTemplateById(templateId);
     if (!template) {
+      redirect('/pricing');
+    }
+
+    if (!createdTeam) {
       redirect('/pricing');
     }
 

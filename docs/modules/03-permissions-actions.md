@@ -52,17 +52,41 @@ For custom permission checks (ownership, team membership, quotas), use
 
 ## Server actions
 
-Prefer the existing action wrappers:
+**For modules**, use `createValidatedServerActionController` from `@skitsaas/sdk/server`:
 
+```ts
+'use server'
+import { createValidatedServerActionController } from '@skitsaas/sdk/server'
+import { myItemForm } from './forms'
+
+const controller = createValidatedServerActionController(myItemForm)
+
+export const createMyItemAction = controller.action(async ({ values }) => {
+  // values are validated; handle the mutation here
+  return { ok: true }
+})
+```
+
+**For core host pages** (not modules), the existing wrappers remain available:
 - Admin: `adminAction` from `app/(dashboard)/admin/controller.ts`
 - Dashboard: `dashboardAction` from `app/(dashboard)/dashboard/controller.ts`
 
-These provide:
+## Rate limiting
 
-- centralized auth
-- FormData parsing helpers
-- optional revalidation
+Apply rate limiting to module API handlers using `withRateLimit` from `@skitsaas/sdk`. Do **not** import from `@/lib/routing/rate-limit` in module code.
+
+```ts
+import { withRateLimit } from '@skitsaas/sdk'
+
+// Simple per-IP limit
+const rateLimitedHandler = withRateLimit(
+  { limit: 10, windowSeconds: 60 },
+  async (request) => Response.json({ ok: true })
+)
+```
+
+For per-plan limits see `docs/core/security.md`.
 
 ## Recommendation
 
-For each module create a small `actions.ts` file inside a module folder (not currently enforced by codebase) and wrap any mutations with `adminAction` or `dashboardAction`.
+For each module create a small `actions.ts` file and use `createValidatedServerActionController` for mutations. Apply `withRateLimit` from SDK on API routes that need limiting.

@@ -7,6 +7,9 @@ type OrganizationConfigDefinition = {
   fallback?: string;
 };
 
+const TRUTHY_ENV_VALUES = new Set(['true', '1', 'yes', 'on']);
+const FALSY_ENV_VALUES = new Set(['false', '0', 'no', 'off']);
+
 const ORGANIZATION_CONFIG_DEFINITIONS = {
   allowMultiOrganizations: {
     provider: 'organization',
@@ -39,11 +42,25 @@ function parseBoolean(value: string | null) {
 
   const normalized = value.trim().toLowerCase();
   return (
-    normalized === 'true' ||
-    normalized === '1' ||
-    normalized === 'yes' ||
-    normalized === 'on'
+    TRUTHY_ENV_VALUES.has(normalized)
   );
+}
+
+function parseBooleanFlag(value: string | null, fallback: boolean) {
+  if (!value) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (TRUTHY_ENV_VALUES.has(normalized)) {
+    return true;
+  }
+
+  if (FALSY_ENV_VALUES.has(normalized)) {
+    return false;
+  }
+
+  return fallback;
 }
 
 function parsePositiveInteger(value: string | null) {
@@ -83,7 +100,18 @@ export async function getOrganizationConfigValue(
   return ('fallback' in definition ? definition.fallback : undefined) ?? null;
 }
 
+export function areTeamsEnabled() {
+  return parseBooleanFlag(getNonEmptyEnvValue('TEAMS_ENABLED'), true);
+}
+
 export async function getOrganizationLimits(): Promise<OrganizationLimits> {
+  if (!areTeamsEnabled()) {
+    return {
+      allowMultiOrganizations: false,
+      maxOrganizationsPerUser: 0
+    };
+  }
+
   const [allowMultiOrganizationsRaw, maxOrganizationsPerUserRaw] =
     await Promise.all([
       getOrganizationConfigValue('allowMultiOrganizations'),

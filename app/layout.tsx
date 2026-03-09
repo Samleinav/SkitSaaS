@@ -14,6 +14,7 @@ import { ThemeI18nHost } from '@/components/theme/theme-i18n-host';
 import { ThemeAreaCssGuard } from '@/components/theme/theme-area-css-guard';
 import { bootstrapModuleSdkServer } from '@/lib/modules/sdk-server-bootstrap';
 import { getResolvedAppConfig } from '@/lib/runtime-config/load-app-config';
+import { areTeamsEnabled } from '@/lib/organizations/config';
 
 const resolvedAppConfig = getResolvedAppConfig();
 
@@ -149,6 +150,7 @@ async function RootLayoutContent({
 }) {
   bootstrapModuleSdkServer();
   const locale = await getRequestLocale();
+  const teamsEnabled = areTeamsEnabled();
 
   return (
     <LanguageProvider locale={locale}>
@@ -162,7 +164,7 @@ async function RootLayoutContent({
                 // We do NOT await here
                 // Only components that read this data will suspend
                 '/api/user': getUser(),
-                '/api/team': getTeamForUser()
+                ...(teamsEnabled ? { '/api/team': getTeamForUser() } : {})
               }
             }}
           >

@@ -35,6 +35,14 @@ Exports:
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
 - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
+- typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteFrontend`, `RouteApi`, `RouteBuilder`)
+- named route registry (`route`, `registerRoute`, `getRegisteredRoute`, `RouteNotFoundError`)
+- proxy area configuration (`configureAreaDefaults`, `matchRouteProxyChain`, `resolveAreaFallbackChain`)
+- typed API route builders (`ApiRouteBuilder`, `ApiMethodRouteBuilder`, `ApiRouteEntry`, `ApiHandlerFn`, `ApiRouteProxyFn`, `HttpMethod`, `ApiAuthLevel`)
+- API route dispatch (`dispatchApiRoutes`, `matchApiPath`, `configureApiAuthProxies`)
+- structured datatable helpers (`defineBuildTable`, `buildTableColumn`, `buildTableAction`, `buildTableFilter`, `withBuildTableData`, `parseBuildTableQueryState`, `resolveBuildTableView`)
+- datatable portable renderer (`DataTable`)
+- rate limiting (`withRateLimit`, `checkRateLimit`, `configureRateLimitBackend`, `resolveClientIp`)
 
 Structured form contract:
 

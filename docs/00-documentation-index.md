@@ -10,8 +10,14 @@ description: Entry index for core, subscriptions, operations, extensions, SDK, m
 
 This index organizes the technical documentation for the S-Kit SaaS Starter core platform.
 
+## First Steps
+
+- [Simple SaaS](./first-steps/01-simple-saas.md) — single Next.js deployment: install, configure, run.
+- [Multi-Service](./first-steps/02-multi-service.md) — split admin, dashboard, frontend, and API across separate services.
+
 ## Documentation Taxonomy
 
+- `docs/first-steps/*`: onboarding guides for simple and multi-service deployments.
 - `docs/core/*`: host runtime architecture and platform contracts.
 - `docs/subscriptions/*`: subscription features, quotas, checkout lifecycle and guards.
 - `docs/operations/*`: operational guidance for core surfaces (admin/logs/email/events).
@@ -37,9 +43,13 @@ Exceptions (allowed in core docs):
 
 1. [Platform Technical Capabilities](./core/platform-capabilities.md)
 2. [Routing and Actions Architecture](./core/architecture-routing-actions.md)
-3. [Database Model Overview](./core/database-model.md)
-4. [Environment Variables and Runtime Config](./core/env-variables.md)
-5. [Theme Build-Time Only ADR](./core/theme-build-time-only-adr.md)
+3. [Routing System (RouteBuilder + Proxy Chains)](./core/routing-system.md)
+4. [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./core/security.md)
+5. [Form Build System](./core/form-build-system.md)
+6. [Data Table Build System](./core/build-table-system.md)
+7. [Database Model Overview](./core/database-model.md)
+8. [Environment Variables and Runtime Config](./core/env-variables.md)
+9. [Theme Build-Time Only ADR](./core/theme-build-time-only-adr.md)
 
 ## Billing and Subscription Flows
 

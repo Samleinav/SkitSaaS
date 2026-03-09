@@ -1,6 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { ModuleEventHandler } from '../events/types.js';
 import type { ModuleMessagesByArea } from '../i18n/types.js';
+import type { ApiRouteEntry } from '../routing/api-route.js';
+export type { ApiRouteEntry };
 export type ModuleArea = 'admin' | 'dashboard' | 'frontend' | 'api';
 export type ModuleNavArea = 'admin' | 'dashboard' | 'frontend';
 export type ModuleRouteAccess = 'public' | 'user' | 'admin';
@@ -118,6 +120,12 @@ export type ModuleManifest = {
     dashboardPage?: ModulePageHandler;
     frontendPage?: ModulePageHandler;
     apiHandler?: ModuleApiHandler;
+    /**
+     * Typed API routes defined with RouteApi(...).METHOD().auth().rateLimit().handler(fn).
+     * Takes precedence over apiHandler when present.
+     * Define route metadata in routes.ts (edge-safe) and attach handlers here in manifest.ts.
+     */
+    apiRoutes?: ApiRouteEntry[];
     eventHandlers?: ModuleEventHandler[];
     templatePack?: ModuleTemplatePack;
     authProviders?: ModuleAuthProvider[];

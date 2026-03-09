@@ -55,6 +55,27 @@ Notes:
 
 This core document only tracks host-level env variables. Auth extension modules (passkey, social login, SSO) document their own config in their respective `README.md`.
 
+## Multi-service area base URLs
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `NEXT_PUBLIC_ROUTE_BASE_ADMIN` | Base URL/prefix for the admin area | `/admin` |
+| `NEXT_PUBLIC_ROUTE_BASE_DASHBOARD` | Base URL/prefix for the dashboard area | `/dashboard` |
+| `NEXT_PUBLIC_ROUTE_BASE_FRONTEND` | Base URL/prefix for the frontend area | `` (root) |
+| `NEXT_PUBLIC_ROUTE_BASE_API` | Base URL/prefix for API routes | `/api` |
+| `ROUTE_API_CORS_ORIGINS` | Comma-separated allowed origins for cross-origin API requests | empty (CORS disabled) |
+
+Notes:
+
+- `NEXT_PUBLIC_` prefix makes values available in both server and client bundles, which is required for URL generation in React components and `<Link>` hrefs.
+- The env var value **completely replaces** the default prefix — there is no separate host/path split. Examples:
+  - `NEXT_PUBLIC_ROUTE_BASE_ADMIN=https://admin.myapp.com` → `RouteAdmin('/users')` = `https://admin.myapp.com/users` (no `/admin` path — the host is the admin domain)
+  - `NEXT_PUBLIC_ROUTE_BASE_API=https://api.myapp.com/api` → `RouteApi('/modules/mod.x/items')` = `https://api.myapp.com/api/modules/mod.x/items`
+  - `NEXT_PUBLIC_ROUTE_BASE_ADMIN=/management` → `RouteAdmin('/users')` = `/management/users` (custom prefix, same host)
+- For a separate **Next.js** API service (routes under `/api/`), include `/api` in the base: `NEXT_PUBLIC_ROUTE_BASE_API=https://api.myapp.com/api`. For a bare Node.js/Bun server with routes at root, omit it: `https://api.myapp.com`.
+- `ROUTE_API_CORS_ORIGINS`: set when the API is deployed on a separate origin. Preflight `OPTIONS` requests are handled automatically and `Access-Control-Allow-Origin` headers are added to all API responses. Use `*` for a fully public API.
+- Example split deployment: `NEXT_PUBLIC_ROUTE_BASE_API=https://api.myapp.com/api` and `ROUTE_API_CORS_ORIGINS=https://app.myapp.com,https://admin.myapp.com`.
+
 ## Deployment surface mode
 
 | Variable | Purpose | Default |
@@ -81,6 +102,7 @@ Notes:
 
 - In production-like environments (`NODE_ENV=production`, `VERCEL_ENV=production`, or `APP_ENV=production`), `db:seed` is blocked unless `ALLOW_PRODUCTION_SEED=true`.
 - In production-like environments, seed also rejects default credentials and requires explicit secure values for `SEED_USER_EMAIL` and `SEED_USER_PASSWORD`.
+- `SEED_TEAM_NAME` is ignored when `TEAMS_ENABLED=false`.
 - Recommended production flow is migration-only deploy plus controlled one-time bootstrap seed when needed.
 
 ## Payments (Stripe)
@@ -113,8 +135,14 @@ Notes:
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
+| `TEAMS_ENABLED` | Enable the team/organization system and `/api/team` | `true` |
 | `ALLOW_MULTI_ORGANIZATIONS` | Allow multiple teams per user | `false` |
 | `MAX_ORGANIZATIONS_PER_USER` | Hard cap on org count | empty |
+
+Notes:
+
+- `TEAMS_ENABLED=false` switches dashboard users into standalone mode, skips automatic team creation during sign-up/seed, and makes `/api/team` return `404`.
+- When `TEAMS_ENABLED=false`, `ALLOW_MULTI_ORGANIZATIONS` and `MAX_ORGANIZATIONS_PER_USER` are effectively ignored.
 
 ## Theme selection (build-time target)
 

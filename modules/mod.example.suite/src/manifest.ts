@@ -1,10 +1,7 @@
 import { defineModule, type ModuleManifest } from '@skitsaas/sdk';
 import { createModulePageRouter } from '@skitsaas/sdk/server';
-import {
-  EXAMPLE_SUITE_ADMIN_ALIAS,
-  EXAMPLE_SUITE_DASHBOARD_ALIAS,
-  EXAMPLE_SUITE_MODULE_ID
-} from './constants';
+import { EXAMPLE_SUITE_MODULE_ID } from './constants';
+import { ExampleRoutes } from './routes';
 import { exampleSuiteApiHandler } from './api-handler';
 import {
   renderExampleSuiteAdminCreatePage,
@@ -90,12 +87,12 @@ export default defineModule({
   displayName: 'Example Suite',
   description:
     'Complete module example with DB tables, admin/dashboard pages, actions and API.',
-  adminRouteAliases: [EXAMPLE_SUITE_ADMIN_ALIAS],
-  dashboardRouteAliases: [EXAMPLE_SUITE_DASHBOARD_ALIAS],
+  adminRouteAliases: [String(ExampleRoutes.admin.home)],
+  dashboardRouteAliases: [String(ExampleRoutes.dashboard.home)],
   adminNavItems: [
     {
       id: 'mod.example.suite.admin.nav',
-      href: EXAMPLE_SUITE_ADMIN_ALIAS,
+      href: String(ExampleRoutes.admin.home),
       label: 'Example Suite',
       order: 90
     }
@@ -103,7 +100,7 @@ export default defineModule({
   dashboardNavItems: [
     {
       id: 'mod.example.suite.dashboard.nav',
-      href: EXAMPLE_SUITE_DASHBOARD_ALIAS,
+      href: String(ExampleRoutes.dashboard.home),
       label: 'Example Suite',
       order: 90
     }

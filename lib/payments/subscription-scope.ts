@@ -1,3 +1,5 @@
+import { areTeamsEnabled } from '@/lib/organizations/config';
+
 export type SubscriptionCheckoutTargetType = 'team' | 'user';
 export type SubscriptionTemplateTargetScope = 'organization' | 'user';
 
@@ -26,10 +28,20 @@ function normalizeTemplateTargetScope(
 }
 
 export function supportsSelfServiceSubscriptionTemplateScope(
-  templateTargetScope: string | null | undefined
+  templateTargetScope: string | null | undefined,
+  options?: {
+    teamsEnabled?: boolean;
+  }
 ) {
   const normalizedTemplateScope = normalizeTemplateTargetScope(templateTargetScope);
   if (!normalizedTemplateScope) {
+    return false;
+  }
+
+  if (
+    normalizedTemplateScope === 'organization' &&
+    (options?.teamsEnabled ?? areTeamsEnabled()) === false
+  ) {
     return false;
   }
 

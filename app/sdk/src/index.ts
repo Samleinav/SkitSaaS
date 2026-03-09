@@ -33,7 +33,8 @@ export type {
   ModulePaymentMethodRoutes,
   ModulePaymentMethod,
   ModuleUserRole,
-  ModuleManifest
+  ModuleManifest,
+  ApiRouteEntry,
 } from './modules/manifest.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
 
@@ -293,3 +294,61 @@ export {
   toStringOrFallback,
   toNumberOrFallback
 } from './templates/utils.js';
+
+// Routing system
+export type { RouteProxyFn, RouteParamMap } from './routing/types.js';
+export type { RouteArea as RouteAreaName } from './routing/types.js';
+export type { RouteRegistryEntry } from './routing/registry.js';
+export {
+  registerRoute,
+  getRegisteredRoute,
+  getAllRegisteredRoutes,
+  RouteNotFoundError,
+  route
+} from './routing/registry.js';
+export { RouteBuilder } from './routing/builder.js';
+export type { AreaBases } from './routing/area.js';
+export {
+  RouteArea,
+  RouteAdmin,
+  RouteDashboard,
+  RouteFrontend,
+  RouteApi,
+  configureAreaDefaults,
+  getAreaDefaults,
+  configureAreaBases,
+  getAreaBases,
+} from './routing/area.js';
+export {
+  matchRouteProxyChain,
+  resolveAreaFallbackChain
+} from './routing/matcher.js';
+// Note: proxyAdmin, proxyAuth, executeProxyChain are host-project specifics.
+// They live in lib/routing/proxies.ts and are injected via configureAreaDefaults().
+
+// API route builder — typed HTTP method routes for modules
+export type {
+  HttpMethod,
+  ApiAuthLevel,
+  ApiRouteProxyFn,
+  ApiHandlerFn,
+} from './routing/api-route.js';
+export {
+  configureApiAuthProxies,
+  getApiAuthConfig,
+  configureApiCors,
+  getApiCorsConfig,
+  matchApiPath,
+  dispatchApiRoutes,
+  ApiRouteBuilder,
+  ApiMethodRouteBuilder,
+} from './routing/api-route.js';
+
+// Rate limiting — usable from core and all module types (source-host, source-package, prebuilt)
+export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './routing/rate-limit.js';
+export {
+  configureRateLimitBackend,
+  resolveClientIp,
+  checkRateLimit,
+  withRateLimit
+} from './routing/rate-limit.js';
