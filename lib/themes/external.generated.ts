@@ -363,10 +363,6 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/nexustheme/templates/admin/layout.admin.shell.tsx"
       },
       {
-        "componentId": "layout.admin.shell",
-        "filePath": "themes/nexustheme/templates/layout.admin.shell.tsx"
-      },
-      {
         "componentId": "layout.dashboard.shell",
         "filePath": "themes/nexustheme/templates/dashboard/layout.dashboard.shell.tsx"
       },

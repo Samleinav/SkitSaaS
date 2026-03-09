@@ -99,7 +99,6 @@ export const THEME_CODE_REGISTRY: Record<string, CodeRegistryThemeEntry> = {
     templates: {
       "layout.admin.app-config.shell": () => import("../../themes/nexustheme/templates/admin/layout.admin.app-config.shell"),
       "layout.admin.shell": () => import("../../themes/nexustheme/templates/admin/layout.admin.shell"),
-      "layout.admin.shell": () => import("../../themes/nexustheme/templates/layout.admin.shell"),
       "layout.dashboard.shell": () => import("../../themes/nexustheme/templates/dashboard/layout.dashboard.shell"),
       "layout.private.header": () => import("../../themes/nexustheme/templates/layout.private.header"),
       "layout.private.shell": () => import("../../themes/nexustheme/templates/layout.private.shell"),

@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
-import { mergeClassNames } from '@skitsaas/sdk';
+import { mergeClassNames, useI18n } from '@skitsaas/sdk';
 import { NexusSidebarUser } from '../../components/nexus-sidebar-user';
 import type {
   TemplateData as BaseTemplateData,
@@ -22,8 +22,10 @@ type AdminShellTemplateData = BaseTemplateData & {
 export default function LayoutAdminShellTemplate({
   data,
   className,
-  children
-}: TemplateProps<AdminShellTemplateData>) {
+  children,
+  themeId
+}: TemplateProps<AdminShellTemplateData> & { themeId?: string }) {
+  const t = useI18n({ themeId, area: 'admin' });
   const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';
   const navSlot = data?.navSlot ?? null;
   const breadcrumbSlot = data?.breadcrumbSlot ?? null;
@@ -54,7 +56,7 @@ export default function LayoutAdminShellTemplate({
       {/* ── Mobile backdrop — closes sidebar when tapped ─────────── */}
       <button
         type="button"
-        aria-label="Close sidebar"
+        aria-label={t('Close sidebar')}
         data-nexus-sidebar-backdrop
         tabIndex={-1}
         onClick={() => document.documentElement.removeAttribute('data-sidebar-mobile-open')}
@@ -85,7 +87,7 @@ export default function LayoutAdminShellTemplate({
             </span>
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-semibold text-sidebar-foreground">SkitSaaS</p>
-              <p className="truncate text-[11px] text-sidebar-foreground/60">Admin Dashboard</p>
+              <p className="truncate text-[11px] text-sidebar-foreground/60">{t('Admin Dashboard')}</p>
             </div>
           </Link>
         </div>
@@ -97,7 +99,7 @@ export default function LayoutAdminShellTemplate({
 
         {/* User section — pinned to bottom */}
         <div className="shrink-0 border-t border-border/70 px-2.5 py-2">
-          <NexusSidebarUser />
+          <NexusSidebarUser themeId={themeId} />
         </div>
       </aside>
 
