@@ -16,6 +16,10 @@ import {
   revalidatePricing
 } from '../actions/shared';
 import { createAdminOrganizationControlsBuildFormBase } from './forms';
+import {
+  setModuleRuntimeStatusAction as _setModuleRuntimeStatusAction,
+  upsertModuleRuntimeConfigAction as _upsertModuleRuntimeConfigAction
+} from './modules/actions';
 
 const organizationConfigDefinitions = getOrganizationConfigDefinitionsForAdmin();
 const organizationProvider =
@@ -113,10 +117,13 @@ export const upsertPaymentProviderConfigAction = adminAction(
   }
 );
 
-export {
-  setModuleRuntimeStatusAction,
-  upsertModuleRuntimeConfigAction
-} from './modules/actions';
+export async function setModuleRuntimeStatusAction(formData: FormData) {
+  return _setModuleRuntimeStatusAction(formData);
+}
+
+export async function upsertModuleRuntimeConfigAction(formData: FormData) {
+  return _upsertModuleRuntimeConfigAction(formData);
+}
 
 export const upsertProviderConfigBatchAction = adminAction(
   async ({ user, form, formData }) => {
