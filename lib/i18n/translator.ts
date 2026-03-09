@@ -11,10 +11,8 @@ export function createTranslator(
   translationsByLocale: Record<string, Record<string, string>> = flatTranslationsByLocale
 ): Translator {
   const localeTranslations = translationsByLocale[locale] ?? {};
+  const defaultTranslations =
+    locale === DEFAULT_LOCALE ? {} : (translationsByLocale[DEFAULT_LOCALE] ?? {});
 
-  if (locale === DEFAULT_LOCALE) {
-    return (key) => key;
-  }
-
-  return (key) => localeTranslations[key] ?? key;
+  return (key) => localeTranslations[key] ?? defaultTranslations[key] ?? key;
 }

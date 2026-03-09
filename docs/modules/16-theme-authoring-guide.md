@@ -20,6 +20,11 @@ themes/<your-theme>/
   tokens.css
   templates.json            # optional
   global.css                # optional (if referenced in config.ts/assets)
+  locales/                  # optional flat translations
+    admin/
+      en.json
+    dashboard/
+      es.json
   frontend/                 # optional route-driven frontend components
     layout-shell.tsx
     home-page.tsx
@@ -250,6 +255,44 @@ Helper:
 - `lib/templates/debug.ts`
 
 ## Theme assets by area (`config.ts` preferred)
+
+## Theme translations
+
+Themes use the same flat translator style as the host runtime. Inside theme
+components, call `useI18n({ themeId, area })` and translate natural keys
+directly:
+
+```tsx
+import { useI18n } from '@skitsaas/sdk';
+
+export function ThemeActionLabel({ themeId }: { themeId?: string }) {
+  const t = useI18n({ themeId, area: 'admin' });
+  return <span>{t('Cancel')}</span>;
+}
+```
+
+Author translation files here:
+
+```text
+themes/<themeId>/locales/<area>/<locale>.json
+```
+
+Example:
+
+```json
+{
+  "Cancel": "Cancelar",
+  "Admin table": "Tabla admin"
+}
+```
+
+Rules:
+
+- JSON must stay flat: `English key -> translated value`
+- supported areas are `global`, `frontend`, `admin`, `dashboard`, and `login`
+- `global` is merged first, then the current area
+- theme keys override core flat translations for the active `themeId + area`
+- missing keys fall back to the core translator
 
 Preferred declaration lives in `config.ts` under `assets`:
 

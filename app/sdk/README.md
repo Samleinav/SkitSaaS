@@ -7,6 +7,7 @@ It provides:
 - server-side runtime helpers
 - curated Drizzle exports
 - datatable CRUD helpers
+- flat i18n translator helpers for modules and themes
 - structured form/modal builders
 - structured form validation helpers
 - source-package build and test utilities
@@ -58,7 +59,7 @@ export default defineModule({
 - `@skitsaas/sdk`
   - module manifest types/helpers (`defineModule`, `validateModuleManifest`)
   - event hooks and event types
-  - module i18n and theme i18n types/helpers
+  - flat i18n types/helpers (`createTranslator`, `I18nProvider`, `useI18n`)
   - theme config helper (`defineThemeConfig`)
   - datatable contracts/helpers
   - structured form contract/helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
@@ -84,6 +85,33 @@ export default defineModule({
   - source-package build helper (`buildSourcePackageModule`)
 - `@skitsaas/sdk/testing`
   - source-package contract/test helper (`runSourcePackageTestSuite`)
+
+## I18n
+
+Use the flat translator across host-integrated modules and theme components.
+
+Module or utility code:
+
+```ts
+import { createTranslator } from '@skitsaas/sdk';
+
+const t = createTranslator('es', {
+  es: {
+    Cancel: 'Cancelar'
+  }
+});
+```
+
+Theme React components:
+
+```tsx
+import { useI18n } from '@skitsaas/sdk';
+
+export function ThemeActionLabel({ themeId }: { themeId?: string }) {
+  const t = useI18n({ themeId, area: 'admin' });
+  return <span>{t('Cancel')}</span>;
+}
+```
 
 ## Server Helpers (Host Integration)
 

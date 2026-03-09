@@ -1,29 +1,31 @@
 'use client';
 
-import { ThemeI18nProvider } from '@skitsaas/sdk';
-import { THEME_I18N_REGISTRY } from '@/lib/i18n/themes-i18n.generated';
+import { I18nProvider } from '@skitsaas/sdk';
+import { flatTranslationsByLocale } from '@/lib/i18n/translations.generated';
+import { THEME_TRANSLATIONS_BY_THEME_ID } from '@/lib/i18n/theme-translations.generated';
 import type { ReactNode } from 'react';
 
 /**
- * Host application wrapper for the SDK's ThemeI18nProvider.
- * Injects the generated theme registry and current locale.
+ * Host application wrapper for the SDK i18n provider.
+ * Injects core flat translations plus theme overrides for theme components.
  */
 export function ThemeI18nHost({
-    locale,
-    defaultLocale = 'en',
-    children
+  locale,
+  defaultLocale = 'en',
+  children
 }: {
-    locale: string;
-    defaultLocale?: string;
-    children: ReactNode;
+  locale: string;
+  defaultLocale?: string;
+  children: ReactNode;
 }) {
-    return (
-        <ThemeI18nProvider
-            registry={THEME_I18N_REGISTRY}
-            locale={locale}
-            defaultLocale={defaultLocale}
-        >
-            {children}
-        </ThemeI18nProvider>
-    );
+  return (
+    <I18nProvider
+      locale={locale}
+      defaultLocale={defaultLocale}
+      translationsByLocale={flatTranslationsByLocale}
+      themeTranslationsByThemeId={THEME_TRANSLATIONS_BY_THEME_ID}
+    >
+      {children}
+    </I18nProvider>
+  );
 }

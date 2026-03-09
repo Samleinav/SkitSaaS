@@ -1,15 +1,15 @@
 ---
 title: I18n Runtime
 sidebar_position: 9
-description: How typed area messages and the flat natural-key translator work together in the host runtime.
+description: How the shared i18n runtime exposes typed host trees and the flat natural-key translator for host, modules, and themes.
 ---
 
 # I18n Runtime
 
-The host now supports two i18n systems in parallel:
+The runtime now has one locale source with two access styles:
 
 - typed area messages for stable structured UI trees
-- flat natural-key translation for ad-hoc copy
+- flat natural-key translation for ad-hoc copy, modules, and themes
 
 Both are generated from the same locale sources through `pnpm i18n:prepare`.
 
@@ -85,8 +85,9 @@ Use the flat translator when:
 - the copy is not worth expanding the public typed contract
 - the path is already driven by a plain string, such as `notify(...)`
 
-Do not mass-migrate existing typed trees to flat keys. Flat translation is an
-addition, not a replacement.
+Do not mass-migrate existing typed trees to flat keys. The typed host trees
+still exist for stable layouts, but themes and modules should default to the
+flat translator.
 
 ## Source of truth
 
@@ -99,6 +100,13 @@ For modules, flat keys come from:
 - `modules/<moduleId>/i18n/translations/<locale>.json`
 - `modules/<moduleId>/dist/i18n/translations/<locale>.json`
 
+For themes, flat keys come from:
+
+- `themes/<themeId>/locales/<area>/<locale>.json`
+
+Theme translations are merged on top of the core flat registry for the active
+`themeId + area`. `global` applies first, then the requested area overrides it.
+
 If two sources define the same `locale + key` with different values,
 `pnpm i18n:prepare` fails.
 
@@ -109,3 +117,9 @@ Current core pilots:
 - login server action errors in `app/(login)/actions.ts`
 - dashboard invite warning notification in `app/(dashboard)/dashboard/home-core.tsx`
 - relative-time helper in `lib/i18n/formatting.ts`
+
+Theme usage:
+
+- theme components use `useI18n({ themeId, area })` from `@skitsaas/sdk`
+- `components/theme/theme-i18n-host.tsx` injects the core flat registry plus
+  `lib/i18n/theme-translations.generated.ts`

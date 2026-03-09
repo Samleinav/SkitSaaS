@@ -24,3 +24,13 @@ test('createTranslator returns identity for the default locale', () => {
 
   assert.equal(translate('Save Changes'), 'Save Changes');
 });
+
+test('createTranslator still resolves explicit default-locale overrides', () => {
+  const translate = createTranslator('en', {
+    en: {
+      Cancel: 'Dismiss'
+    }
+  });
+
+  assert.equal(translate('Cancel'), 'Dismiss');
+});

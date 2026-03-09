@@ -51,12 +51,13 @@ export type { CreateTranslatorOptions } from './i18n/translator.js';
 export { createTranslator } from './i18n/translator.js';
 
 export {
-  ThemeI18nProvider,
-  useThemeMessages,
-  resolveThemeMessages,
-  type ThemeMessageTree,
-  type ThemeMessagesByLocale,
-  type ThemeI18nRegistry
+  I18nProvider,
+  useI18n,
+  resolveThemeTranslationsByLocale,
+  resolveI18nTranslationsByLocale,
+  type ThemeTranslationsByArea,
+  type ThemeTranslationsRegistry,
+  type UseI18nOptions
 } from './i18n/theme.js';
 
 export {

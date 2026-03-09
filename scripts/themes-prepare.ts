@@ -1067,9 +1067,15 @@ function resolveThemeRoutesImportPath({
   return null;
 }
 
-const I18N_AREAS = ['global', 'dashboard', 'admin', 'login', 'frontend'] as const;
+const THEME_TRANSLATION_AREAS = [
+  'global',
+  'dashboard',
+  'admin',
+  'login',
+  'frontend'
+] as const;
 
-type ThemeI18nMessages = Record<string, Record<string, unknown>>;
+type ThemeTranslationsByArea = Record<string, Record<string, Record<string, string>>>;
 
 function readJsonFileSafe(filePath: string): Record<string, unknown> | null {
   try {
@@ -1084,7 +1090,13 @@ function readJsonFileSafe(filePath: string): Record<string, unknown> | null {
   }
 }
 
-function scanThemeI18n({
+function isFlatTranslationRecord(
+  value: Record<string, unknown>
+): value is Record<string, string> {
+  return Object.values(value).every((entry) => typeof entry === 'string');
+}
+
+function scanThemeTranslations({
   packDir,
   themeId,
   warnings
@@ -1092,16 +1104,16 @@ function scanThemeI18n({
   packDir: string;
   themeId: string;
   warnings: string[];
-}): ThemeI18nMessages {
-  const i18nDir = path.join(packDir, 'i18n');
-  if (!fs.existsSync(i18nDir)) {
+}): ThemeTranslationsByArea {
+  const localesDir = path.join(packDir, 'locales');
+  if (!fs.existsSync(localesDir)) {
     return {};
   }
 
-  const messages: ThemeI18nMessages = {};
+  const translationsByArea: ThemeTranslationsByArea = {};
 
-  for (const area of I18N_AREAS) {
-    const areaDir = path.join(i18nDir, area);
+  for (const area of THEME_TRANSLATION_AREAS) {
+    const areaDir = path.join(localesDir, area);
     if (!fs.existsSync(areaDir)) {
       continue;
     }
@@ -1109,79 +1121,55 @@ function scanThemeI18n({
     const localeFiles = fs
       .readdirSync(areaDir, { withFileTypes: true })
       .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-      .map((entry) => entry.name);
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right));
 
     for (const fileName of localeFiles) {
       const locale = fileName.replace(/\.json$/i, '');
       const filePath = path.join(areaDir, fileName);
       const tree = readJsonFileSafe(filePath);
 
-      if (!tree) {
+      if (!tree || !isFlatTranslationRecord(tree)) {
         warnings.push(
-          `Theme ${themeId}: invalid i18n JSON in ${area}/${fileName}`
+          `Theme ${themeId}: invalid locale JSON in ${area}/${fileName}. Expected a flat object shaped like { "Cancel": "Cancelar" }.`
         );
         continue;
       }
 
-      if (!messages[locale]) {
-        messages[locale] = {};
+      if (!translationsByArea[area]) {
+        translationsByArea[area] = {};
       }
 
-      // Merge area messages under the area key
-      messages[locale] = {
-        ...messages[locale],
-        [area]: tree
-      };
-    }
-  }
-
-  // Also check for flat locale files directly in i18n/ (e.g. i18n/en.json)
-  const directFiles = fs
-    .readdirSync(i18nDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-    .map((entry) => entry.name);
-
-  for (const fileName of directFiles) {
-    const locale = fileName.replace(/\.json$/i, '');
-    const filePath = path.join(i18nDir, fileName);
-    const tree = readJsonFileSafe(filePath);
-
-    if (!tree) {
-      warnings.push(
-        `Theme ${themeId}: invalid i18n JSON in ${fileName}`
+      translationsByArea[area][locale] = Object.fromEntries(
+        Object.entries(tree).sort(([left], [right]) => left.localeCompare(right))
       );
-      continue;
     }
-
-    if (!messages[locale]) {
-      messages[locale] = {};
-    }
-
-    messages[locale] = {
-      ...messages[locale],
-      ...tree
-    };
   }
 
-  return messages;
+  return translationsByArea;
 }
 
-function writeGeneratedThemeI18nRegistry({
+function writeGeneratedThemeTranslationsRegistry({
   outputPath,
-  themeI18nMap
+  themeTranslationsByThemeId
 }: {
   outputPath: string;
-  themeI18nMap: Record<string, ThemeI18nMessages>;
+  themeTranslationsByThemeId: Record<string, ThemeTranslationsByArea>;
 }) {
-  const hasAny = Object.keys(themeI18nMap).length > 0;
+  const normalizedRegistry = Object.fromEntries(
+    Object.entries(themeTranslationsByThemeId).sort(([left], [right]) =>
+      left.localeCompare(right)
+    )
+  );
+  const hasAny = Object.keys(normalizedRegistry).length > 0;
 
   const body = hasAny
-    ? JSON.stringify(themeI18nMap, null, 2)
+    ? JSON.stringify(normalizedRegistry, null, 2)
     : '{}';
 
   const fileBody =
-    "import type { ThemeI18nRegistry } from '@skitsaas/sdk';\n\n" +
-    `export const THEME_I18N_REGISTRY: ThemeI18nRegistry = ${body};\n`;
+    "import type { ThemeTranslationsRegistry } from '@skitsaas/sdk';\n\n" +
+    `export const THEME_TRANSLATIONS_BY_THEME_ID: ThemeTranslationsRegistry = ${body};\n`;
 
   ensureOutputDir(outputPath);
   fs.writeFileSync(outputPath, fileBody, 'utf8');
@@ -1633,7 +1621,7 @@ export async function runThemesPrepare(
   const errors: ThemePrepareError[] = [];
   const compatibilityErrors: string[] = [];
   const resolvedThemePacks: ResolvedThemePack[] = [];
-  const themeI18nMap: Record<string, ThemeI18nMessages> = {};
+  const themeTranslationsByThemeId: Record<string, ThemeTranslationsByArea> = {};
   const templatePriority = resolveThemeTemplatePriority(warnings);
   const resolvedSelections = THEME_SELECTION_AREAS.map((area) =>
     resolveThemeSelectionForArea({
@@ -1761,9 +1749,13 @@ export async function runThemesPrepare(
         packDir,
         rootDir
       });
-      const i18nMessages = scanThemeI18n({ packDir, themeId: manifest.themeId, warnings });
-      if (Object.keys(i18nMessages).length > 0) {
-        themeI18nMap[manifest.themeId] = i18nMessages;
+      const themeTranslations = scanThemeTranslations({
+        packDir,
+        themeId: manifest.themeId,
+        warnings
+      });
+      if (Object.keys(themeTranslations).length > 0) {
+        themeTranslationsByThemeId[manifest.themeId] = themeTranslations;
       }
 
       resolvedThemePacks.push({
@@ -1862,10 +1854,15 @@ export async function runThemesPrepare(
     resolvedThemePacks
   });
 
-  const i18nRegistryOutputPath = path.join(rootDir, 'lib', 'i18n', 'themes-i18n.generated.ts');
-  writeGeneratedThemeI18nRegistry({
-    outputPath: i18nRegistryOutputPath,
-    themeI18nMap
+  const themeTranslationsOutputPath = path.join(
+    rootDir,
+    'lib',
+    'i18n',
+    'theme-translations.generated.ts'
+  );
+  writeGeneratedThemeTranslationsRegistry({
+    outputPath: themeTranslationsOutputPath,
+    themeTranslationsByThemeId
   });
 
   const selectionOutputPath = path.join(rootDir, 'lib', 'themes', 'selection.generated.ts');

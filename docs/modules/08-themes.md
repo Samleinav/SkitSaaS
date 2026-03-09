@@ -131,32 +131,59 @@ export default defineThemeConfig({
 
 ## Theme I18n
 
-Themes can provide their own translations. These are loaded separately from core/module messages and are scoped to the active theme.
+Themes now use the same flat natural-key translator style as the host runtime:
+
+```ts
+t('Cancel') // => 'Cancelar'
+```
+
+Theme translations are area-scoped overrides on top of the core flat registry.
+That means theme code can use one API and still inherit core translations for
+keys the theme does not redefine.
 
 ### File structure
 
-Add translation files in your theme directory:
+Add flat translation files in your theme directory:
 
-```
-themes/<themeId>/i18n/<locale>.json
-```
-
-Or scoped by area:
-
-```
-themes/<themeId>/i18n/<area>/<locale>.json
+```text
+themes/<themeId>/locales/<area>/<locale>.json
 ```
 
-Example (`themes/pilot-admin/i18n/admin/en.json`):
+Supported areas:
+
+- `global`
+- `frontend`
+- `admin`
+- `dashboard`
+- `login`
+
+`global` is optional and is merged before the selected area.
+
+Example (`themes/pilot-admin/locales/admin/en.json`):
 
 ```json
 {
-  "pilotTable": {
-    "title": "Pilot Table",
-    "noData": "No data available"
-  }
+  "Admin table": "Admin table",
+  "No data available": "No data available"
 }
 ```
+
+Example (`themes/pilot-admin/locales/admin/es.json`):
+
+```json
+{
+  "Admin table": "Tabla admin",
+  "No data available": "No hay datos disponibles"
+}
+```
+
+Rules:
+
+- files must be flat JSON objects of `English key -> translated value`
+- nested objects are invalid for theme translations
+- theme translations override core flat keys for the matching `themeId + area`
+- if a key is not provided by the theme, `useI18n(...)` falls back to the core
+  host translation
 
 ### Build step
 
@@ -168,23 +195,27 @@ pnpm themes:prepare
 
 This generates:
 
-- `lib/i18n/themes-i18n.generated.ts`
+- `lib/i18n/theme-translations.generated.ts`
 
-The host application injects this registry into the SDK's `ThemeI18nProvider`.
+The host injects this registry together with the core flat registry through the
+SDK `I18nProvider`.
 
-### Usage in components
+### Usage in theme components
 
-Theme components should use the `useThemeMessages` hook from the SDK. The `themeId` prop is automatically injected by `ThemeTemplate`.
+Theme components should use `useI18n({ themeId, area })` from the SDK. The
+`themeId` prop is automatically injected by `ThemeTemplate` / `ThemeCodeTemplate`.
 
 ```tsx
-import { useThemeMessages } from '@skitsaas/sdk';
+import { useI18n } from '@skitsaas/sdk';
 
-export default function MyThemeComponent({ themeId }: { themeId?: string }) {
-  // Hook automatically resolves messages for the current locale & themeId
-  const t = useThemeMessages(themeId);
-  const messages = t.admin?.pilotTable ?? {};
+export default function MyThemeComponent({
+  themeId
+}: {
+  themeId?: string;
+}) {
+  const t = useI18n({ themeId, area: 'admin' });
 
-  return <div>{messages.title}</div>;
+  return <div>{t('Cancel')}</div>;
 }
 ```
 

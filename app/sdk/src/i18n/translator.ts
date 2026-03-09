@@ -14,10 +14,8 @@ export function createTranslator(
     defaultLocale = 'en'
   } = options;
   const localeTranslations = translationsByLocale[locale] ?? {};
+  const defaultTranslations =
+    locale === defaultLocale ? {} : (translationsByLocale[defaultLocale] ?? {});
 
-  if (locale === defaultLocale) {
-    return (key) => key;
-  }
-
-  return (key) => localeTranslations[key] ?? key;
+  return (key) => localeTranslations[key] ?? defaultTranslations[key] ?? key;
 }

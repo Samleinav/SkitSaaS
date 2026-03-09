@@ -33,6 +33,7 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
 - `templates.json`: optional CTC template entries by area.
 - `config.ts`: optional runtime provider/head/assets config.
 - `routes.ts`: optional/required for selected frontend themes in route-driven mode.
+- `locales/<area>/<locale>.json`: optional flat translation overrides for `useI18n({ themeId, area })`.
 - `templates/*.tsx`: optional code-driven templates registered by `themes:prepare`.
 
 ## Prepare and validate
@@ -46,7 +47,7 @@ This regenerates:
 - `lib/themes/external.generated.ts`
 - `lib/themes/code-registry.generated.ts`
 - `lib/themes/frontend-routes.generated.ts`
-- `lib/i18n/themes-i18n.generated.ts`
+- `lib/i18n/theme-translations.generated.ts`
 - `lib/themes/assets.generated.ts`
 - `public/.generated/core-assets/*`
 - `public/.generated/theme-assets/*`

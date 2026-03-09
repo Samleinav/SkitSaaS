@@ -401,7 +401,7 @@ test('themes:prepare warning mode keeps incompatible unselected pack and reports
   );
 });
 
-test('themes:prepare builds theme i18n registry by locale and area', async () => {
+test('themes:prepare builds flat theme translation registry by theme, area, and locale', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');
 
@@ -431,19 +431,15 @@ test('themes:prepare builds theme i18n registry by locale and area', async () =>
   });
 
   writeFile(
-    path.join(themesDir, 'pilot-admin', 'i18n', 'admin', 'en.json'),
+    path.join(themesDir, 'pilot-admin', 'locales', 'admin', 'en.json'),
     JSON.stringify({
-      pilotTable: {
-        title: 'Pilot Admin Table'
-      }
+      'Admin table': 'Pilot Admin Table'
     })
   );
   writeFile(
-    path.join(themesDir, 'pilot-admin', 'i18n', 'en.json'),
+    path.join(themesDir, 'pilot-admin', 'locales', 'global', 'en.json'),
     JSON.stringify({
-      shared: {
-        confirm: 'Confirm'
-      }
+      Confirm: 'Confirm'
     })
   );
 
@@ -468,11 +464,12 @@ test('themes:prepare builds theme i18n registry by locale and area', async () =>
     tempRoot,
     'lib',
     'i18n',
-    'themes-i18n.generated.ts'
+    'theme-translations.generated.ts'
   );
   const output = fs.readFileSync(i18nOutputPath, 'utf8');
 
-  const marker = 'export const THEME_I18N_REGISTRY: ThemeI18nRegistry = ';
+  const marker =
+    'export const THEME_TRANSLATIONS_BY_THEME_ID: ThemeTranslationsRegistry = ';
   const markerIndex = output.indexOf(marker);
   assert.ok(markerIndex >= 0);
 
@@ -481,21 +478,24 @@ test('themes:prepare builds theme i18n registry by locale and area', async () =>
     string,
     Record<string, unknown>
   >;
-  const englishTree = registry['theme.pilot.admin']?.en as
+  const englishAreas = registry['theme.pilot.admin'] as
     | Record<string, unknown>
     | undefined;
-  const adminMessages = englishTree?.admin as
+  const adminTranslations = englishAreas?.admin as
     | Record<string, unknown>
     | undefined;
-  const pilotTable = adminMessages?.pilotTable as
+  const englishAdminTranslations = adminTranslations?.en as
     | Record<string, unknown>
     | undefined;
-  const sharedMessages = englishTree?.shared as
+  const globalTranslations = englishAreas?.global as
+    | Record<string, unknown>
+    | undefined;
+  const englishGlobalTranslations = globalTranslations?.en as
     | Record<string, unknown>
     | undefined;
 
-  assert.equal(pilotTable?.title, 'Pilot Admin Table');
-  assert.equal(sharedMessages?.confirm, 'Confirm');
+  assert.equal(englishAdminTranslations?.['Admin table'], 'Pilot Admin Table');
+  assert.equal(englishGlobalTranslations?.Confirm, 'Confirm');
 });
 
 test('themes:prepare fails when selected theme is missing', async () => {
