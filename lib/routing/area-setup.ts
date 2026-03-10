@@ -16,11 +16,26 @@ import {
   configureApiCors,
 } from '@skitsaas/sdk';
 import type { NextRequest } from 'next/server';
-import { proxyAdmin, proxyAuth, proxyApiAdmin, proxyApiAuth } from './proxies';
+import { proxyAdmin, proxyAuth, proxyApiAdmin, proxyApiAuth, proxyRateLimit } from './proxies';
 
 configureAreaDefaults({
   admin: [proxyAdmin],
   dashboard: [proxyAuth]
+});
+
+// ---------------------------------------------------------------------------
+// Default API rate limit for authenticated user routes (.auth('user')).
+// 60 requests per 60 s keyed by userId (or IP for unauthenticated fallback).
+// Override per-route by passing a custom proxy chain to withApiRouteEntries().
+//
+// For production, configure a distributed backend in sdk-server-bootstrap.ts:
+//   import { configureRateLimitBackend } from '@skitsaas/sdk';
+//   configureRateLimitBackend({ ... }); // Upstash / Redis adapter
+// ---------------------------------------------------------------------------
+const defaultUserApiRateLimit = proxyRateLimit({
+  key: (ctx) => `api:user:${ctx.userId ?? ctx.ip}`,
+  limit: 60,
+  windowSeconds: 60,
 });
 
 // ---------------------------------------------------------------------------
@@ -65,7 +80,8 @@ if (corsOrigins) {
 // Inject auth proxies for typed API routes (.auth('user') / .auth('admin')).
 // Cast through Request because proxyApiAdmin/proxyApiAuth accept NextRequest,
 // but ApiRouteProxyFn uses the standard Request type for module compatibility.
+// User routes also run the default rate limit after auth succeeds.
 configureApiAuthProxies({
-  user:  (req) => proxyApiAuth(req as NextRequest),
+  user:  async (req) => (await proxyApiAuth(req as NextRequest)) ?? defaultUserApiRateLimit(req),
   admin: (req) => proxyApiAdmin(req as NextRequest),
 });

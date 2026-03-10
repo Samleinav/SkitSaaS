@@ -385,7 +385,7 @@ export {
 } from './routing/api-route.js';
 
 // Rate limiting — usable from core and all module types (source-host, source-package, prebuilt)
-export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './routing/rate-limit.js';
+export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig, RateLimitBackendContext, RateLimitBackendHandler } from './routing/rate-limit.js';
 export {
   configureRateLimitBackend,
   resolveClientIp,

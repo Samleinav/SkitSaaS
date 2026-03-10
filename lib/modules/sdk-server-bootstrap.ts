@@ -12,6 +12,11 @@ import {
   configureRevalidation,
   configureSubscriptionFeatures
 } from '@skitsaas/sdk/server';
+import { configureRateLimitBackend } from '@skitsaas/sdk';
+import { configureBuildFormPreflightRateLimit } from '@/lib/forms/preflight';
+import { checkRateLimit } from '@/lib/routing/rate-limit';
+import { createRedisRateLimitBackend, hasRateLimitRedisConfig } from '@/lib/routing/rate-limit-redis';
+import { getAdminAreaRoles } from '@/lib/runtime-config/roles';
 import {
   getAppConfigValueFromDb,
   inferAppConfigIsSecret,
@@ -36,7 +41,6 @@ import { quotaAdapter } from '@/lib/quota/service';
 import { and, eq, isNull } from 'drizzle-orm';
 
 let bootstrapped = false;
-const ADMIN_ROLES = new Set(['admin']);
 const DRIZZLE_TABLE_SYMBOL = Symbol.for('drizzle:IsDrizzleTable');
 const DRIZZLE_TABLE_NAME_SYMBOL = Symbol.for('drizzle:Name');
 
@@ -141,7 +145,7 @@ function normalizeRole(value: unknown) {
 async function requireAdminDashboardUser() {
   const currentUser = await requireDashboardUser();
   const role = normalizeRole((currentUser as { role?: unknown }).role);
-  if (!ADMIN_ROLES.has(role)) {
+  if (!getAdminAreaRoles().has(role)) {
     redirect('/dashboard');
   }
 
@@ -240,6 +244,44 @@ export function bootstrapModuleSdkServer() {
   );
 
   configureSubscriptionFeatures(quotaAdapter);
+
+  // ---------------------------------------------------------------------------
+  // Distributed rate limit backend — Redis (REDIS_URL or RATE_LIMIT_REDIS_URL).
+  // Covers ALL withRateLimit usages across core and modules.
+  // Falls back to in-memory (single-instance / dev) when not configured.
+  //
+  // To use Upstash or a custom backend instead, replace this call with your own:
+  //   configureRateLimitBackend(async (ctx) => {
+  //     const { success, reset } = await ratelimit.limit(ctx.customKey ?? ...)
+  //     return { limited: !success, retryAfterSeconds: ... }
+  //   })
+  // ---------------------------------------------------------------------------
+  if (hasRateLimitRedisConfig()) {
+    configureRateLimitBackend(createRedisRateLimitBackend());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Form preflight rate limit — 30 requests / 60 s per authenticated user
+  // (or IP for public forms). Prevents enumeration and brute-force of db rules.
+  // ---------------------------------------------------------------------------
+  configureBuildFormPreflightRateLimit(async ({ request, currentUser }) => {
+    const result = await checkRateLimit(
+      {
+        key: (ctx) => `preflight:${currentUser?.id ?? ctx.ip}`,
+        limit: 30,
+        windowSeconds: 60,
+      },
+      request
+    );
+    if (!result.allowed) {
+      return {
+        allowed: false,
+        retryAfterSeconds: result.retryAfterSeconds,
+        error: 'Too many requests. Please wait before retrying.',
+      };
+    }
+    return { allowed: true };
+  });
 
   bootstrapped = true;
 }

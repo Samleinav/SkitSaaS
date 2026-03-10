@@ -8,12 +8,12 @@
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import type { ApiRouteProxyFn, RouteProxyFn } from '@skitsaas/sdk';
+import type { ApiRouteProxyFn, RateLimitConfig, RouteProxyFn } from '@skitsaas/sdk';
+import { getAdminAreaRoles } from '@/lib/runtime-config/roles';
 
 const SESSION_COOKIE = 'session';
 const ADMIN_LOGIN = '/admin/login';
 const SIGN_IN = '/sign-in';
-const ADMIN_ROLES = new Set(['admin', 'owner']);
 
 // ---------------------------------------------------------------------------
 // Session helpers
@@ -147,7 +147,7 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
       lookupSession(session.jti)
     ]);
 
-    if (account.length === 0 || !ADMIN_ROLES.has(account[0]!.role)) {
+    if (account.length === 0 || !getAdminAreaRoles().has(account[0]!.role)) {
       const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -242,16 +242,26 @@ export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
   }
 
   const session = await verifySessionCookie(cookieValue);
-  if (!session) {
+  if (!session || !session.jti) {
     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     res.cookies.delete(SESSION_COOKIE);
     return res;
   }
 
   try {
-    const account = await lookupUser(session.userId);
-    if (account.length === 0 || !ADMIN_ROLES.has(account[0]!.role)) {
+    const [account, sessionRow] = await Promise.all([
+      lookupUser(session.userId),
+      lookupSession(session.jti)
+    ]);
+
+    if (account.length === 0 || !getAdminAreaRoles().has(account[0]!.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (sessionRow.length === 0) {
+      const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
     }
   } catch (error) {
     console.error('[proxyApiAdmin] DB lookup failed:', error);
@@ -273,16 +283,28 @@ export const proxyApiAuth: RouteProxyFn = async (request: NextRequest) => {
   }
 
   const session = await verifySessionCookie(cookieValue);
-  if (!session) {
+  if (!session || !session.jti) {
     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     res.cookies.delete(SESSION_COOKIE);
     return res;
   }
 
   try {
-    const account = await lookupUser(session.userId);
+    const [account, sessionRow] = await Promise.all([
+      lookupUser(session.userId),
+      lookupSession(session.jti)
+    ]);
+
     if (account.length === 0) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
+    }
+
+    if (sessionRow.length === 0) {
+      const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
     }
   } catch (error) {
     console.error('[proxyApiAuth] DB lookup failed:', error);
@@ -337,19 +359,68 @@ export const proxyBuildFormValidateAccess: ApiRouteProxyFn = async (request: Req
   }
 
   const session = await verifySessionCookie(cookieValue);
-  if (!session) {
+  if (!session || !session.jti) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (entry.access === 'admin') {
-    const accounts = await lookupUser(session.userId);
-    if (accounts.length === 0 || !ADMIN_ROLES.has(accounts[0]!.role)) {
+    const [accounts, sessionRow] = await Promise.all([
+      lookupUser(session.userId),
+      lookupSession(session.jti)
+    ]);
+
+    if (sessionRow.length === 0) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (accounts.length === 0 || !getAdminAreaRoles().has(accounts[0]!.role)) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } else {
+    // user scope — verify the session has not been revoked
+    const sessionRow = await lookupSession(session.jti);
+    if (sessionRow.length === 0) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
 
   return null;
 };
+
+// ---------------------------------------------------------------------------
+// Rate limit proxy factory
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates an API proxy that enforces a rate limit using the configured backend.
+ *
+ * Usage in area-setup.ts or individual route files:
+ *
+ *   import { proxyRateLimit } from '@/lib/routing/proxies';
+ *
+ *   // Default: 60 req / 60 s per userId (or IP for unauthenticated)
+ *   configureApiAuthProxies({
+ *     user: async (req) => (await proxyApiAuth(req)) ?? proxyRateLimit({ ... })(req),
+ *   });
+ *
+ * Configure a production-grade backend (e.g. Upstash Redis) via
+ * configureRateLimitBackend() in lib/modules/sdk-server-bootstrap.ts.
+ * Without a backend, in-memory counters are used (single-process only).
+ */
+export function proxyRateLimit(config: RateLimitConfig): ApiRouteProxyFn {
+  return async (request: Request) => {
+    const { checkRateLimit } = await import('@/lib/routing/rate-limit');
+    const result = await checkRateLimit(config, request);
+    if (!result.allowed) {
+      const headers = new Headers();
+      if (typeof result.retryAfterSeconds === 'number') {
+        headers.set('Retry-After', String(Math.ceil(result.retryAfterSeconds)));
+      }
+      return Response.json({ error: 'Too many requests.' }, { status: 429, headers });
+    }
+    return null;
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Chain executor

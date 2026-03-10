@@ -94,6 +94,23 @@ export type RateLimitHandler = (
   ctx: RateLimitContext
 ) => Promise<RateLimitResult>;
 
+/**
+ * Extended context passed to a globally configured backend.
+ * Includes the evaluated `limit` and `windowSeconds` from the per-endpoint
+ * config so the backend can implement the correct window without re-deriving them.
+ */
+export type RateLimitBackendContext = RateLimitContext & {
+  /** Max requests allowed in the window (already evaluated for dynamic limits). */
+  limit: number;
+  /** Window size in seconds. */
+  windowSeconds: number;
+};
+
+/** Handler signature for configureRateLimitBackend(). */
+export type RateLimitBackendHandler = (
+  ctx: RateLimitBackendContext
+) => Promise<RateLimitResult>;
+
 /** Declarative config for common rate limit patterns. */
 export type RateLimitConfig = {
   /**
@@ -171,7 +188,7 @@ function inMemoryCheck(key: string, limit: number, windowMs: number): RateLimitR
 // Global backend registry
 // ---------------------------------------------------------------------------
 
-let globalBackend: RateLimitHandler | null = null;
+let globalBackend: RateLimitBackendHandler | null = null;
 
 /**
  * Inject a distributed rate limit backend (Redis, Upstash, Vercel KV, etc.).
@@ -179,18 +196,23 @@ let globalBackend: RateLimitHandler | null = null;
  * Call once at application bootstrap. Covers ALL withRateLimit usages
  * across core and modules when the in-memory default is insufficient.
  *
- * The context passed to the backend always includes `customKey`, which is
- * the pre-derived bucket key from the config's key() function — so you
- * don't need to re-derive it in the backend.
+ * The context passed to the backend includes:
+ *  - `customKey`    — pre-derived bucket key from the config's key() function
+ *  - `limit`        — evaluated max requests (already resolved for dynamic limits)
+ *  - `windowSeconds`— window size from the per-endpoint config
  *
- * @example — Upstash Redis sliding window
+ * @example — Redis fixed-window via createRedisRateLimitBackend()
+ * import { createRedisRateLimitBackend } from '@/lib/routing/rate-limit-redis'
+ * configureRateLimitBackend(createRedisRateLimitBackend())
+ *
+ * @example — Upstash Ratelimit
  * configureRateLimitBackend(async (ctx) => {
  *   const key = ctx.customKey ?? `rl:${ctx.userId ?? ctx.ip}:${ctx.endpoint}`
  *   const { success, reset } = await ratelimit.limit(key)
  *   return { limited: !success, retryAfterSeconds: reset ? Math.ceil((reset - Date.now()) / 1000) : 60 }
  * })
  */
-export function configureRateLimitBackend(handler: RateLimitHandler): void {
+export function configureRateLimitBackend(handler: RateLimitBackendHandler): void {
   globalBackend = handler;
 }
 
@@ -264,7 +286,12 @@ export async function checkRateLimit(
   const windowMs = config.windowSeconds * 1000;
 
   if (globalBackend) {
-    return globalBackend({ ...ctx, customKey: ctx.customKey ?? key });
+    return globalBackend({
+      ...ctx,
+      customKey: ctx.customKey ?? key,
+      limit,
+      windowSeconds: config.windowSeconds,
+    });
   }
 
   return inMemoryCheck(key, limit, windowMs);

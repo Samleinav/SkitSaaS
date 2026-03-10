@@ -108,29 +108,60 @@ export const proxyRequiresPlan = (planFeature: string): RouteProxyFn =>
   };
 ```
 
-### Proxy de rate limit (página o API)
+### Proxy de rate limit — factory built-in
+
+`proxyRateLimit(config)` ya existe en `lib/routing/proxies.ts` y se aplica automáticamente a todas las rutas `.auth('user')` (60 req / 60 s por defecto en `area-setup.ts`). Para un límite custom en un route específico, úsalo directamente — no es necesario crear uno nuevo.
 
 ```ts
-/**
- * Rate limit básico por IP usando un header de conteo externo.
- * Para uso con CDN/WAF que inyecten X-RateLimit-Remaining.
- */
-export const proxyRateLimit: RouteProxyFn = async (request: NextRequest) => {
-  const remaining = request.headers.get('x-ratelimit-remaining');
-  if (remaining !== null && parseInt(remaining, 10) <= 0) {
-    return NextResponse.json(
-      { error: 'Too Many Requests' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': request.headers.get('x-ratelimit-reset') ?? '60'
-        }
-      }
-    );
-  }
+import { proxyRateLimit } from '@/lib/routing/proxies'
 
-  return null;
-};
+// Aplicar un límite custom en preDispatch de un handler:
+export const POST = withApiRouteEntries(
+  myRouteHandler,
+  {
+    preDispatch: [
+      proxyRateLimit({
+        key: (ctx) => `mi-ruta:${ctx.userId ?? ctx.ip}`,
+        limit: 10,
+        windowSeconds: 60,
+      })
+    ]
+  }
+)
+```
+
+Si necesitas un proxy con lógica de rate limit completamente custom (por plan, rol, etc.), crea una factory:
+
+```ts
+import type { ApiRouteProxyFn } from '@skitsaas/sdk';
+
+/**
+ * Rate limit diferenciado por plan de suscripción.
+ */
+export const proxyPlanRateLimit = (limits: Record<string, number>): ApiRouteProxyFn =>
+  async (request: Request) => {
+    const { checkRateLimit } = await import('@/lib/routing/rate-limit');
+    const result = await checkRateLimit(
+      {
+        key: (ctx) => `plan-rl:${ctx.userId ?? ctx.ip}`,
+        limit: (ctx) => limits[ctx.plan ?? 'free'] ?? 10,
+        windowSeconds: 60,
+        resolveContext: async () => {
+          // resolver plan desde DB...
+          return { plan: 'free' };
+        }
+      },
+      request
+    );
+    if (!result.allowed) {
+      const headers = new Headers();
+      if (result.retryAfterSeconds) {
+        headers.set('Retry-After', String(Math.ceil(result.retryAfterSeconds)));
+      }
+      return Response.json({ error: 'Too many requests.' }, { status: 429, headers });
+    }
+    return null;
+  };
 ```
 
 ### Proxy de estado de módulo activo
@@ -209,6 +240,7 @@ import '@/../modules/mod.my-module/src/routes'  // activa los proxy extras de es
 | **Páginas → redirect, APIs → JSON** | UX: una API nunca debe redirigir al browser a `/sign-in` |
 | **Proxies son inmutables** | `RouteBuilder.proxy([...])` retorna nueva instancia — no mutes el builder original |
 | **No duplicar lógica de auth** | Si la ruta ya tiene `proxyAdmin` como default, no volver a verificar sesión en tu proxy custom — confiar en el orden de la cadena |
+| **No hardcodear roles** | Usar `getAdminAreaRoles()` de `lib/runtime-config/roles.ts` en vez de `new Set(['admin', 'owner'])` — los roles se configuran en `app.config.ts` |
 | **Proxy factories con parámetros** | Cuando el mismo proxy se parametriza (ej. por flag, módulo, plan), usar función factory `proxyX(param): RouteProxyFn` |
 
 ---
@@ -228,12 +260,14 @@ import '@/../modules/mod.my-module/src/routes'  // activa los proxy extras de es
 
 ## Archivos clave
 
-- `lib/routing/proxies.ts` — donde viven todos los proxies del host
+- `lib/routing/proxies.ts` — donde viven todos los proxies del host (incluye `proxyRateLimit` factory)
+- `lib/runtime-config/roles.ts` — fuente única de verdad para roles (`getAdminAreaRoles()`)
+- `app.config.ts` — configuración de `roles.adminArea`, `roles.dashboardArea`, `roles.contextAffinity`
 - `lib/routing/with-api-proxy.ts` — wrapper para proteger route handlers de API
-- `lib/routing/area-setup.ts` — inyección de defaults (no editar proxies aquí)
+- `lib/routing/area-setup.ts` — inyección de defaults y rate limit por defecto (no editar proxies aquí)
 - `lib/routing/all-routes.ts` — entry point para activar proxy chains de módulos
 - `core/routes.ts` — donde se aplican `.proxy([...])` a rutas core
-- `docs/core/routing-system.md` — documentación completa del sistema
+- `docs/proxies/02-security.md` — documentación completa del sistema de seguridad
 
 ---
 

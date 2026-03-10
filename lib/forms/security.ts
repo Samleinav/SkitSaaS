@@ -1,3 +1,5 @@
+import { isAdminRole } from '@/lib/runtime-config/roles';
+
 export type BuildFormAccessScope = 'public' | 'user' | 'admin';
 export type BuildFormArea = 'admin' | 'dashboard' | 'frontend';
 
@@ -33,8 +35,11 @@ export function normalizeBuildFormAccessScope(
 
 export function isTrustedBuildFormPreflightRequest(request: Request) {
   const originHeader = request.headers.get('origin')?.trim();
+  // Require the Origin header. Browser fetch/XHR always includes it for POST
+  // requests. Rejecting absent-Origin blocks non-browser clients that haven't
+  // explicitly set it, preventing CSRF from server-side forged requests.
   if (!originHeader) {
-    return true;
+    return false;
   }
 
   let origin: URL;
@@ -59,7 +64,5 @@ export function isTrustedBuildFormPreflightRequest(request: Request) {
 }
 
 export function isBuildFormAdminRole(value: unknown) {
-  return String(value ?? '')
-    .trim()
-    .toLowerCase() === 'admin';
+  return isAdminRole(String(value ?? '').trim().toLowerCase());
 }

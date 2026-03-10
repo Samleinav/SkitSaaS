@@ -5,6 +5,7 @@ import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { teamMembers, type User } from '@/lib/db/schema';
 import { areTeamsEnabled } from '@/lib/organizations/config';
+import { getAdminAreaRoles, getRoleContextAffinity } from '@/lib/runtime-config/roles';
 
 export type UserContext =
   | { type: 'system_admin' }
@@ -31,15 +32,36 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
     return { type: 'public' };
   }
 
-  if (user.role === 'admin') {
+  // Admin-area roles always resolve to system_admin regardless of team membership.
+  if (getAdminAreaRoles().has(user.role)) {
     return { type: 'system_admin' };
   }
 
+  // Respect contextAffinity declared in app.config.ts → roles.contextAffinity.
+  const affinity = getRoleContextAffinity(user.role);
+
+  if (affinity === 'standalone') {
+    return { type: 'standalone', userId: user.id };
+  }
+
+  if (affinity === 'team_member') {
+    // Role requires team context; fall back to standalone if not in a team.
+    if (areTeamsEnabled()) {
+      const teamMembership = await getTeamMembership(user.id);
+      if (teamMembership) {
+        return {
+          type: 'team_member',
+          teamId: teamMembership.teamId,
+          memberRole: teamMembership.role
+        };
+      }
+    }
+    return { type: 'standalone', userId: user.id };
+  }
+
+  // Default: detect context from team membership.
   if (!areTeamsEnabled()) {
-    return {
-      type: 'standalone',
-      userId: user.id
-    };
+    return { type: 'standalone', userId: user.id };
   }
 
   const teamMembership = await getTeamMembership(user.id);
@@ -51,10 +73,7 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
     };
   }
 
-  return {
-    type: 'standalone',
-    userId: user.id
-  };
+  return { type: 'standalone', userId: user.id };
 }
 
 function redirectForInvalidDashboardContext(context: UserContext): never {

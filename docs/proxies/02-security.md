@@ -7,7 +7,7 @@ description: Proxy chain authentication, JTI revocation, security headers, and r
 # Security Architecture
 
 Status: Production-ready
-Last review: 2026-03-08
+Last review: 2026-03-10
 
 This document covers the layered security model: proxy chain authentication, session revocation, HTTP security headers, and composable rate limiting.
 
@@ -65,13 +65,53 @@ small standalone handlers.
 
 ## JTI revocation
 
-Session tokens contain a `jti` (JWT ID) field. The `authSessions` table tracks every active session with its `tokenJti`, `status`, and `revokedAt`. Both `proxyAdmin` and `proxyAuth` query this table on every protected request — if no active session row is found for the token's JTI, the request is rejected even if the JWT signature is valid.
+Session tokens contain a `jti` (JWT ID) field. The `authSessions` table tracks every active session with its `tokenJti`, `status`, and `revokedAt`. **All four built-in proxies** query this table — if no active session row is found for the token's JTI, the request is rejected even if the JWT signature is valid.
+
+| Proxy | JTI check |
+|-------|-----------|
+| `proxyAdmin` | ✅ `Promise.all([lookupUser, lookupSession])` |
+| `proxyAuth` | ✅ `Promise.all([lookupUser, lookupSession])` |
+| `proxyApiAdmin` | ✅ `Promise.all([lookupUser, lookupSession])` |
+| `proxyApiAuth` | ✅ `Promise.all([lookupUser, lookupSession])` |
+| `proxyBuildFormValidateAccess` | ✅ `lookupSession` (+ `lookupUser` for admin forms) |
 
 This ensures that:
 - Logout immediately invalidates access (not just at JWT expiry).
 - Stolen tokens that are explicitly revoked are blocked within one request.
+- Deactivated users lose API access immediately, not at next JWT expiry.
 
-The lookup is done in `Promise.all` with the user DB lookup, so it adds minimal latency.
+The DB lookups are parallelised with `Promise.all`, so they add only one round-trip of latency.
+
+## Role configuration
+
+Roles are **centralized in `app.config.ts`** — a single source of truth read by all proxies, guards, context detection, and form security. Never hardcode role strings outside this file.
+
+```ts
+// app.config.ts
+roles: {
+  adminArea: ['admin', 'owner'],   // can access /admin + API admin routes
+  dashboardArea: ['member'],       // can access /dashboard (admin roles always allowed too)
+
+  // Optional: force a role to always resolve to a fixed UserContext,
+  // overriding the default team-membership detection.
+  contextAffinity: {
+    guardian: 'standalone',    // guardian users → always standalone context
+    teacher:  'team_member',   // teacher users  → always team context
+    staff:    'team_member',   // staff users    → always team context
+  }
+}
+```
+
+The helper `lib/runtime-config/roles.ts` exposes:
+
+| Export | Returns | Used by |
+|--------|---------|---------|
+| `getAdminAreaRoles()` | `Set<string>` | All proxies, guards, forms/security |
+| `getDashboardAreaRoles()` | `Set<string>` | Future proxy extensions |
+| `getRoleContextAffinity(role)` | `'standalone' \| 'team_member' \| null` | `getUserContext()` in `lib/auth/contexts.ts` |
+| `isAdminRole(role)` | `boolean` | `isBuildFormAdminRole()` in forms/security |
+
+`contextAffinity` makes role-to-context mapping explicit. Without an affinity, `getUserContext()` falls back to the existing team-membership detection (existing behavior unchanged).
 
 ## Session refresh
 
@@ -98,6 +138,15 @@ Security headers are set globally in `next.config.mjs` for all routes (`source: 
 - `base-uri 'self'`
 - `form-action 'self'`
 - `object-src 'none'`
+
+## Form preflight CSRF
+
+The form validation endpoint (`/api/forms/validate`) requires the `Origin` header on every request. Browser `fetch`/`XMLHttpRequest` always includes `Origin` on POST. The check in `lib/forms/security.ts → isTrustedBuildFormPreflightRequest` rejects the request if:
+
+- The `Origin` header is absent (blocks non-browser forged requests).
+- `origin.host` does not match the actual request host (blocks cross-origin calls).
+
+This endpoint always lives on the main Next.js app, not a separate API service, so the same-host check works correctly in all deployment topologies.
 
 ## Rate limiting
 
@@ -127,6 +176,27 @@ import { checkAuthRateLimit } from '@/lib/auth/rate-limit'
 | `role` | ❌ requires `resolveContext` | DB lookup |
 | `plan` | ❌ requires `resolveContext` | DB lookup |
 | `customKey` | ❌ requires `resolveContext` | Custom |
+
+### Built-in defaults
+
+Two rate limits are active out of the box:
+
+| Scope | Limit | Key | Where configured |
+|-------|-------|-----|-----------------|
+| All `.auth('user')` API routes | 60 req / 60 s | `userId` or IP | `lib/routing/area-setup.ts` via `proxyRateLimit` |
+| Form preflight (`/api/forms/validate`) | 30 req / 60 s | `userId` or IP | `lib/modules/sdk-server-bootstrap.ts` via `configureBuildFormPreflightRateLimit` |
+
+The `proxyRateLimit(config)` factory in `lib/routing/proxies.ts` creates a reusable API proxy:
+
+```ts
+import { proxyRateLimit } from '@/lib/routing/proxies'
+
+// Apply a custom limit to a specific route
+export const POST = withApiRouteEntries(
+  myHandler,
+  { preDispatch: [proxyRateLimit({ key: (ctx) => `my-route:${ctx.userId ?? ctx.ip}`, limit: 10, windowSeconds: 60 })] }
+)
+```
 
 ### Usage patterns
 
@@ -177,23 +247,32 @@ Auth endpoints (`/api/auth/*/start`, `/api/auth/*/callback`) apply a separate ti
 
 ### Production backend (Redis / Upstash)
 
-Configure once at bootstrap — covers all `withRateLimit` usages across core and all modules:
+The Redis backend is **auto-configured** in `lib/modules/sdk-server-bootstrap.ts` — no manual setup needed. Just set the environment variable:
+
+```
+REDIS_URL=redis://...          # or RATE_LIMIT_REDIS_URL for a dedicated instance
+```
+
+`createRedisRateLimitBackend()` in `lib/routing/rate-limit-redis.ts` uses an atomic Lua script (INCR + EXPIRE) for a single-round-trip fixed window. It passes `ctx.limit` and `ctx.windowSeconds` from the per-endpoint config, so per-route limits are respected.
+
+Without `REDIS_URL`, the default in-memory sliding window is used (sufficient for single-instance / development).
+
+To use Upstash or a fully custom backend instead, replace the auto-configured call in `sdk-server-bootstrap.ts`:
 
 ```ts
-// lib/modules/sdk-server-bootstrap.ts
 import { configureRateLimitBackend } from '@skitsaas/sdk'
 
 configureRateLimitBackend(async (ctx) => {
-  const key = ctx.customKey ?? `rl:${ctx.userId ?? ctx.ip}:${ctx.endpoint}`
-  const { success, reset } = await ratelimit.limit(key)
+  // ctx.customKey   — pre-derived bucket key
+  // ctx.limit       — max requests for this endpoint
+  // ctx.windowSeconds — window for this endpoint
+  const { success, reset } = await ratelimit.limit(ctx.customKey!)
   return {
     limited: !success,
     retryAfterSeconds: reset ? Math.ceil((reset - Date.now()) / 1000) : 60
   }
 })
 ```
-
-Without this, the default in-memory sliding window is used (sufficient for single-instance / development).
 
 ## Composing proxy extras per route
 
@@ -213,6 +292,8 @@ Custom proxy functions live in `lib/routing/proxies.ts` and must follow the `Rou
 
 - [ ] Page routes under `/admin/*` or `/dashboard/*` are protected by area defaults automatically
 - [ ] API route handlers use `RouteApi(...).auth().proxy()` + `withApiRouteEntries(...)` or `withApiProxy(...)`
-- [ ] Rate limiting applied with `withRateLimit` (SDK) — outermost wrapper
+- [ ] `.auth('user')` routes inherit the default 60 req/60 s rate limit automatically — override per-route with `proxyRateLimit(config)` if needed
 - [ ] Auth endpoints use `checkAuthRateLimit`
-- [ ] Production: `configureRateLimitBackend` configured with Redis in bootstrap
+- [ ] Custom roles added to `app.config.ts → roles.adminArea` or `roles.dashboardArea` — never hardcoded
+- [ ] Context-pinned roles declared in `roles.contextAffinity` if needed
+- [ ] Production: set `REDIS_URL` to activate distributed rate limiting (auto-configured in `sdk-server-bootstrap.ts`)
