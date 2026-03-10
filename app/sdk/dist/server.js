@@ -157,6 +157,12 @@ function normalizePositiveInteger(value) {
 function normalizePositiveIntegerArray(values) {
     return Array.from(new Set(values.map((value) => normalizePositiveInteger(value)).filter(Boolean))).sort((left, right) => left - right);
 }
+function normalizeTeamRecipients(value) {
+    if (value === 'members' || value === 'owner' || value === 'all') {
+        return value;
+    }
+    return 'all';
+}
 export async function createNotification(input) {
     const adapter = readNotificationAdapter();
     const message = toTrimmedString(input.message);
@@ -168,11 +174,20 @@ export async function createNotification(input) {
             type: 'users',
             userIds: normalizePositiveIntegerArray(input.audience.userIds)
         }
-        : {
-            type: 'global'
-        };
+        : input.audience?.type === 'team'
+            ? {
+                type: 'team',
+                teamId: normalizePositiveInteger(input.audience.teamId) ?? 0,
+                recipients: normalizeTeamRecipients(input.audience.recipients)
+            }
+            : {
+                type: 'global'
+            };
     if (audience.type === 'users' && audience.userIds.length === 0) {
         throw new Error('createNotification requires at least one positive target user id.');
+    }
+    if (audience.type === 'team' && audience.teamId <= 0) {
+        throw new Error('createNotification requires a positive integer teamId.');
     }
     return adapter.createNotification({
         ...input,
@@ -209,6 +224,26 @@ export async function notifyUsers(userIds, input) {
             userIds
         }
     });
+}
+export async function notifyTeam(teamId, input, recipients = 'all') {
+    const normalizedTeamId = normalizePositiveInteger(teamId);
+    if (!normalizedTeamId) {
+        throw new Error('notifyTeam requires a positive integer teamId.');
+    }
+    return createNotification({
+        ...input,
+        audience: {
+            type: 'team',
+            teamId: normalizedTeamId,
+            recipients
+        }
+    });
+}
+export async function notifyTeamMembers(teamId, input) {
+    return notifyTeam(teamId, input, 'members');
+}
+export async function notifyTeamOwner(teamId, input) {
+    return notifyTeam(teamId, input, 'owner');
 }
 let revalidationAdapter = null;
 let buildFormDbValidationAdapter = null;

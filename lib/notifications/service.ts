@@ -13,8 +13,17 @@ import {
 } from 'drizzle-orm';
 import { adminDb } from '@/lib/db/drizzle';
 import {
+  normalizeNotificationTeamRecipients,
+  normalizeNotificationUserIds,
+  resolveNotificationAudienceRecipientUserIds as resolveNotificationAudienceRecipientUserIdsBase,
+  type NotificationAudience,
+  type NotificationTeamRecipients
+} from '@/lib/notifications/audience';
+import {
   systemNotificationRecipients,
-  systemNotifications
+  systemNotifications,
+  teamMembers,
+  users
 } from '@/lib/db/schema';
 
 export type NotificationTone = 'success' | 'error' | 'info' | 'warning';
@@ -25,15 +34,6 @@ export type NotificationVisibilityArea =
   | 'both';
 export type NotificationRuntimeArea = 'admin' | 'dashboard';
 export type NotificationAudienceType = 'global' | 'direct';
-
-export type NotificationAudience =
-  | {
-      type: 'global';
-    }
-  | {
-      type: 'users';
-      userIds: number[];
-    };
 
 export type CreateSystemNotificationInput = {
   audience?: NotificationAudience;
@@ -167,10 +167,50 @@ function parseMetadata(metadata: string | null) {
   }
 }
 
-export function normalizeNotificationUserIds(userIds: number[]) {
-  return Array.from(
-    new Set(userIds.map((value) => toPositiveInt(value)).filter(Boolean) as number[])
-  ).sort((left, right) => left - right);
+async function listActiveTeamAudienceUserIds(
+  teamId: number,
+  recipients: NotificationTeamRecipients
+) {
+  const normalizedTeamId = toPositiveInt(teamId);
+  if (!normalizedTeamId) {
+    return [];
+  }
+
+  const teamRoleCondition =
+    recipients === 'members'
+      ? eq(teamMembers.role, 'member')
+      : recipients === 'owner'
+        ? eq(teamMembers.role, 'owner')
+        : undefined;
+
+  const rows = await adminDb
+    .select({
+      userId: teamMembers.userId
+    })
+    .from(teamMembers)
+    .innerJoin(users, eq(users.id, teamMembers.userId))
+    .where(
+      and(
+        eq(teamMembers.teamId, normalizedTeamId),
+        teamRoleCondition,
+        isNull(users.deletedAt),
+        eq(users.accountStatus, 'active')
+      )
+    );
+
+  return normalizeNotificationUserIds(rows.map((row) => row.userId));
+}
+
+export async function resolveNotificationAudienceRecipientUserIds(
+  audience: NotificationAudience
+) {
+  return resolveNotificationAudienceRecipientUserIdsBase(audience, {
+    listTeamAudienceUserIds: async (teamId, recipients) =>
+      listActiveTeamAudienceUserIds(
+        teamId,
+        normalizeNotificationTeamRecipients(recipients)
+      )
+  });
 }
 
 export function resolveNotificationRuntimeAreaForRole(
@@ -261,14 +301,13 @@ export async function createSystemNotification(
   }
 
   const audience = input.audience ?? { type: 'global' };
-  const recipientUserIds =
-    audience.type === 'users'
-      ? normalizeNotificationUserIds(audience.userIds)
-      : [];
+  const recipientUserIds = await resolveNotificationAudienceRecipientUserIds(
+    audience
+  );
 
-  if (audience.type === 'users' && recipientUserIds.length === 0) {
+  if (audience.type !== 'global' && recipientUserIds.length === 0) {
     throw new Error(
-      'createSystemNotification requires at least one target user for audience.type="users".'
+      `createSystemNotification requires at least one target user for audience.type="${audience.type}".`
     );
   }
 
@@ -345,6 +384,42 @@ export async function createUsersSystemNotification(
   return createSystemNotification({
     ...input,
     audience: { type: 'users', userIds }
+  });
+}
+
+export async function createTeamSystemNotification(
+  teamId: number,
+  input: Omit<CreateSystemNotificationInput, 'audience'> & {
+    recipients?: NotificationTeamRecipients;
+  }
+) {
+  return createSystemNotification({
+    ...input,
+    audience: {
+      type: 'team',
+      teamId,
+      recipients: input.recipients
+    }
+  });
+}
+
+export async function createTeamMembersSystemNotification(
+  teamId: number,
+  input: Omit<CreateSystemNotificationInput, 'audience' | 'recipients'>
+) {
+  return createTeamSystemNotification(teamId, {
+    ...input,
+    recipients: 'members'
+  });
+}
+
+export async function createTeamOwnerSystemNotification(
+  teamId: number,
+  input: Omit<CreateSystemNotificationInput, 'audience' | 'recipients'>
+) {
+  return createTeamSystemNotification(teamId, {
+    ...input,
+    recipients: 'owner'
   });
 }
 

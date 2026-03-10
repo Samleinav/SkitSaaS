@@ -182,6 +182,7 @@ export type {
   SdkCreateNotificationResult,
   SdkNotificationRecord,
   SdkNotificationTargetArea,
+  SdkNotificationTeamRecipients,
   SdkNotificationTone
 } from './notifications/types.js';
 export {

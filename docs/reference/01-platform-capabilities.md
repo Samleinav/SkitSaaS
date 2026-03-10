@@ -160,6 +160,25 @@ Backend commerce modules currently available:
 - Hook constants: `lib/events/catalog.ts`
 - Event bus logs: `sys_activity_logs` (`eventCategory = 'event_bus'`)
 
+## 9.1) Persistent notifications
+
+- Tables: `system_notifications`, `system_notification_recipients`
+- Core service: `lib/notifications/service.ts`
+- Runtime APIs:
+  - `GET /api/notifications`
+  - `POST /api/notifications/read`
+  - `POST /api/notifications/dismiss`
+- Audience modes:
+  - all users (`global`)
+  - one or many users
+  - team audiences (`all`, `members`, `owner`) resolved from `team_members` and persisted as direct recipients
+- SDK surface:
+  - client: `useNotifications()`
+  - server: `createNotification()`, `notifyGlobal()`, `notifyUser()`, `notifyUsers()`, `notifyTeam()`, `notifyTeamMembers()`, `notifyTeamOwner()`
+- Host/theme integration:
+  - `components/ui/notification-runtime.tsx` bridges persisted items into the toast runtime and marks them as read after display
+  - backoffice themes can expose the feed from `ui.user-menu`; `theme.first.backoffice` and `theme.nexus` ship a notification center there
+
 ## 10) Theme runtime
 
 Runtime sources:

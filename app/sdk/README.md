@@ -70,7 +70,7 @@ export default defineModule({
 - `@skitsaas/sdk/server`
   - auth/session helpers (`getUser`, `requireUser`, `requireAdmin`, `setSessionForUser`)
   - event emit helpers (`emitEvent`, `emitEventAsync`)
-  - persisted notification helpers (`createNotification`, `notifyGlobal`, `notifyUser`, `notifyUsers`)
+  - persisted notification helpers (`createNotification`, `notifyGlobal`, `notifyUser`, `notifyUsers`, `notifyTeam`, `notifyTeamMembers`, `notifyTeamOwner`)
   - module config helpers (`getModuleConfigValue`, `setModuleConfigValue`)
   - db access bridge (`getDb`, `findTable`, `getTable`, `listTables`)
   - revalidation helpers (`revalidatePath`, `revalidatePaths`)
@@ -149,10 +149,10 @@ export function ModuleNotificationBadge() {
 }
 ```
 
-Server code can target all users or specific users through the host adapter:
+Server code can target all users, direct users, or teams through the host adapter:
 
 ```ts
-import { notifyGlobal, notifyUsers } from '@skitsaas/sdk/server';
+import { notifyGlobal, notifyTeamOwner, notifyUsers } from '@skitsaas/sdk/server';
 
 await notifyGlobal({
   title: 'Maintenance',
@@ -165,7 +165,18 @@ await notifyUsers([12, 48], {
   area: 'dashboard',
   source: 'mod.analytics.reports'
 });
+
+await notifyTeamOwner(7, {
+  message: 'Your team subscription requires confirmation.',
+  area: 'dashboard'
+});
 ```
+
+Notes:
+
+- `createNotification()` accepts `audience.type = 'global' | 'users' | 'team'`.
+- `notifyTeam()`, `notifyTeamMembers()`, and `notifyTeamOwner()` resolve active team recipients in the host runtime before persistence.
+- Backoffice themes can expose the persisted feed from `ui.user-menu` with `useNotifications({ area, includeRead: true })`.
 
 ## Datatable CRUD Router
 

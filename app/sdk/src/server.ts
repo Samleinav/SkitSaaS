@@ -19,7 +19,8 @@ import type {
 } from './forms.js';
 import type {
   SdkCreateNotificationInput,
-  SdkCreateNotificationResult
+  SdkCreateNotificationResult,
+  SdkNotificationTeamRecipients
 } from './notifications/types.js';
 import {
   type BuildFormDbCondition,
@@ -335,6 +336,16 @@ function normalizePositiveIntegerArray(values: number[]) {
   ).sort((left, right) => left - right);
 }
 
+function normalizeTeamRecipients(
+  value: unknown
+): SdkNotificationTeamRecipients {
+  if (value === 'members' || value === 'owner' || value === 'all') {
+    return value;
+  }
+
+  return 'all';
+}
+
 export async function createNotification(input: SdkCreateNotificationInput) {
   const adapter = readNotificationAdapter();
   const message = toTrimmedString(input.message);
@@ -348,6 +359,12 @@ export async function createNotification(input: SdkCreateNotificationInput) {
           type: 'users' as const,
           userIds: normalizePositiveIntegerArray(input.audience.userIds)
         }
+      : input.audience?.type === 'team'
+        ? {
+            type: 'team' as const,
+            teamId: normalizePositiveInteger(input.audience.teamId) ?? 0,
+            recipients: normalizeTeamRecipients(input.audience.recipients)
+          }
       : {
           type: 'global' as const
         };
@@ -356,6 +373,10 @@ export async function createNotification(input: SdkCreateNotificationInput) {
     throw new Error(
       'createNotification requires at least one positive target user id.'
     );
+  }
+
+  if (audience.type === 'team' && audience.teamId <= 0) {
+    throw new Error('createNotification requires a positive integer teamId.');
   }
 
   return adapter.createNotification({
@@ -405,6 +426,40 @@ export async function notifyUsers(
       userIds
     }
   });
+}
+
+export async function notifyTeam(
+  teamId: number,
+  input: Omit<SdkCreateNotificationInput, 'audience'>,
+  recipients: SdkNotificationTeamRecipients = 'all'
+) {
+  const normalizedTeamId = normalizePositiveInteger(teamId);
+  if (!normalizedTeamId) {
+    throw new Error('notifyTeam requires a positive integer teamId.');
+  }
+
+  return createNotification({
+    ...input,
+    audience: {
+      type: 'team',
+      teamId: normalizedTeamId,
+      recipients
+    }
+  });
+}
+
+export async function notifyTeamMembers(
+  teamId: number,
+  input: Omit<SdkCreateNotificationInput, 'audience'>
+) {
+  return notifyTeam(teamId, input, 'members');
+}
+
+export async function notifyTeamOwner(
+  teamId: number,
+  input: Omit<SdkCreateNotificationInput, 'audience'>
+) {
+  return notifyTeam(teamId, input, 'owner');
 }
 
 export type RevalidationAdapter = {

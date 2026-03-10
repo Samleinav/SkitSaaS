@@ -2,11 +2,16 @@ export type SdkNotificationTone = 'success' | 'error' | 'info' | 'warning';
 export type SdkNotificationTargetArea = 'auto' | 'admin' | 'dashboard' | 'both';
 export type SdkNotificationArea = 'admin' | 'dashboard';
 export type SdkNotificationAudienceType = 'global' | 'direct';
+export type SdkNotificationTeamRecipients = 'members' | 'owner' | 'all';
 export type SdkNotificationAudience = {
     type: 'global';
 } | {
     type: 'users';
     userIds: number[];
+} | {
+    type: 'team';
+    teamId: number;
+    recipients?: SdkNotificationTeamRecipients;
 };
 export type SdkNotificationRecord = {
     id: number;

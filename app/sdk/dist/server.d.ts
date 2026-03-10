@@ -2,7 +2,7 @@ import type { EventDispatchResult, EventEmitContext, EventHook, EventPayload } f
 import type { ReactNode } from 'react';
 import type { ModuleApiHandler, ModulePageHandler, ModuleRouteContext } from './modules/manifest.js';
 import type { BuildFormDefinition, BuildFormValue, BuildFormValues } from './forms.js';
-import type { SdkCreateNotificationInput, SdkCreateNotificationResult } from './notifications/types.js';
+import type { SdkCreateNotificationInput, SdkCreateNotificationResult, SdkNotificationTeamRecipients } from './notifications/types.js';
 import { type BuildFormDbRef, type BuildFormValidationResult, type ValidatedBuildFormDefinition } from './form-validation.js';
 export type EventEmitterAdapter = {
     emitEvent: <TPayload extends EventPayload>(hook: EventHook, payload: TPayload, context?: EventEmitContext) => Promise<EventDispatchResult>;
@@ -57,6 +57,9 @@ export declare function createNotification(input: SdkCreateNotificationInput): P
 export declare function notifyGlobal(input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
 export declare function notifyUser(userId: number, input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
 export declare function notifyUsers(userIds: number[], input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
+export declare function notifyTeam(teamId: number, input: Omit<SdkCreateNotificationInput, 'audience'>, recipients?: SdkNotificationTeamRecipients): Promise<SdkCreateNotificationResult>;
+export declare function notifyTeamMembers(teamId: number, input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
+export declare function notifyTeamOwner(teamId: number, input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
 export type RevalidationAdapter = {
     revalidatePath: (path: string) => void | Promise<void>;
 };

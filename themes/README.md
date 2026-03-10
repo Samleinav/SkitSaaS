@@ -9,9 +9,18 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
 - Purpose: visual QA sandbox for public routes.
 - Style mode: tokens + `templates.json`.
 
-3. `theme.first.frontend` (`themes/first-frontend`)
+2. `theme.first.frontend` (`themes/first-frontend`)
 - Area: `frontend`
 - Purpose: scaffold pack for first real frontend migration.
+- Includes:
+  - `tokens.css`
+  - `global.css` (declared in `config.ts`)
+  - `routes.ts` for route-driven frontend dispatch
+  - route components (`/__layout`, `/`, `/pricing`, `/404`)
+
+3. `theme.shadcn.dashboard.frontend` (`themes/shadcn-dashboard-frontend`)
+- Area: `frontend`
+- Purpose: richer shadcn-inspired frontend pack for public routes.
 - Includes:
   - `tokens.css`
   - `global.css` (declared in `config.ts`)
@@ -25,6 +34,16 @@ This directory contains external theme packs consumed by `pnpm themes:prepare`.
   - `tokens.css`
   - `global.css` (declared in `config.ts`)
   - template placeholders (`layout.admin.shell`, `page.admin.home`, `layout.dashboard.shell`, `page.dashboard.home`, login pages, `system.not-found`)
+  - `ui.user-menu` notification center for persisted private notifications
+
+5. `theme.nexus` (`themes/nexustheme`)
+- Areas: `admin`, `dashboard`
+- Purpose: shadcn-inspired backoffice pack with richer private-area components.
+- Includes:
+  - `tokens.css`
+  - `global.css` (declared in `config.ts`)
+  - admin/dashboard template set
+  - `ui.user-menu` notification center for persisted private notifications
 
 ## File layout per pack
 

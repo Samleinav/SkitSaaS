@@ -92,6 +92,14 @@ Current local frontend examples:
   - provides route templates for `/`, `/pricing`, `/404`, and `/__layout`
   - includes `config.ts` assets (`global.css`, `favicon`, area not-found template)
 
+Current local backoffice examples:
+
+- `theme.first.backoffice` -> `themes/first-backoffice`
+- `theme.nexus` -> `themes/nexustheme`
+  - both cover `admin` and `dashboard`
+  - both expose private-area controls through `ui.user-menu`
+  - both now mount a persisted notification center from that slot
+
 Prepare registry:
 
 ```bash

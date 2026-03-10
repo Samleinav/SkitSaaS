@@ -62,11 +62,11 @@ Financial flow:
 ## Notifications
 
 - `system_notifications` - persisted notification definitions
-  - supports audience mode (`global` or direct user targeting)
+  - supports audience mode (`global`, direct user targeting, or team audiences resolved at write time)
   - supports area targeting (`auto`, `admin`, `dashboard`, `both`)
   - stores tone, optional title, delivery window (`starts_at`, `expires_at`), and source metadata
 - `system_notification_recipients` - per-user delivery/read/dismiss state
-  - used as the explicit recipient ledger for direct notifications
+  - used as the explicit recipient ledger for direct notifications, including team audiences resolved to user ids
   - also stores per-user read/dismiss state for global notifications on demand
 
 ## Logs and audit
@@ -79,6 +79,7 @@ Financial flow:
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
 - Orders and transactions are separate by design.
 - Notification visibility is evaluated at read time from the current private area (`/admin` or `/dashboard`) plus the user role. `area='auto'` maps to `admin` for admin-like roles and `dashboard` for everyone else.
+- Team-targeted notifications do not need a separate audience table. The host resolves current active recipients from `team_members` + `users` when the notification is created and persists the resulting user ids in `system_notification_recipients`.
 - `BuildForm` DB-aware validation (`unique`, `exists`) may read tables such as `users` or `subscription_templates`, but those checks are only advisory before writes.
 - Real integrity must still be enforced by database constraints such as `unique`, `foreign key`, `not null`, and `check`.
 - Legacy template backfill recommendation:

@@ -9,6 +9,7 @@ export type SdkNotificationTargetArea =
 export type SdkNotificationArea = 'admin' | 'dashboard';
 
 export type SdkNotificationAudienceType = 'global' | 'direct';
+export type SdkNotificationTeamRecipients = 'members' | 'owner' | 'all';
 
 export type SdkNotificationAudience =
   | {
@@ -17,6 +18,11 @@ export type SdkNotificationAudience =
   | {
       type: 'users';
       userIds: number[];
+    }
+  | {
+      type: 'team';
+      teamId: number;
+      recipients?: SdkNotificationTeamRecipients;
     };
 
 export type SdkNotificationRecord = {

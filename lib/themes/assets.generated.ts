@@ -14,15 +14,15 @@ export type ThemeAreaAssetsBundle = {
 
 export const CORE_ASSETS_BY_AREA: Record<ThemeSelectionArea, CoreAreaAssetsBundle> = {
   "admin": {
-    "cssHref": "/.generated/core-assets/admin/core-7a56aceb91dc.css",
+    "cssHref": "/.generated/core-assets/admin/core-e7f6c5298597.css",
     "scriptHref": null
   },
   "dashboard": {
-    "cssHref": "/.generated/core-assets/dashboard/core-7a56aceb91dc.css",
+    "cssHref": "/.generated/core-assets/dashboard/core-e7f6c5298597.css",
     "scriptHref": null
   },
   "frontend": {
-    "cssHref": "/.generated/core-assets/frontend/core-7a56aceb91dc.css",
+    "cssHref": "/.generated/core-assets/frontend/core-e7f6c5298597.css",
     "scriptHref": null
   }
 };
@@ -86,8 +86,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
   "theme.nexus": {
     "admin": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-5886a16ed3fa.css"
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-3820a9078464.css",
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-d4c09cb5028b.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -95,8 +95,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "dashboard": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-d8f3e05d3923.css",
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-5886a16ed3fa.css"
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-3820a9078464.css",
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-d4c09cb5028b.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -104,7 +104,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "frontend": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-d8f3e05d3923.css"
+        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-3820a9078464.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,

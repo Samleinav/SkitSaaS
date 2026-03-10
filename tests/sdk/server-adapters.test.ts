@@ -20,6 +20,9 @@ import {
   findTable,
   listTables,
   notifyGlobal,
+  notifyTeam,
+  notifyTeamMembers,
+  notifyTeamOwner,
   notifyUser,
   notifyUsers,
   parseJsonBody,
@@ -150,17 +153,24 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
     message: string;
     audienceType: string;
     userIds: number[];
+    teamId: number | null;
+    teamRecipients: string | null;
   }> = [];
   configureNotifications({
     createNotification: async (input) => {
-      const audienceType = input.audience?.type === 'users' ? 'direct' : 'global';
+      const audienceType = input.audience?.type === 'global' ? 'global' : 'direct';
       const userIds =
         input.audience?.type === 'users' ? [...input.audience.userIds] : [];
+      const teamId = input.audience?.type === 'team' ? input.audience.teamId : null;
+      const teamRecipients =
+        input.audience?.type === 'team' ? input.audience.recipients ?? 'all' : null;
 
       createdNotifications.push({
         message: input.message,
         audienceType,
-        userIds
+        userIds,
+        teamId,
+        teamRecipients
       });
 
       return {
@@ -178,6 +188,10 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await assert.rejects(
     () => notifyUser(0, { message: 'Invalid target' }),
     /positive integer userId/
+  );
+  await assert.rejects(
+    () => notifyTeam(0, { message: 'Invalid team target' }),
+    /positive integer teamId/
   );
 
   const globalNotification = await notifyGlobal({
@@ -198,21 +212,66 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   assert.equal(usersNotification.audienceType, 'direct');
   assert.deepEqual(usersNotification.recipientUserIds, [9, 11]);
 
+  const teamNotification = await notifyTeam(21, {
+    message: 'Team broadcast'
+  });
+  assert.equal(teamNotification.audienceType, 'direct');
+  assert.deepEqual(teamNotification.recipientUserIds, []);
+
+  const teamMembersNotification = await notifyTeamMembers(21, {
+    message: 'Members only'
+  });
+  assert.equal(teamMembersNotification.audienceType, 'direct');
+  assert.deepEqual(teamMembersNotification.recipientUserIds, []);
+
+  const teamOwnerNotification = await notifyTeamOwner(21, {
+    message: 'Owner only'
+  });
+  assert.equal(teamOwnerNotification.audienceType, 'direct');
+  assert.deepEqual(teamOwnerNotification.recipientUserIds, []);
+
   assert.deepEqual(createdNotifications, [
     {
       message: 'Global broadcast',
       audienceType: 'global',
-      userIds: []
+      userIds: [],
+      teamId: null,
+      teamRecipients: null
     },
     {
       message: 'User only',
       audienceType: 'direct',
-      userIds: [9]
+      userIds: [9],
+      teamId: null,
+      teamRecipients: null
     },
     {
       message: 'Batch delivery',
       audienceType: 'direct',
-      userIds: [9, 11]
+      userIds: [9, 11],
+      teamId: null,
+      teamRecipients: null
+    },
+    {
+      message: 'Team broadcast',
+      audienceType: 'direct',
+      userIds: [],
+      teamId: 21,
+      teamRecipients: 'all'
+    },
+    {
+      message: 'Members only',
+      audienceType: 'direct',
+      userIds: [],
+      teamId: 21,
+      teamRecipients: 'members'
+    },
+    {
+      message: 'Owner only',
+      audienceType: 'direct',
+      userIds: [],
+      teamId: 21,
+      teamRecipients: 'owner'
     }
   ]);
 

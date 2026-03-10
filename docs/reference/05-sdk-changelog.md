@@ -115,7 +115,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `sprint`: sprint-11
 - `module`: cross-module-notifications
 - `type`: change
-- `summary`: se agrega sistema de notificaciones persistentes con targeting global o por usuario(s), filtrado por area privada y superficie SDK cliente/server
+- `summary`: se agrega sistema de notificaciones persistentes con targeting global, por usuario(s) o por team, filtrado por area privada y superficie SDK cliente/server
 - `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
 - `files`:
   - `app/sdk/src/notifications/types.ts`
@@ -127,7 +127,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `lib/notifications/service.ts`
   - `app/api/notifications/*`
   - `components/ui/notification-runtime.tsx`
-- `notes`: `useNotifications()` permite leer/acknowledge/dismiss desde modulos o core; `notifyGlobal()` / `notifyUser()` / `notifyUsers()` permiten emitir notificaciones persistentes desde server code sin imports al host
+- `notes`: `useNotifications()` permite leer/acknowledge/dismiss desde modulos, core o templates cliente; `notifyGlobal()` / `notifyUser()` / `notifyUsers()` / `notifyTeam()` / `notifyTeamMembers()` / `notifyTeamOwner()` permiten emitir notificaciones persistentes desde server code sin imports al host
 
 ## 2026-03-05 - sdk-route-context-matched-alias
 

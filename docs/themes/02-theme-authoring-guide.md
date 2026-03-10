@@ -226,6 +226,12 @@ The minimum v1 contract is:
 
 These contracts are validated by `tests/theme/theme-slot-data-contract.test.ts`.
 
+For persisted private notifications in backoffice themes:
+
+- use `ui.user-menu` as the host integration point instead of patching `layout.private.header`
+- derive the current area from `data.area` and call `useNotifications({ area, includeRead: true })`
+- preserve `children` from the host menu wrapper; themes can prepend or append a bell/feed control around it
+
 Typed high-impact contract map (host-side) lives in:
 
 - `lib/themes/template-data-contract.ts`

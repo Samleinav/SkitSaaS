@@ -86,6 +86,9 @@ Exports:
 - `notifyGlobal`
 - `notifyUser`
 - `notifyUsers`
+- `notifyTeam`
+- `notifyTeamMembers`
+- `notifyTeamOwner`
 - `configureRevalidation`
 - `revalidatePath`
 - `revalidatePaths`
@@ -119,11 +122,14 @@ Exports:
 The host now exposes a persisted private notification feed through the SDK.
 
 - Client: `useNotifications()` polls `/api/notifications` for the current private area and exposes `items`, `unreadItems`, `refresh`, `markRead`, and `dismiss`.
-- Server: `createNotification()`, `notifyGlobal()`, `notifyUser()`, and `notifyUsers()` call the host notification adapter configured during bootstrap.
+- Server: `createNotification()`, `notifyGlobal()`, `notifyUser()`, `notifyUsers()`, `notifyTeam()`, `notifyTeamMembers()`, and `notifyTeamOwner()` call the host notification adapter configured during bootstrap.
+- Audience contract: `createNotification()` accepts `audience.type = 'global' | 'users' | 'team'`.
+- Team targeting: `notifyTeam()`, `notifyTeamMembers()`, and `notifyTeamOwner()` resolve current team memberships to direct recipients before persistence.
 - Area targeting:
   - `area='auto'` resolves to `admin` for admin-like users
   - `area='auto'` resolves to `dashboard` for non-admin users
   - `area='both'` makes the notification visible in both private areas
+- Theme integration: backoffice templates can surface the feed from `ui.user-menu` with `useNotifications({ area, includeRead: true })` while keeping the host-provided menu `children`.
 
 ### `@skitsaas/sdk/db`
 

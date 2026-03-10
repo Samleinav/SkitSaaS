@@ -196,6 +196,7 @@ Quick guide for agents working in this repository (`saas-starter`).
   - all users (`global`)
   - one user
   - many users
+  - a team (`all`, `members`, or `owner`)
 - Core service:
   - `lib/notifications/service.ts`
 - Core API:
@@ -208,9 +209,10 @@ Quick guide for agents working in this repository (`saas-starter`).
   - explicit `area='admin' | 'dashboard' | 'both'` bypasses auto targeting
 - SDK usage:
   - client hook: `useNotifications()` from `@skitsaas/sdk`
-  - server helpers: `createNotification()`, `notifyGlobal()`, `notifyUser()`, `notifyUsers()` from `@skitsaas/sdk/server`
+  - server helpers: `createNotification()`, `notifyGlobal()`, `notifyUser()`, `notifyUsers()`, `notifyTeam()`, `notifyTeamMembers()`, `notifyTeamOwner()` from `@skitsaas/sdk/server`
 - Host runtime:
   - `components/ui/notification-runtime.tsx` bridges persisted notifications into the toast UI and marks them as read after display.
+  - backoffice themes should surface notification inbox UIs from `ui.user-menu`; baseline themes already mount a notification center there.
 
 ### Subscription feature controller
 
