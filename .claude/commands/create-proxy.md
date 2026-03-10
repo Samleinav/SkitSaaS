@@ -153,7 +153,7 @@ export const proxyPlanRateLimit = (limits: Record<string, number>): ApiRouteProx
       },
       request
     );
-    if (!result.allowed) {
+    if (!result.limited) {
       const headers = new Headers();
       if (result.retryAfterSeconds) {
         headers.set('Retry-After', String(Math.ceil(result.retryAfterSeconds)));

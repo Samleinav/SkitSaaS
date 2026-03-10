@@ -411,7 +411,7 @@ export function proxyRateLimit(config: RateLimitConfig): ApiRouteProxyFn {
   return async (request: Request) => {
     const { checkRateLimit } = await import('@/lib/routing/rate-limit');
     const result = await checkRateLimit(config, request);
-    if (!result.allowed) {
+    if (result.limited) {
       const headers = new Headers();
       if (typeof result.retryAfterSeconds === 'number') {
         headers.set('Retry-After', String(Math.ceil(result.retryAfterSeconds)));
