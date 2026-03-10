@@ -133,22 +133,38 @@ When a widget makes API calls, it must:
 2. Apply rate limiting on the API route.
 3. Guard with appropriate `auth` level.
 
-## Subscription Feature Gates (SDK Gap)
+## Subscription Feature Gates y Quota
 
-**Current state:** no module-safe subscription feature controller exists.
+`getDashboardFeatureController` y `getCurrentFeatureControllerByScope` son **host-only** y FORBIDDEN en módulos.
 
-`getDashboardFeatureController` (host path) is FORBIDDEN in module code.
+Usa el SDK quota controller (`@skitsaas/sdk/server`):
 
-**Workaround:**
-- Use `getModuleConfigValue` from `@skitsaas/sdk/server` for module-owned feature flags stored under `module.<moduleId>.*` namespace in `app_configs`.
-- If true plan-gated access (subscription tier check) is needed, log the gap and escalate:
+```ts
+import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '@skitsaas/sdk/server';
 
+const ctx = { teamId: user.teamId, userId: null };
+
+// 1. Gate: verificar si la feature está habilitada y la quota no está agotada
+const feature = await checkFeature('reports_daily', ctx);
+if (!feature.enabled) return Response.json({ error: 'feature_not_available' }, { status: 403 });
+if (feature.exhausted) return Response.json({ error: 'quota_exceeded' }, { status: 429 });
+
+// 2. Intent-based — consumir antes de la operación (strict=true lanza QuotaExceededError)
+try {
+  await consumeQuota('api_calls', ctx, { strict: true });
+} catch (e) {
+  if (e instanceof QuotaExceededError) return Response.json({ error: 'quota_exceeded' }, { status: 429 });
+  throw e;
+}
+
+// 3. Success-only — consumir solo si tuvo éxito
+const result = await doWork();
+if (result.ok) await consumeQuota('reports_daily', ctx);
+
+// 4. Leer estado completo para un widget/dashboard
+const quota = await getQuotaStatus('reports_daily', ctx);
+// → { limit: 100, used: 47, remaining: 53, resetAt: Date }
 ```
-1. Add entry in docs/reference/05-sdk-changelog.md:
-   type: gap
-   summary: module-safe subscription feature controller missing
-   sdk_surface: @skitsaas/sdk/server
-   module: <your module>
-2. Escalate to core-sdk-evolution skill.
-3. Do not import host feature controller — implement after SDK exposes the contract.
-```
+
+**Regla de naming de feature keys**: consultar `lib/features/catalog.ts` del host para las claves disponibles.
+Los feature keys de subscription son definidos por el host — si un módulo necesita una clave propia, usar `getModuleConfigValue` (config de módulo, no quota de plan).

@@ -1947,3 +1947,22 @@ export function createModulePageRouter<TUser = unknown>({
     return null;
   };
 }
+
+// ─── Subscription Features / Quota Controller ─────────────────────────────────
+
+export {
+  configureSubscriptionFeatures,
+  checkFeature,
+  getQuotaStatus,
+  consumeQuota,
+  QuotaExceededError,
+} from './subscription-features.js';
+
+export type {
+  SubscriptionFeaturesAdapter,
+  QuotaContext,
+  FeatureCheckResult,
+  QuotaStatus,
+  ConsumeOptions,
+  ConsumeResult,
+} from './subscription-features.js';

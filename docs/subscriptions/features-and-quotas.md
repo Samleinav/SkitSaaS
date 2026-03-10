@@ -94,6 +94,31 @@ const maxMembers = orgFeatures.int(
 Current subscription state comes from `subscription_assignments`. The controller helpers resolve the active
 assignment (user or team) and then apply the template features for that scope.
 
+## Module Access via SDK
+
+Modules **must not** import `getDashboardFeatureController`, `getCurrentFeatureControllerByScope`, or any `@/lib/features/*` path. Those are host-only helpers.
+
+Modules use the SDK quota controller instead:
+
+```ts
+import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '@skitsaas/sdk/server';
+
+const ctx = { teamId: user.teamId, userId: null };
+
+// Check if a feature is enabled and quota is available
+const feature = await checkFeature('dashboard.team.reports.daily', ctx);
+if (!feature.enabled || feature.exhausted) { /* 403 / 429 */ }
+
+// Read quota status for a dashboard widget
+const status = await getQuotaStatus('dashboard.team.reports.daily', ctx);
+// → { limit: 100, used: 47, remaining: 53, resetAt: Date }
+
+// Consume quota (intent-based, strict mode throws QuotaExceededError)
+await consumeQuota('dashboard.team.reports.daily', ctx, { strict: true });
+```
+
+The SDK bridges module code to the host `subscription_template_features` + `subscription_assignments` + `quota_usage` tables via `lib/quota/service.ts` (configured in `lib/modules/sdk-server-bootstrap.ts`). Feature keys are defined in `lib/features/catalog.ts`.
+
 ## Boundaries (What does not belong here)
 
 This document is only for subscription feature keys, quotas, and controller usage.

@@ -19,3 +19,4 @@ export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configu
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
+export { QuotaExceededError } from './subscription-features.js';

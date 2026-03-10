@@ -23,18 +23,31 @@ Stripe integration, subscription lifecycle states, checkout flow, subscription t
 | Table | Purpose |
 |-------|---------|
 | `subscription_templates` | Plan definitions (features, pricing, limits) |
-| `subscription_template_features` | Feature flags per plan |
-| `subscription_assignments` | User/team → plan assignments |
+| `subscription_template_features` | Feature flags per plan (`featureKey`, `featureValue`, `valueType`) |
+| `subscription_assignments` | User/team → plan assignments (incl. `currentPeriodStart`/`End`) |
 | `payment_orders` | Payment records |
+| `quota_usage` | Per-scope, per-feature usage counters (managed by SDK quota adapter) |
 
-## Feature Flags and Quotas (Host-Only)
+## Feature Flags and Quotas
 
-`getDashboardFeatureController` and `getCurrentFeatureControllerByScope` are **host-only helpers**. They read from `subscription_template_features` + `subscription_assignments` and must not be exposed to module code without an SDK adapter.
+### Host-side (core code)
+
+`getDashboardFeatureController` and `getCurrentFeatureControllerByScope` are **host-only helpers** — read from `subscription_template_features` + `subscription_assignments`. Use them freely in `app/(dashboard)` and `lib/` host code.
 
 When adding a new feature flag:
-1. Add to `subscription_template_features` schema.
-2. Add to the feature controller logic.
-3. If modules need to check this flag → create an SDK gap entry and escalate to `core-sdk-evolution`.
+1. Add key to `lib/features/catalog.ts`.
+2. Add row to `subscription_template_features` schema.
+3. Modules use `checkFeature()` from `@skitsaas/sdk/server` — the quota adapter reads the same tables automatically.
+
+### Module-side (via SDK)
+
+Modules access subscription features **exclusively** through `@skitsaas/sdk/server`:
+
+```ts
+import { checkFeature, getQuotaStatus, consumeQuota } from '@skitsaas/sdk/server';
+```
+
+The `quotaAdapter` in `lib/quota/service.ts` bridges the host DB to the SDK contract. Registered via `configureSubscriptionFeatures(quotaAdapter)` in `lib/modules/sdk-server-bootstrap.ts`. See `mod-routing-api-permissions` skill for usage patterns.
 
 ## Payment Event Hooks
 

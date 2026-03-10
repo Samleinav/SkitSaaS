@@ -35,6 +35,8 @@ description: Extend or version the @skitsaas/sdk package. Use this skill when ad
 | `app/sdk/src/form-validation.ts` | Validation rules, `dbRef`, `fieldRef` |
 | `app/sdk/src/notifications/types.ts` | Notification types |
 | `app/sdk/src/modules/manifest.ts` | `defineModule`, `ModuleManifest` |
+| `app/sdk/src/subscription-features.ts` | `SubscriptionFeaturesAdapter`, `checkFeature`, `getQuotaStatus`, `consumeQuota`, `QuotaExceededError` |
+| `app/sdk/src/routing/rate-limit.ts` | `withRateLimit`, `checkRateLimit`, `configureRateLimitBackend` |
 
 ## Adding a New SDK Export
 
@@ -49,10 +51,17 @@ description: Extend or version the @skitsaas/sdk package. Use this skill when ad
 ## Closing an SDK Gap
 
 1. Find the gap entry in `docs/reference/05-sdk-changelog.md` (`type: gap`).
-2. Implement the SDK contract.
-3. Update the entry status to `pending_publish`.
-4. Add a corresponding `type: change` entry.
-5. Isolate SDK changes in a separate commit from module/product work (cherry-pick safe).
+2. Implement the SDK contract (adapter interface in `app/sdk/src/`, host service in `lib/`, bootstrap wiring in `lib/modules/sdk-server-bootstrap.ts`).
+3. Update the gap entry status to `published` and fill the `files` list.
+4. Bump `app/sdk/package.json` version (MINOR for new exports, PATCH for fixes).
+5. Rebuild SDK: `cd app/sdk && pnpm build && cd ../.. && pnpm install`.
+6. Run `pnpm exec tsc --noEmit` — must pass.
+7. Isolate SDK changes in a separate commit from module/product work (cherry-pick safe).
+
+**Host service pattern** (for adapters that need DB access):
+- Create `lib/<feature>/service.ts` with `import 'server-only'` + adapter implementation.
+- Import and register in `lib/modules/sdk-server-bootstrap.ts` via the corresponding `configure*()` call.
+- Never import `lib/<feature>/service.ts` from module code — modules only call the public SDK functions.
 
 ## SDK Versioning
 

@@ -64,7 +64,7 @@ modules/
   "entry": "dist/manifest.js",
   "buildCommand": "pnpm build",
   "testCommand": "pnpm test:module",
-  "sdkRange": "^1.3.5",
+  "sdkRange": "^1.4.0",
   "db": {
     "schemaVersion": 1,
     "migrationsDir": "db/migrations"

@@ -9,7 +9,8 @@ import {
   configureEventEmitter,
   configureModuleConfig,
   configureNotifications,
-  configureRevalidation
+  configureRevalidation,
+  configureSubscriptionFeatures
 } from '@skitsaas/sdk/server';
 import {
   getAppConfigValueFromDb,
@@ -31,6 +32,7 @@ import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
 import { setSession } from '@/lib/auth/session';
 import { createSystemNotification } from '@/lib/notifications/service';
+import { quotaAdapter } from '@/lib/quota/service';
 import { and, eq, isNull } from 'drizzle-orm';
 
 let bootstrapped = false;
@@ -236,6 +238,8 @@ export function bootstrapModuleSdkServer() {
   configureBuildFormValidationObservability(
     createBuildFormSysActivityObserver()
   );
+
+  configureSubscriptionFeatures(quotaAdapter);
 
   bootstrapped = true;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@skitsaas/sdk",
-  "version": "1.3.5",
+  "version": "1.4.0",
   "description": "Public module SDK contract for skit-saas.",
   "license": "UNLICENSED",
   "type": "module",

@@ -41,3 +41,5 @@ export type { HttpMethod, ApiAuthLevel, ApiRouteProxyFn, ApiHandlerFn, } from '.
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
 export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './routing/rate-limit.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
+export type { QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
+export { QuotaExceededError } from './subscription-features.js';

@@ -1246,6 +1246,41 @@ export const sfilesPermissionsRelations = relations(sfilesPermissions, ({ one })
   user: one(users, { fields: [sfilesPermissions.userId], references: [users.id] }),
 }));
 
+// ─── Quota Usage ─────────────────────────────────────────────────────────────
+// Tracks per-scope, per-feature quota consumption for subscription plan limits.
+
+export const quotaUsage = pgTable(
+  'quota_usage',
+  {
+    id: serial('id').primaryKey(),
+    scopeType: varchar('scope_type', { length: 20 }).notNull(),
+    scopeTeamId: integer('scope_team_id').references(() => teams.id),
+    scopeUserId: integer('scope_user_id').references(() => users.id),
+    featureKey: varchar('feature_key', { length: 100 }).notNull(),
+    used: integer('used').notNull().default(0),
+    periodStart: timestamp('period_start').notNull(),
+    periodEnd: timestamp('period_end'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    scopeTeamFeaturePeriodUnique: uniqueIndex('quota_usage_scope_feature_period_idx')
+      .on(table.scopeType, table.scopeTeamId, table.featureKey, table.periodStart)
+      .where(sql`${table.scopeTeamId} is not null`),
+    scopeUserFeaturePeriodUnique: uniqueIndex('quota_usage_scope_user_feature_period_idx')
+      .on(table.scopeType, table.scopeUserId, table.featureKey, table.periodStart)
+      .where(sql`${table.scopeUserId} is not null`),
+    featureKeyIndex: index('quota_usage_feature_key_idx').on(table.featureKey),
+    scopeIntegrityCheck: check(
+      'quota_usage_scope_integrity_chk',
+      sql`(
+        (${table.scopeType} = 'team' and ${table.scopeTeamId} is not null and ${table.scopeUserId} is null) or
+        (${table.scopeType} = 'user' and ${table.scopeUserId} is not null and ${table.scopeTeamId} is null)
+      )`
+    ),
+  })
+);
+
 export const sysActivityLogsRelations = relations(sysActivityLogs, ({ one }) => ({
   actorUser: one(users, {
     fields: [sysActivityLogs.actorUserId],
@@ -1320,6 +1355,8 @@ export type SystemNotificationRecipient =
   typeof systemNotificationRecipients.$inferSelect;
 export type NewSystemNotificationRecipient =
   typeof systemNotificationRecipients.$inferInsert;
+export type QuotaUsage = typeof quotaUsage.$inferSelect;
+export type NewQuotaUsage = typeof quotaUsage.$inferInsert;
 export type TeamDataWithMembers = Team & {
   paymentProvider?: string | null;
   providerReferenceId?: string | null;

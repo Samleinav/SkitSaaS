@@ -1096,3 +1096,5 @@ export function createModulePageRouter({ routes, readRoles, adminRoles = DEFAULT
         return null;
     };
 }
+// ─── Subscription Features / Quota Controller ─────────────────────────────────
+export { configureSubscriptionFeatures, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';

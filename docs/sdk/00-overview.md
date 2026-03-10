@@ -116,6 +116,47 @@ Exports:
 - `parseJsonBody`
 - `isJsonRecord`
 - `hasOwn`
+- `configureSubscriptionFeatures`
+- `checkFeature`
+- `getQuotaStatus`
+- `consumeQuota`
+- `QuotaExceededError`
+
+## Subscription Feature Gates & Quota
+
+Modules check plan features and track usage exclusively through the SDK:
+
+```ts
+import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '@skitsaas/sdk/server';
+
+const ctx = { teamId: user.teamId, userId: null };
+
+// Check: is feature enabled and quota not exhausted?
+const feature = await checkFeature('dashboard.team.reports.daily', ctx);
+if (!feature.enabled) return forbidden();
+if (feature.exhausted) return quotaExceeded();
+
+// Read current quota standing
+const status = await getQuotaStatus('dashboard.team.reports.daily', ctx);
+// → { limit: 100, used: 47, remaining: 53, resetAt: Date }
+
+// Consume quota — three patterns:
+// a) intent-based: consume before the action (strict throws QuotaExceededError)
+await consumeQuota('api_calls', ctx, { strict: true });
+
+// b) success-only: consume after confirming success
+const result = await doWork();
+if (result.ok) await consumeQuota('exports', ctx);
+
+// c) async / event handler
+run: async (payload) => {
+  await consumeQuota('proxy_requests', { teamId: payload.teamId, userId: null });
+}
+```
+
+The adapter (`lib/quota/service.ts`) reads `subscription_template_features` + `subscription_assignments` and writes to `quota_usage`. Feature keys are defined in `lib/features/catalog.ts`.
+
+Public types also available from `@skitsaas/sdk`: `QuotaContext`, `FeatureCheckResult`, `QuotaStatus`, `ConsumeOptions`, `ConsumeResult`, `QuotaExceededError`.
 
 ## Persisted Notifications
 

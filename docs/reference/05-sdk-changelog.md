@@ -34,270 +34,261 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `notes`: contexto/impacto
 ```
 
-## Entries
+---
 
-## 2026-03-10 - sdk-gap-module-subscription-feature-controller
+## 2026-03-10 - sdk-gap-subscription-quota-controller
 
-- `status`: pending_publish
-- `sprint`: taxonomy-skills
+- `status`: published
+- `sprint`: sprint-a
 - `module`: cross-module-policy
 - `type`: gap
-- `summary`: no existe un helper SDK seguro para que módulos verifiquen acceso plan-gated (subscription tier, feature flags de suscripción); el único helper existente `getDashboardFeatureController` es un import directo del host y está prohibido en módulos
+- `summary`: no existe adapter SDK para que módulos verifiquen features habilitadas, lean límites de quota del plan asignado, ni trackeen y consuman usage — todo sin importar host internals
 - `sdk_surface`: @skitsaas/sdk/server
 - `files`:
   - `docs/reference/05-sdk-changelog.md`
   - `.agents/skills/mod-routing-api-permissions/SKILL.md`
-- `notes`: workaround actual — usar `getModuleConfigValue` para feature flags module-owned bajo namespace `module.<moduleId>.*`; la solución definitiva requiere exponer un adapter de feature checking en SDK/server que el host conecte con su lógica de subscription assignment
+- `notes`: |
+    El gap cubre tres necesidades distintas que hoy no tienen contrato SDK:
 
-## 2026-03-05 - sdk-standalone-contract-consumption
+    1. **Feature check** — ¿está habilitada la feature X para este team/user en su plan?
+       Hoy: `getDashboardFeatureController` (host-only, forbidden en módulos).
 
-- `status`: pending_publish
-- `sprint`: sprint-3
-- `module`: mod.education.guardians
-- `type`: change
-- `summary`: consumo local del SDK con contratos standalone (`ModuleUserRole`, `userRoles`, `standaloneHomeComponent`, `standaloneNavItems`) para evitar imports directos al core
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `package.json`
-  - `pnpm-lock.yaml`
-  - `app/sdk/src/modules/manifest.ts` (contrato base ya presente)
-  - `app/sdk/src/index.ts` (re-export de tipos)
-- `notes`: la app ahora resuelve `@skitsaas/sdk` desde `file:app/sdk` en esta rama para desarrollar/publicar el cambio sin acoplar modulos al host
+    2. **Quota limit read** — ¿cuál es el límite del plan? (ej: pro=100/day, free=5/day)
+       Hoy: no existe surface SDK.
 
-## 2026-03-05 - sdk-gap-log-policy
+    3. **Usage tracking** — ¿cuánto ha consumido este team en el periodo actual?
+       Reducir usage en tres momentos distintos:
+       - **intent** (proxy/middleware): reduce al entrar, bloquea si ya excedió
+       - **success-only** (handler): reduce solo si la operación tuvo éxito
+       - **async** (post-process): reduce después de un evento completado
 
-- `status`: pending_publish
-- `sprint`: sprint-3
-- `module`: cross-module-policy
-- `type`: change
-- `summary`: se establece politica de registrar todo SDK-gap/cambio en `docs/reference/05-sdk-changelog.md`
-- `sdk_surface`: process
-- `files`:
-  - `docs/reference/05-sdk-changelog.md`
-  - `plans/education-system/reference/module-boundary-guardrails.md`
-  - `.agents/skills/module-boundary-guard/SKILL.md`
-- `notes`: obligatorio para futuras iteraciones de sprints modulares
+    Workaround actual: usar `getModuleConfigValue` para feature flags module-owned
+    bajo namespace `module.<moduleId>.*`, pero no resuelve quotas de suscripción.
 
-## 2026-03-05 - sdk-datatable-ui-export
+    Implementado en SDK v1.4.0. Ver sección "Plan de implementación" para diseño completo.
 
-- `status`: pending_publish
-- `sprint`: sprint-5
-- `module`: mod.education.attendance
-- `type`: change
-- `summary`: se agrega `DataTable` React al SDK para que modulos puedan renderizar tablas sin importar componentes del host
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/ui/data-table.tsx`
-  - `app/sdk/src/ui/index.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/package.json`
-  - `app/sdk/dist/*`
-- `notes`: cierra el gap de UI tables para modulos source-host y evita imports directos a `@/components/ui/data-table`
+    Archivos creados/modificados:
+    - `app/sdk/src/subscription-features.ts` — adapter interface + types + service locator + checkFeature/getQuotaStatus/consumeQuota
+    - `app/sdk/src/server.ts` — re-exports configureSubscriptionFeatures, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError
+    - `app/sdk/src/index.ts` — re-exports public types (QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, QuotaExceededError)
+    - `lib/db/migrations/0027_quota_usage.sql` — tabla quota_usage
+    - `lib/db/schema.ts` — quotaUsage table + relations + type exports
+    - `lib/quota/service.ts` — implementación host del adapter (queries subscription_template_features + subscription_assignments + quota_usage)
+    - `lib/modules/sdk-server-bootstrap.ts` — registra configureSubscriptionFeatures(quotaAdapter)
 
-## 2026-03-05 - sdk-gap-module-file-export
+---
 
-- `status`: pending_publish
-- `sprint`: sprint-5
-- `module`: mod.education.attendance
-- `type`: gap
-- `summary`: falta un contrato SDK para generacion/export de archivos de modulo hacia `mod.files` (pdf/listas/reportes)
-- `sdk_surface`: @skitsaas/sdk/server
-- `files`:
-  - `docs/reference/05-sdk-changelog.md`
-  - `mod.education.attendance`
-- `notes`: hoy el modulo no puede subir un PDF a `mod.files` sin importar codigo directo del host o del modulo `mod.files`; requiere adapter o contrato de file storage en SDK/server
+## Plan de implementación: sdk-gap-subscription-quota-controller
 
-## 2026-03-05 - sdk-file-storage-adapter
+### Adapter interface (host-side)
 
-- `status`: pending_publish
-- `sprint`: sprint-5
-- `module`: mod.education.attendance
-- `type`: change
-- `summary`: se agrega adapter de file storage a `@skitsaas/sdk/server` para subir archivos y resolver URLs firmadas desde modulos
-- `sdk_surface`: @skitsaas/sdk/server
-- `files`:
-  - `app/sdk/src/server.ts`
-  - `app/sdk/dist/server.*`
-  - `lib/modules/sdk-server-bootstrap.ts`
-  - `app/sdk/README.md`
-- `notes`: el host conecta el adapter con `mod.files/src/service.ts`; esto destraba exportes PDF/reportes sin imports directos entre modulos
+```ts
+// app/sdk/src/subscription-features.ts
 
-## 2026-03-10 - sdk-persisted-notifications
+export interface SubscriptionFeaturesAdapter {
+  /** ¿Está habilitada la feature y cuál es su límite? null = sin límite */
+  getFeatureLimit(
+    featureKey: string,
+    ctx: QuotaContext
+  ): Promise<{ enabled: boolean; limit: number | null }>;
 
-- `status`: pending_publish
-- `sprint`: sprint-11
-- `module`: cross-module-notifications
-- `type`: change
-- `summary`: se agrega sistema de notificaciones persistentes con targeting global, por usuario(s) o por team, filtrado por area privada y superficie SDK cliente/server
-- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
-- `files`:
-  - `app/sdk/src/notifications/types.ts`
-  - `app/sdk/src/ui/notifications.tsx`
-  - `app/sdk/src/ui/index.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/src/server.ts`
-  - `app/sdk/dist/*`
-  - `lib/notifications/service.ts`
-  - `app/api/notifications/*`
-  - `components/ui/notification-runtime.tsx`
-- `notes`: `useNotifications()` permite leer/acknowledge/dismiss desde modulos, core o templates cliente; `notifyGlobal()` / `notifyUser()` / `notifyUsers()` / `notifyTeam()` / `notifyTeamMembers()` / `notifyTeamOwner()` permiten emitir notificaciones persistentes desde server code sin imports al host
+  /** Uso actual del periodo en curso */
+  getUsage(
+    featureKey: string,
+    ctx: QuotaContext
+  ): Promise<{ used: number; resetAt?: Date }>;
 
-## 2026-03-05 - sdk-route-context-matched-alias
+  /** Incrementar contador de uso. Retorna el nuevo total. */
+  incrementUsage(
+    featureKey: string,
+    ctx: QuotaContext,
+    amount: number
+  ): Promise<{ used: number }>;
+}
 
-- `status`: pending_publish
-- `sprint`: sprint-6
-- `module`: mod.education.enrollment
-- `type`: change
-- `summary`: `ModuleRouteContext` expone `matchedAlias` para que un modulo distinga la alias amigable usada al entrar y pueda resolver dashboards multipath sin imports al host
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/modules/manifest.ts`
-  - `app/sdk/dist/modules/manifest.*`
-  - `lib/modules/runtime.ts`
-  - `tests/modules/module-runtime.test.ts`
-- `notes`: cierra el gap donde `resolveModulePageByPath()` resolvia la alias pero no la entregaba al handler; necesario para aliases como `/dashboard/enrollments` y `/dashboard/enrollment-reports` dentro del mismo modulo
+export type QuotaContext = {
+  teamId?: number;
+  userId?: number;
+};
+```
 
-## 2026-03-06 - sdk-client-notify-bridge
+### SDK surface (`@skitsaas/sdk/server`)
 
-- `status`: pending_publish
-- `sprint`: sprint-6
-- `module`: cross-module-polish
-- `type`: change
-- `summary`: se agrega superficie cliente de notify en SDK con bridge por `CustomEvent` hacia el `NotifyProvider` del host para feedback/toasts en modulos sin imports directos al core
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/ui/notify.ts`
-  - `app/sdk/src/ui/index.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/*`
-  - `components/ui/sdk-notify-bridge.tsx`
-  - `app/layout.tsx`
-- `notes`: permite a modulos cliente emitir `notify.success|error|warning|info` desde `@skitsaas/sdk`; el host resuelve la visualizacion real
+```ts
+// Configurar (host bootstrap, una vez)
+configureSubscriptionFeatures(adapter: SubscriptionFeaturesAdapter): void
 
-## 2026-03-06 - sdk-structured-form-builder
+// Consultar desde módulo
+checkFeature(featureKey: string, ctx: QuotaContext): Promise<FeatureCheckResult>
+getQuotaStatus(featureKey: string, ctx: QuotaContext): Promise<QuotaStatus>
+consumeQuota(featureKey: string, ctx: QuotaContext, options?: ConsumeOptions): Promise<ConsumeResult>
 
-- `status`: pending_publish
-- `sprint`: sprint-10
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agrega contrato estructurado de forms/modals al SDK con helpers de fields, prefills, request config y masks reutilizables
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/forms.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/forms.*`
-  - `app/sdk/dist/index.*`
-  - `app/sdk/README.md`
-  - `docs/sdk/00-overview.md`
-  - `docs/forms/01-form-build-system.md`
-  - `docs/themes/03-template-controller.md`
-- `notes`: el host ahora puede renderizar forms consistentes desde definiciones SDK usando `TemplateBuildForm`, `BuildModal` y `ui.form`; el rollout inicial ya cubre core y `mod.example.suite`
+// Tipos
+type FeatureCheckResult = {
+  enabled: boolean;
+  limit: number | null;    // null = sin límite
+  remaining: number | null;
+}
 
-## 2026-03-06 - sdk-build-form-validation-contract
+type QuotaStatus = {
+  enabled: boolean;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  resetAt?: Date;
+}
 
-- `status`: pending_publish
-- `sprint`: sprint-10
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agrega la primera capa de validacion estructurada para BuildForm con contrato canónico, runtime local browser-safe y helpers server-side de normalizacion/resultado
-- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
-- `files`:
-  - `app/sdk/src/form-validation.ts`
-  - `app/sdk/src/server.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/form-validation.*`
-  - `app/sdk/dist/server.*`
-  - `app/sdk/dist/index.*`
-  - `app/sdk/README.md`
-  - `docs/sdk/00-overview.md`
-- `notes`: cubre reglas comunes (`required`, `email`, `minLength`, `confirmed`, etc.), `dbRef`/`fieldRef`, resultados normalizados y fix de repeated fields en `FormData`; `unique`/`exists` quedan declarados pero todavia requieren compiler server/preflight para ser autoritativos
+type ConsumeOptions = {
+  amount?: number;  // default 1
+}
 
-## 2026-03-07 - sdk-build-form-validation-messages
+type ConsumeResult = {
+  ok: boolean;          // false si exceeded
+  used: number;
+  remaining: number | null;
+  exceeded: boolean;
+}
+```
 
-- `status`: pending_publish
-- `sprint`: sprint-10
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agregan helpers SDK para parseo y descriptores de mensajes de validacion reutilizables, dejando el copy final e i18n en el host
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/validation-messages.ts`
-  - `app/sdk/src/form-validation.ts`
-  - `app/sdk/src/forms.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/validation-messages.*`
-  - `app/sdk/dist/form-validation.*`
-  - `app/sdk/dist/forms.*`
-  - `app/sdk/dist/index.*`
-  - `app/sdk/README.md`
-  - `docs/sdk/00-overview.md`
-  - `docs/forms/01-form-build-system.md`
-  - `app/(dashboard)/admin/users/actions.ts`
-  - `app/(dashboard)/admin/users/validation.ts`
-- `notes`: expone `normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage.*`, `createCatalogBuildFormValidationMessageResolver(...)` y `createBuildFormValidationResultFromFieldMessages(...)`; el piloto `admin/users` ahora usa descriptores y resolver por locale para evitar strings hardcodeados en actions
+### Ejemplos de uso
 
-## 2026-03-07 - sdk-build-form-compose-presets
+#### 1. API endpoint con límites distintos por plan (pro=100/day, free=5/day)
 
-- `status`: pending_publish
-- `sprint`: sprint-10
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agregan helpers SDK para componer definiciones de forms y presets de validacion CRUD sin repetir request/prefills/submit ni bloques `client.validateOn`
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/forms.ts`
-  - `app/sdk/src/form-validation.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/forms.*`
-  - `app/sdk/dist/form-validation.*`
-  - `app/sdk/dist/index.*`
-  - `app/sdk/README.md`
-  - `docs/sdk/00-overview.md`
-  - `docs/forms/01-form-build-system.md`
-  - `app/(dashboard)/admin/users/create-user-form.tsx`
-  - `app/(dashboard)/admin/users/[userId]/page.tsx`
-  - `modules/mod.example.suite/README.md`
-- `notes`: expone `composeBuildFormDefinition(...)` y `buildFormValidationPreset.blur(...)`; el host añade `composeRegisteredBuildFormDefinition(...)` para acoplar `formId` registrado con submit action canónica
+```ts
+// modules/mod.analytics/src/api/report.ts
+import { getQuotaStatus, consumeQuota, requireUser } from '@skitsaas/sdk/server';
 
-## 2026-03-06 - sdk-build-form-vine-server-wrapper
+export const apiHandler = createModuleApiRouter({
+  routes: [{
+    method: 'POST',
+    path: '/generate-report',
+    auth: 'user',
+    handler: async ({ user }) => {
+      const quota = await getQuotaStatus('reports_daily', { teamId: user.teamId });
 
-- `status`: pending_publish
-- `sprint`: sprint-10
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agrega validacion server-side con VineJS y wrapper reutilizable de server actions para BuildForm
-- `sdk_surface`: @skitsaas/sdk/server
-- `files`:
-  - `app/sdk/src/server.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/src/form-validation.ts`
-  - `app/sdk/package.json`
-  - `app/sdk/dist/*`
-  - `lib/actions/controller.ts`
-  - `app/(dashboard)/admin/controller.ts`
-  - `app/(dashboard)/dashboard/controller.ts`
-- `notes`: incorpora `validateBuildFormOnServer(...)`, `createValidatedServerActionController(...)`, mapeo de errores VineJS a `fieldErrors/formError`, y deja un piloto en `mod.example.suite`; la hidratacion via `useActionState` sigue pendiente
+      // Feature deshabilitada en el plan
+      if (!quota.enabled) {
+        return Response.json({ error: 'feature_not_available' }, { status: 403 });
+      }
 
-## 2026-03-09 - sdk-build-form-dynamic-options
+      // Quota agotada (pro=100, free=5 — el límite viene del plan asignado)
+      if (quota.remaining === 0) {
+        return Response.json({
+          error: 'quota_exceeded',
+          limit: quota.limit,
+          resetAt: quota.resetAt
+        }, { status: 429 });
+      }
 
-- `status`: pending_publish
-- `sprint`: sprint-11
-- `module`: cross-module-ui-contract
-- `type`: change
-- `summary`: se agrega soporte de opciones dinámicas (`optionsKey` / `dynamicOptions`) en campos `select` del FormBuilder para pasar listas cargadas desde DB sin romper la serialización del contrato
-- `sdk_surface`: @skitsaas/sdk
-- `files`:
-  - `app/sdk/src/forms.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/forms.*`
-  - `app/sdk/dist/index.*`
-  - `components/ui/build-form.tsx`
-  - `lib/forms/definition.ts`
-- `notes`: `BuildFormSelectFieldDefinition` ahora acepta `optionsKey?: string`; `BuildFormDefinition` acepta `dynamicOptions?: Record<string, BuildFormOption[]>`; el renderer resuelve las opciones en tiempo de render; `composeBuildFormDefinition(...)` acepta `dynamicOptions` como opción de composición; se agrega helper `withBuildFormDynamicOptions(...)`
+      // Procesar
+      const report = await generateReport(user.teamId);
+
+      // Consumir quota SOLO si tuvo éxito
+      await consumeQuota('reports_daily', { teamId: user.teamId });
+
+      return Response.json({ ok: true, report });
+    }
+  }]
+});
+```
+
+#### 2. Proxy / middleware: intent-based (reduce al entrar, bloquea si ya excedió)
+
+```ts
+// Útil para operaciones costosas donde el intento mismo consume (ej: llamadas a AI, SMS)
+import { consumeQuota } from '@skitsaas/sdk/server';
+
+handler: async ({ user, body }) => {
+  // Consumir antes de procesar — si falla el handler, la quota ya se gastó
+  const result = await consumeQuota('ai_requests_monthly', { teamId: user.teamId });
+
+  if (!result.ok) {
+    return Response.json({
+      error: 'monthly_quota_exceeded',
+      remaining: 0,
+      resetAt: result.resetAt   // cuándo se resetea
+    }, { status: 429 });
+  }
+
+  // Proceder — el crédito ya fue descontado
+  const response = await callAiProvider(body.prompt);
+  return Response.json({ ok: true, response });
+}
+```
+
+#### 3. Event handler: consume quota después de un evento completado
+
+```ts
+// Útil para flujos asíncronos donde el consumo ocurre post-proceso
+eventHandlers: [{
+  id: 'mod.commerce.trackOrderQuota',
+  hook: 'checkout.after_create_order',
+  priority: 20,
+  run: async (payload, context) => {
+    // Solo consume si el pedido fue creado exitosamente
+    if (payload.status === 'confirmed') {
+      await consumeQuota('orders_monthly', { teamId: payload.teamId });
+    }
+  }
+}]
+```
+
+#### 4. UI: mostrar badge de quota restante en dashboard
+
+```tsx
+// modules/mod.analytics/src/components/quota-badge.tsx
+'use client'
+// El componente recibe quotaStatus como prop (cargado server-side en el page handler)
+// No llama a getQuotaStatus client-side — eso es server-only
+
+export function QuotaBadge({ used, limit, remaining }) {
+  const pct = limit ? Math.round((used / limit) * 100) : 0;
+  return (
+    <div>
+      <span>{used} / {limit ?? '∞'}</span>
+      {pct > 80 && <span className="text-warning">Cerca del límite</span>}
+    </div>
+  );
+}
+```
+
+### Host-side: tabla de uso sugerida
+
+```sql
+-- lib/db/migrations/XXXX_quota_usage.sql
+CREATE TABLE quota_usage (
+  id          SERIAL PRIMARY KEY,
+  feature_key VARCHAR(128) NOT NULL,
+  team_id     INTEGER REFERENCES teams(id),
+  user_id     INTEGER REFERENCES users(id),
+  period_key  VARCHAR(32) NOT NULL,  -- ej: '2026-03', '2026-03-10'
+  used        INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (feature_key, team_id, user_id, period_key)
+);
+```
+
+### Archivos a crear/modificar
+
+```
+app/sdk/src/subscription-features.ts   (nuevo — adapter interface + service locator)
+app/sdk/src/server.ts                   (agregar configure + check + get + consume)
+app/sdk/src/index.ts                    (re-export tipos públicos: QuotaContext, QuotaStatus, etc.)
+lib/modules/sdk-server-bootstrap.ts    (configurar adapter con queries del host)
+lib/db/migrations/XXXX_quota_usage.sql (nueva tabla)
+lib/quota/service.ts                   (implementación del adapter en el host)
+docs/modules/08-notifications.md       (cross-ref — notificaciones por quota warnings)
+docs/reference/05-sdk-changelog.md     (este archivo)
+```
+
+---
+
+## Published
 
 ## 2026-03-09 - sdk-build-form-repeater-field
 
-- `status`: pending_publish
+- `status`: published
 - `sprint`: sprint-11
 - `module`: cross-module-ui-contract
 - `type`: change
@@ -307,35 +298,197 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `app/sdk/src/forms.ts`
   - `app/sdk/src/form-validation.ts`
   - `app/sdk/src/index.ts`
-  - `app/sdk/dist/forms.*`
-  - `app/sdk/dist/form-validation.*`
-  - `app/sdk/dist/index.*`
   - `components/ui/build-form.tsx`
   - `lib/forms/runtime.ts`
   - `app/(dashboard)/admin/subscriptions/forms.ts`
-  - `app/(dashboard)/admin/subscriptions/create/page.tsx`
-  - `app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx`
-- `notes`: nuevo tipo `BuildFormRepeaterFieldDefinition` con `subFields`, `addLabel`, `removeLabel`, `minRows`, `emptyRow`; sub-campos soportan `text`, `number`, `select`, `checkbox` y `disableWhen: { field, equals }`; filas se serializan como `{name}[]` (row IDs) + `{subField}_{rowId}`; `BuildFormDefinition` acepta `repeaterRows?: BuildFormRepeaterRows` para precarga de filas desde el servidor; `form-validation.ts` salta campos repeater en normalización; rollout inicial en `/admin/subscriptions/create` y `/admin/subscriptions/[templateId]/edit` reemplazando `template-form.tsx`
+- `notes`: `BuildFormRepeaterFieldDefinition` con `subFields`, `addLabel`, `removeLabel`, `minRows`, `emptyRow`; serialización `{name}[]` + `{subField}_{rowId}`; rollout en `/admin/subscriptions`
+
+## 2026-03-09 - sdk-build-form-dynamic-options
+
+- `status`: published
+- `sprint`: sprint-11
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: soporte de opciones dinámicas (`optionsKey` / `dynamicOptions`) en campos `select` del FormBuilder
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `components/ui/build-form.tsx`
+  - `lib/forms/definition.ts`
+- `notes`: `BuildFormSelectFieldDefinition.optionsKey`; `BuildFormDefinition.dynamicOptions`; `withBuildFormDynamicOptions(...)`
+
+## 2026-03-10 - sdk-persisted-notifications
+
+- `status`: published
+- `sprint`: sprint-11
+- `module`: cross-module-notifications
+- `type`: change
+- `summary`: sistema de notificaciones persistentes — targeting global/usuario/team, área privada, superficie SDK cliente y server
+- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/notifications/types.ts`
+  - `app/sdk/src/ui/notifications.tsx`
+  - `app/sdk/src/server.ts`
+  - `lib/notifications/service.ts`
+  - `app/api/notifications/`
+  - `components/ui/notification-runtime.tsx`
+- `notes`: `useNotifications()`, `notifyGlobal/User/Users/Team/TeamMembers/TeamOwner()`, area `auto|admin|dashboard|both`
 
 ## 2026-03-06 - sdk-build-form-db-preflight
 
-- `status`: pending_publish
+- `status`: published
 - `sprint`: sprint-10
 - `module`: cross-module-ui-contract
 - `type`: change
-- `summary`: se agregan reglas DB-aware (`unique` / `exists`), preflight generico por API y compatibilidad completa con `useActionState` para hidratar errores server-side en BuildForm
+- `summary`: reglas DB-aware (`unique` / `exists`), preflight AJAX por field, compatibilidad con `useActionState`
 - `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
 - `files`:
   - `app/sdk/src/server.ts`
   - `app/sdk/src/form-validation.ts`
-  - `app/sdk/src/forms.ts`
-  - `app/sdk/src/index.ts`
-  - `app/sdk/dist/*`
-  - `components/ui/build-form.tsx`
   - `lib/forms/db-registry.ts`
   - `lib/forms/preflight.ts`
-  - `lib/forms/registry.ts`
   - `app/api/forms/validate/route.ts`
-  - `app/(dashboard)/admin/users/forms.ts`
-  - `app/(dashboard)/admin/users/actions.ts`
-- `notes`: `BuildForm` ahora soporta preflight AJAX por field con debounce/cancelacion, el host resuelve `dbRef(...)` mediante un adapter server-side, y `/admin/users` ya usa `unique(core.users.email)` + `exists(core.subscription_templates.user)` como piloto core
+- `notes`: `configureBuildFormDbValidation(...)`, `dbRef(...)`, `fieldRef(...)`; piloto en `/admin/users`
+
+## 2026-03-07 - sdk-build-form-compose-presets
+
+- `status`: published
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: helpers para componer definiciones de forms y presets de validación CRUD
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+  - `app/sdk/src/form-validation.ts`
+- `notes`: `composeBuildFormDefinition(...)`, `buildFormValidationPreset.blur(...)`; host añade `composeRegisteredBuildFormDefinition(...)`
+
+## 2026-03-07 - sdk-build-form-validation-messages
+
+- `status`: published
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: helpers para mensajes de validación reutilizables y resolvers por locale
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/validation-messages.ts`
+  - `app/sdk/src/form-validation.ts`
+- `notes`: `normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage.*`, `createBuildFormValidationResultFromFieldMessages(...)`
+
+## 2026-03-06 - sdk-build-form-validation-contract
+
+- `status`: published
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: primera capa de validación estructurada para BuildForm — runtime browser-safe y helpers server-side
+- `sdk_surface`: @skitsaas/sdk | @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/form-validation.ts`
+  - `app/sdk/src/server.ts`
+- `notes`: reglas `required`, `email`, `minLength`, `confirmed`; `dbRef`/`fieldRef`; `unique`/`exists` declarados
+
+## 2026-03-06 - sdk-build-form-vine-server-wrapper
+
+- `status`: published
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: validación server-side con VineJS y wrapper de server actions para BuildForm
+- `sdk_surface`: @skitsaas/sdk/server
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/src/form-validation.ts`
+- `notes`: `validateBuildFormOnServer(...)`, `createValidatedServerActionController(...)`; piloto en `mod.example.suite`
+
+## 2026-03-06 - sdk-structured-form-builder
+
+- `status`: published
+- `sprint`: sprint-10
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: contrato estructurado de forms/modals — fields, prefills, request config, masks
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/forms.ts`
+- `notes`: `defineBuildForm`, `buildFormField.*`, `withBuildFormValues`, `defineBuildModal`
+
+## 2026-03-06 - sdk-client-notify-bridge
+
+- `status`: published
+- `sprint`: sprint-6
+- `module`: cross-module-polish
+- `type`: change
+- `summary`: superficie cliente de notify via `CustomEvent` hacia `NotifyProvider` del host — feedback/toasts sin imports directos
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/ui/notify.ts`
+  - `components/ui/sdk-notify-bridge.tsx`
+- `notes`: `notify.success|error|warning|info` desde `@skitsaas/sdk`
+
+## 2026-03-05 - sdk-route-context-matched-alias
+
+- `status`: published
+- `sprint`: sprint-6
+- `module`: mod.education.enrollment
+- `type`: change
+- `summary`: `ModuleRouteContext` expone `matchedAlias` para que un módulo distinga la alias amigable usada al entrar
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/modules/manifest.ts`
+  - `lib/modules/runtime.ts`
+  - `tests/modules/module-runtime.test.ts`
+- `notes`: cierra gap donde `resolveModulePageByPath()` no entregaba la alias al handler
+
+## 2026-03-05 - sdk-file-storage-adapter
+
+- `status`: published
+- `sprint`: sprint-5
+- `module`: cross-module-files
+- `type`: change
+- `summary`: adapter de file storage completo en `@skitsaas/sdk/sfiles` — upload, list, get, getUrl, zip, permissions sin imports al host
+- `sdk_surface`: @skitsaas/sdk/sfiles
+- `files`:
+  - `app/sdk/src/sfiles.ts`
+  - `app/sdk/package.json` (entry `./sfiles`)
+- `notes`: cierra `sdk-gap-module-file-export`; `ISfilesManager`, `SFilesAdapter`, service locator via `registerSfiles()`; módulos importan `{ sfiles } from '@skitsaas/sdk/sfiles'`
+
+## 2026-03-05 - sdk-datatable-ui-export
+
+- `status`: published
+- `sprint`: sprint-5
+- `module`: mod.education.attendance
+- `type`: change
+- `summary`: `DataTable` React exportado al SDK para que módulos rendericen tablas sin importar componentes del host
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `app/sdk/src/ui/data-table.tsx`
+- `notes`: cierra gap de UI tables para módulos source-host
+
+## 2026-03-05 - sdk-standalone-contract-consumption
+
+- `status`: published
+- `sprint`: sprint-3
+- `module`: mod.education.guardians
+- `type`: change
+- `summary`: SDK resuelve desde `file:app/sdk` — módulos consumen contratos standalone sin acoplarse al host
+- `sdk_surface`: @skitsaas/sdk
+- `files`:
+  - `package.json`
+  - `app/sdk/src/modules/manifest.ts`
+  - `app/sdk/src/index.ts`
+- `notes`: `ModuleUserRole`, `userRoles`, `standaloneHomeComponent`, `standaloneNavItems`
+
+## 2026-03-05 - sdk-gap-log-policy
+
+- `status`: published
+- `sprint`: sprint-3
+- `module`: cross-module-policy
+- `type`: change
+- `summary`: política establecida: todo SDK-gap/cambio se registra en `docs/reference/05-sdk-changelog.md`
+- `sdk_surface`: process
+- `files`:
+  - `docs/reference/05-sdk-changelog.md`
+  - `.agents/skills/module-boundary-guard/SKILL.md`
+- `notes`: obligatorio para futuras iteraciones de sprints modulares

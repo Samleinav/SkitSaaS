@@ -392,3 +392,13 @@ export {
   checkRateLimit,
   withRateLimit
 } from './routing/rate-limit.js';
+
+// Subscription feature flags & quota tracking (public types only; functions via @skitsaas/sdk/server)
+export type {
+  QuotaContext,
+  FeatureCheckResult,
+  QuotaStatus,
+  ConsumeOptions,
+  ConsumeResult,
+} from './subscription-features.js';
+export { QuotaExceededError } from './subscription-features.js';
