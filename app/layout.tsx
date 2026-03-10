@@ -85,9 +85,9 @@ html[data-theme-css-pending='1'] body::before {
   inset: 0;
   z-index: 2147483646;
   background:
-    radial-gradient(circle at 20% 20%, rgba(251, 146, 60, 0.16), transparent 38%),
-    radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.12), transparent 42%),
-    #020617;
+    radial-gradient(72rem 42rem at 95% -5%, rgba(30, 200, 195, 0.14), transparent 62%),
+    radial-gradient(46rem 30rem at 2% 0%, rgba(200, 230, 240, 0.045), transparent 66%),
+    #0d1017;
 }
 
 html[data-theme-css-pending='1'] body::after {

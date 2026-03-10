@@ -68,24 +68,22 @@ function ImpactMetricCard({
 }) {
   return (
     <Link href={metric.href} className="group block">
-      <Card className="h-full border-border/70 bg-background/80 transition-colors hover:bg-accent/20">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[11px] text-muted-foreground">{metric.label}</p>
-              <p className="mt-1 text-xl font-semibold tracking-tight text-foreground">
-                {formatCompactValue(metric.value, dateLocale)}
-              </p>
-            </div>
-            <span
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-lg border',
-                metric.toneClassName
-              )}
-            >
-              <metric.icon className="h-3.5 w-3.5" />
-            </span>
-          </div>
+      <Card className="h-full border-border/70 transition-all hover:border-border">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+          <CardDescription className="text-sm font-medium">{metric.label}</CardDescription>
+          <span
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+              metric.toneClassName
+            )}
+          >
+            <metric.icon className="h-4 w-4" />
+          </span>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold tracking-tight">
+            {formatCompactValue(metric.value, dateLocale)}
+          </p>
         </CardContent>
       </Card>
     </Link>
