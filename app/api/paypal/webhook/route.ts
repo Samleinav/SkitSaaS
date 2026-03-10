@@ -15,8 +15,10 @@ import {
   type PayPalWebhookEvent
 } from '@/lib/payments/paypal';
 import { logLegacyCheckoutRouteUsage } from '@/lib/payments/legacy-routes';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { recordPayPalCheckoutEvent } from '@/lib/payments/checkout-system';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
 type VerifyWebhookResponse = {
   verification_status?: string;
@@ -24,7 +26,46 @@ type VerifyWebhookResponse = {
 
 const PAYPAL_IGNORED_WEBHOOK_EVENT_MESSAGE = 'PayPal webhook event ignored.';
 
-export async function POST(request: NextRequest) {
+async function verifyWebhookSignature(
+  request: Request,
+  event: PayPalWebhookEvent,
+  webhookId: string
+) {
+  const accessToken = await getPayPalAccessToken();
+  if (!accessToken) {
+    return false;
+  }
+
+  const verificationResponse = await fetch(
+    `${await getPayPalApiBaseUrl()}/v1/notifications/verify-webhook-signature`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        auth_algo: request.headers.get('paypal-auth-algo'),
+        cert_url: request.headers.get('paypal-cert-url'),
+        transmission_id: request.headers.get('paypal-transmission-id'),
+        transmission_sig: request.headers.get('paypal-transmission-sig'),
+        transmission_time: request.headers.get('paypal-transmission-time'),
+        webhook_id: webhookId,
+        webhook_event: event
+      })
+    }
+  );
+
+  if (!verificationResponse.ok) {
+    return false;
+  }
+
+  const verificationBody =
+    (await verificationResponse.json()) as VerifyWebhookResponse;
+  return verificationBody.verification_status === 'SUCCESS';
+}
+
+async function handlePayPalWebhook(request: Request): Promise<Response> {
   await logLegacyCheckoutRouteUsage({
     request,
     routePath: '/api/paypal/webhook',
@@ -176,41 +217,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function verifyWebhookSignature(
-  request: NextRequest,
-  event: PayPalWebhookEvent,
-  webhookId: string
-) {
-  const accessToken = await getPayPalAccessToken();
-  if (!accessToken) {
-    return false;
-  }
-
-  const verificationResponse = await fetch(
-    `${await getPayPalApiBaseUrl()}/v1/notifications/verify-webhook-signature`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        auth_algo: request.headers.get('paypal-auth-algo'),
-        cert_url: request.headers.get('paypal-cert-url'),
-        transmission_id: request.headers.get('paypal-transmission-id'),
-        transmission_sig: request.headers.get('paypal-transmission-sig'),
-        transmission_time: request.headers.get('paypal-transmission-time'),
-        webhook_id: webhookId,
-        webhook_event: event
-      })
-    }
-  );
-
-  if (!verificationResponse.ok) {
-    return false;
-  }
-
-  const verificationBody =
-    (await verificationResponse.json()) as VerifyWebhookResponse;
-  return verificationBody.verification_status === 'SUCCESS';
-}
+export const POST = withApiRouteEntries(
+  CoreApiRoutes.paypal.webhook.handler(handlePayPalWebhook)
+);

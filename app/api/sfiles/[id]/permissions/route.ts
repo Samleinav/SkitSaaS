@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { sfiles } from '@/lib/sfiles';
 import { getSfilesActor } from '@/lib/sfiles/api-actor';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
 function permError(err: unknown) {
   if (err instanceof Error) {
@@ -12,59 +14,55 @@ function permError(err: unknown) {
 }
 
 // GET /api/sfiles/:id/permissions
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const actor = await getSfilesActor();
-  if (!actor) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+export const GET = withApiRouteEntries(
+  CoreApiRoutes.sfiles.permissions.handler(async (_request: Request, params) => {
+    const actor = await getSfilesActor();
+    if (!actor) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  const { id } = await params;
-  const fileId = Number(id);
-  if (!Number.isInteger(fileId) || fileId < 1) {
-    return NextResponse.json({ ok: false, error: 'Invalid file ID' }, { status: 400 });
-  }
+    const fileId = Number(params.id);
+    if (!Number.isInteger(fileId) || fileId < 1) {
+      return NextResponse.json({ ok: false, error: 'Invalid file ID' }, { status: 400 });
+    }
 
-  try {
-    const permissions = await sfiles.getPermissions(actor, fileId);
-    return NextResponse.json({ ok: true, data: permissions });
-  } catch (err) {
-    return permError(err);
-  }
-}
+    try {
+      const permissions = await sfiles.getPermissions(actor, fileId);
+      return NextResponse.json({ ok: true, data: permissions });
+    } catch (err) {
+      return permError(err);
+    }
+  })
+);
 
 // PUT /api/sfiles/:id/permissions  — body: { userIds: number[] }
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const actor = await getSfilesActor();
-  if (!actor) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+export const PUT = withApiRouteEntries(
+  CoreApiRoutes.sfiles.setPermissions.handler(async (request: Request, params) => {
+    const actor = await getSfilesActor();
+    if (!actor) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  const { id } = await params;
-  const fileId = Number(id);
-  if (!Number.isInteger(fileId) || fileId < 1) {
-    return NextResponse.json({ ok: false, error: 'Invalid file ID' }, { status: 400 });
-  }
+    const fileId = Number(params.id);
+    if (!Number.isInteger(fileId) || fileId < 1) {
+      return NextResponse.json({ ok: false, error: 'Invalid file ID' }, { status: 400 });
+    }
 
-  let body: { userIds?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
-  }
+    let body: { userIds?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });
+    }
 
-  if (!Array.isArray(body.userIds) || body.userIds.some((v) => typeof v !== 'number')) {
-    return NextResponse.json(
-      { ok: false, error: 'userIds must be an array of numbers' },
-      { status: 400 }
-    );
-  }
+    if (!Array.isArray(body.userIds) || body.userIds.some((v) => typeof v !== 'number')) {
+      return NextResponse.json(
+        { ok: false, error: 'userIds must be an array of numbers' },
+        { status: 400 }
+      );
+    }
 
-  try {
-    await sfiles.setPermissions(actor, fileId, { userIds: body.userIds as number[] });
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return permError(err);
-  }
-}
+    try {
+      await sfiles.setPermissions(actor, fileId, { userIds: body.userIds as number[] });
+      return NextResponse.json({ ok: true });
+    } catch (err) {
+      return permError(err);
+    }
+  })
+);

@@ -168,7 +168,29 @@ Module i18n build pipeline:
 - flat natural-key translations come from `modules/<moduleId>/i18n/translations/<locale>.json` and are merged by `pnpm i18n:prepare`
 - `source-package` / prebuilt modules should emit compiled files under `dist/i18n/...` so the host can consume built artifacts without source fallbacks
 
-## 7) API routes vs server actions
+## 7) Server action guard policy
+
+Every admin and dashboard server action that performs a mutation **must** be wrapped
+by a controller that enforces server-side auth (`requireAdminUser` / `requireDashboardUser`).
+Page access and form rendering are not sufficient — a user with a crafted request could
+bypass the UI and call an action directly.
+
+The correct wrappers are:
+
+| Area | Controller | Auth enforced |
+|------|-----------|---------------|
+| Admin | `adminAction` / `adminValidatedAction` (from `app/(dashboard)/admin/controller.ts`) | `requireAdminUser()` |
+| Dashboard | `dashboardAction` / `dashboardValidatedAction` (from `app/(dashboard)/dashboard/controller.ts`) | `requireDashboardUser()` |
+
+Both controllers call `requireUser()` as their first step, before any handler code runs.
+If `requireUser()` calls `redirect()`, execution stops and the handler never runs.
+
+**Adding a new form action:** register it in `lib/forms/registry.ts` under
+`buildFormControllerSubmitActions` — only add controller-wrapped actions. Raw async
+functions are not permitted there. A test in `tests/forms/build-form-action-guards.test.ts`
+covers the controller mechanism.
+
+## 8) API routes vs server actions — when to use each
 
 Use server actions when handling form submissions from React server components.
 
@@ -186,7 +208,7 @@ BuildForm preflight operational notes:
 - the host now emits lightweight system activity log events for blocked preflight requests and missing BuildForm DB resolvers
 - operators can inspect those signals in `/admin/logs` by filtering `eventCategory='forms'`
 
-## 8) Checkout and Payment API (order-first)
+## 9) Checkout and Payment API (order-first)
 
 Canonical checkout routes:
 

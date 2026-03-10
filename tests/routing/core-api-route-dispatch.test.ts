@@ -37,6 +37,32 @@ test('withApiRouteEntries executes typed api route proxies before the handler', 
   assert.equal(route('test.api.dispatch'), '/api/dispatch-test');
 });
 
+test('withApiRouteEntries returns 404 when request method does not match entry method', async () => {
+  const entry = RouteApi('/method-mismatch-test')
+    .GET()
+    .handler(async () => Response.json({ ok: true }));
+
+  const POST = withApiRouteEntries(entry);
+  const response = await POST(
+    new Request('http://localhost/api/method-mismatch-test', { method: 'POST' })
+  );
+
+  assert.equal(response.status, 404);
+});
+
+test('withApiRouteEntries returns 404 when request path does not match entry path', async () => {
+  const entry = RouteApi('/path-mismatch-test')
+    .GET()
+    .handler(async () => Response.json({ ok: true }));
+
+  const GET = withApiRouteEntries(entry);
+  const response = await GET(
+    new Request('http://localhost/api/different-path')
+  );
+
+  assert.equal(response.status, 404);
+});
+
 test('withApiRouteEntries preDispatch proxies can short-circuit before auth/handler', async () => {
   const calls: string[] = [];
 

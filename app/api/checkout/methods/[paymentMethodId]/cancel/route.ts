@@ -1,19 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { getCheckoutOrderByTokenForUser } from '@/lib/payments/checkout-orders';
 import {
   executeCheckoutPaymentMethodAction,
   getCheckoutPaymentMethodById
 } from '@/lib/payments/payment-methods';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
-type RouteContext = {
-  params: { paymentMethodId: string } | Promise<{ paymentMethodId: string }>;
-};
-
-function getFallbackCheckoutToken(request: NextRequest) {
+function getFallbackCheckoutToken(request: Request) {
+  const searchParams = new URL(request.url).searchParams;
   const tokenFromQuery =
-    request.nextUrl.searchParams.get('checkoutToken') ||
-    request.nextUrl.searchParams.get('checkout_token');
+    searchParams.get('checkoutToken') ||
+    searchParams.get('checkout_token');
   if (tokenFromQuery) {
     return tokenFromQuery.trim();
   }
@@ -21,7 +20,7 @@ function getFallbackCheckoutToken(request: NextRequest) {
   return null;
 }
 
-function resolveRedirectTarget(request: NextRequest, redirectUrl: string) {
+function resolveRedirectTarget(request: Request, redirectUrl: string) {
   try {
     return new URL(redirectUrl, request.url);
   } catch {
@@ -29,12 +28,8 @@ function resolveRedirectTarget(request: NextRequest, redirectUrl: string) {
   }
 }
 
-async function handleCancel(
-  request: NextRequest,
-  { params }: RouteContext
-) {
-  const resolvedParams = await Promise.resolve(params);
-  const paymentMethodId = resolvedParams.paymentMethodId?.trim();
+async function handleCancel(request: Request, params: Record<string, string>) {
+  const paymentMethodId = params.paymentMethodId?.trim();
   if (!paymentMethodId) {
     return NextResponse.json({ error: 'paymentMethodId is required.' }, { status: 400 });
   }
@@ -118,5 +113,9 @@ async function handleCancel(
   });
 }
 
-export const GET = handleCancel;
-export const POST = handleCancel;
+export const GET = withApiRouteEntries(
+  CoreApiRoutes.checkout.cancel.get.handler(handleCancel)
+);
+export const POST = withApiRouteEntries(
+  CoreApiRoutes.checkout.cancel.post.handler(handleCancel)
+);

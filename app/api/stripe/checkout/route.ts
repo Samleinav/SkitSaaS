@@ -4,7 +4,7 @@ import { users, teams, teamMembers } from '@/lib/db/schema';
 import { setSession } from '@/lib/auth/session';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getStripeClient } from '@/lib/payments/stripe';
 import {
   mapSubscriptionStatusToOrderStatus
@@ -31,6 +31,8 @@ import {
   markCheckoutOrderFailed
 } from '@/lib/payments/checkout-orders';
 import { logLegacyCheckoutRouteUsage } from '@/lib/payments/legacy-routes';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
 function toIsoDateFromUnix(seconds: number | null | undefined) {
   if (!seconds || !Number.isFinite(seconds)) {
@@ -48,7 +50,7 @@ function normalizeChangeMode(value: unknown) {
   return null;
 }
 
-export async function GET(request: NextRequest) {
+async function handleStripeCheckout(request: Request): Promise<Response> {
   await logLegacyCheckoutRouteUsage({
     request,
     routePath: '/api/stripe/checkout',
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/pricing', request.url));
   }
 
-  const searchParams = request.nextUrl.searchParams;
+  const searchParams = new URL(request.url).searchParams;
   const sessionId = searchParams.get('session_id');
   const checkoutTokenFromQuery = searchParams.get('checkout_token');
 
@@ -340,3 +342,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/error', request.url));
   }
 }
+
+export const GET = withApiRouteEntries(
+  CoreApiRoutes.stripe.checkout.handler(handleStripeCheckout)
+);

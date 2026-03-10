@@ -305,6 +305,52 @@ export const proxyApiTeamsEnabled: ApiRouteProxyFn = async () => {
   return NextResponse.json({ error: 'Team system is disabled.' }, { status: 404 });
 };
 
+/**
+ * Guards /api/forms/validate based on the target form's access scope.
+ *
+ * - Public forms pass through (return null).
+ * - User-scoped forms require a valid session.
+ * - Admin-scoped forms additionally require an admin/owner role.
+ *
+ * The request body is cloned to avoid consuming the stream before the handler reads it.
+ */
+export const proxyBuildFormValidateAccess: ApiRouteProxyFn = async (request: Request) => {
+  let formId: string | undefined;
+  try {
+    const body = (await request.clone().json()) as { formId?: unknown };
+    if (typeof body.formId === 'string') formId = body.formId;
+  } catch {
+    // Non-JSON body — let the handler validate the request
+  }
+
+  if (!formId) return null;
+
+  const { resolveBuildFormControllerCatalogEntry } = await import('@/lib/forms/registry-catalog');
+  const entry = resolveBuildFormControllerCatalogEntry(formId);
+
+  // Unknown form or public scope — pass through; the handler will reject unknown forms
+  if (!entry || entry.access === 'public') return null;
+
+  const cookieValue = request.headers.get('cookie')?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+  if (!cookieValue) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const session = await verifySessionCookie(cookieValue);
+  if (!session) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (entry.access === 'admin') {
+    const accounts = await lookupUser(session.userId);
+    if (accounts.length === 0 || !ADMIN_ROLES.has(accounts[0]!.role)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  return null;
+};
+
 // ---------------------------------------------------------------------------
 // Chain executor
 // ---------------------------------------------------------------------------

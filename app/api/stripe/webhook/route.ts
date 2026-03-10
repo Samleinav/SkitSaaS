@@ -9,10 +9,12 @@ import { logLegacyCheckoutRouteUsage } from '@/lib/payments/legacy-routes';
 import {
   mapSubscriptionStatusToOrderStatus
 } from '@/lib/payments/orders';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { recordStripeCheckoutEvent } from '@/lib/payments/checkout-system';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
 function toIsoDateFromUnix(seconds: number | null | undefined) {
   if (!seconds || !Number.isFinite(seconds)) {
@@ -22,7 +24,7 @@ function toIsoDateFromUnix(seconds: number | null | undefined) {
   return new Date(seconds * 1000).toISOString();
 }
 
-export async function POST(request: NextRequest) {
+async function handleStripeWebhook(request: Request): Promise<Response> {
   await logLegacyCheckoutRouteUsage({
     request,
     routePath: '/api/stripe/webhook',
@@ -165,3 +167,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ received: true });
 }
+
+export const POST = withApiRouteEntries(
+  CoreApiRoutes.stripe.webhook.handler(handleStripeWebhook)
+);

@@ -75,6 +75,14 @@ export function registerBuildFormController(entry: RegisteredBuildFormController
 
 export const registerBuildForm = registerBuildFormController;
 
+/**
+ * Form submit action mapping.
+ *
+ * POLICY: Every entry here must be a server action wrapped by a controller
+ * (adminAction, adminValidatedAction, dashboardAction, dashboardValidatedAction, etc.)
+ * that enforces server-side auth through requireAdminUser() or requireDashboardUser().
+ * Page access or form rendering is NOT sufficient authorization for mutations.
+ */
 const buildFormControllerSubmitActions: Partial<
   Record<string, BuildFormRequestActionFunction>
 > = {

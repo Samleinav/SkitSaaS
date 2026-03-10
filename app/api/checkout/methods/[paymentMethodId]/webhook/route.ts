@@ -1,14 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { executeCheckoutPaymentMethodAction } from '@/lib/payments/payment-methods';
+import { CoreApiRoutes } from '@/core/api-routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
-type RouteContext = {
-  params: { paymentMethodId: string } | Promise<{ paymentMethodId: string }>;
-};
-
-function getFallbackCheckoutToken(request: NextRequest) {
+function getFallbackCheckoutToken(request: Request) {
+  const searchParams = new URL(request.url).searchParams;
   const tokenFromQuery =
-    request.nextUrl.searchParams.get('checkoutToken') ||
-    request.nextUrl.searchParams.get('checkout_token');
+    searchParams.get('checkoutToken') ||
+    searchParams.get('checkout_token');
   if (tokenFromQuery) {
     return tokenFromQuery.trim();
   }
@@ -16,34 +15,35 @@ function getFallbackCheckoutToken(request: NextRequest) {
   return null;
 }
 
-export async function POST(request: NextRequest, { params }: RouteContext) {
-  const resolvedParams = await Promise.resolve(params);
-  const paymentMethodId = resolvedParams.paymentMethodId?.trim();
-  if (!paymentMethodId) {
-    return NextResponse.json({ error: 'paymentMethodId is required.' }, { status: 400 });
-  }
+export const POST = withApiRouteEntries(
+  CoreApiRoutes.checkout.webhook.handler(async (request: Request, params) => {
+    const paymentMethodId = params.paymentMethodId?.trim();
+    if (!paymentMethodId) {
+      return NextResponse.json({ error: 'paymentMethodId is required.' }, { status: 400 });
+    }
 
-  const result = await executeCheckoutPaymentMethodAction({
-    paymentMethodId,
-    action: 'webhook',
-    request,
-    fallbackCheckoutToken: getFallbackCheckoutToken(request),
-    source: 'webhook'
-  });
+    const result = await executeCheckoutPaymentMethodAction({
+      paymentMethodId,
+      action: 'webhook',
+      request,
+      fallbackCheckoutToken: getFallbackCheckoutToken(request),
+      source: 'webhook'
+    });
 
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.statusCode });
-  }
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+    }
 
-  return NextResponse.json({
-    ok: true,
-    result: result.result,
-    checkoutOrder: result.checkoutOrder
-      ? {
-          id: result.checkoutOrder.id,
-          checkoutToken: result.checkoutOrder.checkoutToken,
-          status: result.checkoutOrder.status
-        }
-      : null
-  });
-}
+    return NextResponse.json({
+      ok: true,
+      result: result.result,
+      checkoutOrder: result.checkoutOrder
+        ? {
+            id: result.checkoutOrder.id,
+            checkoutToken: result.checkoutOrder.checkoutToken,
+            status: result.checkoutOrder.status
+          }
+        : null
+    });
+  })
+);

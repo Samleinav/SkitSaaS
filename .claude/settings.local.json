@@ -19,7 +19,8 @@
       "Bash(npm run build)",
       "Bash(cat /app/serviceentomai/s-kit-saas/app/\\\\\\(dashboard\\\\\\)/admin/orders/[orderId]/edit/page.tsx)",
       "Bash(pnpm install)",
-      "Bash(/app/serviceentomai/s-kit-saas/docs/meta.json:*)"
+      "Bash(/app/serviceentomai/s-kit-saas/docs/meta.json:*)",
+      "Bash(pnpm exec:*)"
     ]
   }
 }

@@ -7,7 +7,7 @@ sidebar_position: 2
 # Routing System
 
 Status: Production-ready
-Last review: 2026-03-08
+Last review: 2026-03-10
 
 This document describes the `RouteBuilder` system — a Laravel-inspired typed route registry with composable per-route proxy chains built into `@skitsaas/sdk`.
 
@@ -377,46 +377,65 @@ RouteApi(`${BASE}/premium`).POST()
   .name('my-feature.api.premium')
 ```
 
-### Standalone Next.js API routes — typed core API entries
+### Standalone Next.js API routes — typed core API bridge files
 
-For core host API routes that live directly in `app/api/`, prefer the same
-`RouteApi(...).METHOD().auth().proxy().name()` metadata flow used by modules,
-then attach handlers in a Node.js file and export them with
-`withApiRouteEntries`:
+For core host API routes that live directly in `app/api/`, use the same
+`RouteApi(...).METHOD().auth().proxy().name()` metadata flow used by modules.
+Keep `core/api-routes.ts` edge-safe (metadata only), and attach handlers
+directly inside each `app/api/*/route.ts` bridge file via `.handler(fn)`:
 
 ```ts
-// core/api-routes.ts — metadata only
+// core/api-routes.ts — metadata only, edge-safe (no handler imports)
 import { RouteApi } from '@skitsaas/sdk'
 
 export const CoreApiRoutes = {
   users: {
     list: RouteApi('/admin/users').GET().auth('admin').name('api.admin.users.list'),
   },
-}
-
-// core/api-entries.ts — handlers
-export const CoreApiEntries = {
-  users: {
-    list: CoreApiRoutes.users.list.handler(async () => {
-      return Response.json({ users: [] })
-    }),
-  },
-}
-
-// app/api/admin/users/route.ts
-import { CoreApiEntries } from '@/core/api-entries'
-import { withApiRouteEntries } from '@/lib/routing/with-api-route'
-
-export const GET = withApiRouteEntries(CoreApiEntries.users.list)
+} as const
 ```
 
-`dispatchApiRoutes()` executes the full API chain for each entry:
-`rateLimit -> auth -> extra proxies -> handler`.
+```ts
+// app/api/admin/users/route.ts — bridge file (handler lives here, not in a shared entries file)
+import { CoreApiRoutes } from '@/core/api-routes'
+import { withApiRouteEntries } from '@/lib/routing/with-api-route'
+import { listUsers } from '@/lib/db/queries'
 
-When a host route needs a guard that must run before the route entry chain,
-`withApiRouteEntries(..., { preDispatch: [...] })` can short-circuit before auth.
+export const GET = withApiRouteEntries(
+  CoreApiRoutes.users.list.handler(async () => Response.json(await listUsers()))
+)
+```
 
-`withApiProxy` remains available as a lightweight fallback for one-off handlers.
+Handlers attach at the bridge file level, not in a shared intermediate file.
+Next.js code-splits naturally per `route.ts`, so a single `core/api-entries.ts`
+with all handlers would eagerly pull every dependency into every bridge file.
+Keep metadata in `core/api-routes.ts` and handlers in their respective bridge files.
+
+`dispatchApiRoutes()` executes the full API chain per entry:
+`rateLimit → auth → extra proxies → handler`.
+
+When a route needs a guard that runs before the route entry chain (e.g. a
+feature-flag check), pass it as `preDispatch`:
+
+```ts
+// app/api/team/route.ts — preDispatch short-circuits before auth/handler
+import { CoreApiRoutes } from '@/core/api-routes'
+import { proxyApiTeamsEnabled } from '@/lib/routing/proxies'
+import { withApiRouteEntries } from '@/lib/routing/with-api-route'
+import { getTeamForUser } from '@/lib/db/queries'
+
+export const GET = withApiRouteEntries(
+  CoreApiRoutes.team.get.handler(async () => Response.json(await getTeamForUser())),
+  { preDispatch: [proxyApiTeamsEnabled] }
+)
+```
+
+`withApiProxy` remains available as a lightweight fallback for one-off handlers
+that do not need the typed route metadata flow (e.g. internal health checks).
+
+Only add a new entry to `CoreApiRoutes` when the corresponding bridge file is
+also migrated to `withApiRouteEntries`. Avoid intermediate states where a named
+route exists in `CoreApiRoutes` but its bridge file still uses a raw handler.
 
 ## Registering API routes in `core/routes.ts`
 
@@ -484,7 +503,8 @@ Routes.admin.users            // ✅ RouteBuilder "/admin/users"
 
 **API routes (core host standalone):**
 
-1. Define route metadata with `RouteApi('/path').METHOD().auth().rateLimit().proxy().name(...)`.
-2. Attach handlers in a core Node.js file using `.handler(fn)`.
-3. Export them from `app/api/*/route.ts` using `withApiRouteEntries(...)`.
-4. Use `withApiProxy(...)` only for simple one-off handlers that do not need the typed route metadata flow.
+1. Add route metadata to `core/api-routes.ts` with `RouteApi('/path').METHOD().auth().rateLimit().proxy().name(...)`.
+2. Attach the handler **directly in the bridge file** `app/api/*/route.ts` via `CoreApiRoutes.*.handler(fn)`.
+3. Export using `withApiRouteEntries(entry, { preDispatch: [...] })` — omit `preDispatch` if no pre-auth guards are needed.
+4. Only add to `CoreApiRoutes` when the bridge file is also on the dispatcher. Do not register metadata for routes whose bridge files still use raw handlers.
+5. Use `withApiProxy(...)` only for simple one-off handlers that do not need typed route metadata.
