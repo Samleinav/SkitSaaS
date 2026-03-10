@@ -273,7 +273,7 @@ export function bootstrapModuleSdkServer() {
       },
       request
     );
-    if (!result.allowed) {
+    if (result.limited) {
       return {
         allowed: false,
         retryAfterSeconds: result.retryAfterSeconds,
