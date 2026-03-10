@@ -60,6 +60,7 @@ export default defineModule({
   - module manifest types/helpers (`defineModule`, `validateModuleManifest`)
   - event hooks and event types
   - flat i18n types/helpers (`createTranslator`, `I18nProvider`, `useI18n`)
+  - persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
   - theme config helper (`defineThemeConfig`)
   - datatable contracts/helpers
   - structured form contract/helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
@@ -69,6 +70,7 @@ export default defineModule({
 - `@skitsaas/sdk/server`
   - auth/session helpers (`getUser`, `requireUser`, `requireAdmin`, `setSessionForUser`)
   - event emit helpers (`emitEvent`, `emitEventAsync`)
+  - persisted notification helpers (`createNotification`, `notifyGlobal`, `notifyUser`, `notifyUsers`)
   - module config helpers (`getModuleConfigValue`, `setModuleConfigValue`)
   - db access bridge (`getDb`, `findTable`, `getTable`, `listTables`)
   - revalidation helpers (`revalidatePath`, `revalidatePaths`)
@@ -116,7 +118,7 @@ export function ThemeActionLabel({ themeId }: { themeId?: string }) {
 ## Server Helpers (Host Integration)
 
 `@skitsaas/sdk/server` reads adapters configured by the host runtime (auth, db,
-revalidation, events, config). Module authors only consume these APIs; host
+revalidation, events, config, notifications). Module authors only consume these APIs; host
 projects wire them during bootstrap.
 
 Example:
@@ -131,6 +133,38 @@ export async function listItems() {
   const items = getTable<any>('items');
   return db.select().from(items).where(eq(items.userId, user.id));
 }
+```
+
+## Persisted Notifications
+
+Client components can read the current private notification feed with the SDK hook:
+
+```tsx
+import { useNotifications } from '@skitsaas/sdk';
+
+export function ModuleNotificationBadge() {
+  const { unreadItems } = useNotifications();
+
+  return <span>{unreadItems.length}</span>;
+}
+```
+
+Server code can target all users or specific users through the host adapter:
+
+```ts
+import { notifyGlobal, notifyUsers } from '@skitsaas/sdk/server';
+
+await notifyGlobal({
+  title: 'Maintenance',
+  message: 'The platform will restart in 10 minutes.',
+  tone: 'warning'
+});
+
+await notifyUsers([12, 48], {
+  message: 'Your report export is ready.',
+  area: 'dashboard',
+  source: 'mod.analytics.reports'
+});
 ```
 
 ## Datatable CRUD Router

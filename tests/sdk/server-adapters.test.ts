@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  configureNotifications,
   createModuleApiRouter,
   createModulePageRouter,
+  createNotification,
   configureAuth,
   configureDatabase,
   configureEventEmitter,
@@ -17,6 +19,9 @@ import {
   hasOwn,
   findTable,
   listTables,
+  notifyGlobal,
+  notifyUser,
+  notifyUsers,
   parseJsonBody,
   requireAdmin,
   requireUser,
@@ -50,6 +55,10 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await assert.rejects(
     () => getModuleConfigValue('mod.test', 'flag'),
     /Module SDK config adapter not configured/
+  );
+  await assert.rejects(
+    () => createNotification({ message: 'System notice' }),
+    /Module SDK notification adapter not configured/
   );
   assert.throws(
     () => getDb(),
@@ -136,6 +145,76 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await setModuleConfigValue('mod.test', 'api.mode', null);
   const removedValue = await getModuleConfigValue('mod.test', 'api.mode');
   assert.equal(removedValue, null);
+
+  const createdNotifications: Array<{
+    message: string;
+    audienceType: string;
+    userIds: number[];
+  }> = [];
+  configureNotifications({
+    createNotification: async (input) => {
+      const audienceType = input.audience?.type === 'users' ? 'direct' : 'global';
+      const userIds =
+        input.audience?.type === 'users' ? [...input.audience.userIds] : [];
+
+      createdNotifications.push({
+        message: input.message,
+        audienceType,
+        userIds
+      });
+
+      return {
+        notificationId: createdNotifications.length,
+        audienceType: audienceType === 'direct' ? 'direct' : 'global',
+        recipientUserIds: userIds
+      };
+    }
+  });
+
+  await assert.rejects(
+    () => createNotification({ message: '   ' }),
+    /non-empty message/
+  );
+  await assert.rejects(
+    () => notifyUser(0, { message: 'Invalid target' }),
+    /positive integer userId/
+  );
+
+  const globalNotification = await notifyGlobal({
+    message: ' Global broadcast '
+  });
+  assert.equal(globalNotification.audienceType, 'global');
+  assert.deepEqual(globalNotification.recipientUserIds, []);
+
+  const userNotification = await notifyUser(9, {
+    message: 'User only'
+  });
+  assert.equal(userNotification.audienceType, 'direct');
+  assert.deepEqual(userNotification.recipientUserIds, [9]);
+
+  const usersNotification = await notifyUsers([11, 9, 11, -4], {
+    message: 'Batch delivery'
+  });
+  assert.equal(usersNotification.audienceType, 'direct');
+  assert.deepEqual(usersNotification.recipientUserIds, [9, 11]);
+
+  assert.deepEqual(createdNotifications, [
+    {
+      message: 'Global broadcast',
+      audienceType: 'global',
+      userIds: []
+    },
+    {
+      message: 'User only',
+      audienceType: 'direct',
+      userIds: [9]
+    },
+    {
+      message: 'Batch delivery',
+      audienceType: 'direct',
+      userIds: [9, 11]
+    }
+  ]);
 
   const tableStore = new Map<string, unknown>([
     ['users', { id: 'users.id' }],

@@ -8,6 +8,7 @@ import {
   configureDatabase,
   configureEventEmitter,
   configureModuleConfig,
+  configureNotifications,
   configureRevalidation
 } from '@skitsaas/sdk/server';
 import {
@@ -29,6 +30,7 @@ import * as rootSchema from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
 import { setSession } from '@/lib/auth/session';
+import { createSystemNotification } from '@/lib/notifications/service';
 import { and, eq, isNull } from 'drizzle-orm';
 
 let bootstrapped = false;
@@ -43,7 +45,11 @@ const CORE_TABLE_ALIASES: Record<string, string> = {
   subscriptions: 'subscription_assignments',
   logs: 'sys_activity_logs',
   orders: 'payment_orders',
-  payments: 'payment_orders'
+  payments: 'payment_orders',
+  notification: 'system_notifications',
+  notifications: 'system_notifications',
+  notification_recipient: 'system_notification_recipients',
+  notification_recipients: 'system_notification_recipients'
 };
 
 function normalizeTableId(value: string) {
@@ -181,6 +187,10 @@ export function bootstrapModuleSdkServer() {
   configureModuleConfig({
     getConfigValue: getAppConfigValueFromDb,
     setConfigValue: setModuleConfigValue
+  });
+
+  configureNotifications({
+    createNotification: createSystemNotification
   });
 
   configureDatabase({

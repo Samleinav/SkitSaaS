@@ -4,6 +4,7 @@ import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { SWRConfig } from 'swr';
 import { LanguageProvider } from '@/components/i18n/language-provider';
 import { NotifyProvider } from '@/components/ui/notify';
+import { NotificationRuntime } from '@/components/ui/notification-runtime';
 import { SdkNotifyBridge } from '@/components/ui/sdk-notify-bridge';
 import { getRequestLocale } from '@/lib/i18n/server';
 import { DEFAULT_LOCALE } from '@/lib/i18n/config';
@@ -156,6 +157,7 @@ async function RootLayoutContent({
     <LanguageProvider locale={locale}>
       <ThemeI18nHost locale={locale} defaultLocale={DEFAULT_LOCALE}>
         <NotifyProvider>
+          <NotificationRuntime />
           <SdkNotifyBridge />
           <ThemeAreaCssGuard />
           <SWRConfig

@@ -17,6 +17,22 @@ export const CoreApiRoutes = {
   team: {
     get: RouteApi('/team').GET().auth('user').name('api.team.get'),
   },
+  notifications: {
+    list: RouteApi('/notifications')
+      .GET()
+      .auth('user')
+      .name('api.notifications.list'),
+    read: RouteApi('/notifications/read')
+      .POST()
+      .auth('user')
+      .rateLimit({ limit: 60, windowSeconds: 60 })
+      .name('api.notifications.read'),
+    dismiss: RouteApi('/notifications/dismiss')
+      .POST()
+      .auth('user')
+      .rateLimit({ limit: 60, windowSeconds: 60 })
+      .name('api.notifications.dismiss'),
+  },
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
   auth: {

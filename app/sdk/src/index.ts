@@ -170,9 +170,30 @@ export type {
   SdkDataTableColumn,
   SdkDataTableLabels,
   SdkNotifyInput,
-  SdkNotifyTone
+  SdkNotifyTone,
+  UseNotificationsOptions,
+  UseNotificationsResult
 } from './ui/index.js';
-export { DataTable, SDK_NOTIFY_EVENT, notify, sdkNotify } from './ui/index.js';
+export type {
+  SdkNotificationArea,
+  SdkNotificationAudience,
+  SdkNotificationAudienceType,
+  SdkCreateNotificationInput,
+  SdkCreateNotificationResult,
+  SdkNotificationRecord,
+  SdkNotificationTargetArea,
+  SdkNotificationTone
+} from './notifications/types.js';
+export {
+  DataTable,
+  SDK_NOTIFY_EVENT,
+  buildSdkNotificationsUrl,
+  normalizeSdkNotificationIds,
+  notify,
+  resolveSdkNotificationAreaFromPath,
+  sdkNotify,
+  useNotifications
+} from './ui/index.js';
 
 export type {
   BuildFormButtonVariant,

@@ -59,6 +59,16 @@ Financial flow:
 - `app_themes` - legacy theme catalog table (kept for migration compatibility, not used by current theme system)
 - `user_theme_preferences` - legacy per-user theme override table (kept for migration compatibility; runtime theme switching per user was removed — theme is now build-time only)
 
+## Notifications
+
+- `system_notifications` - persisted notification definitions
+  - supports audience mode (`global` or direct user targeting)
+  - supports area targeting (`auto`, `admin`, `dashboard`, `both`)
+  - stores tone, optional title, delivery window (`starts_at`, `expires_at`), and source metadata
+- `system_notification_recipients` - per-user delivery/read/dismiss state
+  - used as the explicit recipient ledger for direct notifications
+  - also stores per-user read/dismiss state for global notifications on demand
+
 ## Logs and audit
 
 - `sys_activity_logs` - cross-domain audit trail
@@ -68,6 +78,7 @@ Financial flow:
 
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
 - Orders and transactions are separate by design.
+- Notification visibility is evaluated at read time from the current private area (`/admin` or `/dashboard`) plus the user role. `area='auto'` maps to `admin` for admin-like roles and `dashboard` for everyone else.
 - `BuildForm` DB-aware validation (`unique`, `exists`) may read tables such as `users` or `subscription_templates`, but those checks are only advisory before writes.
 - Real integrity must still be enforced by database constraints such as `unique`, `foreign key`, `not null`, and `check`.
 - Legacy template backfill recommendation:

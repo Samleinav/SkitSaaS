@@ -39,7 +39,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - `app/(dashboard)/admin/[...moduleAlias]`: admin custom module alias resolver.
 - `app/(dashboard)/dashboard/modules/*`: dashboard module dispatchers. 
 - `app/(dashboard)/dashboard/[...moduleAlias]`: dashboard custom module alias resolver.
-- `app/api/*`: server-side endpoints (user, team, webhooks, checkout).
+- `app/api/*`: server-side endpoints (user, team, notifications, webhooks, checkout).
 - `app/api/forms/*`: generic BuildForm preflight validation endpoints.
 - `app/api/auth/providers/*`: auth provider registry diagnostics + provider start/callback handoff.
 - `app/api/modules/*`: module API dispatchers.
@@ -189,6 +189,28 @@ Quick guide for agents working in this repository (`saas-starter`).
 - `NotifyProvider` is mounted in `app/layout.tsx`, so hooks are available in `/admin`, `/dashboard`, and public pages.
 - Do not hardcode warning/error copy in a fixed language; always use i18n messages (`useAreaMessages(...)` / server messages) when composing notification text.
 - Common use case: prevent a click/submit and show an explanatory warning without calling a server action.
+
+### Persistent system notifications
+
+- For persisted notifications targeted to:
+  - all users (`global`)
+  - one user
+  - many users
+- Core service:
+  - `lib/notifications/service.ts`
+- Core API:
+  - `GET /api/notifications`
+  - `POST /api/notifications/read`
+  - `POST /api/notifications/dismiss`
+- Area resolution:
+  - notification `area='auto'` renders in `/admin` for admin-like users (`admin`/legacy `owner`)
+  - notification `area='auto'` renders in `/dashboard` for other users
+  - explicit `area='admin' | 'dashboard' | 'both'` bypasses auto targeting
+- SDK usage:
+  - client hook: `useNotifications()` from `@skitsaas/sdk`
+  - server helpers: `createNotification()`, `notifyGlobal()`, `notifyUser()`, `notifyUsers()` from `@skitsaas/sdk/server`
+- Host runtime:
+  - `components/ui/notification-runtime.tsx` bridges persisted notifications into the toast UI and marks them as read after display.
 
 ### Subscription feature controller
 

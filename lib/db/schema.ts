@@ -894,6 +894,89 @@ export const authSessions = pgTable(
   })
 );
 
+export const systemNotifications = pgTable(
+  'system_notifications',
+  {
+    id: serial('id').primaryKey(),
+    audienceType: varchar('audience_type', { length: 20 })
+      .notNull()
+      .default('global'),
+    area: varchar('area', { length: 20 }).notNull().default('auto'),
+    tone: varchar('tone', { length: 20 }).notNull().default('info'),
+    title: varchar('title', { length: 160 }),
+    message: text('message').notNull(),
+    source: varchar('source', { length: 120 }),
+    metadata: text('metadata'),
+    startsAt: timestamp('starts_at').notNull().defaultNow(),
+    expiresAt: timestamp('expires_at'),
+    createdByUserId: integer('created_by_user_id').references(() => users.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    audienceTypeIndex: index('system_notifications_audience_idx').on(
+      table.audienceType
+    ),
+    areaCreatedAtIndex: index('system_notifications_area_created_idx').on(
+      table.area,
+      table.createdAt
+    ),
+    startsAtIndex: index('system_notifications_starts_at_idx').on(
+      table.startsAt
+    ),
+    expiresAtIndex: index('system_notifications_expires_at_idx').on(
+      table.expiresAt
+    ),
+    createdByUserIndex: index('system_notifications_created_by_user_idx').on(
+      table.createdByUserId
+    ),
+    audienceTypeCheck: check(
+      'system_notifications_audience_chk',
+      sql`${table.audienceType} in ('global', 'direct')`
+    ),
+    areaCheck: check(
+      'system_notifications_area_chk',
+      sql`${table.area} in ('auto', 'admin', 'dashboard', 'both')`
+    ),
+    toneCheck: check(
+      'system_notifications_tone_chk',
+      sql`${table.tone} in ('success', 'error', 'info', 'warning')`
+    ),
+  })
+);
+
+export const systemNotificationRecipients = pgTable(
+  'system_notification_recipients',
+  {
+    id: serial('id').primaryKey(),
+    notificationId: integer('notification_id')
+      .notNull()
+      .references(() => systemNotifications.id),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    readAt: timestamp('read_at'),
+    dismissedAt: timestamp('dismissed_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    notificationUserUnique: uniqueIndex(
+      'system_notification_recipients_notification_user_idx'
+    ).on(table.notificationId, table.userId),
+    userDismissedIndex: index(
+      'system_notification_recipients_user_dismissed_idx'
+    ).on(table.userId, table.dismissedAt),
+    userReadIndex: index('system_notification_recipients_user_read_idx').on(
+      table.userId,
+      table.readAt
+    ),
+    notificationIndex: index('system_notification_recipients_notification_idx').on(
+      table.notificationId
+    ),
+  })
+);
+
 export const teamsRelations = relations(teams, ({ many }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
@@ -955,6 +1038,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   passwordResetTokens: many(passwordResetTokens),
   emailLogs: many(emailLogs),
   subscriptionTrialUsage: many(subscriptionTrialUsage),
+  systemNotificationsCreated: many(systemNotifications),
+  systemNotificationRecipients: many(systemNotificationRecipients),
   systemActivityLogsAsActor: many(sysActivityLogs, {
     relationName: 'sys_activity_actor_user',
   }),
@@ -1012,6 +1097,31 @@ export const authSessionsRelations = relations(authSessions, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const systemNotificationsRelations = relations(
+  systemNotifications,
+  ({ one, many }) => ({
+    createdByUser: one(users, {
+      fields: [systemNotifications.createdByUserId],
+      references: [users.id],
+    }),
+    recipients: many(systemNotificationRecipients),
+  })
+);
+
+export const systemNotificationRecipientsRelations = relations(
+  systemNotificationRecipients,
+  ({ one }) => ({
+    notification: one(systemNotifications, {
+      fields: [systemNotificationRecipients.notificationId],
+      references: [systemNotifications.id],
+    }),
+    user: one(users, {
+      fields: [systemNotificationRecipients.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const passwordResetTokensRelations = relations(
   passwordResetTokens,
@@ -1204,6 +1314,12 @@ export type AuthExternalIdentity = typeof authExternalIdentities.$inferSelect;
 export type NewAuthExternalIdentity = typeof authExternalIdentities.$inferInsert;
 export type AuthSession = typeof authSessions.$inferSelect;
 export type NewAuthSession = typeof authSessions.$inferInsert;
+export type SystemNotification = typeof systemNotifications.$inferSelect;
+export type NewSystemNotification = typeof systemNotifications.$inferInsert;
+export type SystemNotificationRecipient =
+  typeof systemNotificationRecipients.$inferSelect;
+export type NewSystemNotificationRecipient =
+  typeof systemNotificationRecipients.$inferInsert;
 export type TeamDataWithMembers = Team & {
   paymentProvider?: string | null;
   providerReferenceId?: string | null;

@@ -2,6 +2,7 @@ import type { EventDispatchResult, EventEmitContext, EventHook, EventPayload } f
 import type { ReactNode } from 'react';
 import type { ModuleApiHandler, ModulePageHandler, ModuleRouteContext } from './modules/manifest.js';
 import type { BuildFormDefinition, BuildFormValue, BuildFormValues } from './forms.js';
+import type { SdkCreateNotificationInput, SdkCreateNotificationResult } from './notifications/types.js';
 import { type BuildFormDbRef, type BuildFormValidationResult, type ValidatedBuildFormDefinition } from './form-validation.js';
 export type EventEmitterAdapter = {
     emitEvent: <TPayload extends EventPayload>(hook: EventHook, payload: TPayload, context?: EventEmitContext) => Promise<EventDispatchResult>;
@@ -48,6 +49,14 @@ export declare function setSessionForUser(userId: number, options?: {
     userAgent?: string | null;
     metadata?: Record<string, unknown> | null;
 }): Promise<void>;
+export type NotificationAdapter = {
+    createNotification: (input: SdkCreateNotificationInput) => Promise<SdkCreateNotificationResult>;
+};
+export declare function configureNotifications(adapter: NotificationAdapter): void;
+export declare function createNotification(input: SdkCreateNotificationInput): Promise<SdkCreateNotificationResult>;
+export declare function notifyGlobal(input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
+export declare function notifyUser(userId: number, input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
+export declare function notifyUsers(userIds: number[], input: Omit<SdkCreateNotificationInput, 'audience'>): Promise<SdkCreateNotificationResult>;
 export type RevalidationAdapter = {
     revalidatePath: (path: string) => void | Promise<void>;
 };

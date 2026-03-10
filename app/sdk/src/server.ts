@@ -17,6 +17,10 @@ import type {
   BuildFormValue,
   BuildFormValues
 } from './forms.js';
+import type {
+  SdkCreateNotificationInput,
+  SdkCreateNotificationResult
+} from './notifications/types.js';
 import {
   type BuildFormDbCondition,
   type BuildFormDbRef,
@@ -291,6 +295,116 @@ export async function setSessionForUser(
   }
 
   await adapter.setSessionForUser(userId, options);
+}
+
+export type NotificationAdapter = {
+  createNotification: (
+    input: SdkCreateNotificationInput
+  ) => Promise<SdkCreateNotificationResult>;
+};
+
+let notificationAdapter: NotificationAdapter | null = null;
+
+export function configureNotifications(adapter: NotificationAdapter) {
+  notificationAdapter = adapter;
+}
+
+function readNotificationAdapter() {
+  if (!notificationAdapter) {
+    throw new Error(
+      'Module SDK notification adapter not configured.'
+    );
+  }
+
+  return notificationAdapter;
+}
+
+function normalizePositiveInteger(value: unknown) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function normalizePositiveIntegerArray(values: number[]) {
+  return Array.from(
+    new Set(
+      values.map((value) => normalizePositiveInteger(value)).filter(Boolean) as number[]
+    )
+  ).sort((left, right) => left - right);
+}
+
+export async function createNotification(input: SdkCreateNotificationInput) {
+  const adapter = readNotificationAdapter();
+  const message = toTrimmedString(input.message);
+  if (!message) {
+    throw new Error('createNotification requires a non-empty message.');
+  }
+
+  const audience =
+    input.audience?.type === 'users'
+      ? {
+          type: 'users' as const,
+          userIds: normalizePositiveIntegerArray(input.audience.userIds)
+        }
+      : {
+          type: 'global' as const
+        };
+
+  if (audience.type === 'users' && audience.userIds.length === 0) {
+    throw new Error(
+      'createNotification requires at least one positive target user id.'
+    );
+  }
+
+  return adapter.createNotification({
+    ...input,
+    message,
+    audience
+  });
+}
+
+export async function notifyGlobal(
+  input: Omit<SdkCreateNotificationInput, 'audience'>
+) {
+  return createNotification({
+    ...input,
+    audience: {
+      type: 'global'
+    }
+  });
+}
+
+export async function notifyUser(
+  userId: number,
+  input: Omit<SdkCreateNotificationInput, 'audience'>
+) {
+  const normalizedUserId = normalizePositiveInteger(userId);
+  if (!normalizedUserId) {
+    throw new Error('notifyUser requires a positive integer userId.');
+  }
+
+  return createNotification({
+    ...input,
+    audience: {
+      type: 'users',
+      userIds: [normalizedUserId]
+    }
+  });
+}
+
+export async function notifyUsers(
+  userIds: number[],
+  input: Omit<SdkCreateNotificationInput, 'audience'>
+) {
+  return createNotification({
+    ...input,
+    audience: {
+      type: 'users',
+      userIds
+    }
+  });
 }
 
 export type RevalidationAdapter = {

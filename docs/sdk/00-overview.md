@@ -33,6 +33,7 @@ Exports:
 - `EVENT_HOOKS`
 - `ModuleMessagesByArea` (module i18n bundles)
 - `createTranslator` and `FlatTranslationsByLocale` (flat natural-key i18n helper)
+- persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
 - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
@@ -80,6 +81,11 @@ Exports:
 - `getUser`
 - `requireUser`
 - `requireAdmin`
+- `configureNotifications`
+- `createNotification`
+- `notifyGlobal`
+- `notifyUser`
+- `notifyUsers`
 - `configureRevalidation`
 - `revalidatePath`
 - `revalidatePaths`
@@ -107,6 +113,17 @@ Exports:
 - `parseJsonBody`
 - `isJsonRecord`
 - `hasOwn`
+
+## Persisted Notifications
+
+The host now exposes a persisted private notification feed through the SDK.
+
+- Client: `useNotifications()` polls `/api/notifications` for the current private area and exposes `items`, `unreadItems`, `refresh`, `markRead`, and `dismiss`.
+- Server: `createNotification()`, `notifyGlobal()`, `notifyUser()`, and `notifyUsers()` call the host notification adapter configured during bootstrap.
+- Area targeting:
+  - `area='auto'` resolves to `admin` for admin-like users
+  - `area='auto'` resolves to `dashboard` for non-admin users
+  - `area='both'` makes the notification visible in both private areas
 
 ### `@skitsaas/sdk/db`
 

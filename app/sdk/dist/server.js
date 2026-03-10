@@ -138,6 +138,78 @@ export async function setSessionForUser(userId, options) {
     }
     await adapter.setSessionForUser(userId, options);
 }
+let notificationAdapter = null;
+export function configureNotifications(adapter) {
+    notificationAdapter = adapter;
+}
+function readNotificationAdapter() {
+    if (!notificationAdapter) {
+        throw new Error('Module SDK notification adapter not configured.');
+    }
+    return notificationAdapter;
+}
+function normalizePositiveInteger(value) {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+        return null;
+    }
+    return value;
+}
+function normalizePositiveIntegerArray(values) {
+    return Array.from(new Set(values.map((value) => normalizePositiveInteger(value)).filter(Boolean))).sort((left, right) => left - right);
+}
+export async function createNotification(input) {
+    const adapter = readNotificationAdapter();
+    const message = toTrimmedString(input.message);
+    if (!message) {
+        throw new Error('createNotification requires a non-empty message.');
+    }
+    const audience = input.audience?.type === 'users'
+        ? {
+            type: 'users',
+            userIds: normalizePositiveIntegerArray(input.audience.userIds)
+        }
+        : {
+            type: 'global'
+        };
+    if (audience.type === 'users' && audience.userIds.length === 0) {
+        throw new Error('createNotification requires at least one positive target user id.');
+    }
+    return adapter.createNotification({
+        ...input,
+        message,
+        audience
+    });
+}
+export async function notifyGlobal(input) {
+    return createNotification({
+        ...input,
+        audience: {
+            type: 'global'
+        }
+    });
+}
+export async function notifyUser(userId, input) {
+    const normalizedUserId = normalizePositiveInteger(userId);
+    if (!normalizedUserId) {
+        throw new Error('notifyUser requires a positive integer userId.');
+    }
+    return createNotification({
+        ...input,
+        audience: {
+            type: 'users',
+            userIds: [normalizedUserId]
+        }
+    });
+}
+export async function notifyUsers(userIds, input) {
+    return createNotification({
+        ...input,
+        audience: {
+            type: 'users',
+            userIds
+        }
+    });
+}
 let revalidationAdapter = null;
 let buildFormDbValidationAdapter = null;
 export function configureRevalidation(adapter) {
