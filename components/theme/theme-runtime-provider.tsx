@@ -125,8 +125,13 @@ export function ThemeRuntimeProvider({
 }) {
   const [mode, setMode] = useState<ThemeMode>(initialMode);
   const [themeKey] = useState<string | null>(initialThemeKey);
-  // Keep SSR and first client render deterministic; resolve media query after mount.
-  const [prefersDark, setPrefersDark] = useState(false);
+  // Read the media query synchronously on the client so the first render
+  // already has the correct value and applyTheme never briefly removes the
+  // dark class that the inline runtime script already set.
+  const [prefersDark, setPrefersDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(THEME_MEDIA_QUERY).matches;
+  });
   const isPending = false;
 
   useEffect(() => {

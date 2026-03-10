@@ -801,5 +801,5 @@ Once implementation starts, this document should be updated to separate:
 If runtime contracts change, also update:
 
 - `docs/sdk/00-overview.md`
-- `docs/modules/14-template-controller.md`
-- `docs/core/changelogsdk.md`
+- `docs/themes/03-template-controller.md`
+- `docs/reference/05-sdk-changelog.md`

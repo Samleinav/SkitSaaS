@@ -15,16 +15,18 @@ This index organizes the technical documentation for the S-Kit SaaS Starter core
 - [Simple SaaS](./getting-started/01-simple-saas.md) — single Next.js deployment: install, configure, run.
 - [Multi-Service](./getting-started/02-multi-service.md) — split admin, dashboard, frontend, and API across separate services.
 
+## Routing
+
+How routes are defined, named, and composed across core and modules.
+
+- [App Router Structure and Actions](./routing/01-architecture.md)
+- [Route Factories — RouteAdmin, RouteDashboard, routes.ts](./routing/02-routes.md)
+
 ## Proxies
 
 Laravel-inspired proxy chains — define auth rules, role guards, and rate limits per route.
 
-- [Routing System (RouteBuilder + Proxy Chains)](./proxies/01-routing-system.md)
 - [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./proxies/02-security.md)
-
-## Routing
-
-- [Routing and Actions Architecture](./routing/01-architecture.md)
 
 ## Forms
 

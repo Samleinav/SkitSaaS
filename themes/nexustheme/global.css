@@ -285,9 +285,30 @@ html[data-sidebar-mobile-open] [data-nexus-sidebar-backdrop] {
 
 [data-nexus-admin-shell] [data-nexus-page-shell] > section {
   border-color: hsl(var(--border) / 0.76);
-  background:
-    linear-gradient(180deg, hsl(var(--background) / 0.72) 0%, hsl(var(--card)) 100%);
+  background: hsl(var(--card));
   box-shadow:
     inset 0 1px 0 hsl(var(--foreground) / 0.04),
     0 10px 30px hsl(223 42% 2% / 0.16);
+}
+
+/* Light mode: add visible depth to cards and page shells */
+:root:not(.dark) [data-nexus-admin-shell] [data-slot='card'] {
+  box-shadow:
+    0 1px 3px hsl(var(--primary) / 0.07),
+    0 4px 14px hsl(var(--primary) / 0.05),
+    0 0 0 1px hsl(var(--border) / 0.55);
+}
+
+:root:not(.dark) [data-nexus-admin-shell] [data-slot='card']:hover {
+  box-shadow:
+    0 2px 6px hsl(var(--primary) / 0.1),
+    0 8px 22px hsl(var(--primary) / 0.08),
+    0 0 0 1px hsl(var(--border) / 0.72);
+}
+
+:root:not(.dark) [data-nexus-admin-shell] [data-nexus-page-shell] > section {
+  box-shadow:
+    0 1px 3px hsl(var(--primary) / 0.07),
+    0 6px 20px hsl(var(--primary) / 0.05),
+    0 0 0 1px hsl(var(--border) / 0.55);
 }

@@ -58,7 +58,7 @@ pnpm modules:sync
 Authoring reference:
 
 - `docs/modules/13-source-package-template.md` for `source-package` starter template and checklist.
-- `docs/modules/14-template-controller.md` for component template precedence and CTC contract.
+- `docs/themes/03-template-controller.md` for component template precedence and CTC contract.
 
 Tables related to modules and themes:
 
@@ -71,7 +71,7 @@ Events/hooks integration:
 
 - Modules can register `eventHandlers` in `ModuleManifest`.
 - Handlers are filtered by hook and executed in priority order.
-- See `docs/operations/events-hooks.md` for usage details.
+- See `docs/hooks/01-events-hooks.md` for usage details.
 
 What is in scope:
 

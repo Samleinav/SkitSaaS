@@ -373,4 +373,4 @@ If a deployed pack causes visual/runtime issues:
 
 For authoring workflow and pack conventions, see:
 
-- `docs/modules/16-theme-authoring-guide.md`
+- `docs/themes/02-theme-authoring-guide.md`

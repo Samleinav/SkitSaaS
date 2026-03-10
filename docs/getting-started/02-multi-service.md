@@ -417,6 +417,6 @@ export const ModXRoutes = {
 ## Further reading
 
 - [Environment Variables Reference](../reference/03-env-variables.md) — full variable list with defaults
-- [Routing System](../proxies/01-routing-system.md) — how `configureAreaBases()` and `configureApiCors()` work internally
+- [Routing System](../routing/02-routes.md) — how `configureAreaBases()` and `configureApiCors()` work internally
 - [Deployment Surface Mode](../reference/03-env-variables.md#deployment-surface-mode) — `APP_SURFACE_MODE` details
 - [Security Architecture](../proxies/02-security.md) — session handling across services

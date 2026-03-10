@@ -57,10 +57,10 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `sprint`: sprint-3
 - `module`: cross-module-policy
 - `type`: change
-- `summary`: se establece politica de registrar todo SDK-gap/cambio en `docs/core/changelogsdk.md`
+- `summary`: se establece politica de registrar todo SDK-gap/cambio en `docs/reference/05-sdk-changelog.md`
 - `sdk_surface`: process
 - `files`:
-  - `docs/core/changelogsdk.md`
+  - `docs/reference/05-sdk-changelog.md`
   - `plans/education-system/reference/module-boundary-guardrails.md`
   - `.agents/skills/module-boundary-guard/SKILL.md`
 - `notes`: obligatorio para futuras iteraciones de sprints modulares
@@ -90,7 +90,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `summary`: falta un contrato SDK para generacion/export de archivos de modulo hacia `mod.files` (pdf/listas/reportes)
 - `sdk_surface`: @skitsaas/sdk/server
 - `files`:
-  - `docs/core/changelogsdk.md`
+  - `docs/reference/05-sdk-changelog.md`
   - `mod.education.attendance`
 - `notes`: hoy el modulo no puede subir un PDF a `mod.files` sin importar codigo directo del host o del modulo `mod.files`; requiere adapter o contrato de file storage en SDK/server
 
@@ -156,8 +156,8 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `app/sdk/dist/index.*`
   - `app/sdk/README.md`
   - `docs/sdk/00-overview.md`
-  - `docs/core/form-build-system.md`
-  - `docs/modules/14-template-controller.md`
+  - `docs/forms/01-form-build-system.md`
+  - `docs/themes/03-template-controller.md`
 - `notes`: el host ahora puede renderizar forms consistentes desde definiciones SDK usando `TemplateBuildForm`, `BuildModal` y `ui.form`; el rollout inicial ya cubre core y `mod.example.suite`
 
 ## 2026-03-06 - sdk-build-form-validation-contract
@@ -198,7 +198,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `app/sdk/dist/index.*`
   - `app/sdk/README.md`
   - `docs/sdk/00-overview.md`
-  - `docs/core/form-build-system.md`
+  - `docs/forms/01-form-build-system.md`
   - `app/(dashboard)/admin/users/actions.ts`
   - `app/(dashboard)/admin/users/validation.ts`
 - `notes`: expone `normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage.*`, `createCatalogBuildFormValidationMessageResolver(...)` y `createBuildFormValidationResultFromFieldMessages(...)`; el piloto `admin/users` ahora usa descriptores y resolver por locale para evitar strings hardcodeados en actions
@@ -220,7 +220,7 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
   - `app/sdk/dist/index.*`
   - `app/sdk/README.md`
   - `docs/sdk/00-overview.md`
-  - `docs/core/form-build-system.md`
+  - `docs/forms/01-form-build-system.md`
   - `app/(dashboard)/admin/users/create-user-form.tsx`
   - `app/(dashboard)/admin/users/[userId]/page.tsx`
   - `modules/mod.example.suite/README.md`

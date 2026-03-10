@@ -1,7 +1,7 @@
 ---
-title: Routing System
-description: Centralized typed route registry with composable proxy chains for admin, dashboard, frontend, and API areas.
-sidebar_position: 6
+title: Route Factories and Registry
+description: RouteAdmin, RouteDashboard, RouteFrontend, RouteApi — typed route factories, named registry, core/routes.ts, and module routes.ts.
+sidebar_position: 2
 ---
 
 # Routing System

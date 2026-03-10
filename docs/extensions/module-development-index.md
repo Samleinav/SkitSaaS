@@ -28,13 +28,13 @@ Recommended reading order:
 6. `docs/modules/05-config.md`
 7. `docs/modules/06-nav-widgets.md`
 8. `docs/modules/07-api-modules.md`
-9. `docs/modules/08-themes.md`
+9. `docs/themes/01-theme-runtime.md`
 10. `docs/modules/09-testing.md`
 11. `docs/modules/10-ops-runbook.md`
 12. `docs/modules/11-example-module.md`
 13. `docs/modules/12-i18n.md`
 14. `docs/modules/13-source-package-template.md`
-15. `docs/modules/14-template-controller.md`
+15. `docs/themes/03-template-controller.md`
 16. `docs/modules/15-commerce-products.md`
 17. `docs/modules/16-commerce-one-time-payments.md`
-18. `docs/modules/16-theme-authoring-guide.md`
+18. `docs/themes/02-theme-authoring-guide.md`

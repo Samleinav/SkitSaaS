@@ -3,8 +3,8 @@
   "pages": [
     "00-documentation-index",
     "getting-started",
-    "proxies",
     "routing",
+    "proxies",
     "forms",
     "datatables",
     "security",

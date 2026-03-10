@@ -18,7 +18,8 @@
       "Bash(pnpm build)",
       "Bash(npm run build)",
       "Bash(cat /app/serviceentomai/s-kit-saas/app/\\\\\\(dashboard\\\\\\)/admin/orders/[orderId]/edit/page.tsx)",
-      "Bash(pnpm install)"
+      "Bash(pnpm install)",
+      "Bash(/app/serviceentomai/s-kit-saas/docs/meta.json:*)"
     ]
   }
 }

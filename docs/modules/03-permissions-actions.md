@@ -85,7 +85,7 @@ const rateLimitedHandler = withRateLimit(
 )
 ```
 
-For per-plan limits see `docs/core/security.md`.
+For per-plan limits see `docs/proxies/02-security.md`.
 
 ## Recommendation
 
