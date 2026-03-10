@@ -230,7 +230,7 @@ Example (`source-package`):
   "moduleMode": "source-package",
   "entry": "dist/manifest.js",
   "buildCommand": "pnpm build",
-  "sdkRange": "^0.1.0",
+  "sdkRange": "^1.3.5",
   "db": {
     "schemaVersion": 1,
     "migrationsDir": "db/migrations"

@@ -28,7 +28,7 @@ Declare SDK compatibility explicitly:
   "version": "1.2.0",
   "moduleMode": "source-host",
   "sourceEntry": "src/manifest.ts",
-  "sdkRange": "^0.1.0"
+  "sdkRange": "^1.3.5"
 }
 ```
 

@@ -33,7 +33,7 @@ Declare DB metadata in `modules/<moduleId>/module.json`:
   "version": "0.1.0",
   "moduleMode": "source-host",
   "sourceEntry": "src/manifest.ts",
-  "sdkRange": "^0.1.0",
+  "sdkRange": "^1.3.5",
   "db": {
     "schemaVersion": 1,
     "migrationsDir": "db/migrations"

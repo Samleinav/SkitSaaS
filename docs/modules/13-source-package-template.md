@@ -39,7 +39,7 @@ modules/
   "entry": "dist/manifest.js",
   "buildCommand": "pnpm build",
   "testCommand": "pnpm test:module",
-  "sdkRange": "^0.1.0",
+  "sdkRange": "^1.3.5",
   "templatePack": {
     "defaultEntry": "dist/templates/defaults.json",
     "overrideEntry": "dist/templates/overrides.json",
@@ -81,7 +81,7 @@ If `templatePack` is declared:
     "test:module": "node --test ./tests/*.test.mjs"
   },
   "peerDependencies": {
-    "@skitsaas/sdk": "^1.3.0",
+    "@skitsaas/sdk": "^1.3.5",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
