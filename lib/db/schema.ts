@@ -1,6 +1,7 @@
 import {
   check,
   index,
+  json,
   pgTable,
   serial,
   varchar,
@@ -1071,6 +1072,69 @@ export const checkoutOrderItemsRelations = relations(
     }),
   })
 );
+
+// ─── Sfiles ──────────────────────────────────────────────────────────────────
+
+export const sfiles = pgTable(
+  'sfiles',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    originalName: varchar('original_name', { length: 255 }).notNull(),
+    path: text('path').notNull(),
+    folder: varchar('folder', { length: 1024 }).notNull().default('/'),
+    mimeType: varchar('mime_type', { length: 128 }).notNull().default('application/octet-stream'),
+    size: integer('size').notNull().default(0),
+    backend: varchar('backend', { length: 16 }).notNull().default('local'),
+    bucket: varchar('bucket', { length: 255 }),
+    etag: varchar('etag', { length: 255 }),
+    ownerId: integer('owner_id').references(() => users.id, { onDelete: 'set null' }),
+    visibility: varchar('visibility', { length: 32 }).notNull().default('private'),
+    metadata: json('metadata'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    check('sfiles_backend_chk', sql`${t.backend} in ('local', 's3')`),
+    check(
+      'sfiles_visibility_chk',
+      sql`${t.visibility} in ('private', 'users', 'authenticated', 'public', 'admin')`
+    ),
+    index('sfiles_folder_idx').on(t.folder),
+    index('sfiles_name_idx').on(t.name),
+    index('sfiles_owner_idx').on(t.ownerId),
+    index('sfiles_deleted_at_idx').on(t.deletedAt),
+  ]
+);
+
+export const sfilesPermissions = pgTable(
+  'sfiles_permissions',
+  {
+    id: serial('id').primaryKey(),
+    fileId: integer('file_id')
+      .notNull()
+      .references(() => sfiles.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    grantedAt: timestamp('granted_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('sfiles_permissions_file_user_idx').on(t.fileId, t.userId),
+    index('sfiles_permissions_user_idx').on(t.userId),
+  ]
+);
+
+export const sfilesRelations = relations(sfiles, ({ one, many }) => ({
+  owner: one(users, { fields: [sfiles.ownerId], references: [users.id] }),
+  permissions: many(sfilesPermissions),
+}));
+
+export const sfilesPermissionsRelations = relations(sfilesPermissions, ({ one }) => ({
+  file: one(sfiles, { fields: [sfilesPermissions.fileId], references: [sfiles.id] }),
+  user: one(users, { fields: [sfilesPermissions.userId], references: [users.id] }),
+}));
 
 export const sysActivityLogsRelations = relations(sysActivityLogs, ({ one }) => ({
   actorUser: one(users, {

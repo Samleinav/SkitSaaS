@@ -13,7 +13,8 @@
     "./datatables": "./dist/datatables/index.js",
     "./datatables/server": "./dist/datatables/server.js",
     "./build": "./dist/build.js",
-    "./testing": "./dist/testing.js"
+    "./testing": "./dist/testing.js",
+    "./sfiles": "./dist/sfiles.js"
   },
   "files": [
     "dist"

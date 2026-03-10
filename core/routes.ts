@@ -24,6 +24,7 @@
  */
 import '@/lib/routing/area-setup'; // must be first — configures proxyAdmin/proxyAuth defaults
 import { RouteAdmin, RouteDashboard, RouteFrontend } from '@skitsaas/sdk';
+import { CoreApiRoutes } from './api-routes';
 
 export const Routes = {
   admin: {
@@ -86,5 +87,7 @@ export const Routes = {
     signIn:    RouteFrontend('/sign-in').name('frontend.sign-in'),
     signUp:    RouteFrontend('/sign-up').name('frontend.sign-up'),
     contactUs: RouteFrontend('/contact-us').name('frontend.contact-us'),
-  }
+  },
+
+  api: CoreApiRoutes,
 } as const;

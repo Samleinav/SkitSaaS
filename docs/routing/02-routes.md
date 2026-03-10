@@ -377,33 +377,46 @@ RouteApi(`${BASE}/premium`).POST()
   .name('my-feature.api.premium')
 ```
 
-### Standalone Next.js API routes — `withApiProxy` (core host)
+### Standalone Next.js API routes — typed core API entries
 
-For core host API routes that live directly in `app/api/`, use `withApiProxy`:
+For core host API routes that live directly in `app/api/`, prefer the same
+`RouteApi(...).METHOD().auth().proxy().name()` metadata flow used by modules,
+then attach handlers in a Node.js file and export them with
+`withApiRouteEntries`:
 
 ```ts
+// core/api-routes.ts — metadata only
+import { RouteApi } from '@skitsaas/sdk'
+
+export const CoreApiRoutes = {
+  users: {
+    list: RouteApi('/admin/users').GET().auth('admin').name('api.admin.users.list'),
+  },
+}
+
+// core/api-entries.ts — handlers
+export const CoreApiEntries = {
+  users: {
+    list: CoreApiRoutes.users.list.handler(async () => {
+      return Response.json({ users: [] })
+    }),
+  },
+}
+
 // app/api/admin/users/route.ts
-import { withApiProxy } from '@/lib/routing/with-api-proxy'
-import { proxyApiAdmin } from '@/lib/routing/proxies'
+import { CoreApiEntries } from '@/core/api-entries'
+import { withApiRouteEntries } from '@/lib/routing/with-api-route'
 
-export const GET = withApiProxy([proxyApiAdmin], async (request) => {
-  return Response.json({ users: [] })
-})
-export const POST = withApiProxy([proxyApiAdmin], async (request) => {
-  return Response.json({ ok: true })
-})
+export const GET = withApiRouteEntries(CoreApiEntries.users.list)
 ```
 
-Compose with rate limiting (outermost — cheapest first):
+`dispatchApiRoutes()` executes the full API chain for each entry:
+`rateLimit -> auth -> extra proxies -> handler`.
 
-```ts
-import { withRateLimit } from '@skitsaas/sdk'
+When a host route needs a guard that must run before the route entry chain,
+`withApiRouteEntries(..., { preDispatch: [...] })` can short-circuit before auth.
 
-export const POST = withRateLimit(
-  { limit: 10, windowSeconds: 60 },
-  withApiProxy([proxyApiAdmin], handler)
-)
-```
+`withApiProxy` remains available as a lightweight fallback for one-off handlers.
 
 ## Registering API routes in `core/routes.ts`
 
@@ -415,13 +428,16 @@ import { RouteApi } from '@skitsaas/sdk'
 export const Routes = {
   // ...existing admin/dashboard/frontend...
   api: {
-    formValidate: RouteApi('/forms/validate').name('api.forms.validate'),
-    users:        RouteApi('/admin/users').name('api.admin.users'),
+    formValidate: RouteApi('/forms/validate').POST().name('api.forms.validate'),
+    users: {
+      list: RouteApi('/admin/users').GET().name('api.admin.users.list'),
+    },
   }
 } as const
 ```
 
-`RouteApi` routes are not processed by `proxy.ts` — naming them is purely for URL construction and documentation.
+`RouteApi` routes are not processed by `proxy.ts`, but they are fully usable for
+core API dispatch through `dispatchApiRoutes()` and `withApiRouteEntries()`.
 
 ## Import ordering rule
 
@@ -468,5 +484,7 @@ Routes.admin.users            // ✅ RouteBuilder "/admin/users"
 
 **API routes (core host standalone):**
 
-1. Use `withApiProxy([proxyApiAdmin | proxyApiAuth])` wrapping the handler in `app/api/*/route.ts`.
-2. Wrap with `withRateLimit` outermost if rate limiting is needed.
+1. Define route metadata with `RouteApi('/path').METHOD().auth().rateLimit().proxy().name(...)`.
+2. Attach handlers in a core Node.js file using `.handler(fn)`.
+3. Export them from `app/api/*/route.ts` using `withApiRouteEntries(...)`.
+4. Use `withApiProxy(...)` only for simple one-off handlers that do not need the typed route metadata flow.

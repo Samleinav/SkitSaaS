@@ -1,18 +1,7 @@
-import type { NextRequest } from 'next/server';
-import { withApiProxy } from '@/lib/routing/with-api-proxy';
-import { proxyApiAuth } from '@/lib/routing/proxies';
-import { getTeamForUser } from '@/lib/db/queries';
-import { areTeamsEnabled } from '@/lib/organizations/config';
+import { CoreApiEntries } from '@/core/api-entries';
+import { proxyApiTeamsEnabled } from '@/lib/routing/proxies';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
-const authorizedGet = withApiProxy([proxyApiAuth], async () => {
-  const team = await getTeamForUser();
-  return Response.json(team);
+export const GET = withApiRouteEntries(CoreApiEntries.team.get, {
+  preDispatch: [proxyApiTeamsEnabled],
 });
-
-export async function GET(request: NextRequest) {
-  if (!areTeamsEnabled()) {
-    return Response.json({ error: 'Team system is disabled.' }, { status: 404 });
-  }
-
-  return authorizedGet(request);
-}

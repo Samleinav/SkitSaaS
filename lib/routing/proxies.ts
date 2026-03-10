@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import type { RouteProxyFn } from '@skitsaas/sdk';
+import type { ApiRouteProxyFn, RouteProxyFn } from '@skitsaas/sdk';
 
 const SESSION_COOKIE = 'session';
 const ADMIN_LOGIN = '/admin/login';
@@ -290,6 +290,19 @@ export const proxyApiAuth: RouteProxyFn = async (request: NextRequest) => {
   }
 
   return null; // continue chain
+};
+
+/**
+ * Requires the team system to be enabled.
+ * Returns 404 JSON so callers do not leak disabled capability details.
+ */
+export const proxyApiTeamsEnabled: ApiRouteProxyFn = async () => {
+  const { areTeamsEnabled } = await import('@/lib/organizations/config');
+  if (areTeamsEnabled()) {
+    return null;
+  }
+
+  return NextResponse.json({ error: 'Team system is disabled.' }, { status: 404 });
 };
 
 // ---------------------------------------------------------------------------

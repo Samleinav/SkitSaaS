@@ -1,8 +1,4 @@
-import { withApiProxy } from '@/lib/routing/with-api-proxy';
-import { proxyApiAuth } from '@/lib/routing/proxies';
-import { getUser } from '@/lib/db/queries';
+import { CoreApiEntries } from '@/core/api-entries';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
-export const GET = withApiProxy([proxyApiAuth], async () => {
-  const user = await getUser();
-  return Response.json(user);
-});
+export const GET = withApiRouteEntries(CoreApiEntries.user.get);

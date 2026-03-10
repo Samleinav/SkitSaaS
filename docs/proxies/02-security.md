@@ -44,16 +44,24 @@ type RouteProxyFn = (request: NextRequest) => Promise<NextResponse | null>
 
 ### Protecting API route handlers
 
-`/api` is excluded from `proxy.ts` to avoid intercepting public webhooks. Protect API handlers at the handler level:
+`/api` is excluded from `proxy.ts` to avoid intercepting public webhooks. Protect
+API handlers at the handler level. For typed core/module API routes, prefer
+`RouteApi(...).METHOD().auth().proxy()` plus `dispatchApiRoutes()` or the host
+helper `withApiRouteEntries(...)`:
 
 ```ts
-import { withApiProxy } from '@/lib/routing/with-api-proxy'
-import { proxyApiAdmin } from '@/lib/routing/proxies'
+import { RouteApi } from '@skitsaas/sdk'
+import { withApiRouteEntries } from '@/lib/routing/with-api-route'
 
-export const GET = withApiProxy([proxyApiAdmin], async (request) => {
+const usersGet = RouteApi('/admin/users').GET().auth('admin').handler(async () => {
   return Response.json({ data: [] })
 })
+
+export const GET = withApiRouteEntries(usersGet)
 ```
+
+`withApiProxy([proxyApiAdmin | proxyApiAuth], handler)` remains available for
+small standalone handlers.
 
 ## JTI revocation
 
@@ -204,7 +212,7 @@ Custom proxy functions live in `lib/routing/proxies.ts` and must follow the `Rou
 ## Security checklist for new routes
 
 - [ ] Page routes under `/admin/*` or `/dashboard/*` are protected by area defaults automatically
-- [ ] API route handlers use `withApiProxy([proxyApiAdmin | proxyApiAuth])`
+- [ ] API route handlers use `RouteApi(...).auth().proxy()` + `withApiRouteEntries(...)` or `withApiProxy(...)`
 - [ ] Rate limiting applied with `withRateLimit` (SDK) — outermost wrapper
 - [ ] Auth endpoints use `checkAuthRateLimit`
 - [ ] Production: `configureRateLimitBackend` configured with Redis in bootstrap
