@@ -28,7 +28,7 @@ A module must not depend on host internals.
 - add an SDK contract proposal in plan/checklist
 - implement or request SDK extension first
 - then consume the new SDK contract from the module
-- register the SDK-gap/change in `docs/core/changelogsdk.md`
+- register the SDK-gap/change in `docs/reference/05-sdk-changelog.md`
 - if the task also includes module/business work, isolate the SDK/core part in its own commit so it can be cherry-picked to `v1` without module noise
 
 4. UI fallback behavior (`NoContext`, onboarding, empty states) must be implemented inside the module, not imported from host pages.
@@ -70,7 +70,7 @@ Minimum content:
 
 Every SDK-gap or SDK contract change must be recorded in:
 
-`docs/core/changelogsdk.md`
+`docs/reference/05-sdk-changelog.md`
 
 Minimum fields:
 - date

@@ -36,6 +36,19 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 
 ## Entries
 
+## 2026-03-10 - sdk-gap-module-subscription-feature-controller
+
+- `status`: pending_publish
+- `sprint`: taxonomy-skills
+- `module`: cross-module-policy
+- `type`: gap
+- `summary`: no existe un helper SDK seguro para que módulos verifiquen acceso plan-gated (subscription tier, feature flags de suscripción); el único helper existente `getDashboardFeatureController` es un import directo del host y está prohibido en módulos
+- `sdk_surface`: @skitsaas/sdk/server
+- `files`:
+  - `docs/reference/05-sdk-changelog.md`
+  - `.agents/skills/mod-routing-api-permissions/SKILL.md`
+- `notes`: workaround actual — usar `getModuleConfigValue` para feature flags module-owned bajo namespace `module.<moduleId>.*`; la solución definitiva requiere exponer un adapter de feature checking en SDK/server que el host conecte con su lógica de subscription assignment
+
 ## 2026-03-05 - sdk-standalone-contract-consumption
 
 - `status`: pending_publish
