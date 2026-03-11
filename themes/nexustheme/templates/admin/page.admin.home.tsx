@@ -98,7 +98,7 @@ export default function PageAdminHomeTemplate({
         </div>
       </header>
 
-      <section className="@container/admin-home [&>div]:grid [&>div]:gap-6 xl:[&>div]:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+      <section className="@container/admin-home rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(var(--muted)/0.4)_0%,hsl(var(--background))_100%)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-4 xl:p-5 [&>div]:grid [&>div]:gap-6 xl:[&>div]:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
         {children}
       </section>
     </main>

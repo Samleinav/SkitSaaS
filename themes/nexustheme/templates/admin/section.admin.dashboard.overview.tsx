@@ -52,8 +52,8 @@ export default function SectionAdminDashboardOverviewTemplate({
           'space-y-5',
           '[&>div]:space-y-5',
           '[&>div>div:first-child]:grid [&>div>div:first-child]:gap-5 md:[&>div>div:first-child]:grid-cols-2 2xl:[&>div>div:first-child]:grid-cols-3',
-          '[&_a_[data-slot=card]]:rounded-[1.8rem] [&_a_[data-slot=card]]:border-border/60 [&_a_[data-slot=card]]:bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)] [&_a_[data-slot=card]]:shadow-[0_22px_60px_-44px_rgba(0,0,0,0.95)] [&_a_[data-slot=card]]:transition-all [&_a_[data-slot=card]]:duration-200 [&_a_[data-slot=card]]:hover:-translate-y-0.5 [&_a_[data-slot=card]]:hover:border-primary/35',
-          '[&_a_[data-slot=card-header]]:pb-0 [&_a_[data-slot=card-description]]:text-xs [&_a_[data-slot=card-description]]:uppercase [&_a_[data-slot=card-description]]:tracking-[0.22em] [&_a_[data-slot=card-description]]:text-muted-foreground/70 [&_a_[data-slot=card-content]]:pt-5',
+          '[&_a_[data-slot=card]]:rounded-[1.8rem] [&_a_[data-slot=card]]:border-border/60 [&_a_[data-slot=card]]:bg-[linear-gradient(180deg,hsl(var(--muted)/0.72)_0%,hsl(var(--card))_100%)] [&_a_[data-slot=card]]:shadow-[0_22px_60px_-44px_rgba(0,0,0,0.95)] [&_a_[data-slot=card]]:transition-all [&_a_[data-slot=card]]:duration-200 [&_a_[data-slot=card]]:hover:-translate-y-0.5 [&_a_[data-slot=card]]:hover:border-primary/35',
+          '[&_a_[data-slot=card-header]]:pb-0 [&_a_[data-slot=card-description]]:text-sm [&_a_[data-slot=card-description]]:text-foreground/80 [&_a_[data-slot=card-content]]:pt-4 [&_a_[data-slot=card-footer]]:mt-auto',
           '[&>div>[data-slot=card]]:overflow-hidden [&>div>[data-slot=card]]:rounded-[2rem] [&>div>[data-slot=card]]:border-border/60 [&>div>[data-slot=card]]:bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--card))_100%)] [&>div>[data-slot=card]]:shadow-[0_28px_70px_-54px_rgba(0,0,0,0.95)]',
           '[&>div>[data-slot=card]_[data-slot=card-header]]:border-border/60 [&>div>[data-slot=card]_[data-slot=card-header]]:px-6 [&>div>[data-slot=card]_[data-slot=card-header]]:pt-6',
           className

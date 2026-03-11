@@ -18,6 +18,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
@@ -46,6 +47,10 @@ type OverviewMetric = {
   value: number;
   icon: ComponentType<{ className?: string }>;
   toneClassName: string;
+  badgeLabel: string;
+  headline: string;
+  description: string;
+  footerLabel: string;
 };
 
 function formatCompactValue(value: number, locale: string) {
@@ -68,23 +73,59 @@ function ImpactMetricCard({
 }) {
   return (
     <Link href={metric.href} className="group block">
-      <Card className="h-full border-border/70 transition-all hover:border-border">
-        <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
-          <CardDescription className="text-sm font-medium">{metric.label}</CardDescription>
+      <Card className="h-full min-h-[15.5rem] justify-between border-border/70 bg-[linear-gradient(180deg,hsl(var(--muted)/0.7)_0%,hsl(var(--card))_100%)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_26px_70px_-50px_rgba(0,0,0,0.95)]">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 pb-0">
+          <div className="space-y-3">
+            <CardDescription className="text-sm font-medium text-foreground/80">
+              {metric.label}
+            </CardDescription>
+            <span
+              className={cn(
+                'flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm',
+                metric.toneClassName
+              )}
+            >
+              <metric.icon className="h-4.5 w-4.5" />
+            </span>
+          </div>
+
           <span
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium tracking-[0.16em] uppercase',
               metric.toneClassName
             )}
           >
-            <metric.icon className="h-4 w-4" />
+            {metric.badgeLabel}
           </span>
         </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold tracking-tight">
+
+        <CardContent className="space-y-4 pt-2">
+          <p className="text-4xl font-semibold tracking-tight text-foreground tabular-nums">
             {formatCompactValue(metric.value, dateLocale)}
           </p>
+
+          <div className="space-y-1.5">
+            <p className="text-base font-semibold text-foreground">{metric.headline}</p>
+            <p className="text-sm leading-6 text-muted-foreground">{metric.description}</p>
+          </div>
         </CardContent>
+
+        <CardFooter className="border-t border-border/60 pt-4">
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border bg-background/80',
+                metric.toneClassName
+              )}
+            >
+              <metric.icon className="h-4 w-4" />
+            </span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium text-foreground">{metric.footerLabel}</p>
+              <p className="text-xs text-muted-foreground">Open the detailed workspace</p>
+            </div>
+          </div>
+        </CardFooter>
       </Card>
     </Link>
   );
@@ -97,42 +138,66 @@ function OverviewModule({ messages, summary, dateLocale, activityChart }: AdminD
       label: messages.nav.users,
       value: summary.totalUsers,
       icon: Users,
-      toneClassName: 'border-sky-500/30 bg-sky-500/12 text-sky-600'
+      toneClassName: 'border-sky-500/30 bg-sky-500/12 text-sky-600',
+      badgeLabel: 'audience',
+      headline: 'Platform audience is active',
+      description: 'Use this view to track account growth, permissions, and admin coverage.',
+      footerLabel: 'Manage accounts and roles'
     },
     {
       href: '/admin/suscriptions',
       label: messages.ordersPage.table.teamHeader,
       value: summary.totalTeams,
       icon: Building2,
-      toneClassName: 'border-indigo-500/30 bg-indigo-500/12 text-indigo-600'
+      toneClassName: 'border-indigo-500/30 bg-indigo-500/12 text-indigo-600',
+      badgeLabel: 'org scope',
+      headline: 'Organization footprint across the platform',
+      description: 'Monitor company adoption and the structure behind paid operations.',
+      footerLabel: 'Review team structure'
     },
     {
       href: '/admin/suscriptions',
       label: messages.billingPage.metrics.activeSubscriptions,
       value: summary.activeSubscriptions,
       icon: BadgeCheck,
-      toneClassName: 'border-emerald-500/30 bg-emerald-500/12 text-emerald-600'
+      toneClassName: 'border-emerald-500/30 bg-emerald-500/12 text-emerald-600',
+      badgeLabel: 'revenue',
+      headline: 'Healthy recurring subscription base',
+      description: 'A strong view of retained plans and currently billable customer scope.',
+      footerLabel: 'Inspect recurring plans'
     },
     {
       href: '/admin/suscriptions',
       label: messages.billingPage.metrics.issueSubscriptions,
       value: summary.issueSubscriptions,
       icon: AlertCircle,
-      toneClassName: 'border-amber-500/30 bg-amber-500/12 text-amber-600'
+      toneClassName: 'border-amber-500/30 bg-amber-500/12 text-amber-600',
+      badgeLabel: 'attention',
+      headline: 'Subscriptions needing intervention',
+      description: 'Unpaid or canceled accounts that may require follow-up or recovery.',
+      footerLabel: 'Recover affected subscriptions'
     },
     {
       href: '/admin/orders',
       label: messages.ordersPage.metrics.pendingOrders,
       value: summary.pendingOrders,
       icon: Clock3,
-      toneClassName: 'border-violet-500/30 bg-violet-500/12 text-violet-600'
+      toneClassName: 'border-violet-500/30 bg-violet-500/12 text-violet-600',
+      badgeLabel: 'queue',
+      headline: 'Orders waiting for completion',
+      description: 'Track the checkout pipeline and any manual processing still in flight.',
+      footerLabel: 'Process the order queue'
     },
     {
       href: '/admin/orders',
       label: messages.ordersPage.metrics.failedOrders,
       value: summary.failedOrders,
       icon: FileText,
-      toneClassName: 'border-rose-500/30 bg-rose-500/12 text-rose-600'
+      toneClassName: 'border-rose-500/30 bg-rose-500/12 text-rose-600',
+      badgeLabel: 'risk',
+      headline: 'Failures that need a second look',
+      description: 'Audit provider errors, retry paths, and anything blocking conversion.',
+      footerLabel: 'Review failed orders'
     }
   ];
 
@@ -152,14 +217,14 @@ function OverviewModule({ messages, summary, dateLocale, activityChart }: AdminD
   } satisfies ChartConfig;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="space-y-5">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {metrics.map((metric) => (
           <ImpactMetricCard key={metric.label} metric={metric} dateLocale={dateLocale} />
         ))}
       </div>
 
-      <Card className="overflow-hidden border-border/70">
+      <Card className="overflow-hidden border-border/70 bg-[linear-gradient(180deg,hsl(var(--muted)/0.65)_0%,hsl(var(--card))_100%)] shadow-[0_28px_80px_-58px_rgba(0,0,0,0.95)]">
         <CardHeader className="border-b border-border/60 pb-4">
           <CardTitle>{messages.dashboardHome.chart.title}</CardTitle>
           <CardDescription>{messages.dashboardHome.chart.description}</CardDescription>
