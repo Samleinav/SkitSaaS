@@ -27,6 +27,7 @@ export default function LayoutAdminShellTemplate({
 }: TemplateProps<AdminShellTemplateData> & { themeId?: string }) {
   const t = useI18n({ themeId, area: 'admin' });
   const mode = data?.mode === 'adjusted' ? 'adjusted' : 'compact';
+  const projectName = data?.projectName?.trim() || 'S-Kit-SaaS';
   const navSlot = data?.navSlot ?? null;
   const breadcrumbSlot = data?.breadcrumbSlot ?? null;
   const controlsSlot = data?.controlsSlot ?? null;
@@ -86,7 +87,9 @@ export default function LayoutAdminShellTemplate({
               <LayoutDashboard className="h-4 w-4" />
             </span>
             <div className="min-w-0 leading-tight">
-              <p className="truncate text-sm font-semibold text-sidebar-foreground">SkitSaaS</p>
+              <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                {projectName}
+              </p>
               <p className="truncate text-[11px] text-sidebar-foreground/60">{t('Admin Dashboard')}</p>
             </div>
           </Link>

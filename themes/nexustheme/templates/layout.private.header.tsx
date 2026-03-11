@@ -9,6 +9,7 @@ import { NexusThemeToggle } from '../components/nexus-theme-toggle';
 type LayoutPrivateHeaderData = {
   area?: string;
   controlsSlot?: ReactNode;
+  projectName?: string;
 };
 
 type LayoutPrivateHeaderTemplateProps = {
@@ -23,6 +24,7 @@ export default function LayoutPrivateHeaderTemplate({
   themeId
 }: LayoutPrivateHeaderTemplateProps) {
   const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
+  const projectName = data?.projectName?.trim() || 'S-Kit-SaaS';
   const t = useI18n({ themeId, area });
 
   return (
@@ -43,7 +45,7 @@ export default function LayoutPrivateHeaderTemplate({
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <LayoutDashboard className="h-3.5 w-3.5" />
         </span>
-        <span className="hidden sm:inline truncate text-sm font-semibold">SkitSaaS</span>
+        <span className="hidden sm:inline truncate text-sm font-semibold">{projectName}</span>
       </Link>
 
       {/* Sidebar toggle — all sizes */}

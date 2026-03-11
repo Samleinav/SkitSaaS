@@ -15,6 +15,7 @@ type RouteSlotContract = {
   requiredSnippets: readonly string[];
   requiredDataKeys: readonly string[];
   requiresFallbackProp: boolean;
+  dataAnchorSnippet?: string;
 };
 
 const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
@@ -63,7 +64,7 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     filePath: 'app/(dashboard)/private-area-shell.tsx',
     renderer: 'ThemeTemplate',
     requiredSnippets: ['id="layout.private.shell"'],
-    requiredDataKeys: ['area', 'route'],
+    requiredDataKeys: ['area', 'route', 'projectName'],
     requiresFallbackProp: true
   },
   {
@@ -76,7 +77,7 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
       'id="ui.language-switcher"',
       'id="layout.admin.shell"'
     ],
-    requiredDataKeys: ['variant', 'mode', 'moduleItemsCount'],
+    requiredDataKeys: ['variant', 'mode', 'moduleItemsCount', 'projectName'],
     requiresFallbackProp: true
   },
   {
@@ -94,8 +95,9 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
       'id="ui.user-menu"',
       'id="layout.private.header"'
     ],
-    requiredDataKeys: ['area', 'slot'],
-    requiresFallbackProp: true
+    requiredDataKeys: ['area', 'controlsSlot', 'projectName'],
+    requiresFallbackProp: true,
+    dataAnchorSnippet: 'id="layout.private.header"'
   },
   {
     filePath: 'components/ui/themed-async-submit-button.tsx',
@@ -290,7 +292,7 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     filePath: 'app/(dashboard)/dashboard/layout.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="layout.dashboard.shell"'],
-    requiredDataKeys: ['heading', 'layoutStyle', 'mode', 'contentSlot'],
+    requiredDataKeys: ['heading', 'layoutStyle', 'mode', 'projectName', 'contentSlot'],
     requiresFallbackProp: true
   },
   {
@@ -527,9 +529,35 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function extractThemeTemplateDataExpression(source: string) {
+function hasObjectDataKey(dataExpression: string, dataKey: string) {
+  const escapedKey = escapeRegExp(dataKey);
+  const explicitPropertyPattern = new RegExp(`\\b${escapedKey}\\s*:`);
+  const shorthandPropertyPattern = new RegExp(
+    `(^|[,{]\\s*)${escapedKey}(?=\\s*[,}])`,
+    'm'
+  );
+
+  return (
+    explicitPropertyPattern.test(dataExpression) ||
+    shorthandPropertyPattern.test(dataExpression)
+  );
+}
+
+function extractThemeTemplateDataExpression(
+  source: string,
+  anchorSnippet?: string
+) {
   const marker = 'data={';
   let searchIndex = 0;
+
+  if (anchorSnippet) {
+    const anchorIndex = source.indexOf(anchorSnippet);
+    if (anchorIndex < 0) {
+      return null;
+    }
+
+    searchIndex = anchorIndex;
+  }
 
   while (searchIndex < source.length) {
     const markerIndex = source.indexOf(marker, searchIndex);
@@ -597,16 +625,18 @@ test('critical routes keep expected slot data contracts and fallback strategy', 
       );
     }
 
-    const dataExpression = extractThemeTemplateDataExpression(fileContents);
+    const dataExpression = extractThemeTemplateDataExpression(
+      fileContents,
+      routeContract.dataAnchorSnippet
+    );
     assert.ok(
       dataExpression,
       `${routeContract.filePath} must provide a data expression`
     );
 
     for (const dataKey of routeContract.requiredDataKeys) {
-      assert.match(
-        dataExpression!,
-        new RegExp(`\\b${escapeRegExp(dataKey)}\\s*:`),
+      assert.ok(
+        hasObjectDataKey(dataExpression!, dataKey),
         `${routeContract.filePath} must provide data key: ${dataKey}`
       );
     }

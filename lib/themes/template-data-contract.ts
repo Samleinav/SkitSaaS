@@ -25,16 +25,19 @@ export type SectionAdminNavTemplateData = {
   mode?: PrivateLayoutMode;
   moduleItemsCount?: number;
   navItems?: AdminNavTemplateItem[];
+  projectName?: string;
 };
 
 export type LayoutPrivateHeaderTemplateData = {
   area?: TemplatePrivateArea;
   controlsSlot?: ReactNode;
+  projectName?: string;
 };
 
 export type LayoutPrivateShellTemplateData = {
   area?: TemplatePrivateArea;
   route?: string | null;
+  projectName?: string;
 };
 
 export type UiTableControlTemplateData = {

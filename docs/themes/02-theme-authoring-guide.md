@@ -183,8 +183,8 @@ The minimum v1 contract is:
 - frontend route `/__layout`: no required keys (`data` can be `{}`).
 - frontend route `/`: `badge`, `heroTitleLine1`, `heroTitleLine2`, `heroDescription`, `viewCodeLabel`, `featureLabel`, `featureHighlightOne`, `featureHighlightTwo`, `featureHighlightThree`, `showcaseTitle`, `securityLabel`, `securityValue`, `billingLabel`, `billingValue`, `ctaTitle`, `ctaDescription`, `pricingLabel`, `viewCodeHref`, `featureCards`.
 - frontend route `/pricing`: `badgeLabel`, `title`, `subtitle`.
-- `layout.private.shell`: `area`, `route`.
-- `layout.admin.shell`: `heading`.
+- `layout.private.shell`: `area`, `route`, `projectName`.
+- `layout.admin.shell`: `heading`, `projectName`.
 - `layout.admin.app-config.shell`: `section`.
 - `page.admin.home`: `title`.
 - `page.admin.logs`: `title`, `description`, `tab`.
@@ -206,15 +206,15 @@ The minimum v1 contract is:
 - `page.admin.subscriptions.templates`: `title`, `description`.
 - `page.admin.subscriptions.create`: `title`.
 - `page.admin.subscriptions.edit`: `title`.
-- `section.admin.nav`: `variant`, `mode`, `moduleItemsCount`, `navItems`.
+- `section.admin.nav`: `variant`, `mode`, `moduleItemsCount`, `navItems`, `projectName`.
 - `section.admin.breadcrumb`: `title`, `backToAppConfigLabel`.
 - `section.admin.app-config-nav`: `section`.
 - `section.admin.metrics-grid`: `variant`, `columns`.
 - `section.admin.dashboard.module-widget`: `title`, `moduleWidgetId`, `moduleWidgetIndex`, `moduleWidgetKind`.
-- `layout.dashboard.shell`: `heading`.
+- `layout.dashboard.shell`: `heading`, `projectName`.
 - `page.dashboard.home`: `title`.
-- `layout.private.header`: `area`, `controlsSlot`.
-- `layout.private.shell`: `area`, `route`.
+- `layout.private.header`: `area`, `controlsSlot`, `projectName`.
+- `layout.private.shell`: `area`, `route`, `projectName`.
 - `ui.theme-toggle`: `area`, `slot`, optional `showLabel`, optional `variant`, optional `mode`.
 - `ui.language-switcher`: `area`, `slot`, optional `variant`, optional `mode`.
 - `ui.user-menu`: `area`, `slot`, optional `tone`.
@@ -225,6 +225,8 @@ The minimum v1 contract is:
 - frontend route `/404` and backoffice `system.not-found`: `title`, `message`.
 
 These contracts are validated by `tests/theme/theme-slot-data-contract.test.ts`.
+
+`projectName` is resolved from `app.config.ts` and can be overridden by `APP_PROJECT_NAME`.
 
 For persisted private notifications in backoffice themes:
 

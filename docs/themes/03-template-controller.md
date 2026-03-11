@@ -332,6 +332,7 @@ Current behavior:
 
 - private root shell is now template-driven for both `/admin` and `/dashboard` areas
 - private top header is now template-driven for both `/admin` and `/dashboard` areas
+- shared private header/shell data now includes `projectName` resolved from `app.config.ts` / `APP_PROJECT_NAME`
 - `ui.user-menu` is the recommended theme slot for private notification centers; baseline backoffice themes prepend a bell/feed control there and keep the host menu `children`
 - active theme selection is resolved by area in the host and applied client-side by pathname
 

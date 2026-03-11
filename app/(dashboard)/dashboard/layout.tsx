@@ -23,6 +23,7 @@ import { emitEvent } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
 import { resolveDashboardNavItemsForContext } from './nav-context';
+import { getResolvedAppConfig } from '@/lib/runtime-config/load-app-config';
 
 export async function generateMetadata(): Promise<Metadata> {
   if (!isDashboardEnabled()) {
@@ -86,6 +87,7 @@ export default async function DashboardLayout({
   });
 
   const themeSelection = await getThemeSelectionForArea('dashboard');
+  const resolvedAppConfig = getResolvedAppConfig();
   const areaAssets = resolveAreaAssetHrefsBySelection({
     themeId: themeSelection.themeKey,
     area: 'dashboard'
@@ -104,6 +106,7 @@ export default async function DashboardLayout({
         heading: 'Dashboard',
         layoutStyle: DASHBOARD_LAYOUT_STYLE,
         mode: PRIVATE_LAYOUT_MODE,
+        projectName: resolvedAppConfig.projectName,
         contentSlot: layoutContent
       }}
       fallback={layoutContent}

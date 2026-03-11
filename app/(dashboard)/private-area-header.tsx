@@ -11,6 +11,7 @@ import { ThemeTemplate } from '@/components/ui/theme-template';
 type PrivateAreaHeaderProps = {
   adminThemeId?: string | null;
   dashboardThemeId?: string | null;
+  projectName?: string;
 };
 
 function resolvePrivateArea(pathname: string | null): 'admin' | 'dashboard' {
@@ -19,11 +20,13 @@ function resolvePrivateArea(pathname: string | null): 'admin' | 'dashboard' {
 
 export function PrivateAreaHeader({
   adminThemeId = null,
-  dashboardThemeId = null
+  dashboardThemeId = null,
+  projectName = 'S-Kit-SaaS'
 }: PrivateAreaHeaderProps) {
   const pathname = usePathname();
   const activeArea = resolvePrivateArea(pathname);
   const themeId = activeArea === 'admin' ? adminThemeId : dashboardThemeId;
+  const resolvedProjectName = projectName.trim() || 'S-Kit-SaaS';
 
   const languageSwitcherFallback = (
     <LanguageSwitcher
@@ -72,9 +75,11 @@ export function PrivateAreaHeader({
           </span>
           <div className="leading-tight">
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              S-kit SaaS
+              {activeArea === 'admin' ? 'ADMIN' : 'DASHBOARD'}
             </p>
-            <span className="text-base font-semibold text-foreground">ACME</span>
+            <span className="text-base font-semibold text-foreground">
+              {resolvedProjectName}
+            </span>
           </div>
         </Link>
 
@@ -89,7 +94,8 @@ export function PrivateAreaHeader({
       themeId={themeId}
       data={{
         area: activeArea,
-        controlsSlot
+        controlsSlot: controlsSlot,
+        projectName: resolvedProjectName
       }}
       fallback={fallbackHeader}
     >

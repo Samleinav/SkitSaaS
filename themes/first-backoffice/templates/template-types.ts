@@ -9,6 +9,7 @@ export type TemplateData = {
   variant?: string;
   mode?: string;
   heading?: string;
+  projectName?: string;
   layoutStyle?: string;
   columns?: number;
 } & Record<string, unknown>;

@@ -22,8 +22,8 @@ const appConfig: AppConfig = {
   //   }
   // ---------------------------------------------------------------------------
   roles: {
-    adminArea: ['admin', 'owner'],
-    dashboardArea: ['member'],
+    adminArea: ['admin', ],
+    dashboardArea: ['member', 'owner'],
     // contextAffinity: {}
   }
 };

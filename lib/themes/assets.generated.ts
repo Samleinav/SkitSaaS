@@ -14,15 +14,15 @@ export type ThemeAreaAssetsBundle = {
 
 export const CORE_ASSETS_BY_AREA: Record<ThemeSelectionArea, CoreAreaAssetsBundle> = {
   "admin": {
-    "cssHref": "/.generated/core-assets/admin/core-e7f6c5298597.css",
+    "cssHref": "/.generated/core-assets/admin/core-330205695514.css",
     "scriptHref": null
   },
   "dashboard": {
-    "cssHref": "/.generated/core-assets/dashboard/core-e7f6c5298597.css",
+    "cssHref": "/.generated/core-assets/dashboard/core-330205695514.css",
     "scriptHref": null
   },
   "frontend": {
-    "cssHref": "/.generated/core-assets/frontend/core-e7f6c5298597.css",
+    "cssHref": "/.generated/core-assets/frontend/core-330205695514.css",
     "scriptHref": null
   }
 };
@@ -31,8 +31,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
   "theme.first.backoffice": {
     "admin": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.backoffice/admin/css/asset-1-5c8d106f5d69.css",
-        "/.generated/theme-assets/theme.first.backoffice/admin/css/asset-2-8ffe044e9c1f.css"
+        "/.generated/theme-assets/theme.first.backoffice/admin/css/asset-1-3e12c5ae5640.css",
+        "/.generated/theme-assets/theme.first.backoffice/admin/css/asset-2-c7bcad4f25bc.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -40,8 +40,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "dashboard": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.backoffice/dashboard/css/asset-1-5c8d106f5d69.css",
-        "/.generated/theme-assets/theme.first.backoffice/dashboard/css/asset-2-8ffe044e9c1f.css"
+        "/.generated/theme-assets/theme.first.backoffice/dashboard/css/asset-1-3e12c5ae5640.css",
+        "/.generated/theme-assets/theme.first.backoffice/dashboard/css/asset-2-c7bcad4f25bc.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -49,7 +49,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "frontend": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.backoffice/frontend/css/asset-1-5c8d106f5d69.css"
+        "/.generated/theme-assets/theme.first.backoffice/frontend/css/asset-1-3e12c5ae5640.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -59,7 +59,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
   "theme.first.frontend": {
     "admin": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.frontend/admin/css/asset-1-947389fe3b6c.css"
+        "/.generated/theme-assets/theme.first.frontend/admin/css/asset-1-4c6d3e1d1c33.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -67,7 +67,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "dashboard": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.frontend/dashboard/css/asset-1-947389fe3b6c.css"
+        "/.generated/theme-assets/theme.first.frontend/dashboard/css/asset-1-4c6d3e1d1c33.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -75,8 +75,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "frontend": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.first.frontend/frontend/css/asset-1-947389fe3b6c.css",
-        "/.generated/theme-assets/theme.first.frontend/frontend/css/asset-2-95d0214067f3.css"
+        "/.generated/theme-assets/theme.first.frontend/frontend/css/asset-1-4c6d3e1d1c33.css",
+        "/.generated/theme-assets/theme.first.frontend/frontend/css/asset-2-3ed2a63c2933.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,
@@ -86,8 +86,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
   "theme.nexus": {
     "admin": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-3820a9078464.css",
-        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-d4c09cb5028b.css"
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-1-4fc78a9650ff.css",
+        "/.generated/theme-assets/theme.nexus/admin/css/asset-2-73d98f691230.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -95,8 +95,8 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "dashboard": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-3820a9078464.css",
-        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-d4c09cb5028b.css"
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-1-4fc78a9650ff.css",
+        "/.generated/theme-assets/theme.nexus/dashboard/css/asset-2-73d98f691230.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": true,
@@ -104,7 +104,7 @@ export const THEME_ASSETS_BY_THEME_ID: Record<string, Record<ThemeSelectionArea,
     },
     "frontend": {
       "cssHrefs": [
-        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-3820a9078464.css"
+        "/.generated/theme-assets/theme.nexus/frontend/css/asset-1-4fc78a9650ff.css"
       ],
       "scriptHrefs": [],
       "ignoreCoreCss": false,

@@ -5,7 +5,9 @@ import type { ReactNode } from 'react';
 import { Building2 } from 'lucide-react';
 
 type LayoutPrivateHeaderData = {
+  area?: 'admin' | 'dashboard';
   controlsSlot?: ReactNode;
+  projectName?: string;
 };
 
 type LayoutPrivateHeaderTemplateProps = {
@@ -17,6 +19,9 @@ export default function LayoutPrivateHeaderTemplate({
   data,
   className
 }: LayoutPrivateHeaderTemplateProps) {
+  const projectName = data?.projectName?.trim() || 'S-Kit-SaaS';
+  const areaLabel = data?.area === 'admin' ? 'ADMIN' : 'DASHBOARD';
+
   return (
     <header
       className={
@@ -31,9 +36,9 @@ export default function LayoutPrivateHeaderTemplate({
           </span>
           <div className="leading-tight">
             <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              S-kit SaaS
+              {areaLabel}
             </p>
-            <span className="text-base font-semibold text-foreground">ACME</span>
+            <span className="text-base font-semibold text-foreground">{projectName}</span>
           </div>
         </Link>
 
