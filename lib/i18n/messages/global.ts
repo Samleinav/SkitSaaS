@@ -6,6 +6,7 @@ export type GlobalMessages = {
     home: string;
     features: string;
     pricing: string;
+    packs: string;
     signIn: string;
     signUp: string;
     dashboard: string;

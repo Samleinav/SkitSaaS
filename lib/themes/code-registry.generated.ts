@@ -88,6 +88,7 @@ export const THEME_CODE_REGISTRY: Record<string, CodeRegistryThemeEntry> = {
     templates: {
       "layout.frontend.shell": () => import("../../themes/first-frontend/templates/layout.frontend.shell"),
       "page.frontend.home": () => import("../../themes/first-frontend/templates/page.frontend.home"),
+      "page.frontend.packs": () => import("../../themes/first-frontend/templates/page.frontend.packs"),
       "page.frontend.pricing": () => import("../../themes/first-frontend/templates/page.frontend.pricing"),
       "system.not-found": () => import("../../themes/first-frontend/templates/system.not-found"),
     },

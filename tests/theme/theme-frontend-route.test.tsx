@@ -32,6 +32,18 @@ test('ThemeFrontendRoute renders active frontend route when registered', async (
   assert.doesNotMatch(html, /data-test-id="fallback"/);
 });
 
+test('ThemeFrontendRoute renders registered packs page route', async () => {
+  const rendered = await ThemeFrontendRoute({
+    path: '/packs',
+    themeId: 'theme.first.frontend',
+    fallback: <div data-test-id="fallback">fallback</div>
+  });
+  const html = renderToStaticMarkup(rendered);
+
+  assert.match(html, /data-theme-template="page.frontend.packs"/);
+  assert.doesNotMatch(html, /data-test-id="fallback"/);
+});
+
 test('ThemeFrontendRoute renders fallback when route loader throws', async () => {
   const themeId = 'theme.test.frontend.route.throw';
 

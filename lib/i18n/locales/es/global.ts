@@ -8,6 +8,7 @@ const messages = {
     home: 'Inicio',
     features: 'Funciones',
     pricing: 'Precios',
+    packs: 'Packs',
     signIn: 'Iniciar sesion',
     signUp: 'Crear cuenta',
     dashboard: 'Panel',

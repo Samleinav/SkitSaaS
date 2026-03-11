@@ -12,6 +12,10 @@ const routes = [
     loader: () => import('./templates/page.frontend.pricing')
   },
   {
+    path: '/packs',
+    loader: () => import('./templates/page.frontend.packs')
+  },
+  {
     path: '/404',
     loader: () => import('./templates/system.not-found')
   }

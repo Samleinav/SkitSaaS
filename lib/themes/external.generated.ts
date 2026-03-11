@@ -325,6 +325,10 @@ export const EXTERNAL_THEME_PACKS: ExternalThemePack[] = [
         "filePath": "themes/first-frontend/templates/page.frontend.home.tsx"
       },
       {
+        "componentId": "page.frontend.packs",
+        "filePath": "themes/first-frontend/templates/page.frontend.packs.tsx"
+      },
+      {
         "componentId": "page.frontend.pricing",
         "filePath": "themes/first-frontend/templates/page.frontend.pricing.tsx"
       },

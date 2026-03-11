@@ -8,6 +8,7 @@ const messages = {
     home: 'Home',
     features: 'Features',
     pricing: 'Pricing',
+    packs: 'Packs',
     signIn: 'Sign in',
     signUp: 'Sign Up',
     dashboard: 'Dashboard',

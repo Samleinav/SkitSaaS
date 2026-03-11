@@ -9,7 +9,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - Goal: iterate product features without rebuilding auth/db/payments boilerplate.
 - /admin ( `app\(dashboard)\admin` ) area for administration admin level
 - /dashboard [ `app\(dashboard)\dashboard` ]client area for users
-- /, /pricing, /checkout/[checkoutToken] and /contact-us public area [ `app\(frontend)` ]
+- /, /pricing, /packs, /checkout/[checkoutToken] and /contact-us public area [ `app\(frontend)` ]
 - /login (dashboard auth) and /admin/login (admin auth) in `app\(login)`
 ## Tech stack
 
@@ -23,10 +23,11 @@ Quick guide for agents working in this repository (`saas-starter`).
 ## Key structure
 
 - `app/(login)/*`: auth routes and actions (`/login`, `/sign-up`, `/admin/login`, legacy `/sign-in` redirect).
-- `app/(frontend)/*`: public area (`/`, `/pricing`, `/checkout/[checkoutToken]`, `/contact-us`).
+- `app/(frontend)/*`: public area (`/`, `/pricing`, `/packs`, `/checkout/[checkoutToken]`, `/contact-us`).
 - `app/(frontend)/not-found.tsx`: frontend-scoped not-found renderer (theme-aware fallback).
 - `app/(frontend)/modules/*`: frontend module dispatchers.
 - `app/(frontend)/[...moduleAlias]`: frontend custom module alias resolver.
+- `app/(frontend)/packs/page.tsx`: package comparison and commercial offering overview.
 - `app/(dashboard)/*`: private area (`/dashboard`, `/admin`).
 - `app/(dashboard)/dashboard/*`: team settings (general/activity/security).
 - `app/(dashboard)/dashboard/not-found.tsx`: dashboard-scoped not-found renderer (theme-aware fallback).
