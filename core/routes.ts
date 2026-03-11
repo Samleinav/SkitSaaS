@@ -23,13 +23,22 @@
  *   route('admin.users')  // "/admin/users"
  */
 import '@/lib/routing/area-setup'; // must be first — configures proxyAdmin/proxyAuth defaults
-import { RouteAdmin, RouteDashboard, RouteFrontend } from '@skitsaas/sdk';
+import {
+  RouteAdmin,
+  RouteArea,
+  RouteDashboard,
+  RouteFrontend,
+  getAreaBases
+} from '@skitsaas/sdk';
 import { CoreApiRoutes } from './api-routes';
+
+const RouteAdminPublic = (path: string) => RouteArea(getAreaBases().admin, [])(path);
 
 export const Routes = {
   admin: {
     home:    RouteAdmin('/').name('admin.home'),
-    login:   RouteAdmin('/login').name('admin.login'),
+    // Admin auth pages must stay publicly reachable to avoid proxy redirect loops.
+    login:   RouteAdminPublic('/login').name('admin.login'),
     account: RouteAdmin('/account').name('admin.account'),
 
     // App config section

@@ -24,6 +24,18 @@ test('public auth routes stay accessible without auth redirect', async () => {
   assert.equal(resolveUnauthenticatedRedirect('/admin/login'), null);
 });
 
+test('admin login route stays public in the proxy registry', async () => {
+  await loadProxyGuards();
+
+  const { getRegisteredRoute, matchRouteProxyChain } = await import('@skitsaas/sdk');
+  const adminLoginRoute = getRegisteredRoute('admin.login');
+
+  assert.ok(adminLoginRoute);
+  assert.equal(adminLoginRoute.path, '/admin/login');
+  assert.deepEqual(adminLoginRoute.proxies, []);
+  assert.deepEqual(matchRouteProxyChain('/admin/login'), []);
+});
+
 test('admin routes redirect to admin login when unauthenticated', async () => {
   const { resolveUnauthenticatedRedirect } = await loadProxyGuards();
 
