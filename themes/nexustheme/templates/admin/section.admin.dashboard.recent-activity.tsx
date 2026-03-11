@@ -18,14 +18,14 @@ export default function SectionAdminDashboardRecentActivityTemplate({
     >
       <div className="border-b border-border/60 px-6 py-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-primary/70">
-          Monitoring
+          Recent activity
         </p>
         <div className="mt-2 space-y-1.5">
           <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            Recent system activity and operational events
+            Latest system events
           </h3>
           <p className="text-sm leading-7 text-muted-foreground">
-            Track the latest signals without leaving the dashboard.
+            Review recent logs, delivery outcomes, and status changes from one place.
           </p>
         </div>
       </div>

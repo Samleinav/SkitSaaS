@@ -18,14 +18,14 @@ export default function SectionAdminDashboardQuickLinksTemplate({
     >
       <div className="border-b border-border/60 px-6 py-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-primary/70">
-          Admin shortcuts
+          Quick access
         </p>
         <div className="mt-2 space-y-1.5">
           <h3 className="text-lg font-semibold tracking-tight text-foreground">
-            High-frequency actions for daily operations
+            Operational workspaces
           </h3>
           <p className="text-sm leading-7 text-muted-foreground">
-            Jump into the workflows that usually need intervention first.
+            Open the sections that usually require review or intervention.
           </p>
         </div>
       </div>
