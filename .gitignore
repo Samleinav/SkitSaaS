@@ -63,3 +63,4 @@ lib/themes/assets.generated.ts
 lib/i18n/theme-translations.generated.ts
 lib/themes/code-registry.generated.ts
 lib/themes/external.generated.ts
+lib/i18n/translations.generated.ts

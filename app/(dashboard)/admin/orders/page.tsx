@@ -1,11 +1,8 @@
 import Link from 'next/link';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+  AdminMetricCard,
+  AdminPageShell
+} from '../admin-page-shell';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,24 +55,6 @@ function isTemplateMaintenanceOrderEvent(eventType: string) {
   return eventType.startsWith('subscription.template.');
 }
 
-type MetricCardProps = {
-  label: string;
-  value: number;
-};
-
-function MetricCard({ label, value }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardDescription>{label}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default async function AdminOrdersPage() {
   const { locale, messages } = await getServerLocaleAndMessages('admin');
   const dateLocale = getDateLocale(locale);
@@ -115,16 +94,16 @@ export default async function AdminOrdersPage() {
   const themeSelection = await getThemeSelectionForArea('admin');
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard
+      <AdminMetricCard
         label={ordersPage.metrics.receivedOrders}
         value={receivedOrders}
       />
-      <MetricCard label={ordersPage.metrics.pendingOrders} value={pendingOrders} />
-      <MetricCard
+      <AdminMetricCard label={ordersPage.metrics.pendingOrders} value={pendingOrders} />
+      <AdminMetricCard
         label={ordersPage.metrics.canceledOrders}
         value={canceledOrders}
       />
-      <MetricCard label={ordersPage.metrics.failedOrders} value={failedOrders} />
+      <AdminMetricCard label={ordersPage.metrics.failedOrders} value={failedOrders} />
     </div>
   );
   const metricsSlot = themeSelection?.themeKey ? (
@@ -144,31 +123,25 @@ export default async function AdminOrdersPage() {
   );
 
   const fallbackPage = (
-    <div className="space-y-6">
-      {metricsSlot}
-
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>{ordersPage.title}</CardTitle>
-            <CardDescription>{ordersPage.description}</CardDescription>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/admin/orders/create">{ordersPage.newOrder}</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <AdminOrdersDataTable
-            data={rows}
-            messages={messages}
-            tableTemplate={{
-              componentId: 'ui.table',
-              area: 'admin',
-            }}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <AdminPageShell
+      title={ordersPage.title}
+      description={ordersPage.description}
+      actions={
+        <Button asChild size="sm" className="rounded-lg">
+          <Link href="/admin/orders/create">{ordersPage.newOrder}</Link>
+        </Button>
+      }
+      metrics={metricsSlot}
+    >
+      <AdminOrdersDataTable
+        data={rows}
+        messages={messages}
+        tableTemplate={{
+          componentId: 'ui.table',
+          area: 'admin',
+        }}
+      />
+    </AdminPageShell>
   );
 
   if (!themeSelection?.themeKey) {

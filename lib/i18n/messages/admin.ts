@@ -37,6 +37,7 @@ export type AdminMessages = {
   };
   usersPage: {
     title: string;
+    description: string;
     loading: string;
     filterPlaceholder: string;
     newUser: string;

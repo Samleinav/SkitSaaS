@@ -1,10 +1,7 @@
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+  AdminMetricCard,
+  AdminPageShell
+} from '../admin-page-shell';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getPaymentTransactionsForAdmin
@@ -35,26 +32,6 @@ function formatAmount(
   } catch {
     return `${(amount / 100).toFixed(2)} ${normalizedCurrency}`;
   }
-}
-
-type MetricCardProps = {
-  label: string;
-  value: number;
-  hint?: string;
-};
-
-function MetricCard({ label, value, hint }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardDescription>{label}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-        {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
-  );
 }
 
 function normalizeOrderSource(
@@ -121,19 +98,19 @@ export default async function AdminPaymentsPage() {
   const themeSelection = await getThemeSelectionForArea('admin');
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard
+      <AdminMetricCard
         label={paymentsPage.metrics.completedPayments}
         value={totalPayments}
       />
-      <MetricCard
+      <AdminMetricCard
         label={paymentsPage.metrics.stripePayments}
         value={stripePayments}
       />
-      <MetricCard
+      <AdminMetricCard
         label={paymentsPage.metrics.paypalPayments}
         value={paypalPayments}
       />
-      <MetricCard
+      <AdminMetricCard
         label={paymentsPage.metrics.missingReferencePayments}
         value={missingPaymentReference}
         hint={paymentsPage.metrics.missingReferenceHint}
@@ -157,26 +134,20 @@ export default async function AdminPaymentsPage() {
   );
 
   const fallbackPage = (
-    <div className="space-y-6">
-      {metricsSlot}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{paymentsPage.title}</CardTitle>
-          <CardDescription>{paymentsPage.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AdminPaymentsDataTable
-            data={rows}
-            messages={messages}
-            tableTemplate={{
-              componentId: 'ui.table',
-              area: 'admin',
-            }}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <AdminPageShell
+      title={paymentsPage.title}
+      description={paymentsPage.description}
+      metrics={metricsSlot}
+    >
+      <AdminPaymentsDataTable
+        data={rows}
+        messages={messages}
+        tableTemplate={{
+          componentId: 'ui.table',
+          area: 'admin',
+        }}
+      />
+    </AdminPageShell>
   );
 
   if (!themeSelection?.themeKey) {

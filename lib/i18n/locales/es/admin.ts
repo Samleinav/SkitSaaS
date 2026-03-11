@@ -39,6 +39,8 @@ const messages = {
   },
   usersPage: {
     title: 'Usuarios',
+    description:
+      'Revisa cuentas de plataforma, roles, estado de acceso y cobertura de suscripcion por usuario desde un mismo shell.',
     loading: 'Cargando usuarios...',
     filterPlaceholder: 'Filtrar por correo...',
     newUser: 'Nuevo usuario',

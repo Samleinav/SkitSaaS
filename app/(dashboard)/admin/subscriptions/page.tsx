@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+  AdminMetricCard,
+  AdminPageShell
+} from '../admin-page-shell';
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
@@ -45,7 +42,7 @@ export default async function AdminSubscriptionsPage() {
 
     return (
       <ThemeCodeTemplate
-      themeId={themeSelection.themeKey}
+        themeId={themeSelection.themeKey}
         id="section.admin.table.subscriptions.templates.cell"
         data={{
           slot,
@@ -58,18 +55,64 @@ export default async function AdminSubscriptionsPage() {
     );
   };
 
+  const organizationTemplates = templates.filter(
+    (template) => template.targetScope === 'organization'
+  ).length;
+  const userTemplates = templates.filter(
+    (template) => template.targetScope === 'user'
+  ).length;
+  const publicFeaturesCount = templates.reduce(
+    (count, template) =>
+      count + template.features.filter((feature) => feature.isPublic).length,
+    0
+  );
+  const metricsFallback = (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <AdminMetricCard
+        label={subscriptionsPage.templatesTitle}
+        value={templates.length}
+      />
+      <AdminMetricCard
+        label={messages.templateForm.scopes.organization}
+        value={organizationTemplates}
+      />
+      <AdminMetricCard
+        label={messages.templateForm.scopes.user}
+        value={userTemplates}
+      />
+      <AdminMetricCard
+        label={subscriptionsPage.columns.publicFeatures}
+        value={publicFeaturesCount}
+      />
+    </div>
+  );
+  const metricsSlot = themeSelection?.themeKey ? (
+    <ThemeCodeTemplate
+      themeId={themeSelection.themeKey}
+      id="section.admin.metrics-grid"
+      data={{
+        variant: 'subscriptions.templates',
+        columns: 4
+      }}
+      fallback={metricsFallback}
+    >
+      {metricsFallback}
+    </ThemeCodeTemplate>
+  ) : (
+    metricsFallback
+  );
+
   const fallbackPage = (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle>{subscriptionsPage.templatesTitle}</CardTitle>
-          <CardDescription>{subscriptionsPage.templatesDescription}</CardDescription>
-        </div>
-        <Button asChild variant="outline" size="sm">
+    <AdminPageShell
+      title={subscriptionsPage.templatesTitle}
+      description={subscriptionsPage.templatesDescription}
+      actions={
+        <Button asChild size="sm" className="rounded-lg">
           <Link href="/admin/subscriptions/create">{subscriptionsPage.create}</Link>
         </Button>
-      </CardHeader>
-      <CardContent>
+      }
+      metrics={metricsSlot}
+    >
         {templates.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {subscriptionsPage.noTemplates}
@@ -239,8 +282,7 @@ export default async function AdminSubscriptionsPage() {
             </TableBody>
           </TemplateTable>
         )}
-      </CardContent>
-    </Card>
+    </AdminPageShell>
   );
 
   if (!themeSelection?.themeKey) {

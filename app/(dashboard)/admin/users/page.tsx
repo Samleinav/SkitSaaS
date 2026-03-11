@@ -1,9 +1,7 @@
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+  AdminMetricCard,
+  AdminPageShell
+} from '../admin-page-shell';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getAllUsersForAdmin,
@@ -21,24 +19,6 @@ import { resolveAdminUserDisplayStatus } from './status';
 
 export default async function AdminUsersPage() {
   return <AdminUsersTable />;
-}
-
-type MetricCardProps = {
-  label: string;
-  value: number;
-};
-
-function MetricCard({ label, value }: MetricCardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <p className="text-sm text-muted-foreground">{label}</p>
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 async function AdminUsersTable() {
@@ -76,15 +56,15 @@ async function AdminUsersTable() {
   const themeSelection = await getThemeSelectionForArea('admin');
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <MetricCard
+      <AdminMetricCard
         label={messages.usersTable.statusActive}
         value={activeUsersCount}
       />
-      <MetricCard
+      <AdminMetricCard
         label={messages.usersTable.statusSuspended}
         value={suspendedUsersCount}
       />
-      <MetricCard
+      <AdminMetricCard
         label={messages.usersTable.statusBanned}
         value={bannedUsersCount}
       />
@@ -107,33 +87,28 @@ async function AdminUsersTable() {
   );
 
   const fallbackPage = (
-    <div className="space-y-6">
-      {metricsSlot}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{messages.usersPage.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AdminUsersDataTable
-            data={data}
-            messages={messages}
-            tableTemplate={{
-              componentId: 'ui.table',
-              area: 'admin',
-            }}
-            toolbarActions={
-              <AdminCreateUserDialog
-                messages={messages}
-                userTemplateOptions={userTemplateOptions}
-                locale={dateLocale}
-                themeId={themeSelection.themeKey}
-              />
-            }
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <AdminPageShell
+      title={messages.usersPage.title}
+      description={messages.usersPage.description}
+      actions={
+        <AdminCreateUserDialog
+          messages={messages}
+          userTemplateOptions={userTemplateOptions}
+          locale={dateLocale}
+          themeId={themeSelection.themeKey}
+        />
+      }
+      metrics={metricsSlot}
+    >
+      <AdminUsersDataTable
+        data={data}
+        messages={messages}
+        tableTemplate={{
+          componentId: 'ui.table',
+          area: 'admin',
+        }}
+      />
+    </AdminPageShell>
   );
 
   if (!themeSelection?.themeKey) {
@@ -145,7 +120,8 @@ async function AdminUsersTable() {
       themeId={themeSelection.themeKey}
       id="page.admin.users"
       data={{
-        title: messages.usersPage.title
+        title: messages.usersPage.title,
+        description: messages.usersPage.description
       }}
       fallback={fallbackPage}
     >
