@@ -11,7 +11,12 @@ export default function PageAdminUsersTemplate({
   const description = 'Manage user accounts, subscriptions, and access permissions.';
 
   return (
-    <NexusPageShell className={className} title={title} description={description}>
+    <NexusPageShell
+      className={className}
+      title={title}
+      description={description}
+      variant="compact"
+    >
       {children}
     </NexusPageShell>
   );
