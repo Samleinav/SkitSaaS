@@ -199,45 +199,11 @@ export default async function HomePage() {
       path="/"
       themeId={themeSelection.themeKey}
       data={{
-        badge: home.badge,
-        heroTitleLine1: home.hero.titleLine1,
-        heroTitleLine2: home.hero.titleLine2,
-        heroDescription: home.hero.description,
-        viewCodeLabel: home.cta.viewCodeButton,
-        featureLabel: header.features,
-        featureHighlightOne: home.features.reactTitle,
-        featureHighlightTwo: home.features.dbTitle,
-        featureHighlightThree: home.features.stripeTitle,
-        showcaseTitle: home.showcase.sectionTitle,
-        securityLabel: home.showcase.securityLabel,
-        securityValue: home.showcase.securityValue,
-        billingLabel: home.showcase.billingLabel,
-        billingValue: header.pricing,
-        ctaTitle: home.cta.title,
-        ctaDescription: home.cta.description,
-        pricingLabel: header.pricing,
-        viewCodeHref: 'https://github.com/Samleinav/s-kit-saas',
-        featureCards: [
-          {
-            icon: 'rocket',
-            title: home.features.reactTitle,
-            description: home.features.reactDescription
-          },
-          {
-            icon: 'database',
-            title: home.features.dbTitle,
-            description: home.features.dbDescription
-          },
-          {
-            icon: 'credit-card',
-            title: home.features.stripeTitle,
-            description: home.features.stripeDescription
-          }
-        ]
+        viewCodeHref: 'https://github.com/Samleinav/s-kit-saas'
       }}
       fallback={fallbackPage}
     >
-      <Terminal />
+      <Terminal themeId={themeSelection.themeKey} />
     </ThemeFrontendRoute>
   );
 }

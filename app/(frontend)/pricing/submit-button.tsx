@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@skitsaas/sdk';
 import { ThemedAsyncSubmitButton } from '@/components/ui/themed-async-submit-button';
 
 export function SubmitButton({
@@ -13,22 +13,21 @@ export function SubmitButton({
   disabledLabel?: string | null;
   themeId?: string | null;
 }) {
-  const messages = useAreaMessages('global');
-  const submitButton = messages.submitButton;
+  const t = useI18n({ themeId, area: 'frontend' });
   const idleLabel = disabled
-    ? disabledLabel || submitButton.comingSoon
-    : submitButton.getStarted;
+    ? disabledLabel || t('Unavailable')
+    : t('Choose plan');
 
   return (
     <ThemedAsyncSubmitButton
       themeId={themeId}
       slot="frontend.pricing.submit"
       idleLabel={idleLabel}
-      pendingLabel={submitButton.loading}
+      pendingLabel={t('Loading...')}
       idleIcon={disabled ? null : <ArrowRight className="ml-2 h-4 w-4" />}
       disabled={disabled}
       variant="outline"
-      className="w-full rounded-sm border-amber-200/30 bg-amber-200/10 text-[11px] tracking-[0.18em] text-amber-100 uppercase hover:bg-amber-200 hover:text-black"
+      className="h-12 w-full rounded-full border-amber-200/30 bg-amber-200/12 px-5 text-[11px] tracking-[0.18em] text-amber-100 uppercase hover:bg-amber-200 hover:text-black"
     />
   );
 }

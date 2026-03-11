@@ -181,8 +181,8 @@ Host routes pass `data` into:
 The minimum v1 contract is:
 
 - frontend route `/__layout`: no required keys (`data` can be `{}`).
-- frontend route `/`: `badge`, `heroTitleLine1`, `heroTitleLine2`, `heroDescription`, `viewCodeLabel`, `featureLabel`, `featureHighlightOne`, `featureHighlightTwo`, `featureHighlightThree`, `showcaseTitle`, `securityLabel`, `securityValue`, `billingLabel`, `billingValue`, `ctaTitle`, `ctaDescription`, `pricingLabel`, `viewCodeHref`, `featureCards`.
-- frontend route `/pricing`: `badgeLabel`, `title`, `subtitle`.
+- frontend route `/`: `viewCodeHref`.
+- frontend route `/pricing`: `overviewItems`, `sectionLinks`.
 - `layout.private.shell`: `area`, `route`, `projectName`.
 - `layout.admin.shell`: `heading`, `projectName`.
 - `layout.admin.app-config.shell`: `section`.

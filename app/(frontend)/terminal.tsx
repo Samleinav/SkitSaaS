@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@skitsaas/sdk';
 
-export function Terminal() {
-  const messages = useAreaMessages('global');
-  const terminal = messages.terminal;
+export function Terminal({ themeId = null }: { themeId?: string | null }) {
+  const t = useI18n({ themeId, area: 'frontend' });
   const [terminalStep, setTerminalStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const terminalSteps = [
@@ -46,7 +45,7 @@ export function Terminal() {
           <button
             onClick={copyToClipboard}
             className="text-gray-400 transition-colors hover:text-white"
-            aria-label={copied ? terminal.copiedAria : terminal.copyAria}
+            aria-label={copied ? t('Copied') : t('Copy to clipboard')}
           >
             {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
           </button>

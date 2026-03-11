@@ -1,5 +1,8 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { useI18n } from '@skitsaas/sdk';
 import {
   ArrowRight,
   CreditCard,
@@ -16,26 +19,32 @@ type TemplateProps = {
 };
 
 type HomeFeatureCard = {
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   icon: 'rocket' | 'database' | 'credit-card';
 };
 
-const DEFAULT_FEATURE_CARDS: HomeFeatureCard[] = [
+const FEATURE_HIGHLIGHT_KEYS = [
+  'React + Next.js',
+  'Postgres + Drizzle',
+  'Stripe + PayPal'
+] as const;
+
+const FEATURE_CARDS: readonly HomeFeatureCard[] = [
   {
     icon: 'rocket',
-    title: 'React + Next.js',
-    description: 'Modern app router foundation with reusable patterns.'
+    titleKey: 'React + Next.js',
+    descriptionKey: 'Modern app router foundation with reusable patterns.'
   },
   {
     icon: 'database',
-    title: 'Postgres + Drizzle',
-    description: 'Typed database layer ready for production workflows.'
+    titleKey: 'Postgres + Drizzle',
+    descriptionKey: 'Typed database layer ready for production workflows.'
   },
   {
     icon: 'credit-card',
-    title: 'Stripe + PayPal',
-    description: 'Built-in checkout and subscription lifecycle support.'
+    titleKey: 'Stripe + PayPal',
+    descriptionKey: 'Built-in checkout and subscription lifecycle support.'
   }
 ];
 
@@ -43,40 +52,6 @@ function asNonEmptyString(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim().length > 0
     ? value.trim()
     : fallback;
-}
-
-function asFeatureCards(value: unknown) {
-  if (!Array.isArray(value)) {
-    return DEFAULT_FEATURE_CARDS;
-  }
-
-  const normalized = value
-    .map((item) => {
-      if (!item || typeof item !== 'object') {
-        return null;
-      }
-
-      const entry = item as Record<string, unknown>;
-      const iconValue = asNonEmptyString(entry.icon, '').toLowerCase();
-      const icon =
-        iconValue === 'rocket' ||
-        iconValue === 'database' ||
-        iconValue === 'credit-card'
-          ? iconValue
-          : 'rocket';
-
-      return {
-        icon,
-        title: asNonEmptyString(entry.title, ''),
-        description: asNonEmptyString(entry.description, '')
-      } satisfies HomeFeatureCard;
-    })
-    .filter(
-      (item): item is HomeFeatureCard =>
-        Boolean(item && item.title) && Boolean(item && item.description)
-    );
-
-  return normalized.length > 0 ? normalized : DEFAULT_FEATURE_CARDS;
 }
 
 function resolveFeatureIcon(icon: HomeFeatureCard['icon']) {
@@ -94,45 +69,14 @@ function resolveFeatureIcon(icon: HomeFeatureCard['icon']) {
 export default function PageFrontendHomeTemplate({
   data,
   className,
-  children
+  children,
+  themeId
 }: TemplateProps) {
-  const badge = asNonEmptyString(data?.badge, 'SaaS Starter');
-  const heroTitleLine1 = asNonEmptyString(data?.heroTitleLine1, 'Build');
-  const heroTitleLine2 = asNonEmptyString(data?.heroTitleLine2, 'Faster');
-  const heroDescription = asNonEmptyString(
-    data?.heroDescription,
-    'Production-ready SaaS foundation.'
-  );
-  const viewCodeLabel = asNonEmptyString(data?.viewCodeLabel, 'View Code');
-  const featureLabel = asNonEmptyString(data?.featureLabel, 'Features');
-  const featureHighlightOne = asNonEmptyString(
-    data?.featureHighlightOne,
-    'React + Next.js'
-  );
-  const featureHighlightTwo = asNonEmptyString(
-    data?.featureHighlightTwo,
-    'Postgres + Drizzle'
-  );
-  const featureHighlightThree = asNonEmptyString(
-    data?.featureHighlightThree,
-    'Stripe + PayPal'
-  );
-  const showcaseTitle = asNonEmptyString(data?.showcaseTitle, 'Platform capabilities');
-  const securityLabel = asNonEmptyString(data?.securityLabel, 'Security');
-  const securityValue = asNonEmptyString(data?.securityValue, 'Role-based access');
-  const billingLabel = asNonEmptyString(data?.billingLabel, 'Billing');
-  const billingValue = asNonEmptyString(data?.billingValue, 'Pricing');
-  const ctaTitle = asNonEmptyString(data?.ctaTitle, 'Ready to launch?');
-  const ctaDescription = asNonEmptyString(
-    data?.ctaDescription,
-    'Take the starter and ship the next SaaS release.'
-  );
-  const pricingLabel = asNonEmptyString(data?.pricingLabel, 'Pricing');
+  const t = useI18n({ themeId, area: 'frontend' });
   const viewCodeHref = asNonEmptyString(
     data?.viewCodeHref,
     'https://github.com/Samleinav/s-kit-saas'
   );
-  const featureCards = asFeatureCards(data?.featureCards);
 
   return (
     <main
@@ -144,44 +88,40 @@ export default function PageFrontendHomeTemplate({
       <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-8 animate-[marketing-rise_650ms_ease-out]">
           <span className="inline-flex items-center rounded-full border border-amber-200/20 bg-amber-200/10 px-4 py-1 text-[11px] font-medium tracking-[0.2em] text-amber-100 uppercase">
-            {badge}
+            {t('SaaS Starter Kit')}
           </span>
 
           <div className="space-y-4">
             <h1 className="font-[family-name:var(--font-marketing-serif)] text-5xl font-medium leading-[1.05] text-zinc-100 sm:text-6xl lg:text-7xl">
-              {heroTitleLine1}
+              {t('Build Your SaaS')}
               <span className="marketing-text-gradient block italic">
-                {heroTitleLine2}
+                {t('Faster Than Ever')}
               </span>
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-              {heroDescription}
+              {t(
+                'Launch your SaaS product in record time with our powerful, ready-to-use template. Packed with modern technologies and essential integrations.'
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
             <a href={viewCodeHref} target="_blank" rel="noreferrer">
               <span className="inline-flex h-12 items-center rounded-sm border border-zinc-700 bg-zinc-900/70 px-6 text-[11px] tracking-[0.18em] text-zinc-100 uppercase transition-colors hover:border-amber-200/40 hover:bg-zinc-900 hover:text-amber-100">
-                {viewCodeLabel}
+                {t('View Code')}
               </span>
             </a>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="theme-first-frontend-panel rounded-xl p-4">
-              <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">01</p>
-              <p className="mt-2 text-sm font-medium text-zinc-100">{featureHighlightOne}</p>
-            </div>
-            <div className="theme-first-frontend-panel rounded-xl p-4">
-              <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">02</p>
-              <p className="mt-2 text-sm font-medium text-zinc-100">{featureHighlightTwo}</p>
-            </div>
-            <div className="theme-first-frontend-panel rounded-xl p-4">
-              <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">03</p>
-              <p className="mt-2 text-sm font-medium text-zinc-100">
-                {featureHighlightThree}
-              </p>
-            </div>
+            {FEATURE_HIGHLIGHT_KEYS.map((key, index) => (
+              <div key={key} className="theme-first-frontend-panel rounded-xl p-4">
+                <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
+                  {String(index + 1).padStart(2, '0')}
+                </p>
+                <p className="mt-2 text-sm font-medium text-zinc-100">{t(key)}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -196,21 +136,21 @@ export default function PageFrontendHomeTemplate({
 
           <div className="theme-first-frontend-panel absolute -top-5 right-0 hidden max-w-[220px] rounded-xl p-4 md:block animate-[marketing-float_8s_ease-in-out_infinite]">
             <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-              {securityLabel}
+              {t('Security')}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-amber-100" />
-              <p className="text-sm font-medium text-zinc-100">{securityValue}</p>
+              <p className="text-sm font-medium text-zinc-100">{t('Auth + RBAC')}</p>
             </div>
           </div>
 
           <div className="theme-first-frontend-panel absolute -bottom-6 left-0 hidden max-w-[220px] rounded-xl p-4 md:block animate-[marketing-float_8s_ease-in-out_infinite_1.4s]">
             <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-              {billingLabel}
+              {t('Billing')}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-amber-100" />
-              <p className="text-sm font-medium text-zinc-100">{billingValue}</p>
+              <p className="text-sm font-medium text-zinc-100">{t('Pricing')}</p>
             </div>
           </div>
         </div>
@@ -219,19 +159,19 @@ export default function PageFrontendHomeTemplate({
       <section id="features" className="mt-24 space-y-6">
         <div className="max-w-3xl space-y-2">
           <p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase">
-            {featureLabel}
+            {t('Features')}
           </p>
           <h2 className="font-[family-name:var(--font-marketing-serif)] text-4xl font-medium text-zinc-100 sm:text-5xl">
-            {showcaseTitle}
+            {t('Build fast. Ship clean. Scale without rewrites.')}
           </h2>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {featureCards.map((feature) => {
+          {FEATURE_CARDS.map((feature) => {
             const Icon = resolveFeatureIcon(feature.icon);
             return (
               <article
-                key={`${feature.icon}:${feature.title}`}
+                key={`${feature.icon}:${feature.titleKey}`}
                 className="theme-first-frontend-panel relative overflow-hidden rounded-2xl p-6"
               >
                 <div className="pointer-events-none absolute -top-10 -right-8 h-24 w-24 rounded-full bg-amber-200/10 blur-2xl" />
@@ -239,10 +179,10 @@ export default function PageFrontendHomeTemplate({
                   <Icon className="h-5 w-5" />
                 </span>
                 <h3 className="relative text-xl font-semibold text-zinc-100">
-                  {feature.title}
+                  {t(feature.titleKey)}
                 </h3>
                 <p className="relative mt-2 text-sm leading-relaxed text-zinc-400">
-                  {feature.description}
+                  {t(feature.descriptionKey)}
                 </p>
               </article>
             );
@@ -256,13 +196,17 @@ export default function PageFrontendHomeTemplate({
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="space-y-3">
               <h2 className="font-[family-name:var(--font-marketing-serif)] text-3xl font-medium text-zinc-100 sm:text-4xl">
-                {ctaTitle}
+                {t('Ready to launch your SaaS?')}
               </h2>
-              <p className="max-w-3xl text-base text-zinc-400">{ctaDescription}</p>
+              <p className="max-w-3xl text-base text-zinc-400">
+                {t(
+                  "Our template provides everything you need to get your SaaS up and running quickly. Don't waste time on boilerplate - focus on what makes your product unique."
+                )}
+              </p>
             </div>
             <Link href="/pricing">
               <span className="inline-flex h-12 items-center rounded-sm border border-amber-200/30 bg-amber-200/10 px-6 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black">
-                {pricingLabel}
+                {t('Pricing')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             </Link>

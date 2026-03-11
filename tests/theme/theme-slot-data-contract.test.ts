@@ -30,34 +30,14 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     filePath: 'app/(frontend)/page.tsx',
     renderer: 'ThemeFrontendRoute',
     requiredSnippets: ['path="/"'],
-    requiredDataKeys: [
-      'badge',
-      'heroTitleLine1',
-      'heroTitleLine2',
-      'heroDescription',
-      'viewCodeLabel',
-      'featureLabel',
-      'featureHighlightOne',
-      'featureHighlightTwo',
-      'featureHighlightThree',
-      'showcaseTitle',
-      'securityLabel',
-      'securityValue',
-      'billingLabel',
-      'billingValue',
-      'ctaTitle',
-      'ctaDescription',
-      'pricingLabel',
-      'viewCodeHref',
-      'featureCards'
-    ],
+    requiredDataKeys: ['viewCodeHref'],
     requiresFallbackProp: true
   },
   {
     filePath: 'app/(frontend)/pricing/page.tsx',
     renderer: 'ThemeFrontendRoute',
     requiredSnippets: ['path="/pricing"'],
-    requiredDataKeys: ['badgeLabel', 'title', 'subtitle'],
+    requiredDataKeys: ['overviewItems', 'sectionLinks'],
     requiresFallbackProp: true
   },
   {
