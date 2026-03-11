@@ -23,7 +23,7 @@ function collectText(node: ReactNode, values: string[] = []): string[] {
       return;
     }
 
-    if (!isValidElement(child)) {
+    if (!isValidElement<{ children?: ReactNode }>(child)) {
       return;
     }
 
