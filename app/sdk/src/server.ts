@@ -1966,3 +1966,18 @@ export type {
   ConsumeOptions,
   ConsumeResult,
 } from './subscription-features.js';
+
+// ─── RichUser / role checks / UserContext ─────────────────────────────────────
+
+export {
+  configureUserRoles,
+  configureUserContext,
+  enrichUser,
+} from './user-roles.js';
+
+export type {
+  UserRolesConfig,
+  UserContext,
+  RichUser,
+  RichUserMethods,
+} from './user-roles.js';

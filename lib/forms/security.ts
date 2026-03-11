@@ -1,4 +1,4 @@
-import { isAdminRole } from '@/lib/runtime-config/roles';
+import { enrichUser } from '@skitsaas/sdk';
 
 export type BuildFormAccessScope = 'public' | 'user' | 'admin';
 export type BuildFormArea = 'admin' | 'dashboard' | 'frontend';
@@ -64,5 +64,5 @@ export function isTrustedBuildFormPreflightRequest(request: Request) {
 }
 
 export function isBuildFormAdminRole(value: unknown) {
-  return isAdminRole(String(value ?? '').trim().toLowerCase());
+  return enrichUser({ id: 0, role: String(value ?? '').trim().toLowerCase() }).isAdmin();
 }

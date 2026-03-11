@@ -16,7 +16,7 @@ import {
   configureApiCors,
 } from '@skitsaas/sdk';
 import type { NextRequest } from 'next/server';
-import { proxyAdmin, proxyAuth, proxyApiAdmin, proxyApiAuth, proxyRateLimit } from './proxies';
+import { proxyAdmin, proxyAuth, proxyApiAdmin, proxyApiAuth, proxyRateLimit, proxyApiRoles } from './proxies';
 
 configureAreaDefaults({
   admin: [proxyAdmin],
@@ -84,4 +84,5 @@ if (corsOrigins) {
 configureApiAuthProxies({
   user:  async (req) => (await proxyApiAuth(req as NextRequest)) ?? defaultUserApiRateLimit(req),
   admin: (req) => proxyApiAdmin(req as NextRequest),
+  roleCheck: (roles) => proxyApiRoles(roles),
 });

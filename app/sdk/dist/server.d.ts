@@ -231,3 +231,5 @@ export declare function createModuleApiRouter<TUser = unknown>({ routes, readRol
 export declare function createModulePageRouter<TUser = unknown>({ routes, readRoles, adminRoles, onUnauthorized, onForbidden, onNotFound }: ModulePageRouterOptions<TUser>): ModulePageHandler;
 export { configureSubscriptionFeatures, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';
 export type { SubscriptionFeaturesAdapter, QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
+export { configureUserRoles, configureUserContext, enrichUser, } from './user-roles.js';
+export type { UserRolesConfig, UserContext, RichUser, RichUserMethods, } from './user-roles.js';

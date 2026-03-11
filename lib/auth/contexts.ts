@@ -5,13 +5,17 @@ import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
 import { teamMembers, type User } from '@/lib/db/schema';
 import { areTeamsEnabled } from '@/lib/organizations/config';
-import { getAdminAreaRoles, getRoleContextAffinity } from '@/lib/runtime-config/roles';
+import { enrichUser } from '@skitsaas/sdk';
+import type { RoleContextAffinity } from '@/lib/runtime-config/types';
+import appConfig from '@/app.config';
 
-export type UserContext =
-  | { type: 'system_admin' }
-  | { type: 'team_member'; teamId: number; memberRole: string }
-  | { type: 'standalone'; userId: number }
-  | { type: 'public' };
+// UserContext is now defined in the SDK — re-exported here for backwards compat.
+export type { UserContext } from '@skitsaas/sdk';
+import type { UserContext } from '@skitsaas/sdk';
+
+function getRoleContextAffinity(role: string): RoleContextAffinity | null {
+  return appConfig.roles?.contextAffinity?.[role] ?? null;
+}
 
 type AuthenticatedDashboardContext = Exclude<UserContext, { type: 'public' }>;
 type TeamDashboardContext = Extract<UserContext, { type: 'team_member' }>;
@@ -33,7 +37,7 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
   }
 
   // Admin-area roles always resolve to system_admin regardless of team membership.
-  if (getAdminAreaRoles().has(user.role)) {
+  if (enrichUser(user).isAdmin()) {
     return { type: 'system_admin' };
   }
 

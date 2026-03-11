@@ -33,6 +33,7 @@ import {
   clearBreakGlassPasswordFailureState,
   resolveClientIpAddress
 } from '@/lib/auth/break-glass';
+import { enrichUser } from '@skitsaas/sdk';
 import { isPasswordLoginAllowedForArea } from '@/lib/auth/login-policy';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
@@ -382,8 +383,7 @@ async function signInByArea(
     clearBreakGlassPasswordFailureState({ email, ipAddress });
   }
 
-  const canAccessAdmin =
-    foundUser.role === 'owner' || foundUser.role === 'admin';
+  const canAccessAdmin = enrichUser(foundUser).isAdmin();
   if (authArea === 'admin' && !canAccessAdmin) {
     await emitEventAsync(
       EVENT_HOOKS.authSignInFailed,

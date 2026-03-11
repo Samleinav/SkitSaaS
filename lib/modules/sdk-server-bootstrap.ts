@@ -10,13 +10,15 @@ import {
   configureModuleConfig,
   configureNotifications,
   configureRevalidation,
-  configureSubscriptionFeatures
+  configureSubscriptionFeatures,
+  configureUserRoles,
+  configureUserContext,
 } from '@skitsaas/sdk/server';
 import { configureRateLimitBackend } from '@skitsaas/sdk';
 import { configureBuildFormPreflightRateLimit } from '@/lib/forms/preflight';
 import { checkRateLimit } from '@/lib/routing/rate-limit';
 import { createRedisRateLimitBackend, hasRateLimitRedisConfig } from '@/lib/routing/rate-limit-redis';
-import { getAdminAreaRoles } from '@/lib/runtime-config/roles';
+import { enrichUser } from '@skitsaas/sdk';
 import {
   getAppConfigValueFromDb,
   inferAppConfigIsSecret,
@@ -39,6 +41,8 @@ import { setSession } from '@/lib/auth/session';
 import { createSystemNotification } from '@/lib/notifications/service';
 import { quotaAdapter } from '@/lib/quota/service';
 import { and, eq, isNull } from 'drizzle-orm';
+import appConfig from '@/app.config';
+import { getUserContext } from '@/lib/auth/contexts';
 
 let bootstrapped = false;
 const DRIZZLE_TABLE_SYMBOL = Symbol.for('drizzle:IsDrizzleTable');
@@ -145,7 +149,7 @@ function normalizeRole(value: unknown) {
 async function requireAdminDashboardUser() {
   const currentUser = await requireDashboardUser();
   const role = normalizeRole((currentUser as { role?: unknown }).role);
-  if (!getAdminAreaRoles().has(role)) {
+  if (!enrichUser({ id: 0, role }).isAdmin()) {
     redirect('/dashboard');
   }
 
@@ -244,6 +248,19 @@ export function bootstrapModuleSdkServer() {
   );
 
   configureSubscriptionFeatures(quotaAdapter);
+
+  // ---------------------------------------------------------------------------
+  // User roles & context — maps app.config.ts role arrays to SDK enrichUser()
+  // ---------------------------------------------------------------------------
+  configureUserRoles({
+    adminAreaRoles:     appConfig.roles?.adminArea     ?? ['admin'],
+    dashboardAreaRoles: appConfig.roles?.dashboardArea ?? ['member', 'owner'],
+  });
+
+  configureUserContext({
+    resolve: (userId, role) =>
+      getUserContext({ id: userId, role } as Parameters<typeof getUserContext>[0]),
+  });
 
   // ---------------------------------------------------------------------------
   // Distributed rate limit backend — Redis (REDIS_URL or RATE_LIMIT_REDIS_URL).

@@ -45,6 +45,7 @@ Exports:
 - structured datatable helpers (`defineBuildTable`, `buildTableColumn`, `buildTableAction`, `buildTableFilter`, `withBuildTableData`, `parseBuildTableQueryState`, `resolveBuildTableView`)
 - datatable portable renderer (`DataTable`)
 - rate limiting (`withRateLimit`, `checkRateLimit`, `configureRateLimitBackend`, `resolveClientIp`)
+- role checks (`enrichUser`, `RichUser`, `UserContext`, `RichUserMethods`) — client+server safe
 
 Structured form contract:
 
@@ -121,6 +122,9 @@ Exports:
 - `getQuotaStatus`
 - `consumeQuota`
 - `QuotaExceededError`
+- `configureUserRoles`
+- `configureUserContext`
+- `enrichUser` (also in `@skitsaas/sdk`)
 
 ## Subscription Feature Gates & Quota
 
@@ -157,6 +161,57 @@ run: async (payload) => {
 The adapter (`lib/quota/service.ts`) reads `subscription_template_features` + `subscription_assignments` and writes to `quota_usage`. Feature keys are defined in `lib/features/catalog.ts`.
 
 Public types also available from `@skitsaas/sdk`: `QuotaContext`, `FeatureCheckResult`, `QuotaStatus`, `ConsumeOptions`, `ConsumeResult`, `QuotaExceededError`.
+
+## RichUser — Role Checks & User Context
+
+`enrichUser(user)` adds role-check methods to any object with `{ id: number; role: string }`. Available from both `@skitsaas/sdk` (client+server) and `@skitsaas/sdk/server` (with configure functions).
+
+```ts
+import { enrichUser } from '@skitsaas/sdk';
+
+const u = enrichUser(user);
+u.isAdmin()                    // role in adminAreaRoles (default: ['admin'])
+u.isOwner()                    // role === 'owner' (team owner — NOT system admin)
+u.isMember()                   // role in dashboardAreaRoles ∪ adminAreaRoles
+u.hasRole('teacher')
+u.hasAnyRole('owner', 'teacher')
+u.canAccess('admin' | 'dashboard')
+await u.getContext()           // → UserContext (server-side only, needs adapter)
+```
+
+**`UserContext`** (from `@skitsaas/sdk`):
+
+```ts
+type UserContext =
+  | { type: 'system_admin' }
+  | { type: 'team_member'; teamId: number; memberRole: string }
+  | { type: 'standalone'; userId: number }
+  | { type: 'public' };
+```
+
+**owner ≠ admin**: `isOwner()` = team owner (dashboard access). `isAdmin()` = system admin (`/admin` access). They are independent — never combine them.
+
+Adapter wiring in `lib/modules/sdk-server-bootstrap.ts`:
+
+```ts
+configureUserRoles({
+  adminAreaRoles:     appConfig.roles?.adminArea     ?? ['admin'],
+  dashboardAreaRoles: appConfig.roles?.dashboardArea ?? ['member', 'owner'],
+});
+configureUserContext({
+  resolve: (userId, role) => getUserContext({ id: userId, role } as User),
+});
+```
+
+Host shortcut: `lib/auth/current-user.ts` → `getCurrentUser(): Promise<RichUser<User> | null>` and `requireCurrentUser()`.
+
+**Multi-role API routing** — restrict an endpoint to specific roles:
+
+```ts
+RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+```
+
+Requires `configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) })` in `lib/routing/area-setup.ts` (already configured by default).
 
 ## Persisted Notifications
 

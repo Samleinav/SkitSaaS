@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { ApiRouteProxyFn, RateLimitConfig, RouteProxyFn } from '@skitsaas/sdk';
-import { getAdminAreaRoles } from '@/lib/runtime-config/roles';
+import { enrichUser } from '@skitsaas/sdk';
 
 const SESSION_COOKIE = 'session';
 const ADMIN_LOGIN = '/admin/login';
@@ -147,7 +147,7 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
       lookupSession(session.jti)
     ]);
 
-    if (account.length === 0 || !getAdminAreaRoles().has(account[0]!.role)) {
+    if (account.length === 0 || !enrichUser({ id: 0, role: account[0]!.role }).isAdmin()) {
       const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -254,7 +254,7 @@ export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
       lookupSession(session.jti)
     ]);
 
-    if (account.length === 0 || !getAdminAreaRoles().has(account[0]!.role)) {
+    if (account.length === 0 || !enrichUser({ id: 0, role: account[0]!.role }).isAdmin()) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -373,7 +373,7 @@ export const proxyBuildFormValidateAccess: ApiRouteProxyFn = async (request: Req
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (accounts.length === 0 || !getAdminAreaRoles().has(accounts[0]!.role)) {
+    if (accounts.length === 0 || !enrichUser({ id: 0, role: accounts[0]!.role }).isAdmin()) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
   } else {
@@ -419,6 +419,46 @@ export function proxyRateLimit(config: RateLimitConfig): ApiRouteProxyFn {
       return Response.json({ error: 'Too many requests.' }, { status: 429, headers });
     }
     return null;
+  };
+}
+
+/**
+ * Creates an API proxy that restricts access to users whose role is in the allowlist.
+ * Runs after the auth proxy in the chain (session is already verified at this point).
+ *
+ * Inject via configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) }).
+ * The role is read from the DB to prevent stale-JWT role spoofing.
+ *
+ * @example
+ * // area-setup.ts
+ * configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) })
+ *
+ * // routes.ts (module)
+ * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+ */
+export function proxyApiRoles(allowedRoles: string[]): ApiRouteProxyFn {
+  const allowedSet = new Set(allowedRoles);
+  return async (request: Request) => {
+    const cookieValue = request.headers.get('cookie')?.match(/(?:^|;\s*)session=([^;]+)/)?.[1];
+    if (!cookieValue) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const session = await verifySessionCookie(cookieValue);
+    if (!session) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const account = await lookupUser(session.userId);
+    if (account.length === 0) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!allowedSet.has(account[0]!.role)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    return null; // role allowed — continue chain
   };
 }
 

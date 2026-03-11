@@ -402,3 +402,9 @@ export type {
   ConsumeResult,
 } from './subscription-features.js';
 export { QuotaExceededError } from './subscription-features.js';
+
+// RichUser — enriches any user object with role-check methods.
+// enrichUser() is safe client-side (no server-only imports).
+// getContext() requires the server adapter — use server-side only.
+export { enrichUser } from './user-roles.js';
+export type { UserRolesConfig, UserContext, RichUser, RichUserMethods } from './user-roles.js';

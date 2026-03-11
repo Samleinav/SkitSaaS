@@ -17,10 +17,11 @@ All protected routes run through a composable proxy chain. There are four built-
 
 | Proxy | Use case | Auth failure response |
 |-------|----------|-----------------------|
-| `proxyAdmin` | Page routes requiring admin or owner session | Redirect → `/admin/login` |
+| `proxyAdmin` | Page routes requiring admin session (per `adminAreaRoles`) | Redirect → `/admin/login` |
 | `proxyAuth` | Page routes requiring any active session | Redirect → `/sign-in` |
-| `proxyApiAdmin` | API route handlers requiring admin or owner session | `403 Forbidden` JSON |
+| `proxyApiAdmin` | API route handlers requiring admin session (per `adminAreaRoles`) | `403 Forbidden` JSON |
 | `proxyApiAuth` | API route handlers requiring any active session | `401 Unauthorized` JSON |
+| `proxyApiRoles(roles)` | Factory: API routes restricted to specific role allowlist | `403 Forbidden` JSON |
 
 ### How proxy.ts resolves chains
 
@@ -84,13 +85,13 @@ The DB lookups are parallelised with `Promise.all`, so they add only one round-t
 
 ## Role configuration
 
-Roles are **centralized in `app.config.ts`** — a single source of truth read by all proxies, guards, context detection, and form security. Never hardcode role strings outside this file.
+Roles are **centralized in `app.config.ts`** — a single source of truth. All proxies, guards, context detection, and form security use `enrichUser(user).isAdmin()` — never hardcode role strings.
 
 ```ts
 // app.config.ts
 roles: {
-  adminArea: ['admin', 'owner'],   // can access /admin + API admin routes
-  dashboardArea: ['member'],       // can access /dashboard (admin roles always allowed too)
+  adminArea: ['admin'],          // can access /admin + API admin routes (owner is NOT admin)
+  dashboardArea: ['member', 'owner'], // can access /dashboard (admin roles implicitly allowed too)
 
   // Optional: force a role to always resolve to a fixed UserContext,
   // overriding the default team-membership detection.
@@ -102,16 +103,22 @@ roles: {
 }
 ```
 
-The helper `lib/runtime-config/roles.ts` exposes:
+**SDK API** (use everywhere — never read `app.config.ts` directly for roles):
 
-| Export | Returns | Used by |
-|--------|---------|---------|
-| `getAdminAreaRoles()` | `Set<string>` | All proxies, guards, forms/security |
-| `getDashboardAreaRoles()` | `Set<string>` | Future proxy extensions |
-| `getRoleContextAffinity(role)` | `'standalone' \| 'team_member' \| null` | `getUserContext()` in `lib/auth/contexts.ts` |
-| `isAdminRole(role)` | `boolean` | `isBuildFormAdminRole()` in forms/security |
+```ts
+import { enrichUser } from '@skitsaas/sdk';
 
-`contextAffinity` makes role-to-context mapping explicit. Without an affinity, `getUserContext()` falls back to the existing team-membership detection (existing behavior unchanged).
+enrichUser(user).isAdmin()          // role in adminAreaRoles
+enrichUser(user).isOwner()          // role === 'owner' (team owner — NOT system admin)
+enrichUser(user).isMember()         // role in dashboardAreaRoles ∪ adminAreaRoles
+enrichUser(user).hasRole('teacher')
+enrichUser(user).canAccess('admin' | 'dashboard')
+await enrichUser(user).getContext() // → UserContext (server-side only)
+```
+
+`lib/runtime-config/roles.ts` has been **deleted** (SDK v1.5.0). All callers migrated to `enrichUser()`.
+
+`contextAffinity` makes role-to-context mapping explicit. Without an affinity, `getUserContext()` falls back to team-membership detection (unchanged behavior).
 
 ## Session refresh
 
@@ -294,6 +301,8 @@ Custom proxy functions live in `lib/routing/proxies.ts` and must follow the `Rou
 - [ ] API route handlers use `RouteApi(...).auth().proxy()` + `withApiRouteEntries(...)` or `withApiProxy(...)`
 - [ ] `.auth('user')` routes inherit the default 60 req/60 s rate limit automatically — override per-route with `proxyRateLimit(config)` if needed
 - [ ] Auth endpoints use `checkAuthRateLimit`
-- [ ] Custom roles added to `app.config.ts → roles.adminArea` or `roles.dashboardArea` — never hardcoded
+- [ ] Role checks use `enrichUser(user).isAdmin()` / `.hasRole()` — never compare role strings directly
+- [ ] Custom roles added to `app.config.ts → roles.adminArea` or `roles.dashboardArea`
 - [ ] Context-pinned roles declared in `roles.contextAffinity` if needed
+- [ ] API endpoints needing role restriction use `.roles('owner', 'teacher')` on the route builder
 - [ ] Production: set `REDIS_URL` to activate distributed rate limiting (auto-configured in `sdk-server-bootstrap.ts`)

@@ -63,6 +63,15 @@ export type ApiRouteEntry = {
     path: string;
     method: HttpMethod;
     authLevel: ApiAuthLevel;
+    /**
+     * Optional role allowlist. When set, only authenticated users whose role is
+     * in this list can access the route (checked after the auth proxy).
+     * Requires configureApiAuthProxies({ roleCheck }) to be configured.
+     *
+     * @example
+     * RouteApi('/api/modules/mod.x/owner-reports').GET().auth('user').roles('owner', 'teacher')
+     */
+    roles?: string[];
     rateLimitConfig?: RateLimitConfig;
     extraProxies: ApiRouteProxyFn[];
     handler: ApiHandlerFn;
@@ -70,6 +79,12 @@ export type ApiRouteEntry = {
 type ApiAuthConfig = {
     user: ApiRouteProxyFn | null;
     admin: ApiRouteProxyFn | null;
+    /**
+     * Factory that creates a role-check proxy for a given allowlist.
+     * Inject via configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) }).
+     * Runs after the auth proxy in the chain.
+     */
+    roleCheck: ((allowedRoles: string[]) => ApiRouteProxyFn) | null;
 };
 /**
  * Inject auth proxy functions for API route dispatch.
@@ -174,7 +189,8 @@ export declare class ApiMethodRouteBuilder {
     private readonly _authLevel;
     private readonly _rateLimitConfig?;
     private readonly _extraProxies;
-    constructor(path: string, method: HttpMethod, authLevel?: ApiAuthLevel, rateLimitConfig?: RateLimitConfig, extraProxies?: ApiRouteProxyFn[]);
+    private readonly _roles;
+    constructor(path: string, method: HttpMethod, authLevel?: ApiAuthLevel, rateLimitConfig?: RateLimitConfig, extraProxies?: ApiRouteProxyFn[], roles?: string[]);
     /**
      * Set the authentication requirement for this route.
      *
@@ -212,6 +228,15 @@ export declare class ApiMethodRouteBuilder {
      * .proxy([proxyFeatureFlag('premium'), proxyQuota('exports')])
      */
     proxy(fns: ApiRouteProxyFn[]): ApiMethodRouteBuilder;
+    /**
+     * Restrict this route to users whose role is in the allowlist.
+     * Requires auth('user') or auth('admin') — role check runs after auth.
+     * Requires configureApiAuthProxies({ roleCheck }) in area-setup.ts.
+     *
+     * @example
+     * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+     */
+    roles(...allowedRoles: string[]): ApiMethodRouteBuilder;
     /**
      * Register this route in the named route registry for URL construction.
      * Returns `this` for chaining.

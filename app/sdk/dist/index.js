@@ -20,3 +20,7 @@ export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matche
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
 export { QuotaExceededError } from './subscription-features.js';
+// RichUser — enriches any user object with role-check methods.
+// enrichUser() is safe client-side (no server-only imports).
+// getContext() requires the server adapter — use server-side only.
+export { enrichUser } from './user-roles.js';

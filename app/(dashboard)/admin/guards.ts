@@ -1,17 +1,16 @@
 import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
-import { getUser } from '@/lib/db/queries';
-import { getAdminAreaRoles } from '@/lib/runtime-config/roles';
+import { getCurrentUser } from '@/lib/auth/current-user';
 
 export async function requireAdminAccess() {
   await connection();
 
-  const currentUser = await getUser();
+  const currentUser = await getCurrentUser();
   if (!currentUser) {
     redirect('/admin/login');
   }
 
-  if (!getAdminAreaRoles().has(currentUser.role)) {
+  if (!currentUser.isAdmin()) {
     redirect('/dashboard');
   }
 

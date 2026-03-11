@@ -77,6 +77,15 @@ export type ApiRouteEntry = {
   path: string;
   method: HttpMethod;
   authLevel: ApiAuthLevel;
+  /**
+   * Optional role allowlist. When set, only authenticated users whose role is
+   * in this list can access the route (checked after the auth proxy).
+   * Requires configureApiAuthProxies({ roleCheck }) to be configured.
+   *
+   * @example
+   * RouteApi('/api/modules/mod.x/owner-reports').GET().auth('user').roles('owner', 'teacher')
+   */
+  roles?: string[];
   rateLimitConfig?: RateLimitConfig;
   extraProxies: ApiRouteProxyFn[];
   handler: ApiHandlerFn;
@@ -89,11 +98,18 @@ export type ApiRouteEntry = {
 type ApiAuthConfig = {
   user: ApiRouteProxyFn | null;
   admin: ApiRouteProxyFn | null;
+  /**
+   * Factory that creates a role-check proxy for a given allowlist.
+   * Inject via configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) }).
+   * Runs after the auth proxy in the chain.
+   */
+  roleCheck: ((allowedRoles: string[]) => ApiRouteProxyFn) | null;
 };
 
 const apiAuthConfig: ApiAuthConfig = {
   user: null,
   admin: null,
+  roleCheck: null,
 };
 
 /**
@@ -113,6 +129,7 @@ const apiAuthConfig: ApiAuthConfig = {
 export function configureApiAuthProxies(config: Partial<ApiAuthConfig>): void {
   if (config.user !== undefined) apiAuthConfig.user = config.user;
   if (config.admin !== undefined) apiAuthConfig.admin = config.admin;
+  if (config.roleCheck !== undefined) apiAuthConfig.roleCheck = config.roleCheck;
 }
 
 export function getApiAuthConfig(): Readonly<ApiAuthConfig> {
@@ -299,6 +316,11 @@ export async function dispatchApiRoutes(
       proxies.push(apiAuthConfig.user);
     }
 
+    // 2b. Role check — runs after auth, only when roles allowlist is set
+    if (entry.roles?.length && apiAuthConfig.roleCheck) {
+      proxies.push(apiAuthConfig.roleCheck(entry.roles));
+    }
+
     // 3. Extra proxies (feature flags, custom checks)
     proxies.push(...entry.extraProxies);
 
@@ -401,19 +423,22 @@ export class ApiMethodRouteBuilder {
   private readonly _authLevel: ApiAuthLevel;
   private readonly _rateLimitConfig?: RateLimitConfig;
   private readonly _extraProxies: ApiRouteProxyFn[];
+  private readonly _roles: string[];
 
   constructor(
     path: string,
     method: HttpMethod,
     authLevel: ApiAuthLevel = 'none',
     rateLimitConfig?: RateLimitConfig,
-    extraProxies: ApiRouteProxyFn[] = []
+    extraProxies: ApiRouteProxyFn[] = [],
+    roles: string[] = []
   ) {
     this.path = path;
     this.method = method;
     this._authLevel = authLevel;
     this._rateLimitConfig = rateLimitConfig;
     this._extraProxies = extraProxies;
+    this._roles = roles;
   }
 
   /**
@@ -429,7 +454,8 @@ export class ApiMethodRouteBuilder {
       this.method,
       level,
       this._rateLimitConfig,
-      this._extraProxies
+      this._extraProxies,
+      this._roles
     );
   }
 
@@ -459,7 +485,8 @@ export class ApiMethodRouteBuilder {
       this.method,
       this._authLevel,
       config,
-      this._extraProxies
+      this._extraProxies,
+      this._roles
     );
   }
 
@@ -476,7 +503,27 @@ export class ApiMethodRouteBuilder {
       this.method,
       this._authLevel,
       this._rateLimitConfig,
-      [...this._extraProxies, ...fns]
+      [...this._extraProxies, ...fns],
+      this._roles
+    );
+  }
+
+  /**
+   * Restrict this route to users whose role is in the allowlist.
+   * Requires auth('user') or auth('admin') — role check runs after auth.
+   * Requires configureApiAuthProxies({ roleCheck }) in area-setup.ts.
+   *
+   * @example
+   * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+   */
+  roles(...allowedRoles: string[]): ApiMethodRouteBuilder {
+    return new ApiMethodRouteBuilder(
+      this.path,
+      this.method,
+      this._authLevel,
+      this._rateLimitConfig,
+      this._extraProxies,
+      allowedRoles
     );
   }
 
@@ -528,6 +575,7 @@ export class ApiMethodRouteBuilder {
       path: this.path,
       method: this.method,
       authLevel: this._authLevel,
+      ...(this._roles.length ? { roles: this._roles } : {}),
       rateLimitConfig: this._rateLimitConfig,
       extraProxies: this._extraProxies,
       handler: fn,

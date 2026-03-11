@@ -20,7 +20,8 @@
       "Bash(cat /app/serviceentomai/s-kit-saas/app/\\\\\\(dashboard\\\\\\)/admin/orders/[orderId]/edit/page.tsx)",
       "Bash(pnpm install)",
       "Bash(/app/serviceentomai/s-kit-saas/docs/meta.json:*)",
-      "Bash(pnpm exec:*)"
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm modules:prepare)"
     ]
   }
 }

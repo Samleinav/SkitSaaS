@@ -37,6 +37,8 @@ description: Extend or version the @skitsaas/sdk package. Use this skill when ad
 | `app/sdk/src/modules/manifest.ts` | `defineModule`, `ModuleManifest` |
 | `app/sdk/src/subscription-features.ts` | `SubscriptionFeaturesAdapter`, `checkFeature`, `getQuotaStatus`, `consumeQuota`, `QuotaExceededError` |
 | `app/sdk/src/routing/rate-limit.ts` | `withRateLimit`, `checkRateLimit`, `configureRateLimitBackend` |
+| `app/sdk/src/routing/api-route.ts` | `ApiMethodRouteBuilder.roles()`, `roleCheck` in `ApiAuthConfig` |
+| `app/sdk/src/user-roles.ts` | `enrichUser`, `RichUser`, `UserContext`, `configureUserRoles`, `configureUserContext` |
 
 ## Adding a New SDK Export
 

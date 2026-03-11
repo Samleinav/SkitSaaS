@@ -36,6 +36,39 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 
 ---
 
+## 2026-03-11 - sdk-richuser-multirole-routing
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: RichUser pattern + multi-role API routing. `enrichUser(user)` replaces all hardcoded role-string comparisons. `lib/runtime-config/roles.ts` deleted. `.roles('owner','teacher')` on API route builder.
+- `sdk_surface`: `@skitsaas/sdk`, `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/user-roles.ts` (new)
+  - `app/sdk/src/routing/api-route.ts` (roles?, roleCheck, .roles() builder)
+  - `app/sdk/src/index.ts` (enrichUser + types)
+  - `app/sdk/src/server.ts` (configureUserRoles, configureUserContext, enrichUser)
+  - `lib/auth/current-user.ts` (new — getCurrentUser, requireCurrentUser)
+  - `lib/auth/contexts.ts` (UserContext re-exported from SDK)
+  - `lib/routing/proxies.ts` (proxyApiRoles factory, enrichUser replaces getAdminAreaRoles)
+  - `lib/routing/area-setup.ts` (roleCheck injected)
+  - `lib/modules/sdk-server-bootstrap.ts` (configureUserRoles + configureUserContext)
+  - `lib/runtime-config/roles.ts` (deleted)
+- `notes`: |
+    SDK v1.4.0 → v1.5.0 (MINOR).
+
+    owner ≠ admin: default adminAreaRoles=['admin'], dashboardAreaRoles=['member','owner'].
+    owner is team-level; admin is system-level. Never overlap.
+
+    enrichUser() available client-side from @skitsaas/sdk (adapter not configured = uses defaults).
+    getContext() server-side only (throws if called before configureUserContext).
+
+    Multi-role routing: .auth('user').roles('owner','teacher') → proxyApiRoles runs after auth proxy.
+    Requires configureApiAuthProxies({ roleCheck }) — wired in area-setup.ts.
+
+---
+
 ## 2026-03-10 - sdk-gap-subscription-quota-controller
 
 - `status`: published

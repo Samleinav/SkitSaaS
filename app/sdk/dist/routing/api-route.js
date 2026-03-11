@@ -40,6 +40,7 @@ import { RouteBuilder } from './builder.js';
 const apiAuthConfig = {
     user: null,
     admin: null,
+    roleCheck: null,
 };
 /**
  * Inject auth proxy functions for API route dispatch.
@@ -60,6 +61,8 @@ export function configureApiAuthProxies(config) {
         apiAuthConfig.user = config.user;
     if (config.admin !== undefined)
         apiAuthConfig.admin = config.admin;
+    if (config.roleCheck !== undefined)
+        apiAuthConfig.roleCheck = config.roleCheck;
 }
 export function getApiAuthConfig() {
     return apiAuthConfig;
@@ -209,6 +212,10 @@ export async function dispatchApiRoutes(routes, request) {
         else if (entry.authLevel === 'user' && apiAuthConfig.user) {
             proxies.push(apiAuthConfig.user);
         }
+        // 2b. Role check — runs after auth, only when roles allowlist is set
+        if (entry.roles?.length && apiAuthConfig.roleCheck) {
+            proxies.push(apiAuthConfig.roleCheck(entry.roles));
+        }
         // 3. Extra proxies (feature flags, custom checks)
         proxies.push(...entry.extraProxies);
         // Execute chain — first non-null response short-circuits
@@ -295,12 +302,14 @@ export class ApiMethodRouteBuilder {
     _authLevel;
     _rateLimitConfig;
     _extraProxies;
-    constructor(path, method, authLevel = 'none', rateLimitConfig, extraProxies = []) {
+    _roles;
+    constructor(path, method, authLevel = 'none', rateLimitConfig, extraProxies = [], roles = []) {
         this.path = path;
         this.method = method;
         this._authLevel = authLevel;
         this._rateLimitConfig = rateLimitConfig;
         this._extraProxies = extraProxies;
+        this._roles = roles;
     }
     /**
      * Set the authentication requirement for this route.
@@ -310,7 +319,7 @@ export class ApiMethodRouteBuilder {
      * - 'admin' — requires admin/owner session; uses proxy injected via configureApiAuthProxies
      */
     auth(level) {
-        return new ApiMethodRouteBuilder(this.path, this.method, level, this._rateLimitConfig, this._extraProxies);
+        return new ApiMethodRouteBuilder(this.path, this.method, level, this._rateLimitConfig, this._extraProxies, this._roles);
     }
     /**
      * Add rate limiting to this route.
@@ -333,7 +342,7 @@ export class ApiMethodRouteBuilder {
      * })
      */
     rateLimit(config) {
-        return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, config, this._extraProxies);
+        return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, config, this._extraProxies, this._roles);
     }
     /**
      * Add extra proxy functions (feature flags, custom guards, quota checks, etc.).
@@ -343,7 +352,18 @@ export class ApiMethodRouteBuilder {
      * .proxy([proxyFeatureFlag('premium'), proxyQuota('exports')])
      */
     proxy(fns) {
-        return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, this._rateLimitConfig, [...this._extraProxies, ...fns]);
+        return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, this._rateLimitConfig, [...this._extraProxies, ...fns], this._roles);
+    }
+    /**
+     * Restrict this route to users whose role is in the allowlist.
+     * Requires auth('user') or auth('admin') — role check runs after auth.
+     * Requires configureApiAuthProxies({ roleCheck }) in area-setup.ts.
+     *
+     * @example
+     * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+     */
+    roles(...allowedRoles) {
+        return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, this._rateLimitConfig, this._extraProxies, allowedRoles);
     }
     /**
      * Register this route in the named route registry for URL construction.
@@ -389,6 +409,7 @@ export class ApiMethodRouteBuilder {
             path: this.path,
             method: this.method,
             authLevel: this._authLevel,
+            ...(this._roles.length ? { roles: this._roles } : {}),
             rateLimitConfig: this._rateLimitConfig,
             extraProxies: this._extraProxies,
             handler: fn,

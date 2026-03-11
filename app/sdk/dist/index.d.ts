@@ -43,3 +43,5 @@ export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConf
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
 export type { QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
 export { QuotaExceededError } from './subscription-features.js';
+export { enrichUser } from './user-roles.js';
+export type { UserRolesConfig, UserContext, RichUser, RichUserMethods } from './user-roles.js';

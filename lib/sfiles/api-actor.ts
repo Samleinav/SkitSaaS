@@ -1,5 +1,6 @@
 import { getUser } from '@/lib/db/queries';
 import type { SFilesActorContext } from '@skitsaas/sdk/sfiles';
+import { enrichUser } from '@skitsaas/sdk';
 
 /**
  * Resolve the current request's actor context for Sfiles permission checks.
@@ -10,6 +11,6 @@ export async function getSfilesActor(): Promise<SFilesActorContext | null> {
   if (!user) return null;
   return {
     userId: user.id,
-    isAdmin: (user as { role?: string }).role === 'admin',
+    isAdmin: enrichUser({ id: user.id, role: (user as { role?: string }).role ?? '' }).isAdmin(),
   };
 }

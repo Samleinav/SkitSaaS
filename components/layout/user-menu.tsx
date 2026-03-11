@@ -17,6 +17,7 @@ import { signOut } from '@/app/(login)/actions';
 import { type User } from '@/lib/db/schema';
 import { useAreaMessages } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
+import { enrichUser } from '@skitsaas/sdk';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -42,7 +43,7 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const router = useRouter();
   const pathname = usePathname();
-  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
+  const isAdmin = user ? enrichUser(user).isAdmin() : false;
 
   async function handleSignOut() {
     await signOut();
