@@ -55,7 +55,8 @@ export class PortalRouteBuilder extends RouteBuilder {
 }
 function makePortalFactory(portalName, portalProxies, configs) {
     const factory = (path) => {
-        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        const trimmed = path.replace(/^\/+|\/+$/g, '');
+        const normalizedPath = trimmed ? `/${trimmed}` : '';
         return new PortalRouteBuilder(portalName, `/${portalName}${normalizedPath}`, portalProxies);
     };
     factory.proxy = (fns) => makePortalFactory(portalName, [...portalProxies, ...fns], configs);

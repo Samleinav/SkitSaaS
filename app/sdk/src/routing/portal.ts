@@ -147,7 +147,8 @@ function makePortalFactory(
   configs: PortalConfig[]
 ): PortalRouteFactory {
   const factory = (path: string): PortalRouteBuilder => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const trimmed = path.replace(/^\/+|\/+$/g, '');
+    const normalizedPath = trimmed ? `/${trimmed}` : '';
     return new PortalRouteBuilder(
       portalName,
       `/${portalName}${normalizedPath}`,
