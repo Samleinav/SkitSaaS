@@ -55,6 +55,7 @@ export {
   RouteApiPortal,
   PortalRouteBuilder,
   portalMetaRegistry,
+  portalPrefixSet,
   getPortalMeta,
   getAllPortalNames,
   getPortalPages,

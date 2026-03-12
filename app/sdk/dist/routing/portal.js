@@ -6,6 +6,8 @@ import { getAreaBases, getAreaDefaults } from './area.js';
 // ---------------------------------------------------------------------------
 const portalPagesByName = new Map();
 export const portalMetaRegistry = new Map();
+/** Set of portal name prefixes registered in the edge context (populated by RoutePortal calls in routes.ts files). */
+export const portalPrefixSet = new Set();
 export function getPortalMeta(name) {
     return portalMetaRegistry.get(name) ?? null;
 }
@@ -54,6 +56,7 @@ export class PortalRouteBuilder extends RouteBuilder {
     }
 }
 function makePortalFactory(portalName, portalProxies, configs) {
+    portalPrefixSet.add(portalName);
     const factory = (path) => {
         const trimmed = path.replace(/^\/+|\/+$/g, '');
         const normalizedPath = trimmed ? `/${trimmed}` : '';

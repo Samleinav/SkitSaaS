@@ -37,6 +37,8 @@ type PortalRegistration = {
     isDefaultPortal?: boolean;
 };
 export declare const portalMetaRegistry: Map<string, PortalRegistration>;
+/** Set of portal name prefixes registered in the edge context (populated by RoutePortal calls in routes.ts files). */
+export declare const portalPrefixSet: Set<string>;
 export declare function getPortalMeta(name: string): PortalRegistration | null;
 export declare function getAllPortalNames(): string[];
 export declare function getPortalPages(name: string): PortalPageEntry[];

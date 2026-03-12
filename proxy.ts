@@ -15,8 +15,10 @@ import type { AppSurfaceMode } from '@/lib/config/runtime-surface';
 import {
   getAppSurfaceMode
 } from '@/lib/config/runtime-surface';
-import { matchRouteProxyChain } from '@skitsaas/sdk';
+import { matchRouteProxyChain, portalPrefixSet } from '@skitsaas/sdk';
 import { executeProxyChain } from '@/lib/routing/proxies';
+
+const PORTAL_INTERNAL_PREFIX = '/_portal';
 
 // ---------------------------------------------------------------------------
 // Legacy helper exports — kept for backward compatibility with existing tests
@@ -69,16 +71,40 @@ export function resolveUnauthenticatedRedirect(pathname: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const { NextResponse } = await import('next/server');
+
+  // Block direct access to internal portal dispatch path (only reachable via internal rewrite)
+  if (pathname === PORTAL_INTERNAL_PREFIX || pathname.startsWith(`${PORTAL_INTERNAL_PREFIX}/`)) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   // Surface mode gating (disabled areas → 404 before any auth check)
   if (isPathDisabledBySurfaceMode(pathname)) {
-    const { NextResponse } = await import('next/server');
     return new NextResponse('Not Found', { status: 404 });
   }
 
   // Resolve and execute the proxy chain for this path.
   // matchRouteProxyChain returns area-level defaults if no named route matches.
   const chain = matchRouteProxyChain(pathname);
+
+  // Portal routes — run auth proxy chain, then rewrite to internal dispatcher
+  // so the portal page is served without the (frontend) marketing layout.
+  const firstSegment = pathname.split('/').filter(Boolean)[0] ?? '';
+  if (firstSegment && portalPrefixSet.has(firstSegment)) {
+    const proxyResult = await executeProxyChain(chain, request);
+    // Honor blocking responses (redirects to login, 4xx, etc.)
+    if (proxyResult.headers.get('x-middleware-next') !== '1') {
+      return proxyResult;
+    }
+    // Pass-through → rewrite to internal portal dispatcher
+    const url = request.nextUrl.clone();
+    url.pathname = `${PORTAL_INTERNAL_PREFIX}${pathname}`;
+    const rewriteResponse = NextResponse.rewrite(url);
+    // Forward any cookies set by the proxy chain (e.g., refreshed session)
+    proxyResult.cookies.getAll().forEach(c => rewriteResponse.cookies.set(c));
+    return rewriteResponse;
+  }
+
   return executeProxyChain(chain, request);
 }
 

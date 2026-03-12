@@ -5,9 +5,6 @@ import {
   evaluateFrontendModuleAccess,
   resolveModulePage
 } from '@/lib/modules/runtime';
-import { getPortalMeta } from '@skitsaas/sdk';
-import { resolvePortalPage } from '@/lib/portals/runtime';
-
 type PageProps = {
   params:
     | { moduleAlias?: string[] }
@@ -23,16 +20,6 @@ export default async function FrontendModuleAliasPage({
   const aliasParts = resolvedParams.moduleAlias ?? [];
   if (!aliasParts.length) {
     notFound();
-  }
-
-  // Portal check — fast registry lookup, no DB query
-  const [firstSegment, ...restSegments] = aliasParts;
-  if (getPortalMeta(firstSegment)) {
-    return resolvePortalPage({
-      portalName: firstSegment,
-      slug: restSegments,
-      searchParams,
-    });
   }
 
   const path = `/${aliasParts.join('/')}`;

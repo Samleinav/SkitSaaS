@@ -45,6 +45,8 @@ type PortalRegistration = {
 
 const portalPagesByName = new Map<string, PortalPageEntry[]>();
 export const portalMetaRegistry = new Map<string, PortalRegistration>();
+/** Set of portal name prefixes registered in the edge context (populated by RoutePortal calls in routes.ts files). */
+export const portalPrefixSet = new Set<string>();
 
 export function getPortalMeta(name: string): PortalRegistration | null {
   return portalMetaRegistry.get(name) ?? null;
@@ -146,6 +148,7 @@ function makePortalFactory(
   portalProxies: RouteProxyFn[],
   configs: PortalConfig[]
 ): PortalRouteFactory {
+  portalPrefixSet.add(portalName);
   const factory = (path: string): PortalRouteBuilder => {
     const trimmed = path.replace(/^\/+|\/+$/g, '');
     const normalizedPath = trimmed ? `/${trimmed}` : '';

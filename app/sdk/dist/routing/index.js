@@ -3,5 +3,5 @@ export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoun
 export { RouteBuilder } from './builder.js';
 export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './area.js';
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './matcher.js';
-export { RoutePortal, RouteApiPortal, PortalRouteBuilder, portalMetaRegistry, getPortalMeta, getAllPortalNames, getPortalPages, } from './portal.js';
+export { RoutePortal, RouteApiPortal, PortalRouteBuilder, portalMetaRegistry, portalPrefixSet, getPortalMeta, getAllPortalNames, getPortalPages, } from './portal.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './rate-limit.js';
