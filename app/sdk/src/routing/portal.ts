@@ -14,6 +14,17 @@ export type PortalConfig = {
   context?: string;
 };
 
+/**
+ * Where in the app's URL space the portal is served.
+ * - `standalone` (default): `/<portalName>/*` — at the root, e.g. /hub/*
+ * - `dashboard`: `/dashboard/<portalName>/*` — inside the dashboard URL space
+ *
+ * Both options serve the portal with its own independent layout — no area chrome
+ * (no dashboard sidebar, no frontend marketing nav) is inherited.
+ * The choice affects URL prefix, default CSS bundle, and multi-server deployment routing.
+ */
+export type PortalRouteArea = 'standalone' | 'dashboard';
+
 export type PortalLayoutProps = {
   children: ReactNode;
   portalCtx: {
@@ -21,18 +32,30 @@ export type PortalLayoutProps = {
     area?: string;
     context?: string;
     userTheme: string | false;
+    /** URL area the portal is registered in */
+    routeArea: PortalRouteArea;
   };
 };
 
 type PortalPageEntry = {
+  /** Portal-relative path pattern: `/<portalName>/...` — used for page lookup */
   pathPattern: string;
   component: () => Promise<{ default: ComponentType<any> }>;
 };
 
 type PortalRegistration = {
   configs: PortalConfig[];
+  routeArea: PortalRouteArea;
   layout: () => Promise<{ default: ComponentType<any> }>;
   userTheme: string | false;
+  /**
+   * Whether to load the built-in core CSS (globals + Tailwind).
+   * - `true` / `'frontend'`: loads the frontend core CSS bundle
+   * - `'dashboard'`: loads the dashboard core CSS bundle
+   * - `false`: no core CSS — bring your own stylesheet via `head.css`
+   * Default: `'frontend'` for standalone portals, `'dashboard'` for dashboard portals.
+   */
+  coreCss?: boolean | 'frontend' | 'dashboard';
   head?: { css?: string[]; js?: string[] };
   redirectRoles?: string[];
   /** If true, all authenticated non-admin users land here after login (fallback before /dashboard). */
@@ -45,8 +68,11 @@ type PortalRegistration = {
 
 const portalPagesByName = new Map<string, PortalPageEntry[]>();
 export const portalMetaRegistry = new Map<string, PortalRegistration>();
-/** Set of portal name prefixes registered in the edge context (populated by RoutePortal calls in routes.ts files). */
+
+/** Standalone portal name prefixes: `/<name>/*` */
 export const portalPrefixSet = new Set<string>();
+/** Dashboard area portal names: `/dashboard/<name>/*` */
+export const dashboardPortalSet = new Set<string>();
 
 export function getPortalMeta(name: string): PortalRegistration | null {
   return portalMetaRegistry.get(name) ?? null;
@@ -66,15 +92,24 @@ export function getPortalPages(name: string): PortalPageEntry[] {
 
 export class PortalRouteBuilder extends RouteBuilder {
   readonly portalName: string;
+  /** Portal-relative path: `/<portalName>/...` — used for page registry lookup */
+  readonly portalRelativePath: string;
+  readonly routeArea: PortalRouteArea;
 
   constructor(
     portalName: string,
-    path: string,
+    /** Full URL path for the proxy chain registry (includes `/dashboard` prefix for dashboard portals) */
+    registryPath: string,
+    /** Portal-relative path for page lookup: always `/<portalName>/...` */
+    portalRelativePath: string,
     defaultProxies: RouteProxyFn[],
-    extra: RouteProxyFn[] = []
+    extra: RouteProxyFn[] = [],
+    routeArea: PortalRouteArea = 'standalone'
   ) {
-    super(path, defaultProxies, extra);
+    super(registryPath, defaultProxies, extra);
     this.portalName = portalName;
+    this.portalRelativePath = portalRelativePath;
+    this.routeArea = routeArea;
   }
 
   /** Override proxy() to preserve PortalRouteBuilder return type */
@@ -82,14 +117,16 @@ export class PortalRouteBuilder extends RouteBuilder {
     return new PortalRouteBuilder(
       this.portalName,
       this.path,
+      this.portalRelativePath,
       this.defaultProxies,
-      [...this.extraProxies, ...fns]
+      [...this.extraProxies, ...fns],
+      this.routeArea
     );
   }
 
   /**
-   * Shorthand for adding the configured user session proxy.
-   * Uses the same proxy registered for the 'dashboard' area via configureAreaDefaults().
+   * Shorthand for requiring user authentication (proxyAuth).
+   * Both standalone and dashboard portals use the dashboard auth proxy.
    * Override with .proxy([customFn]) for custom auth logic.
    */
   auth(): PortalRouteBuilder {
@@ -99,16 +136,16 @@ export class PortalRouteBuilder extends RouteBuilder {
   /**
    * Register a lazy page component for this route (Node.js server context only).
    *
-   * IMPORTANT: Call this from portal-init.ts (not routes.ts), which is imported
-   * by lib/portals/all-portals.ts → ensures the page registry is populated in the
-   * Node.js server context used by the portal dispatcher.
+   * IMPORTANT: Call this from portal-init.ts (not routes.ts).
+   * For middleware proxy enforcement, also call .name("route.key") in routes.ts.
    *
-   * For middleware proxy enforcement, call .name("my.route") in routes.ts — that
-   * registers the proxy chain in the edge-context route registry via registerRoute().
+   * Security: every .page() must have a matching .name() entry in routes.ts.
+   * Routes without a registered name fall back to area proxy defaults
+   * (empty [] for standalone, proxyAuth for dashboard).
    */
   page(loader: () => Promise<{ default: ComponentType<any> }>): this {
     const pages = portalPagesByName.get(this.portalName) ?? [];
-    pages.push({ pathPattern: this.path, component: loader });
+    pages.push({ pathPattern: this.portalRelativePath, component: loader });
     portalPagesByName.set(this.portalName, pages);
     return this;
   }
@@ -121,15 +158,26 @@ export class PortalRouteBuilder extends RouteBuilder {
 export type PortalRegisterOptions = {
   layout: () => Promise<{ default: ComponentType<any> }>;
   userTheme: string | false;
+  /**
+   * Whether to load the built-in core CSS (globals + Tailwind).
+   * - `true` / `'frontend'`: loads the frontend core CSS bundle
+   * - `'dashboard'`: loads the dashboard core CSS bundle
+   * - `false`: no core CSS — bring your own stylesheet via `head.css`
+   * Default: `'frontend'` for standalone portals; `'dashboard'` for dashboard portals.
+   */
+  coreCss?: boolean | 'frontend' | 'dashboard';
+  /**
+   * Extra CSS and JS URLs injected into the page head after the core bundle.
+   */
   head?: { css?: string[]; js?: string[] };
   /**
-   * Roles that should be redirected to this portal after login.
-   * e.g. redirectRoles: ['teacher'] → users with role 'teacher' land at /portalName
+   * Roles redirected to this portal after login.
+   * e.g. redirectRoles: ['teacher'] → users with role 'teacher' land at the portal URL
    */
   redirectRoles?: string[];
   /**
    * If true, all authenticated non-admin users are redirected here after login
-   * when no specific role match is found. Acts as the default portal destination.
+   * when no specific role match is found. Acts as the global fallback destination.
    */
   isDefaultPortal?: boolean;
 };
@@ -146,24 +194,38 @@ export interface PortalRouteFactory {
 function makePortalFactory(
   portalName: string,
   portalProxies: RouteProxyFn[],
-  configs: PortalConfig[]
+  configs: PortalConfig[],
+  routeArea: PortalRouteArea
 ): PortalRouteFactory {
-  portalPrefixSet.add(portalName);
+  if (routeArea === 'dashboard') {
+    dashboardPortalSet.add(portalName);
+  } else {
+    portalPrefixSet.add(portalName);
+  }
+
+  // URL prefix included in the proxy chain registry path and .name() entries
+  const urlAreaPrefix = routeArea === 'dashboard' ? '/dashboard' : '';
+
   const factory = (path: string): PortalRouteBuilder => {
     const trimmed = path.replace(/^\/+|\/+$/g, '');
     const normalizedPath = trimmed ? `/${trimmed}` : '';
+    const portalRelativePath = `/${portalName}${normalizedPath}`;
+    const registryPath = `${urlAreaPrefix}${portalRelativePath}`;
     return new PortalRouteBuilder(
       portalName,
-      `/${portalName}${normalizedPath}`,
-      portalProxies
+      registryPath,
+      portalRelativePath,
+      portalProxies,
+      [],
+      routeArea
     );
   };
 
   factory.proxy = (fns: RouteProxyFn[]): PortalRouteFactory =>
-    makePortalFactory(portalName, [...portalProxies, ...fns], configs);
+    makePortalFactory(portalName, [...portalProxies, ...fns], configs, routeArea);
 
   factory.register = (options: PortalRegisterOptions): void => {
-    portalMetaRegistry.set(portalName, { configs, ...options });
+    portalMetaRegistry.set(portalName, { configs, routeArea, ...options });
   };
 
   return factory as PortalRouteFactory;
@@ -171,32 +233,42 @@ function makePortalFactory(
 
 /**
  * Creates a portal route factory scoped to `portalName`.
- * The portal is served at `/<portalName>/*` via the frontend catch-all dispatcher.
- * No default proxies — add them via .proxy([...]) at factory or individual route level.
  *
- * Accepts either a string name or an array of PortalConfig objects (for shared layout/theme).
+ * Portals always use their own independent layout — no area chrome is inherited.
+ *
+ * The `area` option controls the URL prefix:
+ * - `'standalone'` (default): `/<portalName>/*` — served at the root level
+ * - `'dashboard'`: `/dashboard/<portalName>/*` — inside the dashboard URL space
+ *
+ * Use `'dashboard'` when the portal is logically part of the authenticated user
+ * experience and you want it grouped under `/dashboard/*` for deployment routing
+ * (e.g. multi-server setup where dashboard and frontend run on separate instances).
  *
  * @example
- * // Simple usage
- * const SchoolRoute = RoutePortal("school").proxy([proxyAuth, proxyRoles(['teacher'])]);
- * SchoolRoute("home").page(() => import('./portal/school/home/page')).name("school.home");
- * SchoolRoute("students/{id}").auth().page(() => import('./portal/school/students/[id]/page'));
- * SchoolRoute.register({ layout: () => import('./portal/school/layout'), userTheme: false, redirectRoles: ['teacher'] });
+ * // Standalone — at /hub/*
+ * const HubRoute = RoutePortal('hub');
+ * HubRoute('').name('hub.home');
+ * HubRoute('members').auth().name('hub.members');
  *
  * @example
- * // With config object (area/context metadata)
- * const TeacherRoute = RoutePortal([{ name: "teacher", area: "school", context: "teacher" }]);
+ * // Dashboard area — at /dashboard/school/*
+ * const SchoolRoute = RoutePortal('school', { area: 'dashboard' });
+ * SchoolRoute('').name('school.home');
+ * SchoolRoute('students').name('school.students');
+ * SchoolRoute('reports').proxy([proxyRoles(['teacher'])]).name('school.reports');
  */
 export function RoutePortal(
-  nameOrConfigs: string | PortalConfig[]
+  nameOrConfigs: string | PortalConfig[],
+  options?: { area?: PortalRouteArea }
 ): PortalRouteFactory {
+  const routeArea = options?.area ?? 'standalone';
   if (Array.isArray(nameOrConfigs)) {
     const configs = nameOrConfigs;
     const portalName = configs[0].name;
-    return makePortalFactory(portalName, [], configs);
+    return makePortalFactory(portalName, [], configs, routeArea);
   }
   const portalName = nameOrConfigs;
-  return makePortalFactory(portalName, [], [{ name: portalName }]);
+  return makePortalFactory(portalName, [], [{ name: portalName }], routeArea);
 }
 
 // ---------------------------------------------------------------------------
@@ -205,19 +277,11 @@ export function RoutePortal(
 
 /**
  * Creates a scoped API route factory for portal-specific endpoints.
- * Routes are prefixed at `/api/<portalName>/<path>`.
- *
- * The module is responsible for creating the actual Next.js route handler files.
- * This builder defines the typed route metadata (auth, rate limits) used in those handlers.
+ * Routes are always prefixed at `/api/<portalName>/<path>` regardless of routeArea.
  *
  * @example
- * export const SchoolApi = RouteApiPortal("school");
- * export const GetStudents = SchoolApi.GET("/students").auth('user');
- * export const PostEnroll = SchoolApi.POST("/enroll").auth('user').rateLimit({ limit: 5, windowSeconds: 60 });
- *
- * // In the module's API route file (app/api/school/students/route.ts):
- * import { GetStudents } from '@/../modules/mod.school/src/routes';
- * export const GET = GetStudents.handler(async (req, ctx) => { ... }).nextHandler;
+ * export const SchoolApi = RouteApiPortal('school');
+ * export const GetStudents = SchoolApi('/students').GET().auth('user');
  */
 export function RouteApiPortal(portalName: string) {
   const apiBase = getAreaBases().api;

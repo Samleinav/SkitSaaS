@@ -2,7 +2,7 @@
 
 Example module demonstrating the **portal system** in SKSS. Shows how a module can register
 a named portal served at a custom URL prefix (`/hub/*`) with its own layout, public and
-authenticated pages, optional theme injection, and portal-scoped API routes.
+authenticated pages, CSS loading control, and portal-scoped API routes.
 
 Portals are completely independent from the marketing frontend — the middleware rewrites
 portal requests to an internal dispatcher that does not inherit `(frontend)/layout.tsx`.
@@ -15,6 +15,7 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 | `RouteApiPortal` scoped API builder | `src/routes.ts` |
 | `.page()` + `.register()` (Node.js context) | `src/portal-init.ts` |
 | `isDefaultPortal: true` (post-login redirect) | `src/portal-init.ts` |
+| `coreCss` option (core CSS loading control) | `src/portal-init.ts` |
 | `module.json` auto-registration fields | `module.json` |
 | Portal layout with `PortalLayoutProps` | `portal/hub/layout.tsx` |
 | Public page (no auth) | `portal/hub/home/page.tsx` |
@@ -44,6 +45,30 @@ which auto-generates the bootstrap imports in:
 - `lib/portals/all-portals.generated.ts` — page registry (Node.js)
 
 Navigate to `http://localhost:3000/hub`.
+
+## CSS loading
+
+By default portals load the **frontend core CSS bundle** (globals + Tailwind CSS variables).
+Control this with the `coreCss` option in `.register()`:
+
+```ts
+HubRoute.register({
+  layout: ...,
+  userTheme: false,
+
+  // coreCss: true           → default: loads /.generated/core-assets/frontend/core-*.css
+  // coreCss: 'dashboard'    → loads the dashboard core CSS instead
+  // coreCss: false          → no core CSS — bring your own via head.css
+
+  // head: {
+  //   css: ['/my-portal.css'],  // extra CSS URLs, loaded after core
+  //   js:  ['/my-portal.js'],   // extra JS URLs
+  // },
+});
+```
+
+When `userTheme` is set to a theme ID string, CSS is managed entirely by the theme system
+(`resolveAreaAssetHrefsBySelection`) and `coreCss` / `head` are ignored.
 
 ## Post-login redirect
 

@@ -23,7 +23,8 @@
       "Bash(pnpm exec:*)",
       "Bash(pnpm modules:prepare)",
       "Bash(find /d/GitHub/saas-starter -type f -name *AGENTS*)",
-      "Bash(pnpm typecheck:*)"
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }

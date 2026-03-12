@@ -423,6 +423,55 @@ export function proxyRateLimit(config: RateLimitConfig): ApiRouteProxyFn {
 }
 
 /**
+ * Restricts page access to users whose role is in the allowlist.
+ * The role is read from the DB to prevent stale-JWT role spoofing.
+ * Unauthenticated requests are redirected to /sign-in.
+ * Authenticated users with the wrong role are redirected to /dashboard.
+ *
+ * Typically used with proxyAuth in a portal proxy chain:
+ * @example
+ * // routes.ts (portal module)
+ * const SchoolRoute = RoutePortal('school').proxy([proxyAuth, proxyRoles(['teacher'])]);
+ * // or as a standalone shorthand (handles both auth + role check):
+ * const SchoolRoute = RoutePortal('school').proxy([proxyRoles(['teacher'])]);
+ */
+export function proxyRoles(allowedRoles: string[]): RouteProxyFn {
+  const allowedSet = new Set(allowedRoles);
+  return async (request: NextRequest) => {
+    const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
+    if (!cookieValue) {
+      return NextResponse.redirect(new URL(SIGN_IN, request.url));
+    }
+
+    const session = await verifySessionCookie(cookieValue);
+    if (!session || !session.jti) {
+      const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+      res.cookies.delete(SESSION_COOKIE);
+      return res;
+    }
+
+    try {
+      const account = await lookupUser(session.userId);
+      if (account.length === 0) {
+        const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+        res.cookies.delete(SESSION_COOKIE);
+        return res;
+      }
+
+      if (!allowedSet.has(account[0]!.role)) {
+        // Authenticated but wrong role — send to dashboard, not login
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    } catch (error) {
+      console.error('[proxyRoles] DB lookup failed:', error);
+      return NextResponse.redirect(new URL(SIGN_IN, request.url));
+    }
+
+    return null; // role allowed — continue chain
+  };
+}
+
+/**
  * Creates an API proxy that restricts access to users whose role is in the allowlist.
  * Runs after the auth proxy in the chain (session is already verified at this point).
  *

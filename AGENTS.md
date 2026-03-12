@@ -336,20 +336,20 @@ Request /hub/members
   → middleware (proxy.ts)
   → portalPrefixSet.has('hub') → true
   → executeProxyChain (auth enforcement)
-  → NextResponse.rewrite('/_portal/hub/members')
-  → app/(portal)/_portal/[...slug]/page.tsx
+  → NextResponse.rewrite('/portal-internal/hub/members')
+  → app/(portal)/portal-internal/[...slug]/page.tsx
   → resolvePortalPage({ portalName: 'hub', slug: ['members'] })
   → portal layout + page (no marketing chrome)
 ```
 
 Key files:
 - `app/sdk/src/routing/portal.ts` — `RoutePortal`, `RouteApiPortal`, `PortalRouteBuilder`, registries
-- `app/(portal)/_portal/[...slug]/page.tsx` — internal portal dispatcher (reached via middleware rewrite only)
-- `lib/portals/runtime.tsx` — `resolvePortalPage()` + `{param}` pattern matching
+- `app/(portal)/portal-internal/[...slug]/page.tsx` — internal portal dispatcher (reached via middleware rewrite only)
+- `lib/portals/runtime.tsx` — `resolvePortalPage()`, CSS injection, `{param}` pattern matching
 - `lib/portals/all-portals.ts` → `lib/portals/all-portals.generated.ts` — page registry bootstrap (Node.js)
 - `lib/portals/role-routing.ts` — `resolveRoleRedirect()` for post-login redirect
 - `lib/routing/all-routes.generated.ts` — middleware proxy chain registration (edge)
-- `proxy.ts` — detects `portalPrefixSet`, rewrites to `/_portal/...`, blocks direct access
+- `proxy.ts` — detects `portalPrefixSet`, rewrites to `/portal-internal/...`, blocks direct access
 
 ### Module layout (two files, two contexts)
 
@@ -386,8 +386,12 @@ SchoolRoute('students/{id}').page(() => import('../portal/school/students/[id]/p
 
 SchoolRoute.register({
   layout: () => import('../portal/school/layout'),
-  userTheme: false,           // or 'themeId' to inject a theme's CSS
-  isDefaultPortal: true,      // redirect all non-admin users here after login
+  userTheme: false,             // or 'themeId' to inject a theme's CSS
+  // coreCss: true              // default: loads frontend core CSS (globals + Tailwind)
+  // coreCss: 'dashboard'       // loads dashboard core CSS instead
+  // coreCss: false             // no core CSS — bring your own via head.css
+  // head: { css: ['/extra.css'], js: [] }, // injected after core CSS
+  isDefaultPortal: true,        // redirect all non-admin users here after login
   // redirectRoles: ['teacher'], // OR: restrict to specific role
 });
 ```
@@ -432,11 +436,26 @@ Priority order in `lib/portals/role-routing.ts`:
 3. `isDefaultPortal: true` → `/<portalName>`
 4. Fallback → `/dashboard`
 
+### CSS loading
+
+When `userTheme` is `false`, the runtime automatically loads the core CSS bundle before rendering:
+
+| `coreCss` value | CSS loaded |
+|---|---|
+| *(omitted)* or `true` | `/.generated/core-assets/frontend/core-*.css` (globals + Tailwind) |
+| `'dashboard'` | `/.generated/core-assets/dashboard/core-*.css` |
+| `false` | nothing — use `head.css` to bring your own |
+
+Extra CSS/JS URLs in `head: { css: [...], js: [...] }` are injected after the core bundle.
+
+When `userTheme` is a string, `resolveAreaAssetHrefsBySelection` handles core + theme CSS automatically.
+
 ### Route precedence notes
 
 - `portalPrefixSet` is populated in the edge context when `routes.ts` is imported by the middleware
-- `/_portal/*` is blocked for direct user access; only reachable via internal rewrite
+- `/portal-internal/*` is blocked for direct user access; only reachable via internal rewrite
 - Portal pages are served from `app/(portal)/` — they do NOT inherit `app/(frontend)/layout.tsx`
+- `_`-prefixed folders are opted out of Next.js routing — use plain names like `portal-internal`
 - `app/(frontend)/[...moduleAlias]` is for module routes only; portal check was removed from it
 
 ### Example module

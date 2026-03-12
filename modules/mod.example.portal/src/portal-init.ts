@@ -20,6 +20,10 @@ HubRoute('').page(
   () => import('../portal/hub/home/page')
 );
 
+HubRoute('register').page(
+  () => import('../portal/hub/register/page')
+);
+
 HubRoute('members').page(
   () => import('../portal/hub/members/page')
 );
@@ -32,15 +36,13 @@ HubRoute('members/{id}').page(
 HubRoute.register({
   layout: () => import('../portal/hub/layout'),
   userTheme: false,
-  head: {
-    // Add portal-specific CSS here if not using a theme
-    css: [],
-    js: [],
-  },
-  // All authenticated non-admin users land here after login
-  isDefaultPortal: true,
-  // Or restrict to a specific role:
-  // redirectRoles: ['member'],
+  // coreCss: true        → default: loads frontend core CSS (globals + Tailwind)
+  // coreCss: 'dashboard' → loads dashboard core CSS instead
+  // coreCss: false       → no core CSS, bring your own via head.css
+  // head: { css: ['/my-portal.css'], js: [] },  // extra CSS/JS after core
+  coreCss: true,
+  // Users with role 'hubrole' are redirected here directly after login
+  redirectRoles: ['hubrole'],
 });
 
 export { EXAMPLE_PORTAL_NAME };

@@ -18,18 +18,19 @@ export function resolveRoleRedirect(
 ): string {
   if (canAccessAdmin) return '/admin';
 
-  let defaultPortalName: string | null = null;
+  let defaultPortalUrl: string | null = null;
 
   for (const [portalName, meta] of portalMetaRegistry) {
+    const urlPrefix = meta.routeArea === 'dashboard' ? `/dashboard/${portalName}` : `/${portalName}`;
     if (role && meta.redirectRoles?.includes(role)) {
-      return `/${portalName}`;
+      return urlPrefix;
     }
     if (meta.isDefaultPortal) {
-      defaultPortalName = portalName;
+      defaultPortalUrl = urlPrefix;
     }
   }
 
-  if (defaultPortalName) return `/${defaultPortalName}`;
+  if (defaultPortalUrl) return defaultPortalUrl;
 
   return '/dashboard';
 }

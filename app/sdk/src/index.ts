@@ -167,6 +167,7 @@ export type {
 } from './datatables/crud.js';
 
 export type {
+  SdkBuildFormProps,
   SdkDataTableColumn,
   SdkDataTableLabels,
   SdkNotifyInput,
@@ -186,6 +187,7 @@ export type {
   SdkNotificationTone
 } from './notifications/types.js';
 export {
+  BuildForm,
   DataTable,
   SDK_NOTIFY_EVENT,
   buildSdkNotificationsUrl,
@@ -385,13 +387,14 @@ export {
 } from './routing/api-route.js';
 
 // Portal route system — multi-portal support
-export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory } from './routing/portal.js';
+export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory, PortalRouteArea } from './routing/portal.js';
 export {
   RoutePortal,
   RouteApiPortal,
   PortalRouteBuilder,
   portalMetaRegistry,
   portalPrefixSet,
+  dashboardPortalSet,
   getPortalMeta,
   getAllPortalNames,
   getPortalPages,

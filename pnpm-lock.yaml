@@ -176,6 +176,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.1.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.1.0(react@19.1.0)
       typescript:
         specifier: ^5.8.0
         version: 5.8.3
@@ -186,6 +189,9 @@ importers:
       '@types/react':
         specifier: ^19.0.0
         version: 19.1.4
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.1.5(@types/react@19.1.4)
       drizzle-orm:
         specifier: ^0.43.1
         version: 0.43.1(gel@2.1.0)(postgres@3.4.5)

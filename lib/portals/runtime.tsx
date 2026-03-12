@@ -4,6 +4,7 @@ import '@/lib/portals/all-portals';
 
 import { notFound } from 'next/navigation';
 import { getPortalMeta, getPortalPages } from '@skitsaas/sdk';
+import { CORE_ASSETS_BY_AREA } from '@/lib/themes/assets.generated';
 import type { ComponentType } from 'react';
 
 type PortalPageEntry = {
@@ -48,7 +49,8 @@ export async function resolvePortalPage({
     area: meta.configs[0]?.area,
     context: meta.configs[0]?.context,
     userTheme: meta.userTheme,
-  };
+    routeArea: meta.routeArea ?? 'standalone',
+  } as const;
 
   const pageNode = (
     <Page slug={slug} params={matched.params} searchParams={searchParams} />
@@ -75,12 +77,23 @@ export async function resolvePortalPage({
     );
   }
 
-  // No theme — inject raw head assets and render layout
+  // No theme — inject core CSS + any custom head assets.
+  // Default CSS area: standalone portals → 'frontend'; dashboard/admin portals → 'dashboard'
+  const defaultCoreCssArea =
+    (meta.routeArea ?? 'standalone') === 'standalone' ? ('frontend' as const) : ('dashboard' as const);
+  const coreCssOption = meta.coreCss ?? defaultCoreCssArea;
+  let coreCssHref: string | null = null;
+  if (coreCssOption !== false) {
+    const area = coreCssOption === 'dashboard' ? 'dashboard' : 'frontend';
+    coreCssHref = CORE_ASSETS_BY_AREA[area]?.cssHref ?? null;
+  }
+
   const headCss = meta.head?.css ?? [];
   const headJs = meta.head?.js ?? [];
 
   return (
     <>
+      {coreCssHref && <link key="portal-core-css" rel="stylesheet" href={coreCssHref} />}
       {headCss.map((href) => (
         <link key={href} rel="stylesheet" href={href} />
       ))}

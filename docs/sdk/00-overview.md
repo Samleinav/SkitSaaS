@@ -37,6 +37,7 @@ Exports:
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
 - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
+- portable form renderer (`BuildForm`, `SdkBuildFormProps`) — client component, usable in modules and portal pages without host imports
 - typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteFrontend`, `RouteApi`, `RouteBuilder`)
 - named route registry (`route`, `registerRoute`, `getRegisteredRoute`, `RouteNotFoundError`)
 - proxy area configuration (`configureAreaDefaults`, `matchRouteProxyChain`, `resolveAreaFallbackChain`)
@@ -69,8 +70,12 @@ Structured form contract:
 - `buildFormValidationMessage.*(...)`
 - `normalizeEmail(...)`
 - `parseOptionalPositiveInt(...)`
+- `BuildForm` — portable `'use client'` renderer for modules and portal pages
+- `SdkBuildFormProps` — props type for `BuildForm`
 
 `composeBuildFormDefinition(...)` lets core or module code apply `request`, `submit`, and `values` in one pass instead of repeating `defineBuildForm(...) + withBuildFormRequest(...) + withBuildFormValues(...)` on every page. `buildFormValidationPreset.blur(...)` centralizes the common authoring preset used by most CRUD forms (`client.validateOn=['blur']`, plus optional preflight defaults).
+
+`BuildForm` from `@skitsaas/sdk` is the primary renderer for **all module code** (source-host, source-package, portal pages). It renders with plain Tailwind CSS variables, handles blur/change local validation, server validation hydration (`useActionState`), and field-level preflight AJAX — the same behavior as the host's `components/ui/build-form.tsx`. The `templateRenderer` prop allows the host or a portal layout to inject a custom renderer without changing page-level code. Do not import from `@/components/ui/build-form` in module code.
 
 ### `@skitsaas/sdk/server`
 

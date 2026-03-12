@@ -49,13 +49,14 @@ export {
 } from './matcher.js';
 
 // Portal route system — multi-portal support via RoutePortal / RouteApiPortal
-export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory } from './portal.js';
+export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory, PortalRouteArea } from './portal.js';
 export {
   RoutePortal,
   RouteApiPortal,
   PortalRouteBuilder,
   portalMetaRegistry,
   portalPrefixSet,
+  dashboardPortalSet,
   getPortalMeta,
   getAllPortalNames,
   getPortalPages,

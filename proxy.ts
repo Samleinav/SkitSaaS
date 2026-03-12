@@ -15,7 +15,7 @@ import type { AppSurfaceMode } from '@/lib/config/runtime-surface';
 import {
   getAppSurfaceMode
 } from '@/lib/config/runtime-surface';
-import { matchRouteProxyChain, portalPrefixSet } from '@skitsaas/sdk';
+import { matchRouteProxyChain, portalPrefixSet, dashboardPortalSet } from '@skitsaas/sdk';
 import { executeProxyChain } from '@/lib/routing/proxies';
 
 const PORTAL_INTERNAL_PREFIX = '/portal-internal';
@@ -66,6 +66,35 @@ export function resolveUnauthenticatedRedirect(pathname: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Portal detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the portal-relative internal path if `pathname` matches a registered portal.
+ * Returns null if the path is not a portal route.
+ *
+ * - Standalone:  /hub/members           → /hub/members
+ * - Dashboard:   /dashboard/school/list → /school/list
+ * - Admin:       /admin/support/tickets → /support/tickets
+ *
+ * The returned path is appended to PORTAL_INTERNAL_PREFIX for the rewrite URL.
+ */
+function resolvePortalInternalPath(pathname: string): string | null {
+  const segments = pathname.split('/').filter(Boolean);
+  const [first, second] = segments;
+
+  if (first && portalPrefixSet.has(first)) {
+    return pathname;
+  }
+
+  if (first === 'dashboard' && second && dashboardPortalSet.has(second)) {
+    return pathname.slice('/dashboard'.length);
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Proxy function
 // ---------------------------------------------------------------------------
 
@@ -87,10 +116,10 @@ export async function proxy(request: NextRequest) {
   // matchRouteProxyChain returns area-level defaults if no named route matches.
   const chain = matchRouteProxyChain(pathname);
 
-  // Portal routes — run auth proxy chain, then rewrite to internal dispatcher
-  // so the portal page is served without the (frontend) marketing layout.
-  const firstSegment = pathname.split('/').filter(Boolean)[0] ?? '';
-  if (firstSegment && portalPrefixSet.has(firstSegment)) {
+  // Portal routes — run proxy chain, then rewrite to internal dispatcher
+  // so portal pages are served without the area's layout chrome.
+  const internalPath = resolvePortalInternalPath(pathname);
+  if (internalPath !== null) {
     const proxyResult = await executeProxyChain(chain, request);
     // Honor blocking responses (redirects to login, 4xx, etc.)
     if (proxyResult.headers.get('x-middleware-next') !== '1') {
@@ -98,7 +127,7 @@ export async function proxy(request: NextRequest) {
     }
     // Pass-through → rewrite to internal portal dispatcher
     const url = request.nextUrl.clone();
-    url.pathname = `${PORTAL_INTERNAL_PREFIX}${pathname}`;
+    url.pathname = `${PORTAL_INTERNAL_PREFIX}${internalPath}`;
     const rewriteResponse = NextResponse.rewrite(url);
     // Forward any cookies set by the proxy chain (e.g., refreshed session)
     proxyResult.cookies.getAll().forEach(c => rewriteResponse.cookies.set(c));
