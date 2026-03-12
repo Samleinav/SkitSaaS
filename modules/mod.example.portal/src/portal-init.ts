@@ -37,7 +37,9 @@ HubRoute.register({
     css: [],
     js: [],
   },
-  // Users with 'member' role are redirected here after login
+  // All authenticated non-admin users land here after login
+  isDefaultPortal: true,
+  // Or restrict to a specific role:
   // redirectRoles: ['member'],
 });
 

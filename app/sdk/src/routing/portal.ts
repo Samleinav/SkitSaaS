@@ -35,6 +35,8 @@ type PortalRegistration = {
   userTheme: string | false;
   head?: { css?: string[]; js?: string[] };
   redirectRoles?: string[];
+  /** If true, all authenticated non-admin users land here after login (fallback before /dashboard). */
+  isDefaultPortal?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -123,6 +125,11 @@ export type PortalRegisterOptions = {
    * e.g. redirectRoles: ['teacher'] → users with role 'teacher' land at /portalName
    */
   redirectRoles?: string[];
+  /**
+   * If true, all authenticated non-admin users are redirected here after login
+   * when no specific role match is found. Acts as the default portal destination.
+   */
+  isDefaultPortal?: boolean;
 };
 
 export interface PortalRouteFactory {

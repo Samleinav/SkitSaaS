@@ -5,10 +5,12 @@ import { portalMetaRegistry } from '@skitsaas/sdk';
  *
  * Priority:
  * 1. Admin: canAccessAdmin flag → /admin
- * 2. Portal: checks registered portals for redirectRoles match → /portalName
- * 3. Fallback: /dashboard
+ * 2. Portal role match: redirectRoles includes the user's role → /portalName
+ * 3. Default portal: isDefaultPortal: true → /portalName
+ * 4. Fallback: /dashboard
  *
  * Modules declare their redirect roles in RoutePortal().register({ redirectRoles: ['teacher'] }).
+ * Modules declare a default destination with RoutePortal().register({ isDefaultPortal: true }).
  */
 export function resolveRoleRedirect(
   role: string | null | undefined,
@@ -16,13 +18,18 @@ export function resolveRoleRedirect(
 ): string {
   if (canAccessAdmin) return '/admin';
 
-  if (role) {
-    for (const [portalName, meta] of portalMetaRegistry) {
-      if (meta.redirectRoles?.includes(role)) {
-        return `/${portalName}`;
-      }
+  let defaultPortalName: string | null = null;
+
+  for (const [portalName, meta] of portalMetaRegistry) {
+    if (role && meta.redirectRoles?.includes(role)) {
+      return `/${portalName}`;
+    }
+    if (meta.isDefaultPortal) {
+      defaultPortalName = portalName;
     }
   }
+
+  if (defaultPortalName) return `/${defaultPortalName}`;
 
   return '/dashboard';
 }
