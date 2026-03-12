@@ -18,7 +18,7 @@ import {
 import { matchRouteProxyChain, portalPrefixSet } from '@skitsaas/sdk';
 import { executeProxyChain } from '@/lib/routing/proxies';
 
-const PORTAL_INTERNAL_PREFIX = '/_portal';
+const PORTAL_INTERNAL_PREFIX = '/portal-internal';
 
 // ---------------------------------------------------------------------------
 // Legacy helper exports — kept for backward compatibility with existing tests

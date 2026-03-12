@@ -325,6 +325,125 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `modules:build -> modules:prepare -> modules:i18n -> modules:migrate -> modules:sync`
   - `modules:build` supports `--module=<id>` and `--dry-run` for targeted diagnostics.
 
+## Portal system
+
+Portals are named, self-contained areas served at `/<portalName>/*` — completely independent from the marketing frontend layout. Each portal defines its own layout, pages, auth rules, and optional theme.
+
+### Architecture
+
+```
+Request /hub/members
+  → middleware (proxy.ts)
+  → portalPrefixSet.has('hub') → true
+  → executeProxyChain (auth enforcement)
+  → NextResponse.rewrite('/_portal/hub/members')
+  → app/(portal)/_portal/[...slug]/page.tsx
+  → resolvePortalPage({ portalName: 'hub', slug: ['members'] })
+  → portal layout + page (no marketing chrome)
+```
+
+Key files:
+- `app/sdk/src/routing/portal.ts` — `RoutePortal`, `RouteApiPortal`, `PortalRouteBuilder`, registries
+- `app/(portal)/_portal/[...slug]/page.tsx` — internal portal dispatcher (reached via middleware rewrite only)
+- `lib/portals/runtime.tsx` — `resolvePortalPage()` + `{param}` pattern matching
+- `lib/portals/all-portals.ts` → `lib/portals/all-portals.generated.ts` — page registry bootstrap (Node.js)
+- `lib/portals/role-routing.ts` — `resolveRoleRedirect()` for post-login redirect
+- `lib/routing/all-routes.generated.ts` — middleware proxy chain registration (edge)
+- `proxy.ts` — detects `portalPrefixSet`, rewrites to `/_portal/...`, blocks direct access
+
+### Module layout (two files, two contexts)
+
+```
+modules/mod.school/
+  module.json          ← declare routesEntry + portalInit → auto-registered by modules:prepare
+  src/
+    routes.ts          ← EDGE: RoutePortal + .name() — proxy chain for middleware
+    portal-init.ts     ← NODE.JS: .page() + .register() — page registry for dispatcher
+```
+
+`routes.ts` (edge-safe, no React):
+```ts
+import '@/lib/routing/area-setup';
+import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
+
+export const SchoolRoute = RoutePortal('school');
+
+SchoolRoute('').name('school.home');                        // public  → /school
+SchoolRoute('students/{id}').auth().name('school.student'); // auth    → /school/students/{id}
+
+SchoolRoute.register({ /* NOT here, in portal-init.ts */ });
+
+export const SchoolApi = RouteApiPortal('school');
+export const GetStudents = SchoolApi('/students').GET().auth('user');
+```
+
+`portal-init.ts` (Node.js only, never import from edge files):
+```ts
+import { SchoolRoute } from './routes';
+
+SchoolRoute('').page(() => import('../portal/school/home/page'));
+SchoolRoute('students/{id}').page(() => import('../portal/school/students/[id]/page'));
+
+SchoolRoute.register({
+  layout: () => import('../portal/school/layout'),
+  userTheme: false,           // or 'themeId' to inject a theme's CSS
+  isDefaultPortal: true,      // redirect all non-admin users here after login
+  // redirectRoles: ['teacher'], // OR: restrict to specific role
+});
+```
+
+`module.json` — auto-registration:
+```json
+{
+  "routesEntry": "src/routes.ts",   // → lib/routing/all-routes.generated.ts
+  "portalInit": "src/portal-init.ts" // → lib/portals/all-portals.generated.ts
+}
+```
+
+Run `pnpm modules:prepare` after adding these fields. No manual edits to bootstrap files.
+
+### Portal layout
+
+```tsx
+import type { PortalLayoutProps } from '@skitsaas/sdk';
+
+export default function SchoolLayout({ children, portalCtx }: PortalLayoutProps) {
+  // Full ownership of structure — no framework nav injected
+  // portalCtx: { name, area?, context?, userTheme }
+  return <div className="school-portal">{children}</div>;
+}
+```
+
+### Portal page props
+
+```tsx
+type PageProps = {
+  slug: string[];                                       // remaining path segments
+  params: Record<string, string>;                       // {param} matches from path pattern
+  searchParams: Record<string, string | string[] | undefined>;
+};
+```
+
+### Post-login redirect
+
+Priority order in `lib/portals/role-routing.ts`:
+1. `canAccessAdmin` → `/admin`
+2. `redirectRoles` match → `/<portalName>`
+3. `isDefaultPortal: true` → `/<portalName>`
+4. Fallback → `/dashboard`
+
+### Route precedence notes
+
+- `portalPrefixSet` is populated in the edge context when `routes.ts` is imported by the middleware
+- `/_portal/*` is blocked for direct user access; only reachable via internal rewrite
+- Portal pages are served from `app/(portal)/` — they do NOT inherit `app/(frontend)/layout.tsx`
+- `app/(frontend)/[...moduleAlias]` is for module routes only; portal check was removed from it
+
+### Example module
+
+`modules/mod.example.portal` — demonstrates all portal features with the `hub` portal name.
+See `modules/mod.example.portal/README.md`.
+
 ## Getting started (local)
 
 1. Install dependencies: `pnpm install`

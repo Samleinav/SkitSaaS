@@ -7,7 +7,7 @@ type PageProps = {
 };
 
 /**
- * Internal portal dispatcher — served at /_portal/[portalName]/[...rest].
+ * Internal portal dispatcher — served at /portal-internal/[portalName]/[...rest].
  * Never reached directly by users; the middleware rewrites portal paths here
  * so portals are served without the (frontend) marketing layout.
  */
