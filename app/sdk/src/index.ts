@@ -384,6 +384,18 @@ export {
   ApiMethodRouteBuilder,
 } from './routing/api-route.js';
 
+// Portal route system — multi-portal support
+export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory } from './routing/portal.js';
+export {
+  RoutePortal,
+  RouteApiPortal,
+  PortalRouteBuilder,
+  portalMetaRegistry,
+  getPortalMeta,
+  getAllPortalNames,
+  getPortalPages,
+} from './routing/portal.js';
+
 // Rate limiting — usable from core and all module types (source-host, source-package, prebuilt)
 export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig, RateLimitBackendContext, RateLimitBackendHandler } from './routing/rate-limit.js';
 export {

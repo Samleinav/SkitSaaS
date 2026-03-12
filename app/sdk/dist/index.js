@@ -18,6 +18,7 @@ export { RouteBuilder } from './routing/builder.js';
 export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './routing/area.js';
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
+export { RoutePortal, RouteApiPortal, PortalRouteBuilder, portalMetaRegistry, getPortalMeta, getAllPortalNames, getPortalPages, } from './routing/portal.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
 export { QuotaExceededError } from './subscription-features.js';
 // RichUser — enriches any user object with role-check methods.

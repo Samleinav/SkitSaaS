@@ -20,3 +20,4 @@ import '@/core/routes';
 
 // Module routes — uncomment to include per-route proxy chains in proxy.ts
 // import '@/../modules/mod.example.suite/src/routes';
+// import '@/../modules/mod.example.portal/src/routes';

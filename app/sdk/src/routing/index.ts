@@ -48,6 +48,18 @@ export {
   resolveAreaFallbackChain
 } from './matcher.js';
 
+// Portal route system — multi-portal support via RoutePortal / RouteApiPortal
+export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory } from './portal.js';
+export {
+  RoutePortal,
+  RouteApiPortal,
+  PortalRouteBuilder,
+  portalMetaRegistry,
+  getPortalMeta,
+  getAllPortalNames,
+  getPortalPages,
+} from './portal.js';
+
 // Rate limiting — usable from core and all module types (source-host, source-package, prebuilt)
 export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig } from './rate-limit.js';
 export {

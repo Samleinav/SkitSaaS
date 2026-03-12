@@ -39,6 +39,8 @@ export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configu
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';
 export type { HttpMethod, ApiAuthLevel, ApiRouteProxyFn, ApiHandlerFn, } from './routing/api-route.js';
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';
+export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRouteFactory } from './routing/portal.js';
+export { RoutePortal, RouteApiPortal, PortalRouteBuilder, portalMetaRegistry, getPortalMeta, getAllPortalNames, getPortalPages, } from './routing/portal.js';
 export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig, RateLimitBackendContext, RateLimitBackendHandler } from './routing/rate-limit.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
 export type { QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';

@@ -1,0 +1,7 @@
+{
+  "moduleId": "mod.example.portal",
+  "moduleMode": "source-host",
+  "version": "0.1.0",
+  "sourceEntry": "src/manifest.ts",
+  "sdkRange": "^1.5.0"
+}

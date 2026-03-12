@@ -50,6 +50,7 @@ import {
   validatedAction,
   validatedActionWithUser
 } from '@/lib/auth/middleware';
+import { resolveRoleRedirect } from '@/lib/portals/role-routing';
 import { areTeamsEnabled } from '@/lib/organizations/config';
 
 async function logActivity(
@@ -454,11 +455,7 @@ async function signInByArea(
     return createCheckoutSession({ team: foundTeam, template });
   }
 
-  if (authArea === 'admin' && canAccessAdmin) {
-    redirect('/admin');
-  }
-
-  redirect('/dashboard');
+  redirect(resolveRoleRedirect(foundUser.role, authArea === 'admin' && canAccessAdmin));
 }
 
 export const signInDashboard = validatedAction(signInSchema, async (data, formData) =>
