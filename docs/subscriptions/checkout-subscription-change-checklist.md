@@ -49,7 +49,8 @@ npx tsx --test tests/modules/mod-commerce-onetime-api.test.ts tests/modules/mod-
 
 - Confirm no regressions in admin/dashboard subscription pages:
   - `app/(dashboard)/admin/subscriptions/*`
-  - `app/(dashboard)/admin/suscriptions/*`
+  - `app/(dashboard)/admin/subscriptions/templates/*`
+  - `app/(dashboard)/admin/suscriptions/*` (legacy redirects/shims)
   - `app/(dashboard)/dashboard/subscriptions/*`
 
 ## Related References

@@ -176,8 +176,8 @@ import { Routes } from '@/core/routes'
 
 Routes.admin.home                          // "/admin"
 Routes.admin.users                         // "/admin/users"
-Routes.admin.subscriptions.edit            // "/admin/subscriptions/{templateId}/edit"
-Routes.admin.subscriptions.edit.with({ templateId: 3 })  // "/admin/subscriptions/3/edit"
+Routes.admin.subscriptions.templates.edit            // "/admin/subscriptions/templates/{templateId}/edit"
+Routes.admin.subscriptions.templates.edit.with({ templateId: 3 })  // "/admin/subscriptions/templates/3/edit"
 Routes.dashboard.subscriptions             // "/dashboard/subscriptions"
 Routes.frontend.pricing                    // "/pricing"
 ```

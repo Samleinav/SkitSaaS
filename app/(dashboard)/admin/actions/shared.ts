@@ -36,10 +36,13 @@ export function revalidateAdminUsers() {
 export function revalidateAdminSubscriptions() {
   revalidatePath('/admin');
   revalidatePath('/admin/subscriptions');
+  revalidatePath('/admin/subscriptions/templates');
+  revalidatePath('/admin/suscriptions');
 }
 
 export function revalidateAdminSuscriptions() {
   revalidatePath('/admin');
+  revalidatePath('/admin/subscriptions');
   revalidatePath('/admin/suscriptions');
 }
 
@@ -55,6 +58,7 @@ export function revalidateAdminAppConfig() {
 export function revalidateAdminBilling() {
   revalidatePath('/admin');
   revalidatePath('/admin/billing');
+  revalidatePath('/admin/subscriptions');
   revalidatePath('/admin/suscriptions');
 }
 

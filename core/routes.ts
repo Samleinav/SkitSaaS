@@ -11,7 +11,7 @@
  *
  * SKIP registering:
  * - Parameterized sub-routes only used inline (e.g. build the URL where you need it:
- *   RouteAdmin('/subscriptions').with({}) or template literal with Routes.admin.subscriptions)
+ *   RouteAdmin('/subscriptions/user/{userId}/edit').with({ userId: 7 }))
  * - Module routes → go in modules/[mod]/src/routes.ts
  *
  * Usage:
@@ -58,17 +58,23 @@ export const Routes = {
     // Users
     users: RouteAdmin('/users').name('admin.users'),
 
-    // Subscription templates (plan management)
+    // Subscription assignments and template management
     subscriptions: {
-      home:   RouteAdmin('/subscriptions').name('admin.subscriptions'),
-      create: RouteAdmin('/subscriptions/create').name('admin.subscriptions.create'),
-      edit:   RouteAdmin('/subscriptions/{templateId}/edit').name('admin.subscriptions.edit'),
+      home:     RouteAdmin('/subscriptions').name('admin.subscriptions'),
+      orgEdit:  RouteAdmin('/subscriptions/organization/{teamId}/edit').name('admin.subscriptions.organization.edit'),
+      userEdit: RouteAdmin('/subscriptions/user/{userId}/edit').name('admin.subscriptions.user.edit'),
+      templates: {
+        home:   RouteAdmin('/subscriptions/templates').name('admin.subscriptions.templates'),
+        create: RouteAdmin('/subscriptions/templates/create').name('admin.subscriptions.templates.create'),
+        edit:   RouteAdmin('/subscriptions/templates/{templateId}/edit').name('admin.subscriptions.templates.edit'),
+      },
     },
 
-    // User/org subscription management (note: legacy "suscriptions" path exists in FS)
-    userSubscriptions: {
-      orgEdit:  RouteAdmin('/suscriptions/organization/{teamId}/edit').name('admin.user-subscriptions.org.edit'),
-      userEdit: RouteAdmin('/suscriptions/user/{userId}/edit').name('admin.user-subscriptions.user.edit'),
+    // Legacy misspelled subscription routes kept only for redirects/backwards compatibility.
+    legacySuscriptions: {
+      home:     RouteAdmin('/suscriptions').name('admin.suscriptions.legacy'),
+      orgEdit:  RouteAdmin('/suscriptions/organization/{teamId}/edit').name('admin.suscriptions.legacy.organization.edit'),
+      userEdit: RouteAdmin('/suscriptions/user/{userId}/edit').name('admin.suscriptions.legacy.user.edit'),
     },
 
     // Orders

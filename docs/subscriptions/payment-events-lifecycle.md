@@ -163,8 +163,9 @@ Module-specific implementation details must stay in the module's own documentati
 
 Routes:
 
-- `/admin/suscriptions` (active assignments operations)
-- `/admin/subscriptions` (template catalog management)
+- `/admin/subscriptions` (active assignments operations)
+- `/admin/subscriptions/templates` (template catalog management)
+- `/admin/suscriptions` remains as a legacy redirect to `/admin/subscriptions`
 
 - The admin subscriptions table is order-backed.
 - A row is shown only if there is at least one persisted subscription order for that target.

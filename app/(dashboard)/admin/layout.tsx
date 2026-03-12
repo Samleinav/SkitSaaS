@@ -154,17 +154,17 @@ export default async function AdminLayout({
         label: messages.nav.users
       },
       {
-        href: '/admin/suscriptions',
+        href: '/admin/subscriptions',
         icon: 'layout-template',
         label: messages.nav.subscriptions,
-        matchPrefixes: ['/admin/subscriptions'],
+        matchPrefixes: ['/admin/subscriptions', '/admin/suscriptions'],
         children: [
           {
-            href: '/admin/suscriptions',
+            href: '/admin/subscriptions',
             label: messages.subscriptionsPage.subscriptionsTitle
           },
           {
-            href: '/admin/subscriptions',
+            href: '/admin/subscriptions/templates',
             label: messages.subscriptionsPage.templatesTitle
           }
         ]

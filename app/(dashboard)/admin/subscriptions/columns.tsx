@@ -253,7 +253,7 @@ export function getColumns(
       cell: ({ row }) => {
         const fallbackCell = (
           <Button asChild size="sm" variant="outline">
-            <Link href={`/admin/suscriptions/organization/${row.original.id}/edit`}>
+            <Link href={`/admin/subscriptions/organization/${row.original.id}/edit`}>
               {messages.subscriptionsPage.edit}
             </Link>
           </Button>
@@ -420,7 +420,7 @@ export function getSubscriptionsTableDefinition({
             data={{ teamId: row.id }}
           >
             <Button asChild size="sm" variant="outline">
-              <Link href={`/admin/suscriptions/organization/${row.id}/edit`}>
+              <Link href={`/admin/subscriptions/organization/${row.id}/edit`}>
                 {messages.subscriptionsPage.edit}
               </Link>
             </Button>

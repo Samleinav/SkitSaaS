@@ -7,6 +7,7 @@ import {
 
 test('vercel build plan includes generated artifact preparation before sync', () => {
   const plan = buildVercelCommandPlan({
+    NODE_ENV: 'production',
     VERCEL: '1',
     VERCEL_ENV: 'production',
     POSTGRES_URL: 'postgres://example'
@@ -35,6 +36,7 @@ test('vercel build plan includes generated artifact preparation before sync', ()
 
 test('vercel build plan still prepares i18n artifacts when database sync is skipped', () => {
   const plan = buildVercelCommandPlan({
+    NODE_ENV: 'test',
     VERCEL: '1',
     VERCEL_ENV: 'preview'
   });

@@ -45,11 +45,14 @@ Module dispatchers:
 - `/admin/users`
 - `/admin/users/[userId]`
 - `/admin/subscriptions`
-- `/admin/subscriptions/create`
-- `/admin/subscriptions/[templateId]/edit`
-- `/admin/suscriptions` (legacy/operational subscription assignments)
-- `/admin/suscriptions/organization/[teamId]/edit`
-- `/admin/suscriptions/user/[userId]/edit`
+- `/admin/subscriptions/templates`
+- `/admin/subscriptions/templates/create`
+- `/admin/subscriptions/templates/[templateId]/edit`
+- `/admin/subscriptions/organization/[teamId]/edit`
+- `/admin/subscriptions/user/[userId]/edit`
+- `/admin/suscriptions` (legacy redirect to `/admin/subscriptions`)
+- `/admin/suscriptions/organization/[teamId]/edit` (legacy redirect)
+- `/admin/suscriptions/user/[userId]/edit` (legacy redirect)
 - `/admin/orders`
 - `/admin/orders/create`
 - `/admin/orders/[orderId]/edit`
@@ -60,7 +63,7 @@ Module dispatchers:
 - `/admin/app-config/general`
 - `/admin/app-config/payments-methods`
 - `/admin/app-config/email`
-- `/admin/billing` (compatibility redirect to `/admin/suscriptions`)
+- `/admin/billing` (compatibility redirect to `/admin/subscriptions`)
 
 ### Dashboard routes
 
@@ -123,7 +126,7 @@ Domain action files:
 
 - `app/(dashboard)/admin/users/actions.ts`
 - `app/(dashboard)/admin/subscriptions/actions.ts`
-- `app/(dashboard)/admin/suscriptions/actions.ts`
+- `app/(dashboard)/admin/suscriptions/actions.ts` (legacy compatibility re-export)
 - `app/(dashboard)/admin/orders/actions.ts`
 - `app/(dashboard)/admin/payments/actions.ts`
 - `app/(dashboard)/admin/app-config/actions.ts`

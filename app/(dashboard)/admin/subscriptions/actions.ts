@@ -357,7 +357,7 @@ export const createSubscriptionTemplateAction = adminAction(
         priceCents,
         currency
       },
-      { source: '/admin/subscriptions' }
+      { source: '/admin/subscriptions/templates' }
     );
   },
   {
@@ -494,7 +494,7 @@ export const updateSubscriptionTemplateAction = adminAction(
           actorUserId: currentUser.id,
           actorEmail: currentUser.email,
           actorRole: currentUser.role,
-          source: `/admin/subscriptions/${templateId}/edit`
+          source: `/admin/subscriptions/templates/${templateId}/edit`
         }
       );
 
@@ -502,7 +502,7 @@ export const updateSubscriptionTemplateAction = adminAction(
         actorUserId: currentUser.id,
         actorEmail: currentUser.email,
         actorRole: currentUser.role,
-        source: `/admin/subscriptions/${templateId}/edit`,
+        source: `/admin/subscriptions/templates/${templateId}/edit`,
         templateId,
         templateName: updatedTemplate.name,
         previousSnapshot: createCheckoutTemplateSnapshot(currentTemplate),
@@ -524,7 +524,7 @@ export const updateSubscriptionTemplateAction = adminAction(
         actorUserId: currentUser.id,
         actorEmail: currentUser.email,
         actorRole: currentUser.role,
-        source: `/admin/subscriptions/${templateId}/edit`
+        source: `/admin/subscriptions/templates/${templateId}/edit`
       }
     );
   },
@@ -563,7 +563,7 @@ export const requestTemplateActiveSubscriptionsUpdateAction = adminValidatedActi
       actorUserId: currentUser.id,
       actorEmail: currentUser.email,
       actorRole: currentUser.role,
-      source: `/admin/subscriptions/${templateId}/edit`,
+      source: `/admin/subscriptions/templates/${templateId}/edit`,
       templateId: template.id,
       templateName: template.name,
       templateSnapshot: createCheckoutTemplateSnapshot(template),
@@ -581,7 +581,7 @@ export const requestTemplateActiveSubscriptionsUpdateAction = adminValidatedActi
         actorUserId: currentUser.id,
         actorEmail: currentUser.email,
         actorRole: currentUser.role,
-        source: `/admin/subscriptions/${templateId}/edit`
+        source: `/admin/subscriptions/templates/${templateId}/edit`
       }
     );
   },
@@ -666,7 +666,7 @@ export const updateUserSubscriptionAction = adminValidatedAction(
         : null;
     const source = normalizeSource(
       typeof values.source === 'string' ? values.source : '',
-      `/admin/suscriptions/user/${userId ?? 'unknown'}/edit`
+      `/admin/subscriptions/user/${userId ?? 'unknown'}/edit`
     );
 
     if (!userId) {
@@ -797,7 +797,7 @@ export const updateTeamSubscriptionAction = adminValidatedAction(
         : null;
     const source = normalizeSource(
       typeof values.source === 'string' ? values.source : '',
-      `/admin/suscriptions/organization/${teamId ?? 'unknown'}/edit`
+      `/admin/subscriptions/organization/${teamId ?? 'unknown'}/edit`
     );
 
     if (!teamId) {
@@ -958,7 +958,7 @@ export const clearTeamSubscriptionAction = adminValidatedAction(
 
     const source = normalizeSource(
       typeof values.source === 'string' ? values.source : '',
-      `/admin/suscriptions/organization/${teamId}/edit`
+      `/admin/subscriptions/organization/${teamId}/edit`
     );
 
     const [currentTeam] = await db

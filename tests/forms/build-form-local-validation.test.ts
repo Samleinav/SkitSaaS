@@ -187,7 +187,7 @@ test('admin user subscription form accepts empty template selection locally', ()
   const form = createAdminUpdateUserSubscriptionBuildFormBase();
   const formData = new FormData();
   formData.set('userId', '7');
-  formData.set('source', '/admin/suscriptions/user/7/edit');
+  formData.set('source', '/admin/subscriptions/user/7/edit');
   formData.set('templateId', '');
 
   const result = runBuildFormLocalValidation(form, formData);
@@ -199,7 +199,7 @@ test('admin organization subscription form requires subscription status locally'
   const form = createAdminManageOrganizationSubscriptionBuildFormBase();
   const formData = new FormData();
   formData.set('teamId', '4');
-  formData.set('source', '/admin/suscriptions/organization/4/edit');
+  formData.set('source', '/admin/subscriptions/organization/4/edit');
   formData.set('paymentProvider', '');
   formData.set('subscriptionStatus', '');
   formData.set('templateId', '');

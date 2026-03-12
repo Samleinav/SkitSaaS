@@ -206,6 +206,11 @@ The minimum v1 contract is:
 - `page.admin.subscriptions.templates`: `title`, `description`.
 - `page.admin.subscriptions.create`: `title`.
 - `page.admin.subscriptions.edit`: `title`.
+
+Compatibility note:
+
+- admin subscription routes are now canonical under `/admin/subscriptions/*` and `/admin/subscriptions/templates/*`
+- theme component IDs intentionally keep the historical `page.admin.suscriptions*` spelling for assignments/edit screens to avoid breaking existing theme packs
 - `section.admin.nav`: `variant`, `mode`, `moduleItemsCount`, `navItems`, `projectName`.
 - `section.admin.breadcrumb`: `title`, `backToAppConfigLabel`.
 - `section.admin.app-config-nav`: `section`.

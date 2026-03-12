@@ -46,7 +46,8 @@ Validate routes (authenticated admin user):
 - `/admin/orders`
 - `/admin/payments`
 - `/admin/subscriptions`
-- `/admin/suscriptions`
+- `/admin/subscriptions/templates`
+- `/admin/suscriptions` (legacy redirect check)
 - `/dashboard/subscriptions`
 
 Capture new snapshots and record date/location if behavior changed.

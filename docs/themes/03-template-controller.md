@@ -210,7 +210,7 @@ Flow:
 
 Current pages using `TemplateTable`:
 
-- `app/(dashboard)/admin/subscriptions/page.tsx`
+- `app/(dashboard)/admin/subscriptions/templates/page.tsx`
 - `app/(dashboard)/dashboard/subscriptions/page.tsx`
 
 ## `ui.form` migration (Sprint 10 pilot)
@@ -271,8 +271,9 @@ Current server routes using `TemplateAsyncSubmitButton` include:
 - `app/(dashboard)/admin/app-config/*`
 - `app/(dashboard)/admin/orders/[orderId]/edit/page.tsx`
 - `app/(dashboard)/admin/users/*`
-- `app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx`
-- `app/(dashboard)/admin/suscriptions/*/edit/page.tsx`
+- `app/(dashboard)/admin/subscriptions/templates/[templateId]/edit/page.tsx`
+- `app/(dashboard)/admin/subscriptions/user/[userId]/edit/page.tsx`
+- `app/(dashboard)/admin/subscriptions/organization/[teamId]/edit/page.tsx`
 
 ## `ui.alert-dialog` migration (Fase 5 pilot)
 
@@ -300,8 +301,8 @@ Current server routes using `TemplateConfirmSubmitButton` include:
 
 - `app/(dashboard)/dashboard/subscriptions/page.tsx`
 - `app/(dashboard)/admin/users/[userId]/page.tsx`
-- `app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx`
-- `app/(dashboard)/admin/suscriptions/organization/[teamId]/edit/page.tsx`
+- `app/(dashboard)/admin/subscriptions/templates/[templateId]/edit/page.tsx`
+- `app/(dashboard)/admin/subscriptions/organization/[teamId]/edit/page.tsx`
 
 ## `ui.dialog` migration (Fase 5 pilot)
 

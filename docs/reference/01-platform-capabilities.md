@@ -101,8 +101,9 @@ Main route surfaces:
 
 - `/admin`
 - `/admin/users`
-- `/admin/subscriptions` (template management)
-- `/admin/suscriptions` (active assignment operations, legacy route name)
+- `/admin/subscriptions` (active assignment operations)
+- `/admin/subscriptions/templates` (template management)
+- `/admin/suscriptions` (legacy redirect to `/admin/subscriptions`)
 - `/admin/orders`
 - `/admin/payments`
 - `/admin/logs`
@@ -111,7 +112,7 @@ Main route surfaces:
 
 Compatibility route:
 
-- `/admin/billing` redirects to `/admin/suscriptions`
+- `/admin/billing` redirects to `/admin/subscriptions`
 
 ## 7) Dashboard area capabilities
 

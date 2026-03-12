@@ -391,28 +391,28 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/suscriptions/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="section.admin.metrics-grid"', 'id="page.admin.suscriptions"'],
     requiredDataKeys: ['variant', 'columns'],
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/suscriptions/user/[userId]/edit/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/user/[userId]/edit/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="page.admin.suscriptions.user.edit"'],
     requiredDataKeys: ['title', 'description', 'userId'],
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/suscriptions/organization/[teamId]/edit/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/organization/[teamId]/edit/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="page.admin.suscriptions.organization.edit"'],
     requiredDataKeys: ['title', 'description', 'teamId'],
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/subscriptions/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/templates/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: [
       'id="page.admin.subscriptions.templates"',
@@ -422,14 +422,14 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/subscriptions/create/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/templates/create/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="page.admin.subscriptions.create"'],
     requiredDataKeys: ['title'],
     requiresFallbackProp: true
   },
   {
-    filePath: 'app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx',
+    filePath: 'app/(dashboard)/admin/subscriptions/templates/[templateId]/edit/page.tsx',
     renderer: 'ThemeCodeTemplate',
     requiredSnippets: ['id="page.admin.subscriptions.edit"'],
     requiredDataKeys: ['title'],

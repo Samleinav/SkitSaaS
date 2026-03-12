@@ -145,7 +145,7 @@ function OverviewModule({ messages, summary, dateLocale, activityChart }: AdminD
       footerLabel: 'Manage accounts and roles'
     },
     {
-      href: '/admin/suscriptions',
+      href: '/admin/subscriptions',
       label: messages.ordersPage.table.teamHeader,
       value: summary.totalTeams,
       icon: Building2,
@@ -156,7 +156,7 @@ function OverviewModule({ messages, summary, dateLocale, activityChart }: AdminD
       footerLabel: 'Review team structure'
     },
     {
-      href: '/admin/suscriptions',
+      href: '/admin/subscriptions',
       label: messages.billingPage.metrics.activeSubscriptions,
       value: summary.activeSubscriptions,
       icon: BadgeCheck,
@@ -167,7 +167,7 @@ function OverviewModule({ messages, summary, dateLocale, activityChart }: AdminD
       footerLabel: 'Inspect recurring plans'
     },
     {
-      href: '/admin/suscriptions',
+      href: '/admin/subscriptions',
       label: messages.billingPage.metrics.issueSubscriptions,
       value: summary.issueSubscriptions,
       icon: AlertCircle,
@@ -259,7 +259,7 @@ function QuickLinksModule({ messages }: AdminDashboardModuleProps) {
       description: messages.usersPage.createDescription
     },
     {
-      href: '/admin/suscriptions',
+      href: '/admin/subscriptions',
       icon: LayoutTemplate,
       label: messages.nav.subscriptions,
       description: messages.billingPage.description

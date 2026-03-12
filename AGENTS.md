@@ -33,7 +33,7 @@ Quick guide for agents working in this repository (`saas-starter`).
 - `app/(dashboard)/dashboard/not-found.tsx`: dashboard-scoped not-found renderer (theme-aware fallback).
 - `app/(frontend)/pricing/*`: plan discovery and checkout start.
 - `app/(frontend)/checkout/[checkoutToken]`: tokenized checkout page (single payment-method render context).
-- `app/(dashboard)/admin/*`: admin (app config, users, subscriptions, suscriptions, payments).
+- `app/(dashboard)/admin/*`: admin (app config, users, subscriptions, payments).
 - `app/(dashboard)/admin/app-config/modules/*`: admin modules runtime controls (`/admin/app-config/modules`).
 - `app/(dashboard)/admin/not-found.tsx`: admin-scoped not-found renderer (theme-aware fallback).
 - `app/(dashboard)/admin/modules/*`: admin module dispatchers.
@@ -82,7 +82,12 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `/admin/app-config/modules`
   - `/admin/users`
   - `/admin/subscriptions`
-  - `/admin/suscriptions`
+  - `/admin/subscriptions/templates`
+  - `/admin/subscriptions/templates/create`
+  - `/admin/subscriptions/templates/[templateId]/edit`
+  - `/admin/subscriptions/organization/[teamId]/edit`
+  - `/admin/subscriptions/user/[userId]/edit`
+  - `/admin/suscriptions` (legacy redirect)
   - `/admin/products` (module alias from `mod.commerce.products` when enabled)
   - `/admin/payments`
   - `/admin/orders`
@@ -107,7 +112,7 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `app/(dashboard)/admin/app-config/modules/actions.ts`
   - `app/(dashboard)/admin/users/actions.ts`
   - `app/(dashboard)/admin/subscriptions/actions.ts`
-  - `app/(dashboard)/admin/suscriptions/actions.ts`
+  - `app/(dashboard)/admin/suscriptions/actions.ts` (legacy compatibility re-export)
   - `app/(dashboard)/admin/payments/actions.ts`
   - `app/(dashboard)/admin/orders/actions.ts` (if route-level mutations are added)
     - Includes `createPaymentOrderAction` (manual order create) and `updatePaymentOrderAction` (edit existing order)
@@ -365,7 +370,7 @@ Default seed user (if not changed in env):
 - `ui.table.control` CTC slot wrapper is used by `components/ui/data-table.tsx` for granular controls (`toolbar.*`, `body.empty`, `pagination.*`) with `ThemeTemplate` fallback per slot.
 - Generic TanStack datatable UI lives in `components/ui/data-table.tsx`; admin and dashboard wrappers pass `componentId` (`ui.table`), `themeId`, and `area` so the client datatable can load theme code templates from `lib/themes/code-registry.generated.ts` (with core fallback).
 - Admin table column granular slots currently include `users`, `orders`, `subscriptions`, `payments`, `logs`, and `suscriptions.user` via `app/(dashboard)/admin/table-slot-template.tsx`.
-- Admin server-rendered template tables also expose `section.admin.table.subscriptions.templates.cell` (`app/(dashboard)/admin/subscriptions/page.tsx`).
+- Admin server-rendered template tables also expose `section.admin.table.subscriptions.templates.cell` (`app/(dashboard)/admin/subscriptions/templates/page.tsx`).
 - Dashboard subscriptions datatable columns use `app/(dashboard)/dashboard/table-slot-template.tsx` with ids `section.dashboard.table.subscriptions.payments.cell` and `section.dashboard.table.subscriptions.invoices.cell`.
 - Dashboard server-rendered organizations table also exposes `section.dashboard.table.subscriptions.organizations.cell` (`app/(dashboard)/dashboard/subscriptions/page.tsx`).
 - `ui.async-submit-button` CTC pilot uses `components/ui/template-async-submit-button.tsx` + `lib/templates/ui-async-submit-button.ts` (payload keys: `className`, `iconClassName`).

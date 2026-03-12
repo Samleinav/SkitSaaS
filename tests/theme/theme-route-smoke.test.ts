@@ -342,21 +342,26 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
     {
       filePath: 'app/(dashboard)/admin/subscriptions/page.tsx',
       renderer: 'ThemeCodeTemplate',
+      expectedSnippet: 'id="page.admin.suscriptions"'
+    },
+    {
+      filePath: 'app/(dashboard)/admin/subscriptions/templates/page.tsx',
+      renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.subscriptions.templates"'
     },
     {
-      filePath: 'app/(dashboard)/admin/subscriptions/page.tsx',
+      filePath: 'app/(dashboard)/admin/subscriptions/templates/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet:
         'id="section.admin.table.subscriptions.templates.cell"'
     },
     {
-      filePath: 'app/(dashboard)/admin/subscriptions/create/page.tsx',
+      filePath: 'app/(dashboard)/admin/subscriptions/templates/create/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.subscriptions.create"'
     },
     {
-      filePath: 'app/(dashboard)/admin/subscriptions/[templateId]/edit/page.tsx',
+      filePath: 'app/(dashboard)/admin/subscriptions/templates/[templateId]/edit/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.subscriptions.edit"'
     },
@@ -386,17 +391,12 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       expectedSnippet: 'id="page.admin.logs"'
     },
     {
-      filePath: 'app/(dashboard)/admin/suscriptions/page.tsx',
-      renderer: 'ThemeCodeTemplate',
-      expectedSnippet: 'id="page.admin.suscriptions"'
-    },
-    {
-      filePath: 'app/(dashboard)/admin/suscriptions/user/[userId]/edit/page.tsx',
+      filePath: 'app/(dashboard)/admin/subscriptions/user/[userId]/edit/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.suscriptions.user.edit"'
     },
     {
-      filePath: 'app/(dashboard)/admin/suscriptions/organization/[teamId]/edit/page.tsx',
+      filePath: 'app/(dashboard)/admin/subscriptions/organization/[teamId]/edit/page.tsx',
       renderer: 'ThemeCodeTemplate',
       expectedSnippet: 'id="page.admin.suscriptions.organization.edit"'
     },

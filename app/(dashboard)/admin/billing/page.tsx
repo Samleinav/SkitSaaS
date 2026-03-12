@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function AdminBillingRedirectPage() {
-  redirect('/admin/suscriptions');
+  redirect('/admin/subscriptions');
 }

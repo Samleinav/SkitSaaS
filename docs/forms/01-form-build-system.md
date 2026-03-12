@@ -110,10 +110,10 @@ The current production rollout for that flow now covers:
 - `/admin/app-config/general`
 - `/admin/app-config/email`
 - `/admin/app-config/payments-methods`
-- `/admin/suscriptions/user/[userId]/edit`
-- `/admin/suscriptions/organization/[teamId]/edit`
-- `/admin/subscriptions/create` subscription template create flow (uses `repeater`)
-- `/admin/subscriptions/[templateId]/edit` full template edit plus request-active-update and delete flows (uses `repeater`)
+- `/admin/subscriptions/user/[userId]/edit`
+- `/admin/subscriptions/organization/[teamId]/edit`
+- `/admin/subscriptions/templates/create` subscription template create flow (uses `repeater`)
+- `/admin/subscriptions/templates/[templateId]/edit` full template edit plus request-active-update and delete flows (uses `repeater`)
 - `/admin/orders/create` manual order create flow (uses `dynamicOptions`)
 - `/admin/orders/[orderId]/edit` order edit flow (uses `dynamicOptions`)
 - `/dashboard/general` account update flow
@@ -131,8 +131,8 @@ The current DB-aware pilot is also `/admin/users`:
 - the host registry now resolves both preflight metadata and the canonical submit action for these pilots
 - `/admin/users/[userId]` status updates also run through the same controller registry + validated action path
 - `/admin/users/[userId]` delete now uses a BuildForm confirm flow instead of a standalone form + confirm button pair
-- `/admin/suscriptions/*` now uses the same registry + validated action path for user/team subscription management
-- `/admin/subscriptions/[templateId]/edit` now routes auxiliary update/delete actions through BuildForm instead of standalone forms
+- `/admin/subscriptions/user/*` and `/admin/subscriptions/organization/*` now use the same registry + validated action path for user/team subscription management
+- `/admin/subscriptions/templates/[templateId]/edit` now routes auxiliary update/delete actions through BuildForm instead of standalone forms
 
 ## Standard boundary
 
