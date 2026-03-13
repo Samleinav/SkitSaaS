@@ -71,7 +71,8 @@ export const itemsCrudRouter = createCrudRouter({
 });
 ```
 
-Wire in `apiHandler` via `createModuleApiRouter`.
+Wire the CRUD endpoints into `apiRoutes` in `src/manifest.ts`.
+Use `apiHandler` via `createModuleApiRouter` only for legacy migrations.
 
 ## Rendering the Table
 

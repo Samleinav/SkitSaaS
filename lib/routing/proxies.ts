@@ -123,7 +123,9 @@ async function lookupSession(tokenJti: string) {
 // ---------------------------------------------------------------------------
 
 /**
- * Requires an active session with an admin or owner role.
+ * Requires an active session with an admin-area role.
+ * Default admin area role is `admin`; `owner` stays a dashboard/team role unless
+ * the host explicitly configures otherwise.
  * Also verifies the session has not been revoked in auth_sessions (JTI check).
  * Redirects to /admin/login on failure.
  */
@@ -231,7 +233,9 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
 };
 
 /**
- * Requires an active session with admin/owner role.
+ * Requires an active session with an admin-area role.
+ * Default admin area role is `admin`; `owner` stays a dashboard/team role unless
+ * the host explicitly configures otherwise.
  * Returns 401/403 JSON — appropriate for API routes (no redirect).
  */
 export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
@@ -332,7 +336,7 @@ export const proxyApiTeamsEnabled: ApiRouteProxyFn = async () => {
  *
  * - Public forms pass through (return null).
  * - User-scoped forms require a valid session.
- * - Admin-scoped forms additionally require an admin/owner role.
+ * - Admin-scoped forms additionally require an admin-area role.
  *
  * The request body is cloned to avoid consuming the stream before the handler reads it.
  */

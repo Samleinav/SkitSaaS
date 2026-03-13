@@ -26,7 +26,8 @@ Optional fields:
 - `frontendSlots`
 - `adminDashboardWidgets` / `dashboardWidgets`
 - `adminPage` / `dashboardPage` / `frontendPage`
-- `apiHandler`
+- `apiRoutes` (preferred typed API entries)
+- `apiHandler` (legacy module API router)
 - `eventHandlers`
 - `templatePack` (`defaults` / `overrides`)
 - `runtimeConfig` (`namespace`, manifest-defined editable BuildForm fields for `/admin/app-config/modules`)
@@ -54,6 +55,10 @@ Keep it stable. It is used as:
 Register module manifest with `defineModule(...)`:
 
 ```ts
+const AnalyticsApiRoutes = {
+  health: RouteApi('/modules/mod.analytics/health').GET().name('mod.analytics.api.health')
+};
+
 defineModule({
   moduleId: 'mod.analytics',
   version: '0.1.0',
@@ -79,17 +84,14 @@ defineModule({
     if (slug?.[0] === 'overview') return 'Analytics overview';
     return 'Analytics home';
   },
-  apiHandler: async (request, { slug }) => {
-    if (request.method !== 'GET') {
-      return Response.json({ error: 'Method not allowed' }, { status: 405 });
-    }
-    if (slug?.[0] !== 'health') {
-      return Response.json({ error: 'Not found' }, { status: 404 });
-    }
-    return Response.json({ ok: true });
-  }
+  apiRoutes: [
+    AnalyticsApiRoutes.health.handler(() => Response.json({ ok: true }))
+  ]
 });
 ```
+
+`apiRoutes` is the current preferred API surface. `apiHandler` remains supported for legacy modules,
+but `apiRoutes` takes precedence when both are present.
 
 ## Validation
 

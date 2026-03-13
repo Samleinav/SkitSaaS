@@ -71,7 +71,7 @@ Response includes:
 - enabled provider registry (`providers`)
 - conflict/issues list (`issues`)
 
-This endpoint requires authenticated admin role (`owner`/`admin`).
+This endpoint requires an authenticated admin role (`admin` by default; host-configurable through admin-area role setup).
 
 ## Module-owned auth docs
 

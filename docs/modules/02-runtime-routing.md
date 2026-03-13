@@ -28,9 +28,15 @@ Handlers receive:
 type ModuleRouteContext = {
   moduleId: string;
   slug: string[];
+  matchedAlias?: string | null;
   searchParams?: Record<string, string | string[] | undefined>;
 };
 ```
+
+`matchedAlias` is the friendly alias that matched the incoming request when the module
+was reached through `/admin/[...moduleAlias]`, `/dashboard/[...moduleAlias]`, or
+`/[...moduleAlias]`. It is `null` or omitted when the request came through the canonical
+dispatcher route.
 
 ## Page handlers
 
