@@ -317,7 +317,14 @@ export async function dispatchApiRoutes(
     }
 
     // 2b. Role check — runs after auth, only when roles allowlist is set
-    if (entry.roles?.length && apiAuthConfig.roleCheck) {
+    if (entry.roles?.length) {
+      if (!apiAuthConfig.roleCheck) {
+        return Response.json(
+          { error: 'Route role guard is not configured.' },
+          { status: 500 }
+        );
+      }
+
       proxies.push(apiAuthConfig.roleCheck(entry.roles));
     }
 

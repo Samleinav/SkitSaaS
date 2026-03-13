@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RouteApi, route } from '@skitsaas/sdk';
+import { RouteApi, configureApiAuthProxies, getApiAuthConfig, route } from '@skitsaas/sdk';
 import { Routes } from '../../core/routes';
 import { withApiRouteEntries } from '../../lib/routing/with-api-route';
 
@@ -93,4 +93,38 @@ test('withApiRouteEntries preDispatch proxies can short-circuit before auth/hand
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: 'blocked' });
   assert.deepEqual(calls, ['pre-dispatch']);
+});
+
+test('withApiRouteEntries fails closed when api role guard is not configured', async () => {
+  const previousConfig = getApiAuthConfig();
+
+  configureApiAuthProxies({
+    user: async () => null,
+    admin: previousConfig.admin,
+    roleCheck: null,
+  });
+
+  try {
+    const entry = RouteApi('/missing-role-guard-test')
+      .GET()
+      .auth('user')
+      .roles('teacher')
+      .handler(async () => Response.json({ ok: true }));
+
+    const GET = withApiRouteEntries(entry);
+    const response = await GET(
+      new Request('http://localhost/api/missing-role-guard-test')
+    );
+
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      error: 'Route role guard is not configured.',
+    });
+  } finally {
+    configureApiAuthProxies({
+      user: previousConfig.user,
+      admin: previousConfig.admin,
+      roleCheck: previousConfig.roleCheck,
+    });
+  }
 });

@@ -4,7 +4,7 @@ export type { HttpMethod, ApiAuthLevel, ApiRouteProxyFn, ApiHandlerFn, ApiRouteE
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './api-route.js';
 export type { RouteRegistryEntry } from './registry.js';
 export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoundError, route } from './registry.js';
-export { RouteBuilder } from './builder.js';
+export { RouteBuilder, configureRouteBuilderProxies, getRouteBuilderProxyConfig } from './builder.js';
 export type { AreaBases } from './area.js';
 export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './area.js';
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './matcher.js';

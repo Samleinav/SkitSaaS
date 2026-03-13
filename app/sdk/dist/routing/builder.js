@@ -1,4 +1,27 @@
+import { NextResponse } from 'next/server';
 import { registerRoute } from './registry.js';
+const routeBuilderProxyConfig = {
+    roleCheck: null,
+};
+export function configureRouteBuilderProxies(config) {
+    if (config.roleCheck !== undefined) {
+        routeBuilderProxyConfig.roleCheck = config.roleCheck;
+    }
+}
+export function getRouteBuilderProxyConfig() {
+    return routeBuilderProxyConfig;
+}
+function createLazyRoleProxy(allowedRoles) {
+    return async (request) => {
+        const roleCheck = routeBuilderProxyConfig.roleCheck;
+        if (!roleCheck) {
+            return new NextResponse('Route role guard is not configured.', {
+                status: 500,
+            });
+        }
+        return roleCheck(allowedRoles)(request);
+    };
+}
 /**
  * Immutable route builder. Behaves as a string in coercion contexts so it can
  * be used directly in JSX hrefs, template literals, etc.
@@ -33,6 +56,24 @@ export class RouteBuilder {
             ...this.extraProxies,
             ...fns
         ]);
+    }
+    /**
+     * Restrict the route to one or more user roles.
+     *
+     * This is a host-injected guard, similar to API `.roles(...)`, and is meant
+     * to keep page/portal route definitions SDK-only. The host must configure the
+     * role-check proxy factory during routing bootstrap.
+     *
+     * Unlike `.auth()`, this guard already implies authentication.
+     */
+    roles(...allowedRoles) {
+        const normalizedRoles = Array.from(new Set(allowedRoles
+            .map((value) => String(value).trim())
+            .filter(Boolean)));
+        if (normalizedRoles.length === 0) {
+            return this;
+        }
+        return this.proxy([createLazyRoleProxy(normalizedRoles)]);
     }
     /**
      * Register this route under a name in the global registry.

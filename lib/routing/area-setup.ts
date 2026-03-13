@@ -14,9 +14,18 @@ import {
   configureAreaBases,
   configureApiAuthProxies,
   configureApiCors,
+  configureRouteBuilderProxies,
 } from '@skitsaas/sdk';
 import type { NextRequest } from 'next/server';
-import { proxyAdmin, proxyAuth, proxyApiAdmin, proxyApiAuth, proxyRateLimit, proxyApiRoles } from './proxies';
+import {
+  proxyAdmin,
+  proxyAuth,
+  proxyApiAdmin,
+  proxyApiAuth,
+  proxyRateLimit,
+  proxyApiRoles,
+  proxyRoles,
+} from './proxies';
 
 configureAreaDefaults({
   admin: [proxyAdmin],
@@ -85,4 +94,8 @@ configureApiAuthProxies({
   user:  async (req) => (await proxyApiAuth(req as NextRequest)) ?? defaultUserApiRateLimit(req),
   admin: (req) => proxyApiAdmin(req as NextRequest),
   roleCheck: (roles) => proxyApiRoles(roles),
+});
+
+configureRouteBuilderProxies({
+  roleCheck: (roles) => proxyRoles(roles),
 });

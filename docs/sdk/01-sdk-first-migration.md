@@ -146,6 +146,10 @@ adminRouteAliases: [String(MyModuleRoutes.admin.home)]
 ```
 
 Module `routes.ts` files import only from `@skitsaas/sdk` — no `@/lib/routing/area-setup` needed.
+Host bootstrap now wires routing defaults from host entrypoints (`core/routes.ts`,
+`core/api-routes.ts`, module registry, portal registry, and API bridge helpers).
+For page or portal role restrictions, prefer `.roles('teacher')` / `.roles('owner')`
+on the SDK route builder instead of importing `proxyRoles(...)` from core.
 
 ## 9. Rate limiting (SDK-first)
 

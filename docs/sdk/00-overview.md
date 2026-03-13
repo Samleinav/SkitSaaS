@@ -42,7 +42,7 @@ Exports:
 - portable form renderer (`BuildForm`, `SdkBuildFormProps`) — client component, usable in modules and portal pages without host imports
 - portable form host bridge (`BuildFormUiAdapterProvider`) — lets the host delegate SDK `BuildForm` rendering without module-side `@/` imports
 - server form wrapper (`TemplateBuildForm`, `SdkTemplateBuildFormProps`) — resolves host `ui.form` payloads when the host adapter is configured
-- typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteFrontend`, `RouteApi`, `RouteBuilder`)
+- typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteFrontend`, `RouteApi`, `RouteBuilder`, `configureRouteBuilderProxies`)
 - named route registry (`route`, `registerRoute`, `getRegisteredRoute`, `RouteNotFoundError`)
 - proxy area configuration (`configureAreaDefaults`, `matchRouteProxyChain`, `resolveAreaFallbackChain`)
 - typed API route builders (`ApiRouteBuilder`, `ApiMethodRouteBuilder`, `ApiRouteEntry`, `ApiHandlerFn`, `ApiRouteProxyFn`, `HttpMethod`, `ApiAuthLevel`)
@@ -240,6 +240,18 @@ RouteApi('/modules/mod.school/reports').GET().auth('user').roles('owner', 'teach
 ```
 
 Requires `configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) })` in `lib/routing/area-setup.ts` (already configured by default).
+
+**Multi-role page and portal routing** — restrict a page route without host imports:
+
+```ts
+RouteDashboard('/reports').roles('owner', 'teacher')
+RoutePortal('school')('reports').roles('teacher')
+```
+
+The host wires the actual middleware role guard through
+`configureRouteBuilderProxies({ roleCheck })` in `lib/routing/area-setup.ts`.
+This keeps module `routes.ts` files SDK-only while preserving host-side DB-backed
+role checks.
 
 ## Persisted Notifications
 

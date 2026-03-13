@@ -33,7 +33,7 @@ export type { RouteProxyFn, RouteParamMap } from './routing/types.js';
 export type { RouteArea as RouteAreaName } from './routing/types.js';
 export type { RouteRegistryEntry } from './routing/registry.js';
 export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoundError, route } from './routing/registry.js';
-export { RouteBuilder } from './routing/builder.js';
+export { RouteBuilder, configureRouteBuilderProxies, getRouteBuilderProxyConfig } from './routing/builder.js';
 export type { AreaBases } from './routing/area.js';
 export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './routing/area.js';
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';

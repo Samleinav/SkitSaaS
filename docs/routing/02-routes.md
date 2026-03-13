@@ -34,7 +34,7 @@ The route system replaces that with:
 | `app/sdk/src/routing/area.ts` | Area factories + `configureAreaDefaults()` |
 | `app/sdk/src/routing/matcher.ts` | Proxy chain resolution for `proxy.ts` |
 | `lib/routing/proxies.ts` | Host proxy implementations (DB-aware) |
-| `lib/routing/area-setup.ts` | Side-effect: injects `proxyAdmin`/`proxyAuth` + `proxyApiAdmin`/`proxyApiAuth` into SDK |
+| `lib/routing/area-setup.ts` | Side-effect: injects page defaults, page role guards, and API auth/role proxies into SDK |
 | `lib/routing/all-routes.ts` | Entry point imported by `proxy.ts` — registers all routes |
 | `lib/routing/with-api-proxy.ts` | Wrapper for standalone Next.js API route handlers |
 | `core/routes.ts` | All core named routes |
@@ -50,7 +50,7 @@ Four areas are available from `@skitsaas/sdk`:
 | `RouteFrontend(path)` | *(none)* | none |
 | `RouteApi(path)` | `/api` | none — use `.GET()/.POST()/.auth()` on the returned `ApiRouteBuilder` |
 
-Default proxies for `RouteAdmin` and `RouteDashboard` are injected at startup by `lib/routing/area-setup.ts` via `configureAreaDefaults()`. API auth proxies (`proxyApiAuth`/`proxyApiAdmin`) are injected via `configureApiAuthProxies()` in the same file. The SDK itself has no direct dependency on `@/lib/db/*`.
+Default proxies for `RouteAdmin` and `RouteDashboard` are injected at startup by `lib/routing/area-setup.ts` via `configureAreaDefaults()`. Page/portal role guards are injected via `configureRouteBuilderProxies()`. API auth proxies (`proxyApiAuth`/`proxyApiAdmin`) are injected via `configureApiAuthProxies()` in the same file. The SDK itself has no direct dependency on `@/lib/db/*`.
 
 All four prefix defaults are configurable via `configureAreaBases()` — see [Multi-service deployments](#multi-service-deployments) below.
 
@@ -129,6 +129,12 @@ RouteAdmin('/premium')
   .proxy([proxyFeatureFlag('premium')])
   .name('admin.premium')
 // chain: proxyAdmin → proxyFeatureFlag
+
+// Role-restricted page route — SDK-only in module code
+RouteDashboard('/reports')
+  .roles('teacher', 'owner')
+  .name('dashboard.reports')
+// chain: proxyAuth → host role-check
 
 // Interpolate params inline
 Routes.admin.orders.edit.with({ orderId: 42 })   // "/admin/orders/42/edit"
@@ -227,11 +233,15 @@ export const MyFeatureApiRoutes = {
 } as const
 ```
 
-When a module route file is imported through the host bootstrap, `area-setup`
-is already configured.
+When a module route file is loaded through the host bootstrap, `area-setup` is
+already configured. New module `routes.ts` files do **not** need to import it.
+The host bootstrap now runs from host entrypoints (`all-routes.ts`,
+`core/api-routes.ts`, the module registry, the portal registry, and API bridge
+helpers) before route metadata is used.
 
-- `source-host` examples in this repo may still keep
-  `import '@/lib/routing/area-setup'` as a defensive first import.
+- legacy `source-host` examples in this repo may still show
+  `import '@/lib/routing/area-setup'` as a defensive compatibility import, but
+  new code should avoid it
 - `source-package` modules must not import host internals and should rely on
   the host bootstrap to configure route/auth defaults before their routes load.
 
@@ -477,14 +487,15 @@ import '@/lib/routing/area-setup'
 import { RouteAdmin, RouteDashboard } from '@skitsaas/sdk'
 ```
 
-For `source-host` route files, a common defensive pattern is:
+Legacy `source-host` route files may still keep a defensive first import:
 
 ```ts
 import '@/lib/routing/area-setup'
 ```
 
-That import is defensive rather than strictly required when the file is loaded
-through `lib/routing/all-routes.ts`.
+That import is backward-compatible, but no longer required when the file is
+loaded through the host bootstrap (`lib/routing/all-routes.ts`, module
+registry, portal registry, and API bridge helpers).
 
 `source-package` modules must not use that import. They stay SDK-only and rely
 on the host bootstrap to configure route defaults before the module route file

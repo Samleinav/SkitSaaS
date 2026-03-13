@@ -1,3 +1,4 @@
+import '@/lib/routing/area-setup';
 import {
   defineModule,
   validateModuleManifest,

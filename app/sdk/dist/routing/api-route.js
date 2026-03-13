@@ -213,7 +213,10 @@ export async function dispatchApiRoutes(routes, request) {
             proxies.push(apiAuthConfig.user);
         }
         // 2b. Role check — runs after auth, only when roles allowlist is set
-        if (entry.roles?.length && apiAuthConfig.roleCheck) {
+        if (entry.roles?.length) {
+            if (!apiAuthConfig.roleCheck) {
+                return Response.json({ error: 'Route role guard is not configured.' }, { status: 500 });
+            }
             proxies.push(apiAuthConfig.roleCheck(entry.roles));
         }
         // 3. Extra proxies (feature flags, custom checks)
@@ -326,7 +329,7 @@ export class ApiMethodRouteBuilder {
      * Rate limit runs first in the proxy chain (before auth — cheapest check first).
      *
      * @example
-     * RouteApi('/api/modules/mod.x/export').POST().auth('user').rateLimit({
+     * RouteApi('/modules/mod.x/export').POST().auth('user').rateLimit({
      *   limit: 10, windowSeconds: 60
      * })
      *
@@ -360,7 +363,7 @@ export class ApiMethodRouteBuilder {
      * Requires configureApiAuthProxies({ roleCheck }) in area-setup.ts.
      *
      * @example
-     * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+     * RouteApi('/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
      */
     roles(...allowedRoles) {
         return new ApiMethodRouteBuilder(this.path, this.method, this._authLevel, this._rateLimitConfig, this._extraProxies, allowedRoles);
@@ -370,7 +373,7 @@ export class ApiMethodRouteBuilder {
      * Returns `this` for chaining.
      *
      * @example
-     * RouteApi('/api/modules/mod.x/users').GET().auth('user').name('mod.x.api.users.list')
+     * RouteApi('/modules/mod.x/users').GET().auth('user').name('mod.x.api.users.list')
      * route('mod.x.api.users.list') // '/api/modules/mod.x/users'
      */
     name(routeName) {

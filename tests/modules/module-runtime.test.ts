@@ -1139,8 +1139,7 @@ test('resolveModuleApiHandler dispatches module API routes for enabled modules',
         method: 'GET'
       })
     });
-    assert.ok(notFoundResponse);
-    assert.equal(notFoundResponse.status, 404);
+    assert.equal(notFoundResponse, null);
     assert.equal(selectMock.mock.calls.length, 2);
   } finally {
     selectMock.mock.restore();

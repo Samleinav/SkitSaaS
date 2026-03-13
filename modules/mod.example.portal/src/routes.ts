@@ -15,10 +15,9 @@
  *   /hub/members/{id} → member detail (auth required)
  *   /api/hub/members → API: list members
  */
-import '@/lib/routing/area-setup'; // must be first
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
 import { EXAMPLE_PORTAL_NAME } from './constants';
-// import { proxyRoles } from '@/lib/routing/proxies'; // optional: add role enforcement
+// RoutePortal(...).roles(...) is available from the SDK when a route needs role enforcement.
 
 // ---------------------------------------------------------------------------
 // Page routes
@@ -29,10 +28,10 @@ import { EXAMPLE_PORTAL_NAME } from './constants';
  * Proxy chain is set per route via .auth() or .proxy([...]).
  *
  * To restrict the entire portal to a specific role, add it at factory level:
- *   export const HubRoute = RoutePortal(EXAMPLE_PORTAL_NAME).proxy([proxyRoles(['member'])]);
+ *   export const HubRoute = RoutePortal(EXAMPLE_PORTAL_NAME).roles('member');
  *
  * To restrict individual routes:
- *   HubRoute('members').proxy([proxyRoles(['member'])]).name('hub.members');
+ *   HubRoute('members').roles('member').name('hub.members');
  */
 export const HubRoute = RoutePortal(EXAMPLE_PORTAL_NAME);
 

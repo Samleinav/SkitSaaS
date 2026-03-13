@@ -112,7 +112,7 @@ function makePortalFactory(portalName, portalProxies, configs, routeArea) {
  * const SchoolRoute = RoutePortal('school', { area: 'dashboard' });
  * SchoolRoute('').name('school.home');
  * SchoolRoute('students').name('school.students');
- * SchoolRoute('reports').proxy([proxyRoles(['teacher'])]).name('school.reports');
+ * SchoolRoute('reports').roles('teacher').name('school.reports');
  */
 export function RoutePortal(nameOrConfigs, options) {
     const routeArea = options?.area ?? 'standalone';

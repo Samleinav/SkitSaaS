@@ -14,7 +14,7 @@ export { buildFormValidationPreset, buildFormRule, createBuildFormValidationIssu
 export { DEFAULT_EMAIL_REGEX, buildFormValidationMessage, createBuildFormValidationMessage, createCatalogBuildFormValidationMessageResolver, formatBuildFormValidationMessage, normalizeEmail, parseOptionalPositiveInt, resolveBuildFormValidationMessage } from './validation-messages.js';
 export { mergeClassNames, readString, toStringOrNull, toStringOrFallback, toNumberOrFallback } from './templates/utils.js';
 export { registerRoute, getRegisteredRoute, getAllRegisteredRoutes, RouteNotFoundError, route } from './routing/registry.js';
-export { RouteBuilder } from './routing/builder.js';
+export { RouteBuilder, configureRouteBuilderProxies, getRouteBuilderProxyConfig } from './routing/builder.js';
 export { RouteArea, RouteAdmin, RouteDashboard, RouteFrontend, RouteApi, configureAreaDefaults, getAreaDefaults, configureAreaBases, getAreaBases, } from './routing/area.js';
 export { matchRouteProxyChain, resolveAreaFallbackChain } from './routing/matcher.js';
 export { configureApiAuthProxies, getApiAuthConfig, configureApiCors, getApiCorsConfig, matchApiPath, dispatchApiRoutes, ApiRouteBuilder, ApiMethodRouteBuilder, } from './routing/api-route.js';

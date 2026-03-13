@@ -28,7 +28,11 @@ export {
   route
 } from './registry.js';
 
-export { RouteBuilder } from './builder.js';
+export {
+  RouteBuilder,
+  configureRouteBuilderProxies,
+  getRouteBuilderProxyConfig
+} from './builder.js';
 
 export type { AreaBases } from './area.js';
 export {

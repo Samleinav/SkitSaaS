@@ -17,7 +17,6 @@
  * declare `routesEntry: "src/routes.ts"` in module.json and run
  * `pnpm modules:prepare`.
  */
-import '@/lib/routing/area-setup'; // must be first — ensures proxyAdmin/proxyAuth are configured
 import { RouteAdmin, RouteDashboard } from '@skitsaas/sdk';
 
 const ADMIN_BASE = '/custom/example-suite';

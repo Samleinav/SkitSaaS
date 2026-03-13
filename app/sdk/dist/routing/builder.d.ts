@@ -1,4 +1,9 @@
 import type { RouteProxyFn, RouteParamMap } from './types.js';
+type RouteBuilderProxyConfig = {
+    roleCheck: ((allowedRoles: string[]) => RouteProxyFn) | null;
+};
+export declare function configureRouteBuilderProxies(config: Partial<RouteBuilderProxyConfig>): void;
+export declare function getRouteBuilderProxyConfig(): Readonly<RouteBuilderProxyConfig>;
 /**
  * Immutable route builder. Behaves as a string in coercion contexts so it can
  * be used directly in JSX hrefs, template literals, etc.
@@ -24,6 +29,16 @@ export declare class RouteBuilder {
      */
     proxy(fns: RouteProxyFn[]): RouteBuilder;
     /**
+     * Restrict the route to one or more user roles.
+     *
+     * This is a host-injected guard, similar to API `.roles(...)`, and is meant
+     * to keep page/portal route definitions SDK-only. The host must configure the
+     * role-check proxy factory during routing bootstrap.
+     *
+     * Unlike `.auth()`, this guard already implies authentication.
+     */
+    roles(...allowedRoles: string[]): this;
+    /**
      * Register this route under a name in the global registry.
      * Returns `this` so it can be chained.
      *
@@ -42,3 +57,4 @@ export declare class RouteBuilder {
     valueOf(): string;
     [Symbol.toPrimitive](_hint: string): string;
 }
+export {};

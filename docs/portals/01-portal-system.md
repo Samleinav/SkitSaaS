@@ -44,7 +44,7 @@ Browser: GET /hub/members
 Browser: GET /dashboard/school/students
   → proxy.ts (middleware)
   → dashboardPortalSet.has('school') → true
-  → executeProxyChain([proxyAuth, proxyRoles(['teacher']), ...])
+  → executeProxyChain([proxyAuth, role guard, ...])
   → NextResponse.rewrite('/portal-internal/school/students')
   → app/(portal)/portal-internal/[...slug]/page.tsx
   → resolvePortalPage({ portalName: 'school', slug: ['students'] })
@@ -68,7 +68,7 @@ middleware with a 404 before the route handler runs.
 | `lib/portals/all-portals.ts` | Bootstrap entry — imports `all-portals.generated.ts` |
 | `lib/portals/all-portals.generated.ts` | **Auto-generated** by `modules:prepare` from `portalInit` field in `module.json` |
 | `lib/portals/role-routing.ts` | `resolveRoleRedirect(role, canAccessAdmin)` — post-login redirect logic |
-| `lib/routing/proxies.ts` | `proxyAuth`, `proxyRoles()`, `proxyAdmin` — middleware proxy functions |
+| `lib/routing/proxies.ts` | `proxyAuth`, `proxyRoles()`, `proxyAdmin` — host middleware proxy functions wired into SDK bootstrap |
 | `lib/routing/all-routes.generated.ts` | **Auto-generated** by `modules:prepare` from `routesEntry` field in `module.json` |
 | `proxy.ts` | Detects `portalPrefixSet`, runs proxy chain, rewrites to `portal-internal` |
 
@@ -83,6 +83,7 @@ Portals require two files in every module because middleware runs in a separate 
 
 **Never import `portal-init.ts` from `routes.ts` or any edge-safe file.**
 **Never call `.page()` or `.register()` from `routes.ts`.**
+**Do not import `@/lib/routing/area-setup` from module code.** The host bootstraps routing before `routes.ts`, `portal-init.ts`, and API dispatchers consume SDK route metadata.
 
 ## Auto-Registration via `module.json`
 
@@ -141,9 +142,7 @@ export const SCHOOL_PORTAL_NAME = 'school';
 **Standalone portal (default) — served at `/school/*`:**
 
 ```ts
-import '@/lib/routing/area-setup'; // must be first — injects proxyAuth into SDK
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
-import { proxyRoles } from '@/lib/routing/proxies';
 import { SCHOOL_PORTAL_NAME } from './constants';
 
 // Standalone (default) — served at /school/*
@@ -152,7 +151,7 @@ export const SchoolRoute = RoutePortal(SCHOOL_PORTAL_NAME);
 export const SchoolRoutes = {
   home:     SchoolRoute('').name('school.home'),
   students: SchoolRoute('students').auth().name('school.students'),
-  reports:  SchoolRoute('reports').proxy([proxyRoles(['teacher', 'owner'])]).name('school.reports'),
+  reports:  SchoolRoute('reports').roles('teacher', 'owner').name('school.reports'),
   student:  SchoolRoute('students/{id}').auth().name('school.student'),
 } as const;
 ```
@@ -160,9 +159,7 @@ export const SchoolRoutes = {
 **Dashboard area portal — served at `/dashboard/school/*`:**
 
 ```ts
-import '@/lib/routing/area-setup';
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
-import { proxyRoles } from '@/lib/routing/proxies';
 import { SCHOOL_PORTAL_NAME } from './constants';
 
 // Dashboard area — served at /dashboard/school/*
@@ -170,11 +167,11 @@ import { SCHOOL_PORTAL_NAME } from './constants';
 export const SchoolRoute = RoutePortal(SCHOOL_PORTAL_NAME, { area: 'dashboard' });
 
 // .auth() uses proxyAuth (same as /dashboard/* area)
-// .proxy([proxyRoles(...)]) restricts to specific roles
+// .roles(...) restricts to specific roles without host imports
 export const SchoolRoutes = {
   home:     SchoolRoute('').auth().name('school.home'),
   students: SchoolRoute('students').auth().name('school.students'),
-  reports:  SchoolRoute('reports').proxy([proxyRoles(['teacher'])]).name('school.reports'),
+  reports:  SchoolRoute('reports').roles('teacher').name('school.reports'),
   student:  SchoolRoute('students/{id}').auth().name('school.student'),
 } as const;
 
@@ -303,18 +300,16 @@ takes over and `coreCss`/`head` are ignored.
 
 Two independent mechanisms. Use both together for complete control:
 
-### 1. Middleware enforcement — `proxyRoles()` in `routes.ts`
+### 1. Middleware enforcement — `.roles(...)` in `routes.ts`
 
-Enforced **before** the page renders. Role is read from the DB on every request (no stale JWT spoofing).
+Enforced **before** the page renders. The SDK route builder stores the role requirement and the host resolves it to the DB-backed role proxy during routing bootstrap.
 
 ```ts
-import { proxyRoles } from '@/lib/routing/proxies';
-
 // Entire portal restricted to one role:
-const SchoolRoute = RoutePortal('school').proxy([proxyRoles(['teacher'])]);
+const SchoolRoute = RoutePortal('school').roles('teacher');
 
 // Per-route restriction:
-SchoolRoute('reports').proxy([proxyRoles(['teacher', 'owner'])]).name('school.reports');
+SchoolRoute('reports').roles('teacher', 'owner').name('school.reports');
 
 // Auth only (any logged-in user):
 SchoolRoute('home').auth().name('school.home');
@@ -341,7 +336,7 @@ Priority order in `lib/portals/role-routing.ts`:
 3. `isDefaultPortal: true` → same as above (fallback for all non-admin users)
 4. Default → `/dashboard`
 
-**Rule**: use `proxyRoles` to lock the portal, use `redirectRoles` to route users there conveniently.
+**Rule**: use `.roles(...)` to lock the portal, use `redirectRoles` to route users there conveniently.
 
 ---
 
@@ -451,7 +446,7 @@ Rule: every `.page()` in `portal-init.ts` must have a matching entry in `routes.
 ```
 portal-init.ts                                           routes.ts
 SchoolRoute('reports').page(...)      ← must match →    SchoolRoute('reports')
-                                                           .proxy([proxyRoles(['teacher'])])
+                                                           .roles('teacher')
                                                            .name('school.reports')
 ```
 

@@ -36,6 +36,40 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 
 ---
 
+## 2026-03-13 - sdk-page-route-roles-and-bootstrap-hardening
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: Page and portal routes now support SDK `.roles(...)` guards, while host routing bootstrap was hardened so modules no longer need to import `@/lib/routing/area-setup` in `routes.ts`.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/routing/builder.ts`
+  - `app/sdk/src/routing/index.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/src/routing/api-route.ts`
+  - `app/sdk/src/routing/portal.ts`
+  - `lib/routing/area-setup.ts`
+  - `core/api-routes.ts`
+  - `lib/modules/registry.ts`
+  - `lib/portals/all-portals.ts`
+  - `lib/routing/with-api-route.ts`
+- `notes`: |
+    SDK v1.6.0 -> v1.7.0 (MINOR).
+
+    Goal: remove a routing/bootstrap leak that forced module `routes.ts` files
+    to import host internals just to get auth/role middleware wired correctly.
+
+    New behavior:
+    - page and portal route builders support `.roles('teacher', 'owner')`
+    - host wires the actual DB-backed middleware through
+      `configureRouteBuilderProxies({ roleCheck })`
+    - typed API routes now fail closed when `.roles(...)` is declared but the
+      host forgot to configure the role guard
+    - host bootstrap now runs from host entrypoints used by middleware, module
+      registry, portal registry, and API dispatchers
+
 ## 2026-03-13 - sdk-build-form-runtime-bridge
 
 - `status`: published

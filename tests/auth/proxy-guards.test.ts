@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { getRegisteredRoute, matchRouteProxyChain } from '@skitsaas/sdk';
+import { Routes } from '../../core/routes';
 
 async function loadProxyGuards() {
   if (!process.env.AUTH_SECRET) {
@@ -26,8 +28,8 @@ test('public auth routes stay accessible without auth redirect', async () => {
 
 test('admin login route stays public in the proxy registry', async () => {
   await loadProxyGuards();
+  assert.equal(String(Routes.admin.login), '/admin/login');
 
-  const { getRegisteredRoute, matchRouteProxyChain } = await import('@skitsaas/sdk');
   const adminLoginRoute = getRegisteredRoute('admin.login');
 
   assert.ok(adminLoginRoute);

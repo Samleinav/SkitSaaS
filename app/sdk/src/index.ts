@@ -355,7 +355,11 @@ export {
   RouteNotFoundError,
   route
 } from './routing/registry.js';
-export { RouteBuilder } from './routing/builder.js';
+export {
+  RouteBuilder,
+  configureRouteBuilderProxies,
+  getRouteBuilderProxyConfig
+} from './routing/builder.js';
 export type { AreaBases } from './routing/area.js';
 export {
   RouteArea,

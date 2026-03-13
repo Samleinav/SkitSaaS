@@ -1,5 +1,39 @@
+import { NextResponse } from 'next/server';
 import type { RouteProxyFn, RouteParamMap } from './types.js';
 import { registerRoute } from './registry.js';
+
+type RouteBuilderProxyConfig = {
+  roleCheck: ((allowedRoles: string[]) => RouteProxyFn) | null;
+};
+
+const routeBuilderProxyConfig: RouteBuilderProxyConfig = {
+  roleCheck: null,
+};
+
+export function configureRouteBuilderProxies(
+  config: Partial<RouteBuilderProxyConfig>
+): void {
+  if (config.roleCheck !== undefined) {
+    routeBuilderProxyConfig.roleCheck = config.roleCheck;
+  }
+}
+
+export function getRouteBuilderProxyConfig(): Readonly<RouteBuilderProxyConfig> {
+  return routeBuilderProxyConfig;
+}
+
+function createLazyRoleProxy(allowedRoles: string[]): RouteProxyFn {
+  return async (request) => {
+    const roleCheck = routeBuilderProxyConfig.roleCheck;
+    if (!roleCheck) {
+      return new NextResponse('Route role guard is not configured.', {
+        status: 500,
+      });
+    }
+
+    return roleCheck(allowedRoles)(request);
+  };
+}
 
 /**
  * Immutable route builder. Behaves as a string in coercion contexts so it can
@@ -42,6 +76,31 @@ export class RouteBuilder {
       ...this.extraProxies,
       ...fns
     ]);
+  }
+
+  /**
+   * Restrict the route to one or more user roles.
+   *
+   * This is a host-injected guard, similar to API `.roles(...)`, and is meant
+   * to keep page/portal route definitions SDK-only. The host must configure the
+   * role-check proxy factory during routing bootstrap.
+   *
+   * Unlike `.auth()`, this guard already implies authentication.
+   */
+  roles(...allowedRoles: string[]): this {
+    const normalizedRoles = Array.from(
+      new Set(
+        allowedRoles
+          .map((value) => String(value).trim())
+          .filter(Boolean)
+      )
+    );
+
+    if (normalizedRoles.length === 0) {
+      return this;
+    }
+
+    return this.proxy([createLazyRoleProxy(normalizedRoles)]) as this;
   }
 
   /**

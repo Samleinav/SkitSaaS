@@ -496,13 +496,13 @@ modules/mod.school/
 
 `routes.ts` (edge-safe, no React):
 ```ts
-import '@/lib/routing/area-setup';
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
 
 export const SchoolRoute = RoutePortal('school');
 
 SchoolRoute('').name('school.home');                        // public  → /school
 SchoolRoute('students/{id}').auth().name('school.student'); // auth    → /school/students/{id}
+SchoolRoute('reports').roles('teacher').name('school.reports'); // role → /school/reports
 
 SchoolRoute.register({ /* NOT here, in portal-init.ts */ });
 
