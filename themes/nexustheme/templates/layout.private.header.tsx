@@ -24,6 +24,7 @@ export default function LayoutPrivateHeaderTemplate({
   themeId
 }: LayoutPrivateHeaderTemplateProps) {
   const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
+  const homeHref = area === 'dashboard' ? '/dashboard' : '/admin';
   const projectName = data?.projectName?.trim() || 'S-Kit-SaaS';
   const t = useI18n({ themeId, area });
 
@@ -37,7 +38,7 @@ export default function LayoutPrivateHeaderTemplate({
     >
       {/* Logo: always on mobile, on desktop only when sidebar is collapsed (CSS-controlled) */}
       <Link
-        href="/"
+        href={homeHref}
         prefetch={false}
         data-nexus-header-logo
         className="xl:hidden inline-flex items-center gap-2 rounded-md px-1 py-1 mr-1 transition-colors hover:bg-accent/60"

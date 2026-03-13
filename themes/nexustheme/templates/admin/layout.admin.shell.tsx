@@ -79,7 +79,7 @@ export default function LayoutAdminShellTemplate({
         {/* Branding header — height matches top nav bar (h-14) */}
         <div className="flex h-14 shrink-0 items-center border-b border-border/70 px-2.5">
           <Link
-            href="/"
+            href="/admin"
             prefetch={false}
             className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-sidebar-accent/60"
           >
