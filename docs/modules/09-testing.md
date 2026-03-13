@@ -23,7 +23,10 @@ Recommended additions per module:
 
 ## API handler tests
 
-Use `node:test` and call the handler directly:
+Use `node:test` and match the test style to the API contract your module exports.
+
+Legacy `apiHandler` from `createModuleApiRouter(...)` needs both the `Request`
+and a `ModuleRouteContext`:
 
 ```ts
 import assert from 'node:assert/strict';
@@ -31,8 +34,29 @@ import test from 'node:test';
 import { myApiHandler } from './handler';
 
 test('api returns 401 when unauthenticated', async () => {
-  const response = await myApiHandler(new Request('http://test'));
+  const response = await myApiHandler(new Request('http://test/items'), {
+    moduleId: 'mod.example',
+    slug: ['items']
+  });
   assert.equal(response.status, 401);
+});
+```
+
+Typed `apiRoutes` should be tested through `dispatchApiRoutes(...)` or by
+calling the specific entry handler directly:
+
+```ts
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { dispatchApiRoutes } from '@skitsaas/sdk';
+import { myApiRoutes } from './routes';
+
+test('typed route returns 200', async () => {
+  const response = await dispatchApiRoutes(
+    [myApiRoutes.health.handler(() => Response.json({ ok: true }))],
+    new Request('http://test/api/modules/mod.example/health')
+  );
+  assert.equal(response?.status, 200);
 });
 ```
 

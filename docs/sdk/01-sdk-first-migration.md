@@ -14,7 +14,7 @@ remain host-only.
 
 After migration, module code should depend on:
 
-- `@skitsaas/sdk` for manifest/types/events, forms, datatables, typed route factories (`RouteAdmin`, `RouteDashboard`, etc.), and rate limiting (`withRateLimit`, `configureRateLimitBackend`)
+- `@skitsaas/sdk` for manifest/types/events, forms, datatables, typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteApi`, etc.), typed API rate limiting (`.rateLimit(...)`), and manual/standalone rate limiting (`withRateLimit`, `configureRateLimitBackend`)
 - `@skitsaas/sdk/server` for server capabilities (auth, revalidate, config, DB adapter, `createValidatedServerActionController`, `createModuleApiRouter`)
 - `@skitsaas/sdk/db` for Drizzle query/table helpers
 
@@ -154,18 +154,36 @@ on the SDK route builder instead of importing `proxyRoles(...)` from core.
 
 ## 9. Rate limiting (SDK-first)
 
-Replace any custom per-route rate limit logic with `withRateLimit` from the SDK:
+For typed module `apiRoutes`, prefer builder-level rate limits:
+
+```ts
+import { RouteApi } from '@skitsaas/sdk'
+
+const BASE = '/modules/mod.analytics';
+
+export const ApiRoutes = {
+  create: RouteApi(`${BASE}/items`)
+    .POST()
+    .auth('admin')
+    .rateLimit({ limit: 10, windowSeconds: 60 })
+    .name('mod.analytics.api.items.create')
+} as const;
+```
+
+Use `withRateLimit` from the SDK when the module still uses
+`createModuleApiRouter(...)` or a standalone handler:
 
 ```ts
 import { withRateLimit } from '@skitsaas/sdk'
 
 export const myHandler = withRateLimit(
   { limit: 10, windowSeconds: 60 },
-  async (request) => Response.json({ ok: true })
+  async (request, context) => Response.json({ ok: true })
 )
 ```
 
-Never import from `@/lib/routing/rate-limit` in module code — that path is host-only.
+Never import from `@/lib/routing/rate-limit` in module code — that path is
+host-only.
 
 ## Migration Checklist
 
@@ -175,7 +193,8 @@ Never import from `@/lib/routing/rate-limit` in module code — that path is hos
 - [ ] Module declares `moduleMode` in `module.json`.
 - [ ] Module declares `sdkRange` in `module.json`.
 - [ ] Routes use `RouteAdmin`/`RouteDashboard` from SDK — no hardcoded strings.
-- [ ] Rate limiting uses `withRateLimit` from SDK.
+- [ ] Typed module APIs use `RouteApi(...).rateLimit(...)` where possible.
+- [ ] Legacy `createModuleApiRouter(...)` or standalone handlers use `withRateLimit` from SDK.
 - [ ] Server actions use `createValidatedServerActionController` from `@skitsaas/sdk/server`.
 - [ ] Module builds and resolves through dispatcher routes.
 - [ ] Module tests pass after migration.

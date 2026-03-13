@@ -39,16 +39,41 @@ Declare in `module.json`:
 
 `pnpm modules:build` runs `testCommand` after a successful build.
 
-## API Handler Test
+## API Surface Test
 
 ```ts
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { dispatchApiRoutes } from '@skitsaas/sdk';
 
-test('health endpoint returns 200', async () => {
-  const { apiHandler } = await import('../dist/manifest.js');
-  const res = await apiHandler(new Request('http://test/health'));
-  assert.equal(res.status, 200);
+test('compiled manifest exposes a working API surface', async () => {
+  const { default: manifest } = await import('../dist/manifest.js');
+
+  if (typeof manifest.apiHandler === 'function') {
+    const res = await manifest.apiHandler(new Request('http://test/items'), {
+      moduleId: manifest.moduleId,
+      slug: ['items']
+    });
+    assert.ok(res instanceof Response);
+    return;
+  }
+
+  if (Array.isArray(manifest.apiRoutes) && manifest.apiRoutes.length > 0) {
+    const testRoute =
+      manifest.apiRoutes.find((entry) => !entry.path.includes('{')) ??
+      manifest.apiRoutes[0];
+    const requestUrl = testRoute.path.startsWith('http')
+      ? testRoute.path
+      : `http://test${testRoute.path}`;
+    const res = await dispatchApiRoutes(
+      manifest.apiRoutes,
+      new Request(requestUrl)
+    );
+    assert.ok(res instanceof Response);
+    return;
+  }
+
+  assert.fail('Manifest does not expose apiHandler or apiRoutes.');
 });
 ```
 
