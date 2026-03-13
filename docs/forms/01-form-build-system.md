@@ -193,7 +193,7 @@ Current responsibilities:
 
 Current renderer boundary:
 
-- the portable SDK renderer covers the full form contract and validation lifecycle including `repeater` rows, `dynamicOptions`, masks, and `disableWhen`
+- the portable SDK renderer covers the full form contract and validation lifecycle including `repeater` rows, `dynamicOptions`, masks, and repeater sub-field `disableWhen`
 - the richer submit UX (`successLabel`, themed submit button, confirm modal rendering) is implemented in the host renderer
 - inside SkitSaaS, the app root registers a client adapter so the same SDK `BuildForm` delegates to the host renderer automatically
 - inside SkitSaaS, the server bootstrap registers a template resolver so SDK `TemplateBuildForm` can pass `ui.form` payload metadata into that host renderer

@@ -20,7 +20,9 @@ pnpm add @skitsaas/sdk
 
 Peer dependencies:
 - `react`
+- `react-dom`
 - `drizzle-orm`
+- `@tanstack/react-table`
 
 ## Quick Start
 

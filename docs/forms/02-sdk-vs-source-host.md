@@ -24,7 +24,6 @@ normal path for module pages.
 | `ThemedAsyncSubmitButton` | Yes — via host adapter | No — plain `<button>` | Yes |
 | `successLabel` on submit | Yes — via host adapter | No | Yes |
 | `submit.confirm` (confirm modal before submit) | Yes — via host adapter | No | Yes |
-| `BuildModal` confirm/delete flow | Yes — via host adapter | No | Yes |
 
 ## Form contract (same in both)
 
@@ -36,7 +35,7 @@ normal path for module pages.
 | All field types: `text`, `email`, `password`, `tel`, `url`, `date`, `number`, `textarea`, `select`, `checkbox`, `hidden` | Yes | Yes | Yes |
 | `repeater` field (dynamic rows) | Yes | Yes | Yes |
 | `dynamicOptions` / `optionsKey` | Yes | Yes | Yes |
-| `disableWhen` on fields and sub-fields | Yes | Yes | Yes |
+| `disableWhen` on repeater sub-fields | Yes | Yes | Yes |
 | `mask` (`digits`, `decimal`, `currency`, `phone`, `slug`, `upper`, `lower`) | Yes | Yes | Yes |
 | `colSpan`, responsive grid | Yes | Yes | Yes |
 | Sections with `title` / `description` | Yes | Yes | Yes |
