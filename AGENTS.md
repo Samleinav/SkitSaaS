@@ -66,8 +66,128 @@ Quick guide for agents working in this repository (`saas-starter`).
   - `docs/core/architecture-routing-actions.md`
   - `docs/core/database-model.md`
   - `docs/core/env-variables.md`
-  - `docs/subscriptions/features-and-quotas.md`
-  - `docs/modules/*` (host-side module contracts/runtime only)
+- `docs/subscriptions/features-and-quotas.md`
+- `docs/modules/*` (host-side module contracts/runtime only)
+
+## Documentation-first exploration policy
+
+This section is a repository-level priority rule for agents.
+
+- Before exploring source code, read the relevant documentation in `docs/`.
+- This applies especially to:
+  - implementation plans
+  - new module plans or scaffolding
+  - SDK-first design decisions
+  - routing/runtime questions
+  - DB pattern questions
+  - forms/datatables/template-system work
+  - architecture or extension-point questions
+- Do not start by grepping `app/`, `lib/`, `components/`, or `modules/` just to understand how the platform works if the answer should already exist in docs.
+- For planning-only requests, default to docs-only discovery first. Do not inspect source unless the docs are missing, conflicting, or clearly insufficient for the requested plan.
+- Treat `docs/` as the primary source of truth for platform structure, host/module boundaries, routing, SDK contracts, DB patterns, template runtime, and operational conventions.
+
+### Required docs-first order
+
+When the user asks for a plan, a new module, or architectural guidance, consult documentation in this order before opening source files:
+
+1. `docs/00-documentation-index.md`
+2. relevant core docs under `docs/core/*`
+3. relevant SDK/runtime docs under `docs/sdk/*`, `docs/modules/*`, `docs/forms/*`, `docs/datatables/*`, `docs/subscriptions/*`
+4. module-local docs:
+   - `modules/<moduleId>/README.md`
+   - `modules/<moduleId>/docs/*` when present
+5. related `plans/*.md` files if the task is planning, rollout, migration, or hardening work
+
+### When source inspection is allowed
+
+Inspect source code only after the docs-first pass, and only when at least one of these is true:
+
+- the task requires code changes or verification of current implementation status
+- the docs do not answer a concrete question needed to proceed
+- the docs appear outdated, ambiguous, or internally inconsistent
+- the user asks about a specific file, function, route, or implementation detail
+- you need to confirm whether a documented contract is already implemented or only planned
+
+### Source inspection limits
+
+If source inspection becomes necessary:
+
+- inspect the minimum relevant files only
+- prefer reading the files directly tied to the documented area instead of broad repo-wide exploration
+- do not perform wide `rg` sweeps just to reconstruct architecture that docs already describe
+- do not use source exploration as a substitute for reading the docs index and area docs first
+
+### Planning rule for new modules
+
+For requests like "create a plan for a new module", "scaffold a new module", or "design a module architecture":
+
+- before planning or scaffolding, determine the target module mode first:
+  - `source-host`
+  - `source-package`
+- if the user did not specify the module mode, ask explicitly before proceeding
+- do not assume `source-host` or `source-package` silently for a new module request
+- assume the docs are sufficient for the first planning pass
+- produce the initial plan from docs + module READMEs + existing planning docs
+- do not inspect unrelated source files to "learn the project"
+- only inspect code later to validate a specific integration point or implementation gap
+
+### Mandatory module-mode decision
+
+For every new module request, agents must classify the module as either `source-host` or `source-package` before proposing structure, imports, build steps, or implementation tasks.
+
+- If unspecified, ask the user which one they want.
+- Do not draft a final module plan until that choice is clear.
+- Treat the module mode as an architectural boundary, not as an implementation detail.
+
+### Import boundary by module mode
+
+Once the module mode is known, follow these rules strictly:
+
+- `source-package`
+  - must be SDK-only for host/platform capabilities
+  - may use its own package.json, dependencies, and isolated build pipeline
+  - must not import host internals such as `@/app/*`, `@/lib/*`, `@/components/*`, `@/modules/*`
+  - must consume platform/runtime capabilities through `@skitsaas/sdk`, `@skitsaas/sdk/server`, `@skitsaas/sdk/db`, and other public SDK entrypoints only
+  - design assumption: the module is independent from the host codebase and should remain portable
+
+- `source-host`
+  - may import host internals directly when necessary
+  - must still prefer SDK contracts first for shared platform capabilities
+  - should use direct core imports only for gaps, parity cases, or host-only runtime integrations not yet exposed by the SDK
+  - should avoid unnecessary coupling to host internals when an SDK surface already exists
+  - design assumption: even source-host modules should be written to migrate toward SDK-only usage later with minimal refactor
+
+### SDK-first rule for source-host modules
+
+For `source-host` modules, use this decision order:
+
+1. check whether the capability already exists in the SDK
+2. if yes, use the SDK import
+3. if not, use a host import only when needed to move forward
+4. if the gap is a reusable platform capability, plan or document the SDK gap so future migration is easier
+
+Goal:
+
+- keep `source-host` productive today
+- keep migration to a fuller SDK low-friction tomorrow
+- avoid baking unnecessary host-only imports into new module designs
+
+### Conflict handling
+
+If docs and code disagree:
+
+- call out the conflict explicitly
+- prefer docs for initial planning intent and platform conventions
+- verify the implementation before making code changes
+- update docs as part of the same task when the implementation is the intended source of truth
+
+### Default agent behavior
+
+- docs first
+- source second
+- minimal source reads
+- no architecture discovery by grep when docs already cover it
+- for plans, avoid code exploration unless strictly needed
 
 ## Planning files
 
@@ -298,6 +418,19 @@ Quick guide for agents working in this repository (`saas-starter`).
     - `prebuilt`
     - `source-host`
     - `source-package`
+  - for new module requests:
+    - agents must ask which `moduleMode` the user wants if it is not explicitly provided
+    - do not choose silently
+    - treat this as a required upfront decision because import boundaries, build pipeline, and plan shape depend on it
+  - import boundary by mode:
+    - `source-package`
+      - use SDK entrypoints only for host/platform capabilities
+      - forbidden: direct imports from `@/app/*`, `@/lib/*`, `@/components/*`, `@/modules/*`
+      - intended to be independent, portable, and built from its own package pipeline
+    - `source-host`
+      - direct host imports are allowed when necessary
+      - SDK remains the first choice for any capability already exposed publicly
+      - prefer designing new code so it can migrate to SDK-only later without major rewrites
   - `source-package` must declare:
     - `entry` (compiled manifest path)
     - `buildCommand` (module build command)
