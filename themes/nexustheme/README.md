@@ -247,7 +247,7 @@ Grid de métricas con container queries y gradientes automáticos.
 ```tsx
 // Uso desde template
 <ThemeCodeTemplate
-  themeId="nexus"
+  themeId="theme.nexus"
   id="section.admin.metrics-grid"
   data={{
     variant: 'users',
@@ -268,7 +268,7 @@ Templates específicos para diferentes áreas del admin que manejan automáticam
 
 ```tsx
 <ThemeCodeTemplate
-  themeId="nexus"
+  themeId="theme.nexus"
   id="section.admin.users.metrics"
   data={{
     activeCount: 120,
@@ -285,7 +285,7 @@ Templates específicos para diferentes áreas del admin que manejan automáticam
 
 ```tsx
 <ThemeCodeTemplate
-  themeId="nexus"
+  themeId="theme.nexus"
   id="section.admin.orders.metrics"
   data={{
     pendingCount: 15,
@@ -302,7 +302,7 @@ Templates específicos para diferentes áreas del admin que manejan automáticam
 
 ```tsx
 <ThemeCodeTemplate
-  themeId="nexus"
+  themeId="theme.nexus"
   id="section.admin.payments.metrics"
   data={{
     successfulCount: 450,
@@ -319,7 +319,7 @@ Templates específicos para diferentes áreas del admin que manejan automáticam
 
 ```tsx
 <ThemeCodeTemplate
-  themeId="nexus"
+  themeId="theme.nexus"
   id="section.admin.subscriptions.metrics"
   data={{
     activeCount: 89,
@@ -365,7 +365,7 @@ Plantilla de página con description automática.
 // En app/(dashboard)/admin/users/page.tsx
 const metricsSlot = (
   <ThemeCodeTemplate
-    themeId="nexus"
+    themeId="theme.nexus"
     id="section.admin.metrics-grid"
     data={{ variant: 'users', columns: 3 }}
   >

@@ -289,7 +289,7 @@ export function ThemeActionLabel({ themeId }: { themeId?: string }) {
 Author translation files here:
 
 ```text
-themes/<themeId>/locales/<area>/<locale>.json
+themes/<pack-dir>/locales/<area>/<locale>.json
 ```
 
 Example:

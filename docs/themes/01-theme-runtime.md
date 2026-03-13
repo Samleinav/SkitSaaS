@@ -70,7 +70,7 @@ THEME_FRONTEND=theme.shadcn.dashboard.frontend pnpm themes:prepare
 
 ## External theme packs
 
-Each pack lives in `themes/<themeId>/` and must declare `theme.json`:
+Each pack lives under `themes/<pack-dir>/`, and `theme.json` declares the public `themeId`:
 
 ```json
 {
@@ -154,7 +154,7 @@ keys the theme does not redefine.
 Add flat translation files in your theme directory:
 
 ```text
-themes/<themeId>/locales/<area>/<locale>.json
+themes/<pack-dir>/locales/<area>/<locale>.json
 ```
 
 Supported areas:
