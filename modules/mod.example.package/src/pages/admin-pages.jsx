@@ -1,69 +1,53 @@
 import React from 'react';
 import {
+  TemplateBuildForm,
+  buildFormField,
+  composeBuildFormDefinition
+} from '@skitsaas/sdk';
+import {
   EXAMPLE_PACKAGE_ADMIN_ALIAS,
   EXAMPLE_PACKAGE_API_BASE,
   EXAMPLE_PACKAGE_DASHBOARD_ALIAS,
-  toPositiveInt
-} from '../constants';
+  EXAMPLE_PACKAGE_DEFAULT_PRIORITY
+} from '../constants.js';
 import {
   createExamplePackageItemAdminAction,
+  deleteExamplePackageItemAdminAction,
   updateExamplePackageItemAdminAction,
   updateExamplePackageSettingsAdminAction
-} from '../actions';
+} from '../actions.js';
 import {
   getExamplePackageItemById,
   getExamplePackageSettings,
   listExamplePackageItemsForAdmin
-} from '../data';
+} from '../data.js';
+import {
+  createExamplePackageAdminEditItemFormDefinition,
+  createExamplePackageAdminItemFormDefinition,
+  createExamplePackageSettingsFormDefinition
+} from '../forms.js';
 import {
   ActionLink,
-  FieldLabel,
-  FormActions,
   InfoText,
   ModuleCard,
-  ModuleLayout,
-  SelectInput,
-  SubmitButton,
-  TextArea,
-  TextInput
+  ModuleLayout
 } from '../ui/module-ui.jsx';
-import { ExamplePackageAdminItemsDataTable } from '../module-data-tables.jsx';
+import {
+  ExamplePackageAdminItemsDataTable,
+  ExamplePackageRecentItemsDataTable
+} from '../module-data-tables.jsx';
 
 function formatDate(value) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
 }
 
-function statusOptions(defaultValue) {
-  return (
-    <SelectInput id="status" name="status" defaultValue={defaultValue}>
-      <option value="draft">draft</option>
-      <option value="active">active</option>
-      <option value="archived">archived</option>
-    </SelectInput>
-  );
+export function parseExamplePackageAdminItemId(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-function visibilityCheckbox(defaultChecked) {
-  return (
-    <label>
-      <input
-        type="checkbox"
-        name="isPublic"
-        value="true"
-        defaultChecked={defaultChecked}
-      />{' '}
-      Public visibility
-    </label>
-  );
-}
-
-export async function renderExamplePackageAdminHomePage() {
-  const [settings, items] = await Promise.all([
-    getExamplePackageSettings(),
-    listExamplePackageItemsForAdmin(100)
-  ]);
-
-  const tableItems = items.map((item) => ({
+function mapTableRows(items) {
+  return items.map((item) => ({
     id: item.id,
     title: item.title,
     status: item.status,
@@ -73,11 +57,20 @@ export async function renderExamplePackageAdminHomePage() {
     updatedAt: item.updatedAt.getTime(),
     updatedAtLabel: formatDate(item.updatedAt)
   }));
+}
+
+export async function renderExamplePackageAdminHomePage() {
+  const [settings, items] = await Promise.all([
+    getExamplePackageSettings(),
+    listExamplePackageItemsForAdmin(100)
+  ]);
+
+  const tableItems = mapTableRows(items);
 
   return (
     <ModuleLayout
       title="Example Package Admin"
-      description="Full source-package example with module-owned actions, API and DB."
+      description="Source-package example with SDK FormBuilder, remote DataTable and module-owned presentation."
     >
       <ModuleCard
         title="Summary"
@@ -107,7 +100,7 @@ export async function renderExamplePackageAdminHomePage() {
 
       <ModuleCard
         title="Stored Records"
-        description="Backed by mod_example_package_items."
+        description="Remote SDK DataTable backed by mod_example_package_items."
       >
         {tableItems.length === 0 ? (
           <InfoText>No records yet.</InfoText>
@@ -123,52 +116,62 @@ export async function renderExamplePackageAdminHomePage() {
 }
 
 export async function renderExamplePackageAdminCreatePage() {
-  const settings = await getExamplePackageSettings();
+  const [settings, latestItems] = await Promise.all([
+    getExamplePackageSettings(),
+    listExamplePackageItemsForAdmin(8)
+  ]);
+  const recentItems = mapTableRows(latestItems);
+  const createForm = composeBuildFormDefinition(
+    createExamplePackageAdminItemFormDefinition(),
+    {
+      request: {
+        action: createExamplePackageItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Create',
+        pendingLabel: 'Creating...',
+        successLabel: 'Created',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Back',
+            href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+          }
+        ]
+      },
+      values: {
+        status: settings.defaultStatus,
+        priority: EXAMPLE_PACKAGE_DEFAULT_PRIORITY,
+        isPublic: false
+      }
+    }
+  );
 
   return (
     <ModuleLayout
       title="Create Admin Record"
-      description="Creates a row in module table using module action."
+      description="Uses SDK TemplateBuildForm inside a source-package module."
     >
-      <ModuleCard title="Create">
-        <form action={createExamplePackageItemAdminAction}>
-          <FieldLabel htmlFor="title" label="Title" />
-          <TextInput
-            id="title"
-            name="title"
-            required
-            maxLength={120}
-            placeholder="Campaign launch checklist"
-          />
+      <ModuleCard title="Create" description="Validated action with no host imports.">
+        <TemplateBuildForm
+          definition={createForm}
+          area="admin"
+          route={`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/create`}
+          moduleId="mod.example.package"
+          slot="mod.example.package.admin.create.form"
+        />
+      </ModuleCard>
 
-          <FieldLabel htmlFor="description" label="Description" />
-          <TextArea
-            id="description"
-            name="description"
-            rows={4}
-            placeholder="Optional details for dashboard and API."
-          />
-
-          <FieldLabel htmlFor="status" label="Status" />
-          {statusOptions(settings.defaultStatus)}
-
-          <FieldLabel htmlFor="priority" label="Priority (1-5)" />
-          <TextInput
-            id="priority"
-            name="priority"
-            type="number"
-            min={1}
-            max={5}
-            defaultValue={3}
-          />
-
-          {visibilityCheckbox(false)}
-
-          <FormActions>
-            <SubmitButton label="Create" />
-            <ActionLink href={EXAMPLE_PACKAGE_ADMIN_ALIAS} label="Back" />
-          </FormActions>
-        </form>
+      <ModuleCard
+        title="Recent Local Records"
+        description="Local companion DataTable so this module showcases both remote and local table definitions."
+      >
+        {recentItems.length === 0 ? (
+          <InfoText>No records yet.</InfoText>
+        ) : (
+          <ExamplePackageRecentItemsDataTable items={recentItems} />
+        )}
       </ModuleCard>
     </ModuleLayout>
   );
@@ -189,62 +192,96 @@ export async function renderExamplePackageAdminEditPage(itemId) {
     );
   }
 
+  const editForm = composeBuildFormDefinition(
+    createExamplePackageAdminEditItemFormDefinition(),
+    {
+      request: {
+        action: updateExamplePackageItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Save',
+        pendingLabel: 'Saving...',
+        successLabel: 'Saved',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Back',
+            href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+          }
+        ]
+      },
+      values: {
+        itemId: item.id,
+        title: item.title,
+        description: item.description || '',
+        status: item.status,
+        priority: item.priority,
+        isPublic: item.isPublic
+      }
+    }
+  );
+
+  const deleteForm = composeBuildFormDefinition(
+    {
+      id: `mod.example.package.delete-${item.id}`,
+      fields: [
+        buildFormField.hidden({
+          name: 'itemId',
+          defaultValue: item.id
+        })
+      ]
+    },
+    {
+      request: {
+        action: deleteExamplePackageItemAdminAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Delete',
+        pendingLabel: 'Deleting...',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Cancel',
+            href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+          }
+        ],
+        confirm: {
+          title: `Delete record #${item.id}?`,
+          description: 'This action permanently removes the record.',
+          confirmLabel: 'Delete',
+          cancelLabel: 'Keep record',
+          triggerVariant: 'outline',
+          confirmVariant: 'destructive'
+        }
+      }
+    }
+  );
+
   return (
     <ModuleLayout
       title={`Edit Record #${item.id}`}
-      description="Update values in module-owned table."
+      description="Update values in the module-owned table through SDK form actions."
     >
       <ModuleCard title="Edit">
-        <form action={updateExamplePackageItemAdminAction}>
-          <input type="hidden" name="itemId" value={item.id} />
-
-          <FieldLabel htmlFor="title" label="Title" />
-          <TextInput
-            id="title"
-            name="title"
-            required
-            maxLength={120}
-            defaultValue={item.title}
-          />
-
-          <FieldLabel htmlFor="description" label="Description" />
-          <TextArea
-            id="description"
-            name="description"
-            rows={4}
-            defaultValue={item.description || ''}
-          />
-
-          <FieldLabel htmlFor="status" label="Status" />
-          {statusOptions(item.status)}
-
-          <FieldLabel htmlFor="priority" label="Priority (1-5)" />
-          <TextInput
-            id="priority"
-            name="priority"
-            type="number"
-            min={1}
-            max={5}
-            defaultValue={item.priority}
-          />
-
-          {visibilityCheckbox(item.isPublic)}
-
-          <FormActions>
-            <SubmitButton label="Save" />
-            <ActionLink href={EXAMPLE_PACKAGE_ADMIN_ALIAS} label="Back" />
-          </FormActions>
-        </form>
+        <TemplateBuildForm
+          definition={editForm}
+          area="admin"
+          route={`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`}
+          moduleId="mod.example.package"
+          slot="mod.example.package.admin.edit.form"
+        />
       </ModuleCard>
 
       <ModuleCard title="Danger Zone" description="Delete this record permanently.">
-        <form action={deleteExamplePackageItemAdminAction}>
-          <input type="hidden" name="itemId" value={item.id} />
-          <FormActions>
-            <SubmitButton label="Delete" tone="danger" />
-            <ActionLink href={EXAMPLE_PACKAGE_ADMIN_ALIAS} label="Cancel" />
-          </FormActions>
-        </form>
+        <TemplateBuildForm
+          definition={deleteForm}
+          area="admin"
+          route={`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`}
+          moduleId="mod.example.package"
+          slot="mod.example.package.admin.delete.form"
+        />
       </ModuleCard>
     </ModuleLayout>
   );
@@ -252,55 +289,42 @@ export async function renderExamplePackageAdminEditPage(itemId) {
 
 export async function renderExamplePackageAdminSettingsPage() {
   const settings = await getExamplePackageSettings();
+  const baseSettingsForm = createExamplePackageSettingsFormDefinition();
+  const settingsForm = composeBuildFormDefinition(baseSettingsForm, {
+    request: {
+      action: updateExamplePackageSettingsAdminAction,
+      method: 'post'
+    },
+    submit: {
+      ...baseSettingsForm.submit,
+      secondaryActions: [
+        {
+          label: 'Back',
+          href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+        }
+      ]
+    },
+    values: {
+      allowDashboardCreate: settings.allowDashboardCreate,
+      apiWriteMode: settings.apiWriteMode,
+      defaultStatus: settings.defaultStatus
+    }
+  });
 
   return (
     <ModuleLayout
       title="Module Settings"
       description="Settings are persisted in mod_example_package_settings."
     >
-      <ModuleCard title="Update Settings">
-        <form action={updateExamplePackageSettingsAdminAction}>
-          <label>
-            <input
-              type="checkbox"
-              name="allowDashboardCreate"
-              value="true"
-              defaultChecked={settings.allowDashboardCreate}
-            />{' '}
-            Allow dashboard users to create records
-          </label>
-
-          <FieldLabel htmlFor="apiWriteMode" label="API write mode" />
-          <SelectInput
-            id="apiWriteMode"
-            name="apiWriteMode"
-            defaultValue={settings.apiWriteMode}
-          >
-            <option value="authenticated">authenticated users</option>
-            <option value="admin">admins only</option>
-          </SelectInput>
-
-          <FieldLabel htmlFor="defaultStatus" label="Default status" />
-          <SelectInput
-            id="defaultStatus"
-            name="defaultStatus"
-            defaultValue={settings.defaultStatus}
-          >
-            <option value="draft">draft</option>
-            <option value="active">active</option>
-            <option value="archived">archived</option>
-          </SelectInput>
-
-          <FormActions>
-            <SubmitButton label="Save Settings" />
-            <ActionLink href={EXAMPLE_PACKAGE_ADMIN_ALIAS} label="Back" />
-          </FormActions>
-        </form>
+      <ModuleCard title="Settings" description="One SDK form controls shared runtime behavior.">
+        <TemplateBuildForm
+          definition={settingsForm}
+          area="admin"
+          route={`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/settings`}
+          moduleId="mod.example.package"
+          slot="mod.example.package.admin.settings.form"
+        />
       </ModuleCard>
     </ModuleLayout>
   );
-}
-
-export function parseExamplePackageAdminItemId(value) {
-  return toPositiveInt(value);
 }

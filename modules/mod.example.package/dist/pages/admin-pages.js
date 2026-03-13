@@ -1,25 +1,21 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
 import React from 'react';
-import { EXAMPLE_PACKAGE_ADMIN_ALIAS, EXAMPLE_PACKAGE_API_BASE, EXAMPLE_PACKAGE_DASHBOARD_ALIAS, toPositiveInt } from '../constants.js';
-import { createExamplePackageItemAdminAction, updateExamplePackageItemAdminAction, updateExamplePackageSettingsAdminAction } from '../actions.js';
+import { TemplateBuildForm, buildFormField, composeBuildFormDefinition } from '@skitsaas/sdk';
+import { EXAMPLE_PACKAGE_ADMIN_ALIAS, EXAMPLE_PACKAGE_API_BASE, EXAMPLE_PACKAGE_DASHBOARD_ALIAS, EXAMPLE_PACKAGE_DEFAULT_PRIORITY } from '../constants.js';
+import { createExamplePackageItemAdminAction, deleteExamplePackageItemAdminAction, updateExamplePackageItemAdminAction, updateExamplePackageSettingsAdminAction } from '../actions.js';
 import { getExamplePackageItemById, getExamplePackageSettings, listExamplePackageItemsForAdmin } from '../data.js';
-import { ActionLink, FieldLabel, FormActions, InfoText, ModuleCard, ModuleLayout, SelectInput, SubmitButton, TextArea, TextInput } from '../ui/module-ui.js';
-import { ExamplePackageAdminItemsDataTable } from '../module-data-tables.js';
+import { createExamplePackageAdminEditItemFormDefinition, createExamplePackageAdminItemFormDefinition, createExamplePackageSettingsFormDefinition } from '../forms.js';
+import { ActionLink, InfoText, ModuleCard, ModuleLayout } from '../ui/module-ui.js';
+import { ExamplePackageAdminItemsDataTable, ExamplePackageRecentItemsDataTable } from '../module-data-tables.js';
 function formatDate(value) {
     return value.toISOString().replace('T', ' ').slice(0, 16);
 }
-function statusOptions(defaultValue) {
-    return (_jsxs(SelectInput, { id: "status", name: "status", defaultValue: defaultValue, children: [_jsx("option", { value: "draft", children: "draft" }), _jsx("option", { value: "active", children: "active" }), _jsx("option", { value: "archived", children: "archived" })] }));
+export function parseExamplePackageAdminItemId(value) {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
-function visibilityCheckbox(defaultChecked) {
-    return (_jsxs("label", { children: [_jsx("input", { type: "checkbox", name: "isPublic", value: "true", defaultChecked: defaultChecked }), ' ', "Public visibility"] }));
-}
-export async function renderExamplePackageAdminHomePage() {
-    const [settings, items] = await Promise.all([
-        getExamplePackageSettings(),
-        listExamplePackageItemsForAdmin(100)
-    ]);
-    const tableItems = items.map((item) => ({
+function mapTableRows(items) {
+    return items.map((item) => ({
         id: item.id,
         title: item.title,
         status: item.status,
@@ -29,26 +25,137 @@ export async function renderExamplePackageAdminHomePage() {
         updatedAt: item.updatedAt.getTime(),
         updatedAtLabel: formatDate(item.updatedAt)
     }));
-    return (_jsxs(ModuleLayout, { title: "Example Package Admin", description: "Full source-package example with module-owned actions, API and DB.", children: [_jsxs(ModuleCard, { title: "Summary", description: "Runtime module settings and route aliases.", actions: [
+}
+export async function renderExamplePackageAdminHomePage() {
+    const [settings, items] = await Promise.all([
+        getExamplePackageSettings(),
+        listExamplePackageItemsForAdmin(100)
+    ]);
+    const tableItems = mapTableRows(items);
+    return (_jsxs(ModuleLayout, { title: "Example Package Admin", description: "Source-package example with SDK FormBuilder, remote DataTable and module-owned presentation.", children: [_jsxs(ModuleCard, { title: "Summary", description: "Runtime module settings and route aliases.", actions: [
                     _jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/create`, label: "Create Record" }, "create"),
                     _jsx(ActionLink, { href: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/settings`, label: "Settings" }, "settings")
-                ], children: [_jsxs(InfoText, { children: ["Admin alias: ", EXAMPLE_PACKAGE_ADMIN_ALIAS] }), _jsxs(InfoText, { children: ["Dashboard alias: ", EXAMPLE_PACKAGE_DASHBOARD_ALIAS] }), _jsxs(InfoText, { children: ["API base: ", EXAMPLE_PACKAGE_API_BASE] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled', " | API write mode: ", settings.apiWriteMode, " | Default status:", ' ', settings.defaultStatus] })] }), _jsx(ModuleCard, { title: "Stored Records", description: "Backed by mod_example_package_items.", children: tableItems.length === 0 ? (_jsx(InfoText, { children: "No records yet." })) : (_jsx(ExamplePackageAdminItemsDataTable, { items: tableItems, adminAlias: EXAMPLE_PACKAGE_ADMIN_ALIAS })) })] }));
+                ], children: [_jsxs(InfoText, { children: ["Admin alias: ", EXAMPLE_PACKAGE_ADMIN_ALIAS] }), _jsxs(InfoText, { children: ["Dashboard alias: ", EXAMPLE_PACKAGE_DASHBOARD_ALIAS] }), _jsxs(InfoText, { children: ["API base: ", EXAMPLE_PACKAGE_API_BASE] }), _jsxs(InfoText, { children: ["Dashboard create: ", settings.allowDashboardCreate ? 'enabled' : 'disabled', " | API write mode: ", settings.apiWriteMode, " | Default status:", ' ', settings.defaultStatus] })] }), _jsx(ModuleCard, { title: "Stored Records", description: "Remote SDK DataTable backed by mod_example_package_items.", children: tableItems.length === 0 ? (_jsx(InfoText, { children: "No records yet." })) : (_jsx(ExamplePackageAdminItemsDataTable, { items: tableItems, adminAlias: EXAMPLE_PACKAGE_ADMIN_ALIAS })) })] }));
 }
 export async function renderExamplePackageAdminCreatePage() {
-    const settings = await getExamplePackageSettings();
-    return (_jsx(ModuleLayout, { title: "Create Admin Record", description: "Creates a row in module table using module action.", children: _jsx(ModuleCard, { title: "Create", children: _jsxs("form", { action: createExamplePackageItemAdminAction, children: [_jsx(FieldLabel, { htmlFor: "title", label: "Title" }), _jsx(TextInput, { id: "title", name: "title", required: true, maxLength: 120, placeholder: "Campaign launch checklist" }), _jsx(FieldLabel, { htmlFor: "description", label: "Description" }), _jsx(TextArea, { id: "description", name: "description", rows: 4, placeholder: "Optional details for dashboard and API." }), _jsx(FieldLabel, { htmlFor: "status", label: "Status" }), statusOptions(settings.defaultStatus), _jsx(FieldLabel, { htmlFor: "priority", label: "Priority (1-5)" }), _jsx(TextInput, { id: "priority", name: "priority", type: "number", min: 1, max: 5, defaultValue: 3 }), visibilityCheckbox(false), _jsxs(FormActions, { children: [_jsx(SubmitButton, { label: "Create" }), _jsx(ActionLink, { href: EXAMPLE_PACKAGE_ADMIN_ALIAS, label: "Back" })] })] }) }) }));
+    const [settings, latestItems] = await Promise.all([
+        getExamplePackageSettings(),
+        listExamplePackageItemsForAdmin(8)
+    ]);
+    const recentItems = mapTableRows(latestItems);
+    const createForm = composeBuildFormDefinition(createExamplePackageAdminItemFormDefinition(), {
+        request: {
+            action: createExamplePackageItemAdminAction,
+            method: 'post'
+        },
+        submit: {
+            idleLabel: 'Create',
+            pendingLabel: 'Creating...',
+            successLabel: 'Created',
+            align: 'start',
+            secondaryActions: [
+                {
+                    label: 'Back',
+                    href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+                }
+            ]
+        },
+        values: {
+            status: settings.defaultStatus,
+            priority: EXAMPLE_PACKAGE_DEFAULT_PRIORITY,
+            isPublic: false
+        }
+    });
+    return (_jsxs(ModuleLayout, { title: "Create Admin Record", description: "Uses SDK TemplateBuildForm inside a source-package module.", children: [_jsx(ModuleCard, { title: "Create", description: "Validated action with no host imports.", children: _jsx(TemplateBuildForm, { definition: createForm, area: "admin", route: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/create`, moduleId: "mod.example.package", slot: "mod.example.package.admin.create.form" }) }), _jsx(ModuleCard, { title: "Recent Local Records", description: "Local companion DataTable so this module showcases both remote and local table definitions.", children: recentItems.length === 0 ? (_jsx(InfoText, { children: "No records yet." })) : (_jsx(ExamplePackageRecentItemsDataTable, { items: recentItems })) })] }));
 }
 export async function renderExamplePackageAdminEditPage(itemId) {
     const item = await getExamplePackageItemById(itemId);
     if (!item) {
         return (_jsx(ModuleLayout, { title: "Record Not Found", description: `No record for id ${itemId}.`, children: _jsx(ModuleCard, { title: "Missing record", children: _jsx(ActionLink, { href: EXAMPLE_PACKAGE_ADMIN_ALIAS, label: "Back to module home" }) }) }));
     }
-    return (_jsxs(ModuleLayout, { title: `Edit Record #${item.id}`, description: "Update values in module-owned table.", children: [_jsx(ModuleCard, { title: "Edit", children: _jsxs("form", { action: updateExamplePackageItemAdminAction, children: [_jsx("input", { type: "hidden", name: "itemId", value: item.id }), _jsx(FieldLabel, { htmlFor: "title", label: "Title" }), _jsx(TextInput, { id: "title", name: "title", required: true, maxLength: 120, defaultValue: item.title }), _jsx(FieldLabel, { htmlFor: "description", label: "Description" }), _jsx(TextArea, { id: "description", name: "description", rows: 4, defaultValue: item.description || '' }), _jsx(FieldLabel, { htmlFor: "status", label: "Status" }), statusOptions(item.status), _jsx(FieldLabel, { htmlFor: "priority", label: "Priority (1-5)" }), _jsx(TextInput, { id: "priority", name: "priority", type: "number", min: 1, max: 5, defaultValue: item.priority }), visibilityCheckbox(item.isPublic), _jsxs(FormActions, { children: [_jsx(SubmitButton, { label: "Save" }), _jsx(ActionLink, { href: EXAMPLE_PACKAGE_ADMIN_ALIAS, label: "Back" })] })] }) }), _jsx(ModuleCard, { title: "Danger Zone", description: "Delete this record permanently.", children: _jsxs("form", { action: deleteExamplePackageItemAdminAction, children: [_jsx("input", { type: "hidden", name: "itemId", value: item.id }), _jsxs(FormActions, { children: [_jsx(SubmitButton, { label: "Delete", tone: "danger" }), _jsx(ActionLink, { href: EXAMPLE_PACKAGE_ADMIN_ALIAS, label: "Cancel" })] })] }) })] }));
+    const editForm = composeBuildFormDefinition(createExamplePackageAdminEditItemFormDefinition(), {
+        request: {
+            action: updateExamplePackageItemAdminAction,
+            method: 'post'
+        },
+        submit: {
+            idleLabel: 'Save',
+            pendingLabel: 'Saving...',
+            successLabel: 'Saved',
+            align: 'start',
+            secondaryActions: [
+                {
+                    label: 'Back',
+                    href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+                }
+            ]
+        },
+        values: {
+            itemId: item.id,
+            title: item.title,
+            description: item.description || '',
+            status: item.status,
+            priority: item.priority,
+            isPublic: item.isPublic
+        }
+    });
+    const deleteForm = composeBuildFormDefinition({
+        id: `mod.example.package.delete-${item.id}`,
+        fields: [
+            buildFormField.hidden({
+                name: 'itemId',
+                defaultValue: item.id
+            })
+        ]
+    }, {
+        request: {
+            action: deleteExamplePackageItemAdminAction,
+            method: 'post'
+        },
+        submit: {
+            idleLabel: 'Delete',
+            pendingLabel: 'Deleting...',
+            align: 'start',
+            secondaryActions: [
+                {
+                    label: 'Cancel',
+                    href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+                }
+            ],
+            confirm: {
+                title: `Delete record #${item.id}?`,
+                description: 'This action permanently removes the record.',
+                confirmLabel: 'Delete',
+                cancelLabel: 'Keep record',
+                triggerVariant: 'outline',
+                confirmVariant: 'destructive'
+            }
+        }
+    });
+    return (_jsxs(ModuleLayout, { title: `Edit Record #${item.id}`, description: "Update values in the module-owned table through SDK form actions.", children: [_jsx(ModuleCard, { title: "Edit", children: _jsx(TemplateBuildForm, { definition: editForm, area: "admin", route: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`, moduleId: "mod.example.package", slot: "mod.example.package.admin.edit.form" }) }), _jsx(ModuleCard, { title: "Danger Zone", description: "Delete this record permanently.", children: _jsx(TemplateBuildForm, { definition: deleteForm, area: "admin", route: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${item.id}`, moduleId: "mod.example.package", slot: "mod.example.package.admin.delete.form" }) })] }));
 }
 export async function renderExamplePackageAdminSettingsPage() {
     const settings = await getExamplePackageSettings();
-    return (_jsx(ModuleLayout, { title: "Module Settings", description: "Settings are persisted in mod_example_package_settings.", children: _jsx(ModuleCard, { title: "Update Settings", children: _jsxs("form", { action: updateExamplePackageSettingsAdminAction, children: [_jsxs("label", { children: [_jsx("input", { type: "checkbox", name: "allowDashboardCreate", value: "true", defaultChecked: settings.allowDashboardCreate }), ' ', "Allow dashboard users to create records"] }), _jsx(FieldLabel, { htmlFor: "apiWriteMode", label: "API write mode" }), _jsxs(SelectInput, { id: "apiWriteMode", name: "apiWriteMode", defaultValue: settings.apiWriteMode, children: [_jsx("option", { value: "authenticated", children: "authenticated users" }), _jsx("option", { value: "admin", children: "admins only" })] }), _jsx(FieldLabel, { htmlFor: "defaultStatus", label: "Default status" }), _jsxs(SelectInput, { id: "defaultStatus", name: "defaultStatus", defaultValue: settings.defaultStatus, children: [_jsx("option", { value: "draft", children: "draft" }), _jsx("option", { value: "active", children: "active" }), _jsx("option", { value: "archived", children: "archived" })] }), _jsxs(FormActions, { children: [_jsx(SubmitButton, { label: "Save Settings" }), _jsx(ActionLink, { href: EXAMPLE_PACKAGE_ADMIN_ALIAS, label: "Back" })] })] }) }) }));
-}
-export function parseExamplePackageAdminItemId(value) {
-    return toPositiveInt(value);
+    const baseSettingsForm = createExamplePackageSettingsFormDefinition();
+    const settingsForm = composeBuildFormDefinition(baseSettingsForm, {
+        request: {
+            action: updateExamplePackageSettingsAdminAction,
+            method: 'post'
+        },
+        submit: {
+            ...baseSettingsForm.submit,
+            secondaryActions: [
+                {
+                    label: 'Back',
+                    href: EXAMPLE_PACKAGE_ADMIN_ALIAS
+                }
+            ]
+        },
+        values: {
+            allowDashboardCreate: settings.allowDashboardCreate,
+            apiWriteMode: settings.apiWriteMode,
+            defaultStatus: settings.defaultStatus
+        }
+    });
+    return (_jsx(ModuleLayout, { title: "Module Settings", description: "Settings are persisted in mod_example_package_settings.", children: _jsx(ModuleCard, { title: "Settings", description: "One SDK form controls shared runtime behavior.", children: _jsx(TemplateBuildForm, { definition: settingsForm, area: "admin", route: `${EXAMPLE_PACKAGE_ADMIN_ALIAS}/settings`, moduleId: "mod.example.package", slot: "mod.example.package.admin.settings.form" }) }) }));
 }

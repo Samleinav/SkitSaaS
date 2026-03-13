@@ -148,6 +148,39 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
   });
 }
 
+function buildRecentItemsTableDefinition({ items }) {
+  return defineBuildTable({
+    data: items,
+    header: {
+      title: 'Recent local records',
+      description:
+        'Local companion table for the create route so the module shows both local and remote DataTable patterns.'
+    },
+    columns: [
+      buildTableColumn.text({
+        key: 'title',
+        header: 'Title',
+        searchable: true,
+        cell: (item) => <strong>{item.title}</strong>
+      }),
+      buildTableColumn.custom({
+        key: 'status',
+        header: 'Status',
+        cell: (item) => <Badge value={item.status} />
+      }),
+      buildTableColumn.text({
+        key: 'updatedAt',
+        header: 'Updated',
+        sortable: true,
+        cell: (item) => <code>{item.updatedAtLabel}</code>
+      })
+    ],
+    pagination: {
+      pageSize: 5
+    }
+  });
+}
+
 export function ExamplePackageAdminItemsDataTable({
   items,
   adminAlias
@@ -174,6 +207,17 @@ export function ExamplePackageDashboardItemsDataTable({
         dashboardAlias
       })}
       tableClassName="min-w-[760px]"
+    />
+  );
+}
+
+export function ExamplePackageRecentItemsDataTable({ items }) {
+  return (
+    <DataTable
+      definition={buildRecentItemsTableDefinition({
+        items
+      })}
+      tableClassName="min-w-[620px]"
     />
   );
 }

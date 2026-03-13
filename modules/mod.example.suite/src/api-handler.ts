@@ -1,3 +1,4 @@
+import { parseBuildTableQueryState } from '@skitsaas/sdk';
 import { createModuleApiRouter, parseJsonBody } from '@skitsaas/sdk/server';
 import {
   EXAMPLE_SUITE_MODULE_ID,
@@ -8,6 +9,7 @@ import {
 } from './constants';
 import {
   createExampleSuiteItem,
+  deleteExampleSuiteItem,
   getExampleSuiteItemById,
   getExampleSuiteSettings,
   listExampleSuiteItemsForAdmin,
@@ -35,6 +37,62 @@ function parsePositiveInt(value: string | undefined) {
 
 function hasOwn(source: Record<string, unknown>, key: string) {
   return Object.prototype.hasOwnProperty.call(source, key);
+}
+
+function applyItemsTableQuery(
+  items: Awaited<ReturnType<typeof listExampleSuiteItemsForAdmin>>,
+  searchParams: URLSearchParams
+) {
+  const query = parseBuildTableQueryState(searchParams);
+  const searchValue = query.search?.trim().toLowerCase() || '';
+  const statusFilter = query.filters?.status?.trim().toLowerCase() || '';
+  const queryPage = query.page;
+  const queryPageSize = query.pageSize;
+  const page = typeof queryPage === 'number' && queryPage > 0 ? queryPage : 1;
+  const pageSize =
+    typeof queryPageSize === 'number' && queryPageSize > 0 ? queryPageSize : 10;
+
+  let filtered = [...items];
+
+  if (searchValue) {
+    filtered = filtered.filter((item) =>
+      [item.title, item.ownerName, item.ownerEmail]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(searchValue))
+    );
+  }
+
+  if (statusFilter) {
+    filtered = filtered.filter(
+      (item) => String(item.status).toLowerCase() === statusFilter
+    );
+  }
+
+  if (query.sorting?.columnId === 'title') {
+    filtered.sort((left, right) =>
+      left.title.localeCompare(right.title, undefined, {
+        sensitivity: 'base'
+      })
+    );
+  } else if (query.sorting?.columnId === 'priority') {
+    filtered.sort((left, right) => left.priority - right.priority);
+  } else if (query.sorting?.columnId === 'updatedAt') {
+    filtered.sort((left, right) => left.updatedAt.getTime() - right.updatedAt.getTime());
+  }
+
+  if (query.sorting?.direction === 'desc') {
+    filtered.reverse();
+  }
+
+  const total = filtered.length;
+  const start = (page - 1) * pageSize;
+
+  return {
+    items: filtered.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize
+  };
 }
 
 type ExampleSuiteSessionUser = {
@@ -68,8 +126,7 @@ export const exampleSuiteApiHandler = createModuleApiRouter<ExampleSuiteSessionU
           const items = await listExampleSuiteItemsForAdmin(200);
           return Response.json({
             scope: 'admin',
-            total: items.length,
-            items
+            ...applyItemsTableQuery(items, searchParams)
           });
         }
 
@@ -80,17 +137,33 @@ export const exampleSuiteApiHandler = createModuleApiRouter<ExampleSuiteSessionU
           });
           return Response.json({
             scope: 'user',
-            total: items.length,
-            items
+            ...applyItemsTableQuery(items, searchParams)
           });
         }
 
         const items = await listExampleSuitePublicItems(200);
         return Response.json({
           scope: 'public',
-          total: items.length,
-          items
+          ...applyItemsTableQuery(items, searchParams)
         });
+      }
+    },
+    {
+      method: 'DELETE',
+      path: '/items/:itemId',
+      auth: 'admin',
+      handler: async ({ params }) => {
+        const itemId = parsePositiveInt(params.itemId);
+        if (!itemId) {
+          return jsonError(400, 'Invalid item id.');
+        }
+
+        const deleted = await deleteExampleSuiteItem(itemId);
+        if (!deleted) {
+          return jsonError(404, 'Item not found.');
+        }
+
+        return Response.json({ ok: true, id: itemId });
       }
     },
     {

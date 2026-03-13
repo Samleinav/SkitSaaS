@@ -37,3 +37,13 @@ test('source-package example tables are built from the sdk and no longer use the
   assert.match(tableSource, /<DataTable/);
   assert.doesNotMatch(moduleUiSource, /export function DataTable/);
 });
+
+test('source-package example forms use sdk TemplateBuildForm without host imports', () => {
+  const adminPageSource = readModuleFile('src/pages/admin-pages.jsx');
+  const dashboardPageSource = readModuleFile('src/pages/dashboard-pages.jsx');
+
+  assert.match(adminPageSource, /TemplateBuildForm/);
+  assert.match(dashboardPageSource, /TemplateBuildForm/);
+  assert.doesNotMatch(adminPageSource, /@\/components\//);
+  assert.doesNotMatch(dashboardPageSource, /@\/components\//);
+});

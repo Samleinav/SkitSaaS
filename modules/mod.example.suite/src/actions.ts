@@ -1,6 +1,11 @@
 'use server';
 
-import { buildFormValidationMessage } from '@skitsaas/sdk';
+import {
+  buildFormValidationMessage,
+  createBuildFormValidationResultFromFieldMessages,
+  type BuildFormValidationMessageInput,
+  type BuildFormValues
+} from '@skitsaas/sdk';
 import {
   createServerActionController,
   createValidatedServerActionController,
@@ -14,8 +19,7 @@ import {
   EXAMPLE_SUITE_DASHBOARD_ALIAS,
   normalizeExampleSuiteApiWriteMode,
   normalizeExampleSuitePriority,
-  normalizeExampleSuiteStatus,
-  parseCheckboxValue
+  normalizeExampleSuiteStatus
 } from './constants';
 import {
   createExampleSuiteItem,
@@ -28,9 +32,9 @@ import {
 import {
   createExampleSuiteAdminEditItemFormDefinition,
   createExampleSuiteAdminItemFormDefinition,
+  createExampleSuiteDashboardItemFormDefinition,
   createExampleSuiteSettingsFormDefinition
 } from './forms';
-import { createBuildFormInvalidFactory } from '@/lib/forms/validation/results';
 
 type ExampleSuiteSessionUser = {
   id: number;
@@ -46,9 +50,10 @@ const adminValidatedAction =
     requireUser: async () => requireAdmin<ExampleSuiteSessionUser>()
   });
 
-const dashboardAction = createServerActionController<ExampleSuiteSessionUser>({
-  requireUser: async () => requireUser<ExampleSuiteSessionUser>()
-});
+const dashboardValidatedAction =
+  createValidatedServerActionController<ExampleSuiteSessionUser>({
+    requireUser: async () => requireUser<ExampleSuiteSessionUser>()
+  });
 
 const EXAMPLE_SUITE_ADMIN_REVALIDATE_PATHS = [
   EXAMPLE_SUITE_ADMIN_ALIAS,
@@ -71,6 +76,22 @@ async function revalidateExampleSuiteRoutes(extraPaths: string[] = []) {
 
 function readPositiveInteger(form: FormReader, field: string) {
   return form.positiveInt(field);
+}
+
+function invalidExampleSuiteForm(
+  values: BuildFormValues,
+  fieldMessages: Record<
+    string,
+    BuildFormValidationMessageInput | BuildFormValidationMessageInput[]
+  >,
+  formMessage?: string
+) {
+  return createBuildFormValidationResultFromFieldMessages({
+    values,
+    fieldMessages,
+    formMessage: formMessage ?? null,
+    source: 'server'
+  });
 }
 
 export const createExampleSuiteItemAdminAction = adminValidatedAction(
@@ -103,21 +124,20 @@ export const createExampleSuiteItemAdminAction = adminValidatedAction(
 export const updateExampleSuiteItemAdminAction = adminValidatedAction(
   createExampleSuiteAdminEditItemFormDefinition(),
   async ({ values }) => {
-    const invalid = createBuildFormInvalidFactory({ values });
     const itemId =
       typeof values.itemId === 'number' && Number.isInteger(values.itemId)
         ? values.itemId
         : null;
 
     if (!itemId) {
-      return invalid({
+      return invalidExampleSuiteForm(values, {
         itemId: [buildFormValidationMessage.positiveInteger('Item id')]
       });
     }
 
     const existing = await getExampleSuiteItemById(itemId);
     if (!existing) {
-      return invalid({
+      return invalidExampleSuiteForm(values, {
         itemId: [buildFormValidationMessage.recordNotFound('Item')]
       });
     }
@@ -172,24 +192,26 @@ export const updateExampleSuiteSettingsAdminAction = adminValidatedAction(
   }
 );
 
-export const createExampleSuiteItemDashboardAction = dashboardAction(
-  async ({ user, form }) => {
+export const createExampleSuiteItemDashboardAction = dashboardValidatedAction(
+  createExampleSuiteDashboardItemFormDefinition(),
+  async ({ user, values }) => {
     const settings = await getExampleSuiteSettings();
     if (!settings.allowDashboardCreate) {
-      return false;
-    }
-
-    const title = form.string('title');
-    if (!title) {
-      return false;
+      return invalidExampleSuiteForm(
+        values,
+        {},
+        'Dashboard create is disabled by module settings.'
+      );
     }
 
     await createExampleSuiteItem({
-      title,
-      description: form.string('description'),
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
       status: settings.defaultStatus,
-      priority: normalizeExampleSuitePriority(form.integer('priority')),
-      isPublic: parseCheckboxValue(form.value('isPublic')),
+      priority: normalizeExampleSuitePriority(
+        typeof values.priority === 'number' ? values.priority : null
+      ),
+      isPublic: values.isPublic === true,
       ownerUserId: user.id
     });
 

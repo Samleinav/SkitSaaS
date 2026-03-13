@@ -13,56 +13,68 @@ export type HubPageProps = {
 
 export default function HubHomePage({ searchParams }: HubPageProps) {
   return (
-    <div className="space-y-8">
-      <section className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Welcome to the Hub
-        </h1>
-        <p className="text-slate-500">
-          This is the public portal home page. No authentication required.
+    <div className="hub-shell">
+      <section className="hub-hero">
+        <p className="hub-kicker">Portal showcase</p>
+        <h1 className="hub-title">Welcome to the Hub</h1>
+        <p className="hub-copy">
+          This public page now uses module-owned portal styling so the portal reads
+          as a distinct product surface rather than a frontend route with different copy.
         </p>
+        <div className="hub-chip-row">
+          <span className="hub-chip">Named portal</span>
+          <span className="hub-chip">Own layout</span>
+          <span className="hub-chip">Module CSS</span>
+        </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-slate-200 p-5">
-          <h2 className="mb-1 font-semibold text-slate-800">Members Area</h2>
-          <p className="mb-4 text-sm text-slate-500">
-            Requires authentication. Sign in to access the member directory.
-          </p>
-          <Link
-            href="/hub/members"
-            className="inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
-            View Members
-          </Link>
-        </div>
+      <section className="hub-grid hub-grid--two">
+        <article className="hub-card">
+          <header className="hub-card__header">
+            <p className="hub-card__eyebrow">Protected area</p>
+            <h2 className="hub-card__title">Members Area</h2>
+            <p className="hub-card__description">
+              Requires authentication. Sign in to access the member directory and
+              the portal-only DataTable example.
+            </p>
+          </header>
+          <div className="hub-card__body">
+            <Link href="/hub/members" className="hub-link">
+              View Members
+            </Link>
+          </div>
+        </article>
 
-        <div className="rounded-lg border border-slate-200 p-5">
-          <h2 className="mb-1 font-semibold text-slate-800">Portal Info</h2>
-          <p className="mb-2 text-sm text-slate-500">
-            This portal is served by <code className="text-xs">mod.example.portal</code> via
-            the multi-portal system.
-          </p>
-          <dl className="space-y-1 text-xs text-slate-400">
-            <div className="flex gap-2">
-              <dt className="font-medium">Route:</dt>
-              <dd>/hub/*</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="font-medium">Auth:</dt>
-              <dd>public home, protected members</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="font-medium">Theme:</dt>
-              <dd>raw (no theme pack)</dd>
-            </div>
-            {searchParams.debug === '1' && (
-              <div className="mt-2 rounded bg-slate-100 p-2 font-mono">
-                debug=1 via searchParams
+        <article className="hub-card">
+          <header className="hub-card__header">
+            <p className="hub-card__eyebrow">Portal info</p>
+            <h2 className="hub-card__title">Portal runtime notes</h2>
+            <p className="hub-card__description">
+              This portal is served by <code>mod.example.portal</code> via the multi-portal system.
+            </p>
+          </header>
+          <div className="hub-card__body">
+            <dl className="space-y-2 text-sm text-slate-600">
+              <div>
+                <dt className="font-semibold">Route</dt>
+                <dd>/hub/*</dd>
               </div>
-            )}
-          </dl>
-        </div>
+              <div>
+                <dt className="font-semibold">Auth</dt>
+                <dd>public home, protected members</dd>
+              </div>
+              <div>
+                <dt className="font-semibold">Theme</dt>
+                <dd>module-owned portal shell</dd>
+              </div>
+              {searchParams.debug === '1' && (
+                <div className="rounded-lg bg-sky-50 px-3 py-2 font-mono text-xs text-sky-700">
+                  debug=1 via searchParams
+                </div>
+              )}
+            </dl>
+          </div>
+        </article>
       </section>
     </div>
   );

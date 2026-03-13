@@ -1,19 +1,22 @@
 # mod.example.dashboard
 
-Example source-host module that demonstrates dashboard + frontend aliases and frontend slot rendering.
+Source-host example module that now acts as the lightweight SDK showcase for dashboard + frontend aliases.
 
-## Scope
+## What it demonstrates
 
-- Demonstrates `dashboardRouteAliases` and `dashboardNavItems`.
-- Demonstrates `frontendRouteAliases` and `frontendPage`.
-- Demonstrates module frontend slot registration.
+- `dashboardRouteAliases` and `dashboardNavItems`
+- `frontendRouteAliases` and `frontendPage`
+- `frontendSlots` with module-owned styling
+- SDK `TemplateBuildForm` on the dashboard page
+- SDK `DataTable` in both local and remote modes
+- typed `apiRoutes` backing a `source.url` table on the frontend page
 
 ## Module metadata
 
 - `moduleId`: `mod.example.dashboard`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^1.3.5`
+- `sdkRange`: `^1.7.1`
 
 ## Routes
 
@@ -24,16 +27,20 @@ Example source-host module that demonstrates dashboard + frontend aliases and fr
 - Canonical dispatcher routes:
   - `/dashboard/modules/mod.example.dashboard`
   - `/modules/mod.example.dashboard`
+- Module API route:
+  - `GET /api/modules/mod.example.dashboard/showcase-playbooks`
 
 ## Runtime behavior
 
-- Adds one dashboard nav item (`Example Dashboard`) pointing to `/dashboard/custom/example-dashboard`.
-- Dashboard page renderer returns:
-  - `Example dashboard module is enabled.`
-- Frontend page renderer returns:
-  - `Example frontend module is enabled.`
+- Dashboard page:
+  - module-branded shell
+  - local `DataTable`
+  - validated `TemplateBuildForm`
+- Frontend page:
+  - remote `DataTable` using `source.url`
+  - data served from typed module `apiRoutes`
 - Frontend slot:
-  - `frontend.contact.form.primary` -> `Example contact form slot rendered from module.`
+  - `frontend.contact.form.primary` -> styled module card rendered from the module
 
 ## Config and env
 
@@ -45,28 +52,16 @@ Example source-host module that demonstrates dashboard + frontend aliases and fr
 - No module-owned DB tables.
 - No migrations.
 
-## Templates and UI contract
-
-- No module template pack declared.
-- Uses plain string responses in this example.
-
-## i18n
-
-- Includes locale messages under:
-  - `i18n/dashboard/en.json`
-  - `i18n/dashboard/es.json`
-
 ## Tests and validation
 
 Recommended checks from project root:
 
 ```bash
 pnpm modules:prepare
-npx tsx --test tests/modules/module-runtime.test.ts
+pnpm exec tsc --noEmit
 ```
 
-## Troubleshooting
+## Notes
 
-- If dashboard nav item does not appear, verify module is enabled and route alias did not collide.
-- If frontend alias does not resolve, verify alias is not colliding with core frontend routes.
-- If slot fallback renders instead of module slot, verify slot id and module status in runtime.
+- This module is the clearest minimal `source.url` example in the repo.
+- The dashboard table intentionally stays local so authors can compare both SDK datatable modes in one place.

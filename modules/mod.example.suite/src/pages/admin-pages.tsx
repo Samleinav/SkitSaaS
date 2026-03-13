@@ -1,19 +1,8 @@
-import Link from 'next/link';
-import { ArrowLeft, PencilLine, Plus, Settings } from 'lucide-react';
 import {
+  TemplateBuildForm,
   buildFormField,
   composeBuildFormDefinition
 } from '@skitsaas/sdk';
-import { AsyncSubmitButton } from '@/components/ui/async-submit-button';
-import { Button } from '@/components/ui/button';
-import { TemplateBuildForm } from '@/components/ui/template-build-form';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import {
   EXAMPLE_SUITE_ADMIN_ALIAS,
   EXAMPLE_SUITE_API_BASE,
@@ -33,38 +22,42 @@ import {
   listExampleSuiteItemsForAdmin
 } from '../data';
 import {
+  ExampleSuiteAdminItemsDataTable,
+  ExampleSuiteRecentItemsDataTable,
+  type ExampleSuiteAdminTableRow
+} from '../example-suite-data-tables';
+import {
   createExampleSuiteAdminEditItemFormDefinition,
   createExampleSuiteAdminItemFormDefinition,
   createExampleSuiteSettingsFormDefinition
 } from '../forms';
+import {
+  ExampleSuiteActionLink,
+  ExampleSuitePanel,
+  ExampleSuiteShell,
+  ExampleSuiteSummary
+} from '../showcase-shell';
 
 function formatDate(value: Date) {
   return value.toISOString().replace('T', ' ').slice(0, 16);
 }
 
-function StatusPill({ value }: { value: string }) {
-  const normalized = value.trim().toLowerCase();
-
-  if (normalized === 'active') {
-    return (
-      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
-        active
-      </span>
-    );
-  }
-
-  if (normalized === 'archived') {
-    return (
-      <span className="rounded-full border border-slate-500/40 bg-slate-500/10 px-2 py-0.5 text-xs text-slate-700">
-        archived
-      </span>
-    );
-  }
-
-  return (
-    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">
-      draft
-    </span>
+function mapAdminTableRows(
+  items: Awaited<ReturnType<typeof listExampleSuiteItemsForAdmin>>
+) {
+  return items.map(
+    (item) =>
+      ({
+        id: item.id,
+        title: item.title,
+        description: item.description ?? '-',
+        status: item.status,
+        priority: item.priority,
+        visibilityLabel: item.isPublic ? 'public' : 'private',
+        ownerLabel: item.ownerName || item.ownerEmail || '-',
+        updatedAt: item.updatedAt.getTime(),
+        updatedAtLabel: formatDate(item.updatedAt)
+      }) satisfies ExampleSuiteAdminTableRow
   );
 }
 
@@ -73,128 +66,65 @@ export async function renderExampleSuiteAdminHomePage() {
     getExampleSuiteSettings(),
     listExampleSuiteItemsForAdmin(120)
   ]);
+  const tableItems = mapAdminTableRows(items);
+  const activeCount = items.filter(
+    (item) => item.status.trim().toLowerCase() === 'active'
+  ).length;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Example Suite Module</CardTitle>
-          <CardDescription>
-            End-to-end example with module-owned DB tables, admin/dashboard pages,
-            server actions, and API routing.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
-          <p>
-            Admin root: <code>{EXAMPLE_SUITE_ADMIN_ALIAS}</code>
-          </p>
-          <p>
-            Dashboard root: <code>{EXAMPLE_SUITE_DASHBOARD_ALIAS}</code>
-          </p>
-          <p>
-            API base: <code>{EXAMPLE_SUITE_API_BASE}</code>
-          </p>
-          <p>
-            Current settings: dashboard create is{' '}
-            <strong>{settings.allowDashboardCreate ? 'enabled' : 'disabled'}</strong>
-            , API write mode is <strong>{settings.apiWriteMode}</strong>, default
-            status is <strong>{settings.defaultStatus}</strong>.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`${EXAMPLE_SUITE_ADMIN_ALIAS}/create`}>
-                <Plus className="h-4 w-4" />
-                Create Item
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href={`${EXAMPLE_SUITE_ADMIN_ALIAS}/settings`}>
-                <Settings className="h-4 w-4" />
-                Module Settings
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <ExampleSuiteShell
+      eyebrow="Source-host comprehensive example"
+      title="Example Suite Admin"
+      description="The admin route now shows the two main current patterns together: a real remote SDK DataTable backed by the module API and BuildForm flows rendered through the SDK bridge."
+      chips={['Remote DataTable', 'SDK TemplateBuildForm', 'Module shell']}
+      actions={
+        <>
+          <ExampleSuiteActionLink
+            href={`${EXAMPLE_SUITE_ADMIN_ALIAS}/create`}
+            label="Create Item"
+            tone="primary"
+          />
+          <ExampleSuiteActionLink
+            href={`${EXAMPLE_SUITE_ADMIN_ALIAS}/settings`}
+            label="Module Settings"
+          />
+        </>
+      }
+    >
+      <ExampleSuitePanel
+        eyebrow="Summary"
+        title="Runtime snapshot"
+        description={`API base: ${EXAMPLE_SUITE_API_BASE}`}
+      >
+        <ExampleSuiteSummary
+          items={[
+            { label: 'Records', value: items.length },
+            { label: 'Active', value: activeCount },
+            {
+              label: 'Dashboard create',
+              value: settings.allowDashboardCreate ? 'enabled' : 'disabled'
+            },
+            { label: 'API write mode', value: settings.apiWriteMode },
+            { label: 'Default status', value: settings.defaultStatus },
+            { label: 'Dashboard alias', value: EXAMPLE_SUITE_DASHBOARD_ALIAS }
+          ]}
+        />
+      </ExampleSuitePanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Stored Items</CardTitle>
-          <CardDescription>
-            Backed by <code>mod_example_suite_items</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No items yet. Create one from the create route.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-2 py-2">Id</th>
-                    <th className="px-2 py-2">Title</th>
-                    <th className="px-2 py-2">Status</th>
-                    <th className="px-2 py-2">Priority</th>
-                    <th className="px-2 py-2">Visibility</th>
-                    <th className="px-2 py-2">Owner</th>
-                    <th className="px-2 py-2">Updated</th>
-                    <th className="px-2 py-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.id} className="border-t border-border/60">
-                      <td className="px-2 py-2 font-mono">{item.id}</td>
-                      <td className="px-2 py-2">
-                        <p className="font-medium text-foreground">{item.title}</p>
-                        <p className="line-clamp-1 text-xs text-muted-foreground">
-                          {item.description ?? '-'}
-                        </p>
-                      </td>
-                      <td className="px-2 py-2">
-                        <StatusPill value={item.status} />
-                      </td>
-                      <td className="px-2 py-2">{item.priority}</td>
-                      <td className="px-2 py-2">
-                        {item.isPublic ? 'public' : 'private'}
-                      </td>
-                      <td className="px-2 py-2">
-                        {item.ownerName || item.ownerEmail || '-'}
-                      </td>
-                      <td className="px-2 py-2 font-mono text-xs">
-                        {formatDate(item.updatedAt)}
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${item.id}`}>
-                              <PencilLine className="h-4 w-4" />
-                              Edit
-                            </Link>
-                          </Button>
-                          <form action={deleteExampleSuiteItemAdminAction}>
-                            <input type="hidden" name="itemId" value={item.id} />
-                            <AsyncSubmitButton
-                              size="sm"
-                              variant="outline"
-                              idleLabel="Delete"
-                              pendingLabel="Deleting..."
-                            />
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <ExampleSuitePanel
+        eyebrow="Remote table"
+        title="Stored items"
+        description="Backed by mod_example_suite_items and filtered through source.url."
+      >
+        {tableItems.length === 0 ? (
+          <p className="example-suite-empty">
+            No items yet. Create one from the create route.
+          </p>
+        ) : (
+          <ExampleSuiteAdminItemsDataTable items={tableItems} />
+        )}
+      </ExampleSuitePanel>
+    </ExampleSuiteShell>
   );
 }
 
@@ -203,6 +133,7 @@ export async function renderExampleSuiteAdminCreatePage() {
     getExampleSuiteSettings(),
     listExampleSuiteItemsForAdmin(10)
   ]);
+  const recentItems = mapAdminTableRows(latestItems);
   const createForm = composeBuildFormDefinition(
     {
       ...createExampleSuiteAdminItemFormDefinition(),
@@ -234,16 +165,21 @@ export async function renderExampleSuiteAdminCreatePage() {
   );
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Item</CardTitle>
-          <CardDescription>
-            Creates a row in <code>mod_example_suite_items</code> using
-            <code> adminAction</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <ExampleSuiteShell
+      eyebrow="Create flow"
+      title="Create admin record"
+      description="This page keeps the module-owned validated action, but now the surrounding UI is module-owned and the companion table is an SDK local table."
+      chips={['Validated action', 'Local companion table']}
+      actions={
+        <ExampleSuiteActionLink href={EXAMPLE_SUITE_ADMIN_ALIAS} label="Back to module" />
+      }
+    >
+      <div className="example-suite-grid example-suite-grid--two">
+        <ExampleSuitePanel
+          eyebrow="FormBuilder"
+          title="Create item"
+          description={`Default status comes from settings: ${settings.defaultStatus}`}
+        >
           <TemplateBuildForm
             definition={createForm}
             area="admin"
@@ -251,32 +187,21 @@ export async function renderExampleSuiteAdminCreatePage() {
             moduleId={EXAMPLE_SUITE_MODULE_ID}
             slot="mod.example.suite.admin.create.form"
           />
-        </CardContent>
-      </Card>
+        </ExampleSuitePanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Latest Records</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {latestItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No records yet.</p>
+        <ExampleSuitePanel
+          eyebrow="Local table"
+          title="Recent records"
+          description="A smaller local DataTable for quick authoring reference."
+        >
+          {recentItems.length === 0 ? (
+            <p className="example-suite-empty">No records yet.</p>
           ) : (
-            latestItems.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-lg border border-border/70 px-3 py-2"
-              >
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  #{item.id} - {item.status} - {formatDate(item.updatedAt)}
-                </p>
-              </div>
-            ))
+            <ExampleSuiteRecentItemsDataTable items={recentItems} />
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </ExampleSuitePanel>
+      </div>
+    </ExampleSuiteShell>
   );
 }
 
@@ -285,22 +210,24 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
 
   if (!item) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Item Not Found</CardTitle>
-          <CardDescription>
-            No record was found for id <code>{itemId}</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild size="sm" variant="outline">
-            <Link href={EXAMPLE_SUITE_ADMIN_ALIAS}>
-              <ArrowLeft className="h-4 w-4" />
-              Back to module home
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <ExampleSuiteShell
+        eyebrow="Edit flow"
+        title="Item not found"
+        description={`No record was found for id ${itemId}.`}
+        actions={
+          <ExampleSuiteActionLink href={EXAMPLE_SUITE_ADMIN_ALIAS} label="Back to module home" />
+        }
+      >
+        <ExampleSuitePanel
+          eyebrow="Missing record"
+          title="Nothing to edit"
+          description="The route is still useful as an example of guarded module pages."
+        >
+          <p className="example-suite-empty">
+            The requested record no longer exists.
+          </p>
+        </ExampleSuitePanel>
+      </ExampleSuiteShell>
     );
   }
 
@@ -376,15 +303,21 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
   );
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Item #{item.id}</CardTitle>
-          <CardDescription>
-            Update values and persist changes in module-owned table.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <ExampleSuiteShell
+      eyebrow="Edit flow"
+      title={`Edit item #${item.id}`}
+      description="The edit route stays fully module-owned while using the SDK form path."
+      chips={[`status: ${item.status}`, `priority: ${item.priority}`]}
+      actions={
+        <ExampleSuiteActionLink href={EXAMPLE_SUITE_ADMIN_ALIAS} label="Back to module" />
+      }
+    >
+      <div className="example-suite-grid example-suite-grid--two">
+        <ExampleSuitePanel
+          eyebrow="Edit"
+          title="Update record"
+          description="Persists changes in the module-owned table."
+        >
           <TemplateBuildForm
             definition={editForm}
             area="admin"
@@ -392,15 +325,13 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
             moduleId={EXAMPLE_SUITE_MODULE_ID}
             slot="mod.example.suite.admin.edit.form"
           />
-        </CardContent>
-      </Card>
+        </ExampleSuitePanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>Delete this record permanently.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <ExampleSuitePanel
+          eyebrow="Danger zone"
+          title="Delete record"
+          description="Uses the same form contract for confirm-backed deletion."
+        >
           <TemplateBuildForm
             definition={deleteForm}
             area="admin"
@@ -408,9 +339,9 @@ export async function renderExampleSuiteAdminEditPage(itemId: number) {
             moduleId={EXAMPLE_SUITE_MODULE_ID}
             slot="mod.example.suite.admin.delete.form"
           />
-        </CardContent>
-      </Card>
-    </div>
+        </ExampleSuitePanel>
+      </div>
+    </ExampleSuiteShell>
   );
 }
 
@@ -439,25 +370,27 @@ export async function renderExampleSuiteAdminSettingsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Module Settings</CardTitle>
-          <CardDescription>
-            Stored in <code>mod_example_suite_settings</code> and used by admin,
-            dashboard and API handlers.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TemplateBuildForm
-            definition={settingsForm}
-            area="admin"
-            route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/settings`}
-            moduleId={EXAMPLE_SUITE_MODULE_ID}
-            slot="mod.example.suite.admin.settings.form"
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <ExampleSuiteShell
+      eyebrow="Settings flow"
+      title="Module settings"
+      description="These values are persisted in mod_example_suite_settings and reused by admin, dashboard and API handlers."
+      actions={
+        <ExampleSuiteActionLink href={EXAMPLE_SUITE_ADMIN_ALIAS} label="Back to module" />
+      }
+    >
+      <ExampleSuitePanel
+        eyebrow="Settings"
+        title="Shared runtime options"
+        description="A single SDK form controls write permissions and defaults across all example routes."
+      >
+        <TemplateBuildForm
+          definition={settingsForm}
+          area="admin"
+          route={`${EXAMPLE_SUITE_ADMIN_ALIAS}/settings`}
+          moduleId={EXAMPLE_SUITE_MODULE_ID}
+          slot="mod.example.suite.admin.settings.form"
+        />
+      </ExampleSuitePanel>
+    </ExampleSuiteShell>
   );
 }

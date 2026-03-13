@@ -78,6 +78,57 @@ export function createExampleSuiteAdminItemFormDefinition() {
   );
 }
 
+export function createExampleSuiteDashboardItemFormDefinition() {
+  return withBuildFormValidation(
+    defineBuildForm({
+      id: 'example-suite-dashboard-item-form',
+      layout: {
+        columns: 2
+      },
+      fields: [
+        buildFormField.text({
+          name: 'title',
+          label: 'Title',
+          required: true,
+          maxLength: 120,
+          placeholder: 'Dashboard-owned record',
+          colSpan: 'full'
+        }),
+        buildFormField.textarea({
+          name: 'description',
+          label: 'Description',
+          rows: 4,
+          placeholder: 'Visible to other users when the item is public.',
+          colSpan: 'full'
+        }),
+        buildFormField.number({
+          name: 'priority',
+          label: 'Priority (1-5)',
+          min: EXAMPLE_SUITE_MIN_PRIORITY,
+          max: EXAMPLE_SUITE_MAX_PRIORITY,
+          defaultValue: EXAMPLE_SUITE_DEFAULT_PRIORITY
+        }),
+        buildFormField.checkbox({
+          name: 'isPublic',
+          label: 'Expose item in public API listing',
+          description: 'The dashboard example uses the same module-owned table.',
+          checkedValue: 'true',
+          uncheckedValue: 'false',
+          colSpan: 'full'
+        })
+      ]
+    }),
+    buildFormValidationPreset.blur({
+      title: [buildFormRule.required(), buildFormRule.maxLength(120)],
+      priority: [
+        buildFormRule.integer(),
+        buildFormRule.min(EXAMPLE_SUITE_MIN_PRIORITY),
+        buildFormRule.max(EXAMPLE_SUITE_MAX_PRIORITY)
+      ]
+    })
+  );
+}
+
 export function createExampleSuiteSettingsFormDefinition() {
   return withBuildFormValidation(
     defineBuildForm({

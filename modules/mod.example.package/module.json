@@ -6,7 +6,7 @@
   "sourceEntry": "src/manifest.js",
   "buildCommand": "pnpm build",
   "testCommand": "pnpm test:module",
-  "sdkRange": "^1.3.5",
+  "sdkRange": "^1.7.1",
   "templatePack": {
     "defaultEntry": "dist/templates/defaults.json",
     "overrideEntry": "dist/templates/overrides.json",

@@ -1,7 +1,12 @@
 'use server';
 
 import {
+  buildFormValidationMessage,
+  createBuildFormValidationResultFromFieldMessages
+} from '@skitsaas/sdk';
+import {
   createServerActionController,
+  createValidatedServerActionController,
   revalidatePaths,
   requireAdmin,
   requireUser
@@ -12,7 +17,6 @@ import {
   normalizeExamplePackageApiWriteMode,
   normalizeExamplePackagePriority,
   normalizeExamplePackageStatus,
-  parseCheckboxValue,
   toPositiveInt
 } from './constants.js';
 import {
@@ -23,12 +27,22 @@ import {
   updateExamplePackageItem,
   updateExamplePackageSettings
 } from './data.js';
+import {
+  createExamplePackageAdminEditItemFormDefinition,
+  createExamplePackageAdminItemFormDefinition,
+  createExamplePackageDashboardItemFormDefinition,
+  createExamplePackageSettingsFormDefinition
+} from './forms.js';
 
 const adminAction = createServerActionController({
   requireUser: async () => requireAdmin()
 });
 
-const dashboardAction = createServerActionController({
+const adminValidatedAction = createValidatedServerActionController({
+  requireUser: async () => requireAdmin()
+});
+
+const dashboardValidatedAction = createValidatedServerActionController({
   requireUser: async () => requireUser()
 });
 
@@ -51,23 +65,30 @@ async function revalidatePackageRoutes(extraPaths = []) {
   ]);
 }
 
-export const createExamplePackageItemAdminAction = adminAction(
-  async ({ user, form }) => {
-    const title = form.string('title');
-    if (!title) {
-      return false;
-    }
+function invalidExamplePackageForm(values, fieldMessages, formMessage) {
+  return createBuildFormValidationResultFromFieldMessages({
+    values,
+    fieldMessages,
+    formMessage: formMessage ?? null,
+    source: 'server'
+  });
+}
 
+export const createExamplePackageItemAdminAction = adminValidatedAction(
+  createExamplePackageAdminItemFormDefinition(),
+  async ({ user, values }) => {
     const settings = await getExamplePackageSettings();
     await createExamplePackageItem({
-      title,
-      description: form.string('description'),
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
       status: normalizeExamplePackageStatus(
-        form.lower('status'),
+        typeof values.status === 'string' ? values.status : '',
         settings.defaultStatus
       ),
-      priority: normalizeExamplePackagePriority(form.integer('priority')),
-      isPublic: parseCheckboxValue(form.value('isPublic')),
+      priority: normalizeExamplePackagePriority(
+        typeof values.priority === 'number' ? values.priority : null
+      ),
+      isPublic: values.isPublic === true,
       ownerUserId: user.id
     });
 
@@ -75,27 +96,43 @@ export const createExamplePackageItemAdminAction = adminAction(
   }
 );
 
-export const updateExamplePackageItemAdminAction = adminAction(async ({ form }) => {
-  const itemId = toPositiveInt(form.value('itemId'));
-  if (!itemId) {
-    return false;
+export const updateExamplePackageItemAdminAction = adminValidatedAction(
+  createExamplePackageAdminEditItemFormDefinition(),
+  async ({ values }) => {
+    const itemId =
+      typeof values.itemId === 'number' && Number.isInteger(values.itemId)
+        ? values.itemId
+        : null;
+    if (!itemId) {
+      return invalidExamplePackageForm(values, {
+        itemId: [buildFormValidationMessage.positiveInteger('Item id')]
+      });
+    }
+
+    const existing = await getExamplePackageItemById(itemId);
+    if (!existing) {
+      return invalidExamplePackageForm(values, {
+        itemId: [buildFormValidationMessage.recordNotFound('Item')]
+      });
+    }
+
+    await updateExamplePackageItem(itemId, {
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
+      status: normalizeExamplePackageStatus(
+        typeof values.status === 'string' ? values.status : '',
+        existing.status
+      ),
+      priority: normalizeExamplePackagePriority(
+        typeof values.priority === 'number' ? values.priority : null,
+        existing.priority
+      ),
+      isPublic: values.isPublic === true
+    });
+
+    await revalidatePackageRoutes([`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${itemId}`]);
   }
-
-  const existing = await getExamplePackageItemById(itemId);
-  if (!existing) {
-    return false;
-  }
-
-  await updateExamplePackageItem(itemId, {
-    title: form.string('title'),
-    description: form.string('description'),
-    status: normalizeExamplePackageStatus(form.lower('status'), existing.status),
-    priority: normalizeExamplePackagePriority(form.integer('priority'), existing.priority),
-    isPublic: parseCheckboxValue(form.value('isPublic'))
-  });
-
-  await revalidatePackageRoutes([`${EXAMPLE_PACKAGE_ADMIN_ALIAS}/edit/${itemId}`]);
-});
+);
 
 export const deleteExamplePackageItemAdminAction = adminAction(async ({ form }) => {
   const itemId = toPositiveInt(form.value('itemId'));
@@ -107,12 +144,17 @@ export const deleteExamplePackageItemAdminAction = adminAction(async ({ form }) 
   await revalidatePackageRoutes();
 });
 
-export const updateExamplePackageSettingsAdminAction = adminAction(
-  async ({ user, form }) => {
+export const updateExamplePackageSettingsAdminAction = adminValidatedAction(
+  createExamplePackageSettingsFormDefinition(),
+  async ({ user, values }) => {
     await updateExamplePackageSettings({
-      allowDashboardCreate: parseCheckboxValue(form.value('allowDashboardCreate')),
-      apiWriteMode: normalizeExamplePackageApiWriteMode(form.lower('apiWriteMode')),
-      defaultStatus: normalizeExamplePackageStatus(form.lower('defaultStatus')),
+      allowDashboardCreate: values.allowDashboardCreate === true,
+      apiWriteMode: normalizeExamplePackageApiWriteMode(
+        typeof values.apiWriteMode === 'string' ? values.apiWriteMode : ''
+      ),
+      defaultStatus: normalizeExamplePackageStatus(
+        typeof values.defaultStatus === 'string' ? values.defaultStatus : ''
+      ),
       updatedByUserId: user.id
     });
 
@@ -120,24 +162,26 @@ export const updateExamplePackageSettingsAdminAction = adminAction(
   }
 );
 
-export const createExamplePackageItemDashboardAction = dashboardAction(
-  async ({ user, form }) => {
+export const createExamplePackageItemDashboardAction = dashboardValidatedAction(
+  createExamplePackageDashboardItemFormDefinition(),
+  async ({ user, values }) => {
     const settings = await getExamplePackageSettings();
     if (!settings.allowDashboardCreate) {
-      return false;
-    }
-
-    const title = form.string('title');
-    if (!title) {
-      return false;
+      return invalidExamplePackageForm(
+        values,
+        {},
+        'Dashboard create is disabled by module settings.'
+      );
     }
 
     await createExamplePackageItem({
-      title,
-      description: form.string('description'),
+      title: typeof values.title === 'string' ? values.title : '',
+      description: typeof values.description === 'string' ? values.description : '',
       status: settings.defaultStatus,
-      priority: normalizeExamplePackagePriority(form.integer('priority')),
-      isPublic: parseCheckboxValue(form.value('isPublic')),
+      priority: normalizeExamplePackagePriority(
+        typeof values.priority === 'number' ? values.priority : null
+      ),
+      isPublic: values.isPublic === true,
       ownerUserId: user.id
     });
 

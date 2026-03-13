@@ -1,28 +1,27 @@
 # mod.example.package
 
-Complete source-package example module.
+Complete `source-package` example module with modern SDK form + table patterns.
 
 ## Scope
 
 This module demonstrates:
 
-- `moduleMode: source-package` with own `package.json`
+- `moduleMode: source-package` with its own `package.json`
 - own build command (`pnpm build`) that emits `dist/*`
-- shared SDK build helper (`@skitsaas/sdk/build`) to transpile `.ts/.tsx/.jsx` and copy assets
-- module-local test command (`pnpm test:module`) with SDK contract helper (`@skitsaas/sdk/testing`)
+- shared SDK build helper (`@skitsaas/sdk/build`)
+- module-local test command (`pnpm test:module`)
 - admin/dashboard module pages and widgets
-- API handler with read/write routes
 - module-owned DB tables and migrations
-- module actions using SDK server adapters
-- module-owned JS and CSS UI primitives (`src/ui/*`)
-- SDK-first datatables from `@skitsaas/sdk` in both admin and dashboard pages
-- remote search/pagination via module API plus request actions with built-in confirm flows
+- SDK-first server actions and `TemplateBuildForm`
+- SDK datatables in both remote and local modes
+- module-owned visual shell/CSS from inside the package
 
 ## Module metadata
 
 - `moduleId`: `mod.example.package`
 - `moduleMode`: `source-package`
-- runtime entry: `dist/manifest.js` (declared in `module.json`)
+- runtime entry: `dist/manifest.js`
+- `sdkRange`: `^1.7.1`
 
 ## Routes and endpoints
 
@@ -30,24 +29,32 @@ This module demonstrates:
 - Dashboard alias: `/dashboard/custom/example-package`
 - API base: `/api/modules/mod.example.package/*`
 
-## Runtime config and env
+## Runtime behavior
 
-- No dedicated env matrix is required for this example module.
-- Runtime options are resolved from module config and defaults in module source.
+- Admin home:
+  - remote `DataTable` using `source.url`
+- Admin create:
+  - SDK `TemplateBuildForm`
+  - local companion `DataTable`
+- Admin edit/settings:
+  - SDK `TemplateBuildForm`
+  - confirm-backed delete form
+- Dashboard create:
+  - SDK `TemplateBuildForm`
+- Dashboard home:
+  - remote `DataTable`
 
 ## Database and migrations
 
 - Module-owned schema and migrations live under `modules/mod.example.package/db/*`.
 - Apply with module migration pipeline (`pnpm modules:migrate`).
 
-## Templates and CTC ids
+## Templates and CTC
 
-- This example can expose module UI through module pages/widgets and optional template pack artifacts if configured.
-- No locked template ID matrix is required in this baseline example.
+- Manifest still declares template defaults/overrides for `ui.table` and `ui.async-submit-button`.
+- Form rendering now comes from SDK `TemplateBuildForm`; no host `@/components/*` imports are required.
 
-## Tests and validation
-
-## Build and prepare
+## Build and validation
 
 From project root:
 
@@ -63,8 +70,7 @@ pnpm build
 pnpm test:module
 ```
 
-## Troubleshooting
+## Notes
 
-- Runtime consumes `dist/manifest.js` (no fallback to source for this mode).
-- If module fails to load, run `pnpm modules:build -- --module=mod.example.package` and verify generated `dist/*` files exist.
-- Build script can compile `.ts/.tsx` sources from `src/` into `dist/`.
+- This is the canonical `source-package` example in the repo.
+- It now shows both remote and local SDK tables plus SDK FormBuilder, so it can be used as the baseline for portable module authoring.

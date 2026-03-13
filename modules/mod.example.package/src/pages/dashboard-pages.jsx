@@ -1,23 +1,20 @@
 import React from 'react';
+import { TemplateBuildForm, composeBuildFormDefinition } from '@skitsaas/sdk';
 import { getUser } from '@skitsaas/sdk/server';
-import { EXAMPLE_PACKAGE_DASHBOARD_ALIAS } from '../constants';
-import { createExamplePackageItemDashboardAction } from '../actions';
+import { EXAMPLE_PACKAGE_DASHBOARD_ALIAS } from '../constants.js';
+import { createExamplePackageItemDashboardAction } from '../actions.js';
 import {
   getEditableExamplePackageItemForUser,
   getExamplePackageSettings,
   listExamplePackageItemsForUser
-} from '../data';
+} from '../data.js';
+import { createExamplePackageDashboardItemFormDefinition } from '../forms.js';
 import {
   ActionLink,
   Badge,
-  FieldLabel,
-  FormActions,
   InfoText,
   ModuleCard,
-  ModuleLayout,
-  SubmitButton,
-  TextArea,
-  TextInput
+  ModuleLayout
 } from '../ui/module-ui.jsx';
 import { ExamplePackageDashboardItemsDataTable } from '../module-data-tables.jsx';
 
@@ -49,7 +46,7 @@ export async function renderExamplePackageDashboardHomePage() {
   return (
     <ModuleLayout
       title="Example Package Dashboard"
-      description="Dashboard view for source-package module."
+      description="Dashboard view for the source-package example module."
     >
       <ModuleCard title="Visibility">
         <InfoText>Visible records: {items.length}</InfoText>
@@ -66,7 +63,7 @@ export async function renderExamplePackageDashboardHomePage() {
 
       <ModuleCard
         title="Records"
-        description="Shows public records and records you own."
+        description="Remote SDK DataTable showing public records and records you own."
       >
         {tableItems.length === 0 ? (
           <InfoText>No records visible.</InfoText>
@@ -87,42 +84,48 @@ export async function renderExamplePackageDashboardCreatePage() {
     return null;
   }
 
+  const createForm = composeBuildFormDefinition(
+    createExamplePackageDashboardItemFormDefinition(),
+    {
+      request: {
+        action: createExamplePackageItemDashboardAction,
+        method: 'post'
+      },
+      submit: {
+        idleLabel: 'Create',
+        pendingLabel: 'Creating...',
+        successLabel: 'Created',
+        align: 'start',
+        secondaryActions: [
+          {
+            label: 'Back',
+            href: EXAMPLE_PACKAGE_DASHBOARD_ALIAS
+          }
+        ]
+      },
+      values: {
+        priority: 3,
+        isPublic: false
+      }
+    }
+  );
+
   return (
     <ModuleLayout
       title="Dashboard Create"
-      description="Create a module record from dashboard."
+      description="Create a module record from dashboard with SDK TemplateBuildForm."
     >
       <ModuleCard title="Create Record">
         {!settings.allowDashboardCreate ? (
           <InfoText>Dashboard create is disabled by module settings.</InfoText>
         ) : (
-          <form action={createExamplePackageItemDashboardAction}>
-            <FieldLabel htmlFor="title" label="Title" />
-            <TextInput id="title" name="title" required maxLength={120} />
-
-            <FieldLabel htmlFor="description" label="Description" />
-            <TextArea id="description" name="description" rows={3} />
-
-            <FieldLabel htmlFor="priority" label="Priority (1-5)" />
-            <TextInput
-              id="priority"
-              name="priority"
-              type="number"
-              min={1}
-              max={5}
-              defaultValue={3}
-            />
-
-            <label>
-              <input type="checkbox" name="isPublic" value="true" /> Publish to public API
-              list
-            </label>
-
-            <FormActions>
-              <SubmitButton label="Create" />
-              <ActionLink href={EXAMPLE_PACKAGE_DASHBOARD_ALIAS} label="Back" />
-            </FormActions>
-          </form>
+          <TemplateBuildForm
+            definition={createForm}
+            area="dashboard"
+            route={`${EXAMPLE_PACKAGE_DASHBOARD_ALIAS}/create`}
+            moduleId="mod.example.package"
+            slot="mod.example.package.dashboard.create.form"
+          />
         )}
       </ModuleCard>
     </ModuleLayout>

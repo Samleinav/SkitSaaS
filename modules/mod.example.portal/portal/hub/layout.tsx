@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { PortalLayoutProps } from '@skitsaas/sdk';
+import { HUB_PORTAL_STYLES } from './portal-shell';
 
 /**
  * Hub portal layout.
@@ -12,31 +13,31 @@ import type { PortalLayoutProps } from '@skitsaas/sdk';
  */
 export default function HubLayout({ children, portalCtx }: PortalLayoutProps) {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link
-            href="/hub"
-            className="text-sm font-semibold tracking-tight text-slate-900 hover:text-slate-600"
-          >
-            Hub Portal
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc,#ffffff)] text-slate-900">
+      <style>{HUB_PORTAL_STYLES}</style>
+      <header className="hub-header">
+        <div className="hub-header__inner">
+          <Link href="/hub" className="hub-logo">
+            <span className="hub-logo__mark">Hub</span>
+            <span>Portal from mod.example.portal</span>
           </Link>
-          <nav className="flex items-center gap-6 text-sm text-slate-600">
-            <Link href="/hub" className="hover:text-slate-900">
+          <nav className="hub-nav">
+            <Link href="/hub" className="hub-nav__link">
               Home
             </Link>
-            <Link href="/hub/members" className="hover:text-slate-900">
+            <Link href="/hub/register" className="hub-nav__link">
+              Register
+            </Link>
+            <Link href="/hub/members" className="hub-nav__link">
               Members
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
-        {children}
-      </main>
+      <main className="hub-main">{children}</main>
 
-      <footer className="mt-16 border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+      <footer className="hub-footer">
         Hub Portal · {portalCtx.name}
       </footer>
     </div>

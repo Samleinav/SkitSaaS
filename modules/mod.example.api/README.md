@@ -13,7 +13,7 @@ Example source-host module that exposes a typed module API surface.
 - `moduleId`: `mod.example.api`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^1.3.5`
+- `sdkRange`: `^1.7.1`
 
 ## API routes
 

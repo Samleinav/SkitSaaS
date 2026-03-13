@@ -1,4 +1,5 @@
 import { defineModule, type ModuleManifest } from '@skitsaas/sdk';
+import { renderExampleAdminPage } from './showcase';
 
 export default defineModule({
   moduleId: 'mod.example.admin',
@@ -13,7 +14,5 @@ export default defineModule({
       order: 80
     }
   ],
-  adminPage: async () => {
-    return 'Example admin module is enabled.';
-  }
+  adminPage: async () => renderExampleAdminPage()
 } satisfies ModuleManifest);

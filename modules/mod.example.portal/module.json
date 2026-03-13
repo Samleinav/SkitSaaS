@@ -3,7 +3,7 @@
   "moduleMode": "source-host",
   "version": "0.1.0",
   "sourceEntry": "src/manifest.ts",
-  "sdkRange": "^1.5.0",
+  "sdkRange": "^1.7.1",
   "routesEntry": "src/routes.ts",
   "portalInit": "src/portal-init.ts"
 }

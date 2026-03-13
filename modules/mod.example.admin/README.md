@@ -1,19 +1,21 @@
 # mod.example.admin
 
-Example source-host module that adds a simple admin page and admin nav alias.
+Source-host example module focused on the smallest useful modern admin showcase.
 
-## Scope
+## What it demonstrates
 
-- Demonstrates `adminRouteAliases` registration.
-- Demonstrates `adminNavItems` registration.
-- Renders a minimal `adminPage` response for runtime verification.
+- `adminRouteAliases` + `adminNavItems`
+- SDK `TemplateBuildForm` in a module page
+- SDK `DataTable` with local data (no `source.url`)
+- admin-only validated server action via `createValidatedServerActionController`
+- module-owned visual shell/CSS so the page looks distinct from core admin UI
 
 ## Module metadata
 
 - `moduleId`: `mod.example.admin`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^1.3.5`
+- `sdkRange`: `^1.7.1`
 
 ## Routes
 
@@ -25,8 +27,10 @@ Example source-host module that adds a simple admin page and admin nav alias.
 ## Runtime behavior
 
 - Adds one admin nav item (`Example Admin`) pointing to `/admin/custom/example-admin`.
-- Page renderer returns:
-  - `Example admin module is enabled.`
+- Renders a module-branded admin page instead of a plain string response.
+- Shows:
+  - a local `DataTable` comparing the example modules in this repo
+  - a `TemplateBuildForm` demo that validates through a server action without DB writes
 
 ## Config and env
 
@@ -38,27 +42,15 @@ Example source-host module that adds a simple admin page and admin nav alias.
 - No module-owned DB tables.
 - No migrations.
 
-## Templates and UI contract
-
-- No module template pack declared.
-- Uses plain string response for page output.
-
-## i18n
-
-- Includes locale messages under:
-  - `i18n/admin/en.json`
-  - `i18n/admin/es.json`
-
 ## Tests and validation
 
 Recommended checks from project root:
 
 ```bash
 pnpm modules:prepare
-npx tsx --test tests/modules/module-runtime.test.ts
+pnpm exec tsc --noEmit
 ```
 
-## Troubleshooting
+## Notes
 
-- If route does not render, verify module is enabled in `app_modules`.
-- If nav item does not appear, confirm module registry load and alias validation succeeded in `modules:prepare`.
+- This example intentionally keeps its table local so the repo also has a clear contrast with remote `source.url` examples such as `mod.example.dashboard`, `mod.example.package`, and `mod.example.suite`.

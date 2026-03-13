@@ -1,10 +1,6 @@
 import Link from 'next/link';
-import {
-  DataTable,
-  TemplateBuildForm,
-  buildTableColumn,
-  defineBuildTable,
-} from '@skitsaas/sdk';
+import { TemplateBuildForm } from '@skitsaas/sdk';
+import { HubFeaturesDataTable } from '../data-tables';
 import { createHubRegisterFormDefinition } from './forms';
 
 /**
@@ -16,65 +12,6 @@ import { createHubRegisterFormDefinition } from './forms';
  * via redirectRoles in portal-init.ts.
  */
 
-// ---------------------------------------------------------------------------
-// Feature table — static demo data shown above the form
-// ---------------------------------------------------------------------------
-
-type HubFeatureRow = {
-  feature: string;
-  description: string;
-  included: string;
-};
-
-const HUB_FEATURES: HubFeatureRow[] = [
-  { feature: 'Member directory', description: 'Access the full member list',       included: '✓' },
-  { feature: 'Member profiles',  description: 'View and edit individual profiles', included: '✓' },
-  { feature: 'Announcements',    description: 'Receive hub-wide announcements',    included: '✓' },
-  { feature: 'Events',           description: 'Browse and RSVP to hub events',     included: '✓' },
-  { feature: 'Reports',          description: 'Export data and download reports',  included: 'Pro' },
-];
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const hubFeaturesTable = defineBuildTable<HubFeatureRow, any>({
-  data: HUB_FEATURES,
-  columns: [
-    buildTableColumn.text<HubFeatureRow>({
-      key: 'feature',
-      header: 'Feature',
-      cell: (row) => (
-        <span className="font-medium text-slate-900">{row.feature}</span>
-      ),
-    }),
-    buildTableColumn.text<HubFeatureRow>({
-      key: 'description',
-      header: 'What you get',
-      cell: (row) => (
-        <span className="text-sm text-slate-500">{row.description}</span>
-      ),
-    }),
-    buildTableColumn.text<HubFeatureRow>({
-      key: 'included',
-      header: 'Included',
-      cell: (row) => (
-        <span
-          className={
-            row.included === '✓'
-              ? 'text-sm font-semibold text-emerald-600'
-              : 'text-sm font-medium text-amber-600'
-          }
-        >
-          {row.included}
-        </span>
-      ),
-    }),
-  ],
-  pagination: { pageSize: 10 },
-});
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
 type PageProps = {
   slug: string[];
   params: Record<string, string>;
@@ -85,49 +22,47 @@ export default function HubRegisterPage(_props: PageProps) {
   const form = createHubRegisterFormDefinition();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
-
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Join the Hub
-        </h1>
-        <p className="text-sm text-slate-500">
-          Create an account to get access to all Hub features.
+    <div className="hub-shell">
+      <section className="hub-hero">
+        <p className="hub-kicker">Public onboarding</p>
+        <h1 className="hub-title">Join the Hub</h1>
+        <p className="hub-copy">
+          Create an account to get access to all Hub features and inspect the
+          portal-side SDK form/table examples.
         </p>
-      </div>
-
-      {/* What's included */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-          What&apos;s included
-        </h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200">
-          <DataTable
-            definition={hubFeaturesTable}
-            labels={{ empty: 'No features listed.' }}
-          />
-        </div>
       </section>
 
-      {/* Registration form */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Create your account
-        </h2>
-        <TemplateBuildForm
-          definition={form}
-          area="frontend"
-        />
+      <section className="hub-grid hub-grid--two">
+        <article className="hub-card">
+          <header className="hub-card__header">
+            <p className="hub-card__eyebrow">Included</p>
+            <h2 className="hub-card__title">What&apos;s included</h2>
+            <p className="hub-card__description">
+              This table is rendered from a client component so the example stays
+              correct across the server/client boundary.
+            </p>
+          </header>
+          <div className="hub-card__body">
+            <HubFeaturesDataTable />
+          </div>
+        </article>
+
+        <article className="hub-card">
+          <header className="hub-card__header">
+            <p className="hub-card__eyebrow">SDK form</p>
+            <h2 className="hub-card__title">Create your account</h2>
+            <p className="hub-card__description">
+              Uses `TemplateBuildForm` directly from the SDK.
+            </p>
+          </header>
+          <div className="hub-card__body">
+            <TemplateBuildForm definition={form} area="frontend" />
+          </div>
+        </article>
       </section>
 
       <p className="text-center text-sm text-slate-500">
-        Already have an account?{' '}
-        <Link
-          href="/sign-in"
-          className="font-medium text-slate-900 underline underline-offset-2"
-        >
-          Sign in
-        </Link>
+        Already have an account? <Link href="/sign-in" className="hub-link">Sign in</Link>
       </p>
     </div>
   );
