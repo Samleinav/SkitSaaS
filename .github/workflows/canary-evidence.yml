@@ -128,5 +128,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: canary-evidence-${{ steps.date.outputs.DATE }}
-          path: docs/canary-reports/${{ steps.date.outputs.DATE }}
+          path: docs/audit/canary-reports/${{ steps.date.outputs.DATE }}
           retention-days: 30
