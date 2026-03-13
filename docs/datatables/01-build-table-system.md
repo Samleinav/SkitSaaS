@@ -1,6 +1,6 @@
 ---
 title: BuildTable System
-description: Technical design and current implementation status for SDK-first datatables across core, host, and modules.
+description: Technical design and current implementation status for BuildTable datatables across SDK and host renderers.
 sidebar_position: 3
 ---
 
@@ -10,6 +10,12 @@ Status: Production-ready baseline for SDK-first datatables
 Last review: 2026-03-08
 
 This document explains the current `BuildTable` architecture and rollout status in SkitSaaS.
+
+Current strategy in this repository:
+
+- define table semantics in the SDK (`defineBuildTable`, columns, actions, filters, query helpers)
+- use the SDK `DataTable` renderer as the default datatable renderer; it already covers the standard table feature set well
+- use the host datatable adapter optionally in source-host modules when you want host theme/CTC integration
 
 Current implementation lives in:
 
@@ -147,6 +153,8 @@ import { DataTable, defineBuildTable } from '@skitsaas/sdk';
 
 The host-side datatable adapter is `components/ui/data-table.tsx`.
 
+Source-host modules can import this adapter directly when they want the same visual/runtime behavior used by core admin/dashboard tables.
+
 It now supports two modes:
 
 - legacy TanStack `ColumnDef[]` mode
@@ -160,6 +168,13 @@ When `definition` mode is used, the host adapter keeps:
 - host notifications and confirm dialog rendering
 
 This keeps the theme and CTC integration in the host, while the semantic table contract stays in the SDK.
+
+Optional source-host pattern:
+
+```tsx
+import { buildTableColumn, defineBuildTable } from '@skitsaas/sdk';
+import { DataTable } from '@/components/ui/data-table';
+```
 
 ## Current feature set
 
@@ -199,7 +214,7 @@ Reserve custom renderers for cases where the default SDK contract is materially 
 
 The rollout is already past proof-of-concept.
 
-Core routes now use `BuildTableDefinition` in multiple admin/dashboard tables, and the `mod.example.package` source-package module uses the same contract for:
+Core routes now use `BuildTableDefinition` in multiple admin/dashboard tables through the host adapter, and the `mod.example.package` source-package module uses the same contract through the portable SDK renderer for:
 
 - remote list loading
 - row action rendering
@@ -218,4 +233,4 @@ The current implementation is usable now, but these are still open follow-up are
 - continue migrating remaining legacy host tables
 - add more optional table metadata primitives only when a real consumer needs them
 
-The system should continue to grow from SDK contract first, not by adding new host-only datatable behavior.
+Shared table semantics should continue to grow from the SDK contract first. Source-host modules can still opt into the host adapter for theme/runtime integration without changing the table definition layer.

@@ -77,8 +77,4 @@ This endpoint requires authenticated admin role (`owner`/`admin`).
 
 SPI contract lives in this core document.
 
-Provider-specific implementation/config/operational docs live in each module:
-
-- `modules/mod.auth.passkey/README.md`
-- `modules/mod.auth.social-logins/README.md`
-- `modules/mod.auth.enterprise-sso/README.md`
+Provider-specific implementation, configuration, and operational details do not belong in root `docs/`. Keep those details with each auth module instead of documenting them here.

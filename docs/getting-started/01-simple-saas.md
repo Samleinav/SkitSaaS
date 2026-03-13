@@ -142,9 +142,7 @@ Modules are the primary extension point. A module can add:
 - Typed API routes
 - Nav items, widgets, events, and more
 
-See [Modules Overview](../modules/00-overview.md) and the [SDK Overview](../sdk/00-overview.md) to build your first module.
-
-A complete working example lives in `modules/mod.example.package/`.
+See [Module Runtime Overview](../modules/00-overview.md) and the [SDK Overview](../sdk/00-overview.md) to understand the host module surface.
 
 ---
 

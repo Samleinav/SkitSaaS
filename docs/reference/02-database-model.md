@@ -36,18 +36,24 @@ This document covers core tables only. Each installed module owns its own tables
   - includes PayPal plan metadata (`paypal_product_id`, `paypal_plan_id`, `paypal_plan_fingerprint`)
   - includes optional PayPal no-trial plan metadata (`paypal_plan_id_no_trial`, `paypal_plan_fingerprint_no_trial`)
 - `subscription_template_features` - features/quota values per template
+- `quota_usage` - per-scope (`team`/`user`), per-feature usage ledger for quota enforcement windows
 - `subscription_trial_usage` - one-time trial consumption ledger per target (`team`/`user`) and category
 - `subscription_assignments` - active subscription per target (team/user) + billing period tracking
 - `subscription_change_requests` - scheduled subscription changes (carryover)
 
 ## Payments
 
-Operational flow:
+Checkout orchestration:
+
+- `checkout_orders` - tokenized checkout session/state before settlement
+- `checkout_order_items` - line items attached to one checkout order
+
+Operational payment flow:
 
 - `payment_orders` - order timeline and targets
 - `payment_logs` - raw provider event logs
 
-Financial flow:
+Financial settlement flow:
 
 - `payment_transactions` - captured payments, refunds, fees
 
@@ -77,7 +83,10 @@ Financial flow:
 ## Notes
 
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
-- Orders and transactions are separate by design.
+- Checkout, operational payment lifecycle, and settled transactions are separate by design:
+  - `checkout_orders` / `checkout_order_items` hold the pre-payment checkout context
+  - `payment_orders` / `payment_logs` track provider/order lifecycle and operational audit
+  - `payment_transactions` track settled money movement such as sales, refunds, chargebacks, and fees
 - Notification visibility is evaluated at read time from the current private area (`/admin` or `/dashboard`) plus the user role. `area='auto'` maps to `admin` for admin-like roles and `dashboard` for everyone else.
 - Team-targeted notifications do not need a separate audience table. The host resolves current active recipients from `team_members` + `users` when the notification is created and persists the resulting user ids in `system_notification_recipients`.
 - `BuildForm` DB-aware validation (`unique`, `exists`) may read tables such as `users` or `subscription_templates`, but those checks are only advisory before writes.

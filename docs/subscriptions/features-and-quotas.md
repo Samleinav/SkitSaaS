@@ -130,9 +130,8 @@ Keep these topics in their own docs:
   - `docs/subscriptions/checkout-subscription-change-checklist.md`
 - dashboard subscription UX:
   - `docs/subscriptions/dashboard-subscription-management.md`
-- auth modules and provider-specific behavior:
-  - `modules/mod.auth.passkey/README.md`
-  - `modules/mod.auth.social-logins/README.md`
+- provider-specific auth modules:
+  - out of scope for root docs; keep that documentation with the module itself
 
 ## Related docs
 

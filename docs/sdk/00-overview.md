@@ -6,9 +6,11 @@ description: Public SDK surface for module contracts, server adapters, build hel
 
 # SDK Overview
 
-This SDK provides a **stable public contract** for external modules. It is split
-into two layers so you can ship modules in **prebuilt**, **source-host**, or
-**source-package** mode without depending on internal app paths (`@/lib/*`).
+This SDK provides a **stable public contract** for shared module surfaces. In
+this repository, `source-host` is the primary authoring mode. The SDK remains
+important for shared contracts, but it does not yet replace every host UI/runtime
+capability needed for full `source-package` parity, especially around BuildForm
+host UX.
 
 ## Packages
 
@@ -75,7 +77,18 @@ Structured form contract:
 
 `composeBuildFormDefinition(...)` lets core or module code apply `request`, `submit`, and `values` in one pass instead of repeating `defineBuildForm(...) + withBuildFormRequest(...) + withBuildFormValues(...)` on every page. `buildFormValidationPreset.blur(...)` centralizes the common authoring preset used by most CRUD forms (`client.validateOn=['blur']`, plus optional preflight defaults).
 
-`BuildForm` from `@skitsaas/sdk` is the primary renderer for **all module code** (source-host, source-package, portal pages). It renders with plain Tailwind CSS variables, handles blur/change local validation, server validation hydration (`useActionState`), and field-level preflight AJAX — the same behavior as the host's `components/ui/build-form.tsx`. The `templateRenderer` prop allows the host or a portal layout to inject a custom renderer without changing page-level code. Do not import from `@/components/ui/build-form` in module code.
+`BuildForm` from `@skitsaas/sdk` is the portable fallback renderer. For this
+project's default `source-host` modules, keep form definitions and validation in
+the SDK but render through `@/components/ui/build-form` or
+`@/components/ui/template-build-form` when you need host parity such as
+`ThemedAsyncSubmitButton`, `successLabel`, `ui.form` CTC payload, or confirm
+modal behavior. Use SDK `BuildForm` mainly for portable/source-package contexts
+where host imports are unavailable.
+
+The datatable story is stronger today: keep `BuildTableDefinition` and helpers
+in the SDK, and use SDK `DataTable` as the normal default. Source-host modules
+can still render through `@/components/ui/data-table` when they want host theme
+slots, notifications, and alert-dialog integration.
 
 ### `@skitsaas/sdk/server`
 
@@ -279,18 +292,25 @@ provided by the module author.
 module:
 
 - `prebuilt`: module ships compiled `entry` (for example `dist/manifest.js`).
-- `source-host`: module ships source and the host compiles it.
+- `source-host`: module ships source and the host compiles it. This is the recommended default in this repo.
 - `source-package`: module has its own `package.json`; `modules:build` compiles
-  it first and host consumes only compiled `entry`.
+  it first and host consumes only compiled `entry`. Treat this as an advanced secondary path until SDK parity is broader.
 
 ### source-host modules
 
-Use when you sell source code and want host-side compilation.
+Use when you want host-side compilation and full access to host components,
+theme runtime, and other internal surfaces that the SDK does not yet fully
+replace.
 
 Structure:
 
 - `modules/<moduleId>/src/manifest.ts`
 - `modules/<moduleId>/module.json`
+
+Recommended pattern:
+
+- keep shared contracts (`defineModule`, routes, BuildForm definitions, BuildTable definitions, validation helpers) in the SDK
+- import host components/utilities directly when exact core parity matters
 
 ### prebuilt modules
 
@@ -303,7 +323,8 @@ Structure:
 
 ### source-package modules
 
-Use when module source has an isolated dependency/build pipeline.
+Use when module source has an isolated dependency/build pipeline and you accept
+lighter host parity in some UI/runtime areas.
 
 Structure:
 
@@ -322,15 +343,14 @@ Rules:
 
 ## Module Metadata (`module.json`)
 
-Example (`source-package`):
+Example (`source-host`):
 
 ```json
 {
   "moduleId": "mod.analytics",
   "version": "1.0.0",
-  "moduleMode": "source-package",
-  "entry": "dist/manifest.js",
-  "buildCommand": "pnpm build",
+  "moduleMode": "source-host",
+  "sourceEntry": "src/manifest.ts",
   "sdkRange": "^1.3.5",
   "db": {
     "schemaVersion": 1,

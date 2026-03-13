@@ -3,7 +3,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ENV_DOC_PATH = path.resolve(process.cwd(), 'docs/core/env-variables.md');
+const ENV_DOC_PATH = path.resolve(
+  process.cwd(),
+  'docs/reference/03-env-variables.md'
+);
 const ENV_KEY_REGEX = /\|\s*`([A-Z][A-Z0-9_]+)`\s*\|/g;
 const SEARCH_DIRS = [
   'app',
@@ -67,7 +70,7 @@ function listSearchFiles(entryPath) {
 
 function readDocumentedEnvKeys() {
   if (!fs.existsSync(ENV_DOC_PATH)) {
-    throw new Error('Missing docs/core/env-variables.md');
+    throw new Error('Missing docs/reference/03-env-variables.md');
   }
 
   const contents = fs.readFileSync(ENV_DOC_PATH, 'utf8');
@@ -116,4 +119,3 @@ function main() {
 }
 
 main();
-

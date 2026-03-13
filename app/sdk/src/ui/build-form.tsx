@@ -11,6 +11,8 @@ import type {
   BuildFormColumns,
   BuildFormFieldColSpan,
   BuildFormRequestActionFunction,
+  BuildFormRepeaterFieldDefinition,
+  BuildFormRepeaterRow,
 } from '../forms.js';
 import type { BuildFormValidationResult } from '../form-validation.js';
 import {
@@ -291,6 +293,177 @@ function cx(...parts: (string | undefined | null | false)[]): string {
 // Field renderer
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Repeater field
+// ---------------------------------------------------------------------------
+
+function nextRepeaterRowId(): string {
+  return `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+}
+
+function createEmptyRepeaterRow(field: BuildFormRepeaterFieldDefinition): BuildFormRepeaterRow {
+  const row: BuildFormRepeaterRow = { id: nextRepeaterRowId() };
+  if (field.emptyRow) Object.assign(row, field.emptyRow);
+  for (const sub of field.subFields) {
+    if (!(sub.name in row)) {
+      row[sub.name] = sub.kind === 'checkbox' ? false : '';
+    }
+  }
+  return row;
+}
+
+function RepeaterField({
+  field,
+  definition,
+  columns,
+}: {
+  field: BuildFormRepeaterFieldDefinition;
+  definition: BuildFormDefinition;
+  columns: BuildFormColumns;
+}) {
+  const initialRows = React.useMemo(() => {
+    const rows = definition.repeaterRows?.[field.name];
+    if (rows && rows.length > 0) return rows;
+    return [createEmptyRepeaterRow(field)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [rows, setRows] = React.useState<BuildFormRepeaterRow[]>(initialRows);
+  const minRows = field.minRows ?? 1;
+  const colSpanCls = resolveColSpanClass('full', columns);
+
+  function addRow() {
+    setRows((prev) => [...prev, createEmptyRepeaterRow(field)]);
+  }
+
+  function removeRow(id: string) {
+    setRows((prev) => (prev.length <= minRows ? prev : prev.filter((r) => r.id !== id)));
+  }
+
+  function updateRow(id: string, name: string, value: string | boolean) {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [name]: value } : r)));
+  }
+
+  return (
+    <div className={cx('space-y-3', field.className ?? undefined, colSpanCls)}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {field.label ? (
+          <p className="text-sm font-medium text-foreground">{field.label}</p>
+        ) : null}
+        <button
+          type="button"
+          onClick={addRow}
+          className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent"
+        >
+          {field.addLabel ?? 'Add row'}
+        </button>
+      </div>
+      {field.description ? (
+        <p className={descClass}>{field.description}</p>
+      ) : null}
+      <div className="overflow-x-auto rounded-md border border-border/70">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              {field.subFields.map((sub) => (
+                <th key={sub.name} className="px-3 py-2 text-left">
+                  {sub.label ?? sub.name}
+                </th>
+              ))}
+              <th className="px-3 py-2 text-right" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} className="border-t border-border/70">
+                <input type="hidden" name={field.name} value={row.id} />
+                {field.subFields.map((sub) => {
+                  const subValue = row[sub.name] ?? '';
+                  const isDisabled =
+                    sub.disableWhen !== undefined
+                      ? String(row[sub.disableWhen.field]) === String(sub.disableWhen.equals)
+                      : false;
+                  const inputName = `${sub.name}_${row.id}`;
+
+                  if (sub.kind === 'checkbox') {
+                    return (
+                      <td key={sub.name} className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          name={inputName}
+                          checked={Boolean(subValue)}
+                          onChange={(e) => updateRow(row.id, sub.name, e.target.checked)}
+                          disabled={isDisabled}
+                          className="h-4 w-4 accent-primary"
+                        />
+                      </td>
+                    );
+                  }
+
+                  if (sub.kind === 'select') {
+                    const opts = sub.optionsKey
+                      ? (definition.dynamicOptions?.[sub.optionsKey] ?? [])
+                      : (sub.options ?? []);
+                    return (
+                      <td key={sub.name} className="px-3 py-2">
+                        <select
+                          name={inputName}
+                          value={String(subValue)}
+                          onChange={(e) => updateRow(row.id, sub.name, e.target.value)}
+                          disabled={isDisabled}
+                          className={cx(selectClass, 'min-w-[120px]')}
+                        >
+                          {opts.map((opt) => (
+                            <option key={String(opt.value)} value={String(opt.value)} disabled={opt.disabled}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td key={sub.name} className="px-3 py-2">
+                      <input
+                        type={sub.kind === 'number' ? 'number' : 'text'}
+                        name={inputName}
+                        value={String(subValue)}
+                        placeholder={sub.placeholder}
+                        maxLength={sub.maxLength}
+                        min={sub.kind === 'number' ? sub.min : undefined}
+                        max={sub.kind === 'number' ? sub.max : undefined}
+                        step={sub.kind === 'number' ? sub.step : undefined}
+                        disabled={isDisabled}
+                        onChange={(e) => updateRow(row.id, sub.name, e.target.value)}
+                        className={cx(inputClass, 'min-w-[100px]')}
+                      />
+                    </td>
+                  );
+                })}
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    disabled={rows.length <= minRows}
+                    onClick={() => removeRow(row.id)}
+                    className="inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    {field.removeLabel ?? 'Remove'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Regular field
+// ---------------------------------------------------------------------------
+
 type FieldProps = {
   definition: BuildFormDefinition;
   field: BuildFormFieldDefinition;
@@ -300,7 +473,16 @@ type FieldProps = {
 };
 
 function Field({ definition, field, formId, columns, errorMessage }: FieldProps) {
-  if (field.kind === 'repeater') return null; // not rendered in base SDK implementation
+  if (field.kind === 'repeater') {
+    return (
+      <RepeaterField
+        key={field.name}
+        field={field}
+        definition={definition}
+        columns={columns}
+      />
+    );
+  }
 
   const fieldId = normalizeDomIdWithFallback(`${formId}-${field.name}`, `${formId}-field`);
   const descId = field.description ? `${formId}-${field.name}-description` : undefined;

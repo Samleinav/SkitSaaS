@@ -1,5 +1,5 @@
 {
-  "title": "Modules",
+  "title": "Module Runtime",
   "pages": [
     "00-overview",
     "01-manifest-registry",
@@ -11,10 +11,7 @@
     "07-api-modules",
     "09-testing",
     "10-ops-runbook",
-    "11-example-module",
     "12-i18n",
-    "13-source-package-template",
-    "15-commerce-products",
-    "16-commerce-one-time-payments"
+    "13-source-package-template"
   ]
 }

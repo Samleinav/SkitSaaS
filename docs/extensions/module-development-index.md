@@ -1,22 +1,23 @@
 ---
-title: Extensions Index
+title: Module Development Index
 sidebar_position: 1
-description: Navigation entrypoint for module runtime contracts and SDK extension surfaces.
+description: Navigation entrypoint for host module runtime contracts and SDK module surfaces, with source-host as the primary strategy.
 ---
 
-# Extensions Index
+# Module Development Index
 
-Use this section to navigate host extension surfaces (modules + SDK).
+Use this section to navigate host module surfaces (module runtime + SDK). In this repository, new modules should default to `source-host`; `source-package` remains an advanced secondary path.
 
 Ownership rule:
 
 - Host/runtime contracts stay under `docs/modules/*` and `docs/sdk/*`.
-- Module-specific implementation and operational docs stay in each module directory (`modules/<moduleId>/README.md`, optional `modules/<moduleId>/docs/*`).
+- Module-specific implementation and operational docs stay outside `docs/`, in each module directory (`modules/<moduleId>/README.md`, optional `modules/<moduleId>/docs/*`).
 
 Primary references:
 
 - `docs/modules/00-overview.md`
 - `docs/sdk/00-overview.md`
+- `docs/forms/02-sdk-vs-source-host.md`
 
 Recommended reading order:
 
@@ -31,10 +32,7 @@ Recommended reading order:
 9. `docs/themes/01-theme-runtime.md`
 10. `docs/modules/09-testing.md`
 11. `docs/modules/10-ops-runbook.md`
-12. `docs/modules/11-example-module.md`
-13. `docs/modules/12-i18n.md`
-14. `docs/modules/13-source-package-template.md`
-15. `docs/themes/03-template-controller.md`
-16. `docs/modules/15-commerce-products.md`
-17. `docs/modules/16-commerce-one-time-payments.md`
-18. `docs/themes/02-theme-authoring-guide.md`
+12. `docs/modules/12-i18n.md`
+13. `docs/modules/13-source-package-template.md` (advanced / secondary)
+14. `docs/themes/03-template-controller.md`
+15. `docs/themes/02-theme-authoring-guide.md`

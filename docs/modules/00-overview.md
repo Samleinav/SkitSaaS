@@ -1,12 +1,19 @@
 ---
-title: Modules Overview
+title: Module Runtime Overview
 sidebar_position: 0
-description: Host-side overview of module registry, runtime dispatch, and operational lifecycle.
+description: Host-side overview of the module runtime, registry, dispatch, and lifecycle.
 ---
 
-# Modules Overview
+# Module Runtime Overview
+
+This section documents the host module runtime only. Documentation for concrete modules does not belong in `docs/` and must live next to the module itself.
 
 This repository ships a **module runtime** that lets you add admin/dashboard pages, API endpoints, nav entries, and widgets without changing the core routes. The runtime is **manifest driven** (code) and **state driven** (DB).
+
+Current authoring default in this repository:
+
+- build new modules as `source-host` unless you intentionally need isolated packaging/build
+- keep shared contracts in `@skitsaas/sdk`, but source-host modules may still import host components/utilities directly when the SDK does not yet provide full parity
 
 Core components:
 
@@ -41,8 +48,8 @@ Runtime state rules:
 Module mode rules (`module.json` -> `moduleMode`):
 
 - `prebuilt`: host imports compiled `entry`.
-- `source-host`: host imports/transpiles module source (`sourceEntry`).
-- `source-package`: host requires compiled `entry`; no runtime fallback to source.
+- `source-host`: host imports/transpiles module source (`sourceEntry`). This is the recommended default in this repo.
+- `source-package`: host requires compiled `entry`; no runtime fallback to source. Treat this as an advanced secondary path until SDK parity is broader.
 - optional `templatePack` metadata in `module.json` allows build/prepare validation of template artifacts (`defaultEntry`/`overrideEntry`).
 
 Build/prepare pipeline:
@@ -57,7 +64,7 @@ pnpm modules:sync
 
 Authoring reference:
 
-- `docs/modules/13-source-package-template.md` for `source-package` starter template and checklist.
+- `docs/modules/13-source-package-template.md` for the advanced `source-package` starter template and checklist.
 - `docs/themes/03-template-controller.md` for component template precedence and CTC contract.
 
 Tables related to modules and themes:

@@ -5,9 +5,10 @@ import path from 'node:path';
 
 const SCHEMA_PATH = path.resolve(process.cwd(), 'lib/db/schema.ts');
 const DOCS_SCOPE_DIRS = [
-  path.resolve(process.cwd(), 'docs/core'),
+  path.resolve(process.cwd(), 'docs/reference'),
   path.resolve(process.cwd(), 'docs/subscriptions'),
-  path.resolve(process.cwd(), 'docs/operations')
+  path.resolve(process.cwd(), 'docs/operations'),
+  path.resolve(process.cwd(), 'docs/security')
 ];
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 
@@ -17,9 +18,11 @@ const REQUIRED_TABLES = [
   'subscription_change_requests',
   'subscription_trial_usage',
   'checkout_orders',
+  'checkout_order_items',
   'payment_orders',
   'payment_logs',
   'payment_transactions',
+  'quota_usage',
   'sys_activity_logs',
   'email_logs',
   'app_configs',
@@ -106,4 +109,3 @@ function main() {
 }
 
 main();
-

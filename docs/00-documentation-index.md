@@ -12,51 +12,52 @@ This index organizes the technical documentation for the S-Kit SaaS Starter core
 
 ## Getting Started
 
-- [Simple SaaS](./getting-started/01-simple-saas.md) — single Next.js deployment: install, configure, run.
-- [Multi-Service](./getting-started/02-multi-service.md) — split admin, dashboard, frontend, and API across separate services.
+- [Simple SaaS](./getting-started/01-simple-saas.md) - single Next.js deployment: install, configure, run.
+- [Multi-Service](./getting-started/02-multi-service.md) - split admin, dashboard, frontend, and API across separate services.
 
 ## Routing
 
-How routes are defined, named, and composed across core and modules.
+Read the routing system first. Use the route map page only as a high-level summary of route surfaces and action locations.
 
+- [Route Factories - RouteAdmin, RouteDashboard, routes.ts](./routing/02-routes.md)
 - [App Router Structure and Actions](./routing/01-architecture.md)
-- [Route Factories — RouteAdmin, RouteDashboard, routes.ts](./routing/02-routes.md)
 
 ## Proxies
 
-Laravel-inspired proxy chains — define auth rules, role guards, and rate limits per route.
+Laravel-inspired proxy chains - define auth rules, role guards, and rate limits per route.
 
 - [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./proxies/02-security.md)
 
 ## Forms
 
-Declarative BuildForm system with local, preflight, and server validation layers.
+Declarative BuildForm system with local, preflight, and server validation layers. This project uses `source-host` modules as the primary path for full host UX parity.
 
 - [Form Build System](./forms/01-form-build-system.md)
+- [SDK vs source-host - Form capabilities](./forms/02-sdk-vs-source-host.md)
 
 ## Datatables
 
-SDK-first BuildTable contract with remote loading, filters, sorting, pagination, and actions.
+SDK-first BuildTable contract with remote loading, filters, sorting, pagination, and actions. Source-host modules can still use the host adapter for theme/CTC integration when they want it.
 
 - [Data Table Build System](./datatables/01-build-table-system.md)
 - [SDK Datatables & CRUD](./datatables/02-sdk-datatables-crud.md)
 
 ## Security
 
-- [Row-Level Security (RLS) Setup](./security/01-rls-setup.md) — PostgreSQL dual-role tenant isolation.
-- [Auth Provider SPI](./security/02-auth-provider-spi.md) — pluggable authentication provider interface.
+- [Row-Level Security (RLS) Setup](./security/01-rls-setup.md) - PostgreSQL dual-role tenant isolation.
+- [Auth Provider SPI](./security/02-auth-provider-spi.md) - pluggable authentication provider interface.
 
 ## Context & Areas
 
-Serve different content per user role within the same `/dashboard` path (e.g. guardian / teacher / admin).
+Serve different content per user role within the same `/dashboard` path (for example guardian / teacher / admin).
 
 - [Frontend Routing and Slots](./context-area/01-frontend-routing-slots.md)
 
-## Modules
+## Module Runtime
 
-Host-side module runtime: manifest, routing, permissions, migrations, API, and i18n.
+Host-side module runtime: registry, dispatch, permissions, migrations, API, and i18n. The current project strategy is `source-host` first.
 
-- [Modules Overview](./modules/00-overview.md)
+- [Module Runtime Overview](./modules/00-overview.md)
 - [Manifest Registry](./modules/01-manifest-registry.md)
 - [Runtime Routing](./modules/02-runtime-routing.md)
 - [Permissions and Actions](./modules/03-permissions-actions.md)
@@ -66,9 +67,8 @@ Host-side module runtime: manifest, routing, permissions, migrations, API, and i
 - [API Modules](./modules/07-api-modules.md)
 - [Testing](./modules/09-testing.md)
 - [Ops Runbook](./modules/10-ops-runbook.md)
-- [Example Module](./modules/11-example-module.md)
 - [I18n](./modules/12-i18n.md)
-- [Source Package Template](./modules/13-source-package-template.md)
+- [Source Package Template (advanced / secondary)](./modules/13-source-package-template.md)
 
 ## Themes
 
@@ -112,18 +112,20 @@ Cross-module event bus with optional Redis queue.
 ## SDK
 
 - [SDK Overview](./sdk/00-overview.md)
+- [SDK-First Migration Guide](./sdk/01-sdk-first-migration.md)
 
-## Extensions
+## Module Development
 
-- [Extensions Index](./extensions/module-development-index.md)
+- [Module Development Index](./extensions/module-development-index.md)
 
 ## Ownership Policy
 
 - Core docs under `docs/` must document shared host/runtime behavior only.
-- Module-specific implementation, env matrices, provider-specific operations, and runbooks must live in module-owned docs:
+- Module-specific implementation, env matrices, provider-specific operations, runbooks, and per-module pages must not live in root `docs/`.
+- Those details must live in module-owned docs:
   - `modules/<moduleId>/README.md`
   - `modules/<moduleId>/docs/*` (optional)
-- Core docs should link to module docs instead of duplicating module internals.
+- Core docs should describe the host/runtime contract only.
 
 ## Internal Audit Tracking
 

@@ -1,16 +1,22 @@
 ---
 title: SDK BuildTable
-description: How module authors define and render SDK-first datatables with remote search, filters, pagination, and actions.
+description: How module authors define SDK-backed datatables with remote search, filters, pagination, and actions.
 sidebar_position: 17
 ---
 
 # SDK BuildTable
 
-Use `BuildTable` when a module needs a datatable that is fully defined from `@skitsaas/sdk`.
+Use `BuildTable` when a module needs a datatable whose contract is defined from `@skitsaas/sdk`.
 
-This is now the recommended path for module datatables because it gives you:
+In this repository, the recommended path is:
 
-- one portable table contract for `source-package` and `source-host`
+- define the table contract in the SDK
+- render with SDK `DataTable` by default; current table features are covered there
+- in `source-host` modules, switch to the host adapter only when you specifically want host theme/CTC wrappers
+
+The SDK contract gives you:
+
+- one shared table contract for `source-host` and `source-package`
 - default rendering for headers, toolbar, search, filters, sorting, pagination, and empty states
 - declarative row actions and header actions
 - built-in request actions with optional confirm dialogs
@@ -41,6 +47,12 @@ Server-side query helpers are also available from the root SDK entry:
 import { parseBuildTableQueryState } from '@skitsaas/sdk';
 ```
 
+For source-host modules that want the same host treatment used by core tables, render the same definition with:
+
+```tsx
+import { DataTable } from '@/components/ui/data-table';
+```
+
 ## Mental model
 
 The normal setup is:
@@ -51,13 +63,13 @@ The normal setup is:
 4. if a row needs mutations, use `buildTableAction.request(...)`
 5. if a mutation is destructive, add `confirm`
 
-In the common case you do not need a custom renderer for the whole table.
+In the common case, step 2 means the SDK renderer. In source-host modules, you can swap to the host `@/components/ui/data-table` when you want host presentation integration.
 
 Use `buildTableColumn.custom(...)` or `buildTableAction.custom(...)` only when the default text/link/request primitives are not enough.
 
 ## Minimal local table
 
-This is the smallest useful SDK-first table:
+This is the smallest useful portable SDK table:
 
 ```tsx
 'use client';
@@ -402,4 +414,4 @@ For most module datatables, start here:
 6. Use `buildTableAction.request(...)` for delete/archive/toggle flows.
 7. Add `confirm` for destructive actions.
 
-That gives you a usable datatable without building a custom renderer or importing host-only admin table code.
+That gives you a usable datatable with the SDK renderer. In source-host modules, you can also pass the same definition into `@/components/ui/data-table` when you want host theme slots, CTC wrappers, and host notification/confirm behavior.

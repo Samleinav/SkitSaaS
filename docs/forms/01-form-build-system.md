@@ -15,7 +15,7 @@ A pilot implementation already exists in:
 
 - `app/sdk/src/forms.ts`
 - `app/sdk/src/form-validation.ts`
-- `app/sdk/src/ui/build-form.tsx` — portable SDK renderer (primary entry point for modules)
+- `app/sdk/src/ui/build-form.tsx` — portable SDK renderer (fallback for source-package or host-free contexts)
 - `lib/forms/runtime.ts`
 - `lib/forms/validation/local.ts`
 - `lib/forms/validation/results.ts`
@@ -182,7 +182,13 @@ Current responsibilities:
 - validation helpers (`validateBuildFormLocally`, `getBuildFormValidation`, `shouldRunBuildFormPreflight`, etc.)
 - `BuildForm` — portable client renderer exported from `@skitsaas/sdk`
 
-`BuildForm` in the SDK renders using plain Tailwind (`bg-background`, `border-input`, etc.) and supports all field kinds, responsive grid layout, blur/change validation, server validation hydration via `useActionState`, and field-level preflight AJAX to `/api/forms/validate`.
+`BuildForm` in the SDK renders using plain Tailwind (`bg-background`, `border-input`, etc.) and supports all current field types (including `repeater`), responsive grid layout, blur/change validation, server validation hydration via `useActionState`, and field-level preflight AJAX to `/api/forms/validate`.
+
+Current renderer boundary:
+
+- the portable SDK renderer covers the full form contract and validation lifecycle including `repeater` rows, `dynamicOptions`, masks, and `disableWhen`
+- the richer submit UX (`successLabel`, themed submit button, confirm modal rendering) lives in the host renderer only
+- use the host renderer for core routes and for any host-owned wrapper that needs exact host visual parity
 
 The `templateRenderer` prop lets the host or theme inject a fully custom renderer at call time:
 
@@ -234,7 +240,7 @@ Two renderers exist. The right choice depends on where the form is used.
 
 #### SDK renderer — `@skitsaas/sdk` → `BuildForm`
 
-Used by modules (all types) and portal pages.
+Used by source-package modules and other portable host-free contexts. In this repository, source-host modules normally use the host renderer directly.
 
 ```tsx
 import { BuildForm } from '@skitsaas/sdk';
@@ -672,12 +678,14 @@ Recommended submit shape:
 - optional secondary actions
 - optional confirm modal config
 
-The renderer should continue to reuse the platform submit behavior instead of inventing a new pending-state mechanism.
+The host renderer should continue to reuse the platform submit behavior instead of inventing a new pending-state mechanism.
 
-That means:
+That means in the host renderer:
 
 - standard submit path uses `AsyncSubmitButton`
 - confirm/delete path reuses alert-dialog behavior
+
+The portable SDK renderer keeps the same validation and native form contract, but its default submit UI is intentionally simpler than the host renderer.
 
 ## Modal model
 
@@ -702,7 +710,7 @@ Typical use cases:
 
 Use this for destructive or confirmation flows.
 
-Current integration:
+Current integration in the host renderer:
 
 - `BuildModal` with `kind: 'confirm'`
 - or `submit.confirm` inside a form definition
@@ -751,45 +759,40 @@ Important boundary:
 
 ## Module strategy
 
-All module types use `BuildForm` from `@skitsaas/sdk`. Do not import from `@/components/ui/build-form` in module code.
+This project uses **source-host modules exclusively**. Source-host modules compile inside the host app and have full access to `@/components/*`, `@/lib/*`, and all host infrastructure.
 
 ### source-host modules
 
+Use the host renderer directly. This gives full parity with core routes: shadcn components, `successLabel`, confirm modals, CTC theming, and `ThemedAsyncSubmitButton`.
+
 ```tsx
-import { BuildForm } from '@skitsaas/sdk';
+import { BuildForm } from '@/components/ui/build-form';
+// or with CTC resolution:
+import { TemplateBuildForm } from '@/components/ui/template-build-form';
 
 // portal page or dashboard module page
 <BuildForm definition={form} area="frontend" />
 ```
 
-Source-host modules compile inside the host so `@/components/*` is technically reachable, but they should still use the SDK renderer to stay portable and avoid coupling to host internals.
+The form definition contract (`defineBuildForm`, `buildFormField.*`, `withBuildFormValues`, validation helpers, etc.) still comes from `@skitsaas/sdk` — the SDK owns the authoring layer. Only the renderer comes from the host.
 
-### source-package modules
+```tsx
+// definition — from SDK
+import { defineBuildForm, buildFormField } from '@skitsaas/sdk';
+
+// renderer — from host
+import { BuildForm } from '@/components/ui/build-form';
+```
+
+### source-package modules (not used in this project)
+
+For completeness: source-package modules compiled outside the host cannot import from `@/`. They use the SDK portable renderer:
 
 ```tsx
 import { BuildForm } from '@skitsaas/sdk';
 ```
 
-Only the SDK is available — no `@/` paths. The SDK renderer covers all field types and validation behavior that module forms need.
-
-### When to use `templateRenderer`
-
-If a portal or module needs the full shadcn visual treatment (host design tokens, host button variants, etc.), the portal layout or module shell can inject a `templateRenderer` at the page level:
-
-```tsx
-// portal/layout.tsx
-import { BuildForm, type SdkBuildFormProps } from '@skitsaas/sdk';
-import { HostBuildFormRenderer } from '@/components/ui/build-form-renderer';
-
-function hostRenderer(props: SdkBuildFormProps) {
-  return <HostBuildFormRenderer {...props} />;
-}
-
-// pass down to page or provide via context
-<PageContent templateRenderer={hostRenderer} />
-```
-
-This keeps module page code clean (`<BuildForm definition={form} />`) while letting the host upgrade the styling at the layout boundary.
+The SDK renderer covers the full validation lifecycle but omits host-only visual extras (`successLabel`, confirm modal, CTC payload).
 
 ## Rollout status
 
@@ -828,10 +831,10 @@ Use this list for every new BuildForm intended for production:
 7. keep only business-specific errors in the route action and resolve generic validation copy through the host catalog
 8. verify the flow with JS enabled and with JS disabled
 
-Module-specific rule:
+Module-specific rule (source-host):
 
-- module code should stay inside SDK contracts (`@skitsaas/sdk`, `@skitsaas/sdk/server`)
-- use `BuildForm` from `@skitsaas/sdk` — never import from `@/components/ui/build-form` in module code
+- form definitions and validation helpers come from `@skitsaas/sdk`
+- renderer comes from `@/components/ui/build-form` (host renderer, full parity with core)
 - registry wiring, DB resolver ownership, i18n catalogs, and observability stay in the host
 
 ## Non-goals for v1

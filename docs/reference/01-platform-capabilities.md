@@ -51,12 +51,14 @@ This document maps current platform capabilities to implementation files and dat
 - Controllers:
   - `lib/features/controller.ts`
   - `getDashboardFeatureController` in `app/(dashboard)/dashboard/controller.ts`
+- Usage ledger table: `quota_usage` (per-scope, per-feature, per-period consumption tracking)
 
 ## 5) Payments: Orders and Transactions
 
 Operational timeline:
 
 - `checkout_orders` (pre-payment orchestration, tokenized checkout context)
+- `checkout_order_items` (line items attached to one checkout order)
 - `payment_orders` (status, scope, provider refs)
 - `payment_logs` (raw event audit)
 

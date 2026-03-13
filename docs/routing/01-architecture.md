@@ -1,10 +1,12 @@
 ---
-title: Routing and Actions Architecture
+title: Route Map and Actions Overview
 sidebar_position: 2
-description: Route layout and action/controller structure for frontend, dashboard, admin, and API surfaces.
+description: High-level route surface map and action/controller file layout for frontend, dashboard, admin, and API surfaces.
 ---
 
-# Routing and Actions Architecture
+# Route Map and Actions Overview
+
+Read [Route Factories and Registry](./02-routes.md) first for the actual routing system. This page is only the high-level map of route surfaces and action organization.
 
 This document explains how routes are organized and how server actions are grouped through shared controllers.
 

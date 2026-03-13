@@ -5,8 +5,10 @@ sidebar_position: 1
 
 # SDK-First Migration Guide
 
-This guide describes how to migrate an existing module from host-internal
-imports (`@/lib/*`, `@/app/*`) to the public SDK contract.
+This guide describes how to migrate an existing module toward the public SDK
+contract. In this repository, that usually means a `source-host` module that
+uses SDK contracts first but can still import host internals where the SDK does
+not yet provide full parity.
 
 ## Target State
 
@@ -16,7 +18,9 @@ After migration, module code should depend on:
 - `@skitsaas/sdk/server` for server capabilities (auth, revalidate, config, DB adapter, `createValidatedServerActionController`, `createModuleApiRouter`)
 - `@skitsaas/sdk/db` for Drizzle query/table helpers
 
-And should **not** import host internals from module source files (`@/lib/*`, `@/app/*`, `@/components/*`).
+For `source-package` modules, avoid host internals entirely. For `source-host`
+modules, prefer the SDK for shared contracts and keep direct host imports only
+where they provide real parity or capability the SDK does not yet expose.
 
 ## 1. Update `module.json`
 
@@ -35,6 +39,9 @@ Declare SDK compatibility explicitly:
 `pnpm modules:prepare` now runs strict compatibility checks and fails when
 `sdkRange` is missing/invalid/incompatible.
 
+For this repo, keep `moduleMode: "source-host"` as the default unless you
+explicitly need isolated packaging/build.
+
 ## 2. Replace Contract Imports
 
 Use SDK contract imports for manifest and shared types:
@@ -44,6 +51,11 @@ import { defineModule, type ModuleManifest } from '@skitsaas/sdk';
 ```
 
 Avoid importing host copies from `lib/modules/manifest.ts` or other internal paths.
+
+For source-host modules, this does not forbid all `@/...` imports. It means:
+
+- use SDK types/contracts when a stable shared surface already exists
+- keep host imports for host-only UI/runtime surfaces such as themed form/table renderers when you need exact parity
 
 ## 3. Replace Server Capability Imports
 
@@ -152,9 +164,8 @@ Never import from `@/lib/routing/rate-limit` in module code — that path is hos
 
 ## Migration Checklist
 
-- [ ] No `@/lib/*` imports in module source.
-- [ ] No `@/app/*` imports in module source.
-- [ ] No `@/components/*` imports in source-package modules.
+- [ ] Source-package modules have no `@/...` imports.
+- [ ] Source-host modules use host imports only where SDK parity is missing or host runtime integration is required.
 - [ ] Module declares `moduleMode` in `module.json`.
 - [ ] Module declares `sdkRange` in `module.json`.
 - [ ] Routes use `RouteAdmin`/`RouteDashboard` from SDK — no hardcoded strings.
