@@ -22,6 +22,9 @@ module skills and the guardrail against two recurring failure modes:
 - Do not hand-roll CRUD or settings forms when the BuildForm contract fits.
   Define the form in module code and validate it with
   `createValidatedServerActionController`.
+- Keep module form renderer imports on `@skitsaas/sdk` (`BuildForm` /
+  `TemplateBuildForm`). Do not reach into host form wrappers for normal module
+  parity.
 - Do not use direct core imports as a shortcut for missing SDK surface.
   Escalate to `core-sdk-evolution` first.
 - Keep portal `routes.ts` and `portal-init.ts` in sync. A missing named route
@@ -30,9 +33,12 @@ module skills and the guardrail against two recurring failure modes:
 ## Workflow
 
 1. Classify the request.
-   - New reusable or distributable module: default to `source-package`.
-   - Local app-only module that intentionally reuses host UI/runtime pieces:
-     choose `source-host` deliberately and say why.
+   - New module and the mode is unspecified: stop and ask whether it is
+     `source-host` or `source-package`.
+   - Existing `source-package` or reusable/distributable module: keep it
+     boundary-safe and SDK-only.
+   - Existing local app-only module that intentionally reuses host UI/runtime
+     pieces: keep `source-host`, but justify each host import.
    - Portal change: keep the portal split inside the module. Do not invent pages
      in `app/(frontend)` or `app/(dashboard)` for portal screens.
 2. Load the companion skills that match the work. See
@@ -67,8 +73,8 @@ pieces that are not yet exposed through the SDK.
 
 Typical reasons:
 
-- reusing host renderers such as `components/ui/build-form.tsx`
-- reusing host shadcn wrappers or theme-bound components
+- reusing unpublished host shadcn wrappers or theme-bound components
+- depending on host-only runtime helpers that are not exposed through the SDK
 - local-only module code that intentionally leans on host internals
 
 Even in `source-host`:
@@ -105,6 +111,9 @@ Some local `source-host` examples intentionally import host paths such as
 `@/components/*` or `@/lib/*`. Use those examples for topology and UX ideas,
 not as boundary-safe templates for `source-package`.
 
+BuildForm is no longer a reason by itself to import host wrappers in module
+code. Prefer SDK `BuildForm` / `TemplateBuildForm` even in `source-host`.
+
 If the user says "prefer SDK over core imports", follow that preference even
 when a local example takes a shortcut.
 
@@ -129,4 +138,6 @@ Stop module implementation and switch skills when:
 - Routes, APIs, forms, actions, proxies, and nav use the selected SKSS topology.
 - Direct core imports are avoided or justified as intentional `source-host`
   exceptions.
+- BuildForm renderer imports stay on `@skitsaas/sdk` unless the task is
+  explicitly host-internal.
 - Validation commands were run, or the blocker is stated clearly.

@@ -6,8 +6,9 @@ sidebar_position: 13
 # Source-Package Template (advanced / secondary)
 
 This repository defaults to `source-host` modules. Use this page only when you
-intentionally need an isolated package/build pipeline and accept that some host
-UI/runtime surfaces still have lower parity than `source-host`.
+intentionally need an isolated package/build pipeline. Some host-only surfaces
+still remain local to the host, but BuildForm no longer requires module-side
+host imports inside SkitSaaS.
 
 Use this template when a module has its own `package.json` and build pipeline,
 but must be consumed by host runtime as prebuilt artifact.

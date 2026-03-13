@@ -7,8 +7,8 @@ sidebar_position: 1
 
 This guide describes how to migrate an existing module toward the public SDK
 contract. In this repository, that usually means a `source-host` module that
-uses SDK contracts first but can still import host internals where the SDK does
-not yet provide full parity.
+uses SDK contracts first and keeps host imports only for surfaces that truly
+remain host-only.
 
 ## Target State
 
@@ -20,7 +20,8 @@ After migration, module code should depend on:
 
 For `source-package` modules, avoid host internals entirely. For `source-host`
 modules, prefer the SDK for shared contracts and keep direct host imports only
-where they provide real parity or capability the SDK does not yet expose.
+where the capability is genuinely not exposed publicly. BuildForm and
+`TemplateBuildForm` should now stay on SDK imports for normal module code.
 
 ## 1. Update `module.json`
 
@@ -55,7 +56,7 @@ Avoid importing host copies from `lib/modules/manifest.ts` or other internal pat
 For source-host modules, this does not forbid all `@/...` imports. It means:
 
 - use SDK types/contracts when a stable shared surface already exists
-- keep host imports for host-only UI/runtime surfaces such as themed form/table renderers when you need exact parity
+- keep host imports only for genuinely host-only UI/runtime surfaces
 
 ## 3. Replace Server Capability Imports
 
@@ -169,7 +170,8 @@ Never import from `@/lib/routing/rate-limit` in module code — that path is hos
 ## Migration Checklist
 
 - [ ] Source-package modules have no `@/...` imports.
-- [ ] Source-host modules use host imports only where SDK parity is missing or host runtime integration is required.
+- [ ] Source-host modules use host imports only where the SDK still has no public surface.
+- [ ] BuildForm and `TemplateBuildForm` imports stay on `@skitsaas/sdk` for normal module code.
 - [ ] Module declares `moduleMode` in `module.json`.
 - [ ] Module declares `sdkRange` in `module.json`.
 - [ ] Routes use `RouteAdmin`/`RouteDashboard` from SDK — no hardcoded strings.

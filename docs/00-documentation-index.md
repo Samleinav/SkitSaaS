@@ -30,7 +30,7 @@ Laravel-inspired proxy chains - define auth rules, role guards, and rate limits 
 
 ## Forms
 
-Declarative BuildForm system with local, preflight, and server validation layers. This project uses `source-host` modules as the primary path for full host UX parity.
+Declarative BuildForm system with local, preflight, and server validation layers. Inside SkitSaaS, SDK `BuildForm` and `TemplateBuildForm` now inherit full host form UX without module-side `@/` imports.
 
 - [Form Build System](./forms/01-form-build-system.md)
 - [SDK vs source-host - Form capabilities](./forms/02-sdk-vs-source-host.md)

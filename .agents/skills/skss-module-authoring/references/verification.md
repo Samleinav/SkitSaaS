@@ -34,11 +34,11 @@ Use when the task touched CRUD/settings/delete flows:
 
 ```bash
 pnpm check:buildform
-rg -n "adminAction|dashboardAction|@/lib/forms|@/components/ui/template-build-form" modules/mod.<id>
+rg -n "adminAction|dashboardAction|@/lib/forms|@/components/ui/build-form|@/components/ui/template-build-form" modules/mod.<id>
 ```
 
-If the module is intentionally `source-host`, a host UI renderer import may be
-acceptable, but it must be an explicit choice, not an accidental shortcut.
+If the module is intentionally `source-host`, a host UI renderer import is
+still a special-case exception. It is no longer required for BuildForm parity.
 
 ## API and rate limiting
 

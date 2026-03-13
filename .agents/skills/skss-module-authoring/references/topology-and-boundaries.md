@@ -55,8 +55,8 @@ Exception policy:
 
 ## Routes, proxies, and rate limits
 
-- `source-host` route files may keep `import '@/lib/routing/area-setup'` as
-  the first line when they need host-configured `.auth()` / proxy defaults.
+- Module `routes.ts` files no longer need `import '@/lib/routing/area-setup'`;
+  host bootstrap wires route defaults from host entrypoints.
 - `source-package` route files must stay SDK-only and rely on the host
   bootstrap to configure area defaults and API auth proxies before loading the
   generated module routes.
@@ -92,10 +92,10 @@ Avoid:
 
 Renderer rule:
 
-- `source-package`: keep the form contract SDK-first; do not pull in host form
-  renderers unless the module is intentionally not portable.
-- `source-host`: host UI renderers can be used deliberately, but the form
-  definition and server validation should still be SDK-first.
+- `source-package`: use `BuildForm` / `TemplateBuildForm` from `@skitsaas/sdk`
+  for normal module code.
+- `source-host`: keep the same SDK renderer rule for normal module code; direct
+  host form renderer imports are now reserved for core/host-internal work.
 
 ## Canonical examples
 

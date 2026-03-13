@@ -13,7 +13,7 @@ Create a complete, working portal for a SKSS module:
 - completely independent layout — no marketing nav, no dashboard sidebar
 - two-file split: `routes.ts` (edge) + `portal-init.ts` (Node.js)
 - auto-registered via `module.json` fields (no manual bootstrap edits)
-- role-based access via `proxyRoles()` (middleware) + `redirectRoles` (post-login)
+- role-based access via `.auth()` / `.roles()` in SDK route builders + `redirectRoles` (post-login)
 - CSS loaded by default (frontend core bundle for standalone, dashboard core bundle for dashboard area)
 
 ## Required Reading Before Starting
@@ -25,7 +25,7 @@ Read these files before writing any code:
 - `modules/mod.example.portal/src/routes.ts` — canonical edge example
 - `modules/mod.example.portal/src/portal-init.ts` — canonical Node.js example
 - `modules/mod.example.portal/portal/hub/layout.tsx` — canonical layout example
-- `lib/routing/proxies.ts` — available proxy functions (`proxyAuth`, `proxyRoles`, `proxyAdmin`)
+- `docs/routing/02-routes.md` — current route-builder auth/roles behavior
 
 ## Checklist
 
@@ -52,18 +52,14 @@ export const SCHOOL_PORTAL_NAME = 'school';
 ### 3. Create `src/routes.ts` (edge-safe)
 
 Rules:
-- `source-host`: first line should be `import '@/lib/routing/area-setup';`
-- `source-package`: do not import host internals; rely on the host bootstrap
-  and keep the rest of this file SDK-only
-- Only imports from `@skitsaas/sdk`, `@/lib/routing/proxies`, and module-local `./constants`
+- keep this file SDK-first; no host bootstrap import is needed in module `routes.ts`
+- use only `@skitsaas/sdk` plus module-local constants in the normal path
 - No React imports, no DB imports, no `portal-init` imports
-- `.auth()` = any logged-in user; `.proxy([proxyRoles(['role'])])` = role-restricted
+- `.auth()` = any logged-in user; `.roles('teacher')` = role-restricted
 - `.name('portalName.routeKey')` is optional but recommended for URL generation
 
 ```ts
-import '@/lib/routing/area-setup';
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
-import { proxyRoles } from '@/lib/routing/proxies';
 import { SCHOOL_PORTAL_NAME } from './constants';
 
 // Standalone (default) — served at /school/*
@@ -72,14 +68,11 @@ export const SchoolRoute = RoutePortal(SCHOOL_PORTAL_NAME);
 // Dashboard area — served at /dashboard/school/*
 // export const SchoolRoute = RoutePortal(SCHOOL_PORTAL_NAME, { area: 'dashboard' });
 
-// Restrict entire portal to a role (add proxy at factory level):
-// export const SchoolRoute = RoutePortal(SCHOOL_PORTAL_NAME).proxy([proxyRoles(['teacher'])]);
-
 export const SchoolRoutes = {
   home:    SchoolRoute('').name('school.home'),
   list:    SchoolRoute('students').auth().name('school.students'),
   detail:  SchoolRoute('students/{id}').auth().name('school.student'),
-  reports: SchoolRoute('reports').proxy([proxyRoles(['teacher'])]).name('school.reports'),
+  reports: SchoolRoute('reports').roles('teacher').name('school.reports'),
 } as const;
 
 export const SchoolApi = RouteApiPortal(SCHOOL_PORTAL_NAME);
@@ -188,14 +181,16 @@ pnpm dev
 
 | Requirement | Where to configure |
 |---|---|
-| Block unauthenticated users from entire portal | `RoutePortal('name').proxy([proxyRoles(['role'])])` in `routes.ts` |
+| Block unauthenticated users from entire portal | Apply `.auth()` to every declared route in `routes.ts` |
 | Block unauthenticated users per route | `.auth()` on each route in `routes.ts` |
-| Block wrong-role users from entire portal | `.proxy([proxyRoles(['role'])])` at factory in `routes.ts` |
-| Block wrong-role users per route | `.proxy([proxyRoles(['role'])])` on that route in `routes.ts` |
+| Block wrong-role users from entire portal | Apply `.roles('role')` to every declared route in `routes.ts` |
+| Block wrong-role users per route | `.roles('role')` on that route in `routes.ts` |
 | Users with role land here after login | `redirectRoles: ['role']` in `.register()` in `portal-init.ts` |
 | All non-admin users land here after login | `isDefaultPortal: true` in `.register()` in `portal-init.ts` |
 
-`proxyRoles()` redirects: no session → `/sign-in`; wrong role → `/dashboard`.
+Role guards use the same host-wired route builder middleware as the rest of the
+SDK route system: no session redirects to the auth flow, wrong role redirects
+to the dashboard fallback.
 
 ---
 
@@ -229,7 +224,7 @@ and the page is accessible without any auth check.
 
 ```
 portal-init.ts                routes.ts
-SchoolRoute('reports').page() ← must match → SchoolRoute('reports').proxy([proxyRoles(['teacher'])]).name('school.reports')
+SchoolRoute('reports').page() ← must match → SchoolRoute('reports').roles('teacher').name('school.reports')
 ```
 
 ### `admin-only` surface mode disables portals
@@ -251,10 +246,10 @@ is thrown before the page renders.
 | Calling `.page()` from `routes.ts` | Move `.page()` calls to `portal-init.ts` |
 | Importing `portal-init.ts` from `routes.ts` | These are in separate runtimes — never cross-import |
 | Folder named `_portal` or `_anything` in `app/` | Next.js treats `_` prefixed folders as private (no route generated) |
-| `source-host`: forgetting `import '@/lib/routing/area-setup'` as first line in `routes.ts` | SDK area defaults are not injected → `.auth()` fails |
+| Importing host bootstrap into module `routes.ts` | No longer needed; keep module routes SDK-first |
 | `HubRoute('')` path ends in trailing slash `/hub/` | Fixed in SDK: trailing slashes are trimmed automatically |
 | Not running `pnpm modules:prepare` after editing `module.json` | Generated files not updated → portal not registered |
-| Setting `redirectRoles` but forgetting `proxyRoles` | User is redirected to portal but has no access (infinite redirect loop risk) |
+| Setting `redirectRoles` but forgetting matching `.roles()` / `.auth()` guards | User is redirected to portal but has no access (infinite redirect loop risk) |
 
 ---
 

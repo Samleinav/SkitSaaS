@@ -13,7 +13,7 @@ This repository ships a **module runtime** that lets you add admin/dashboard pag
 Current authoring default in this repository:
 
 - build new modules as `source-host` unless you intentionally need isolated packaging/build
-- keep shared contracts in `@skitsaas/sdk`, but source-host modules may still import host components/utilities directly when the SDK does not yet provide full parity
+- keep shared contracts in `@skitsaas/sdk`; even in `source-host`, prefer SDK-first module code and use host imports only for real host-only gaps
 
 Core components:
 
@@ -49,7 +49,7 @@ Module mode rules (`module.json` -> `moduleMode`):
 
 - `prebuilt`: host imports compiled `entry`.
 - `source-host`: host imports/transpiles module source (`sourceEntry`). This is the recommended default in this repo.
-- `source-package`: host requires compiled `entry`; no runtime fallback to source. Treat this as an advanced secondary path until SDK parity is broader.
+- `source-package`: host requires compiled `entry`; no runtime fallback to source. Treat this as an advanced secondary path when you intentionally need isolated packaging/build.
 - optional `templatePack` metadata in `module.json` allows build/prepare validation of template artifacts (`defaultEntry`/`overrideEntry`).
 
 Build/prepare pipeline:

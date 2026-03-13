@@ -305,8 +305,7 @@ Two independent mechanisms. Use both together for complete control:
 Enforced **before** the page renders. The SDK route builder stores the role requirement and the host resolves it to the DB-backed role proxy during routing bootstrap.
 
 ```ts
-// Entire portal restricted to one role:
-const SchoolRoute = RoutePortal('school').roles('teacher');
+const SchoolRoute = RoutePortal('school');
 
 // Per-route restriction:
 SchoolRoute('reports').roles('teacher', 'owner').name('school.reports');
@@ -314,6 +313,10 @@ SchoolRoute('reports').roles('teacher', 'owner').name('school.reports');
 // Auth only (any logged-in user):
 SchoolRoute('home').auth().name('school.home');
 ```
+
+If most routes share the same guard, apply `.auth()` / `.roles(...)`
+consistently to each declared route, or wrap `SchoolRoute(path)` in a small
+module-local helper that adds the guard before `.name()`.
 
 Redirect behaviour:
 - No session → `/sign-in`

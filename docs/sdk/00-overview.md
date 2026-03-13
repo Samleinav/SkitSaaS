@@ -7,10 +7,10 @@ description: Public SDK surface for module contracts, server adapters, build hel
 # SDK Overview
 
 This SDK provides a **stable public contract** for shared module surfaces. In
-this repository, `source-host` is the primary authoring mode. The SDK remains
-important for shared contracts, but it does not yet replace every host UI/runtime
-capability needed for full `source-package` parity, especially around BuildForm
-host UX.
+this repository, `source-host` is still a common authoring mode, but shared
+contracts should remain SDK-first. For BuildForm specifically, SDK-only module
+code can now reach full host UX inside SkitSaaS through the runtime adapter and
+template resolver, without importing host internals.
 
 ## Packages
 
@@ -82,17 +82,17 @@ Structured form contract:
 
 `composeBuildFormDefinition(...)` lets core or module code apply `request`, `submit`, and `values` in one pass instead of repeating `defineBuildForm(...) + withBuildFormRequest(...) + withBuildFormValues(...)` on every page. `buildFormValidationPreset.blur(...)` centralizes the common authoring preset used by most CRUD forms (`client.validateOn=['blur']`, plus optional preflight defaults).
 
-`BuildForm` from `@skitsaas/sdk` is the portable fallback renderer. The SDK now
-also exposes a host bridge path:
+`BuildForm` from `@skitsaas/sdk` is now the default module-facing renderer. The
+SDK also exposes a host bridge path:
 
 - `BuildFormUiAdapterProvider` lets the host delegate SDK `BuildForm` instances
   to a richer renderer at runtime
 - `TemplateBuildForm` lets server-rendered module pages receive host `ui.form`
   payload metadata without importing host internals
 
-That means a `source-package` module can stay SDK-only and still upgrade to host
-submit/modal/CTC behavior when it runs inside SkitSaaS. Outside the host, the
-SDK fallback renderer remains the default.
+That means a `source-package` or SDK-first `source-host` module can stay
+SDK-only and still upgrade to host submit/modal/CTC behavior when it runs
+inside SkitSaaS. Outside the host, the SDK renderer remains self-contained.
 
 The datatable story is stronger today: keep `BuildTableDefinition` and helpers
 in the SDK, and use SDK `DataTable` as the normal default. Source-host modules

@@ -1,6 +1,6 @@
 ---
 title: SDK vs source-host — Form capabilities
-description: Reference table of what is and is not available in SDK BuildForm vs host BuildForm for source-host modules.
+description: Reference table for BuildForm capabilities from SDK-only module code versus direct host renderer imports.
 sidebar_position: 3
 ---
 
@@ -8,40 +8,43 @@ sidebar_position: 3
 
 This table is a quick reference for module development.
 
-Today, the repository still favors `source-host` when a module needs exact host parity, but the SDK renderer is already real and portable. That means the correct long-term direction is not "SDK imports core when it can", but "SDK is self-sufficient and the host optionally registers richer UI hooks at runtime".
+Inside SkitSaaS, module code can now stay SDK-only and still reach the same
+host BuildForm UX through the runtime adapter and template resolver. Direct host
+renderer imports are still valid for core/host work, but they are no longer the
+normal path for module pages.
 
 ## Renderer
 
-| Capability | SDK `BuildForm` | source-host `BuildForm` |
-|---|---|---|
-| Import path | `@skitsaas/sdk` | `@/components/ui/build-form` |
-| Requires `@/` aliases | No | Yes |
-| shadcn components (`Input`, `Button`, `Label`) | No — plain HTML + CSS vars | Yes |
-| CTC payload (`ui.form` class overrides) | No | Yes |
-| `ThemedAsyncSubmitButton` | No — plain `<button>` | Yes |
-| `successLabel` on submit | No | Yes |
-| `submit.confirm` (confirm modal before submit) | No | Yes |
-| `BuildModal` confirm/delete flow | No | Yes |
+| Capability | SDK-only module code in SkitSaaS | SDK-only outside host | Direct host renderer import |
+|---|---|---|---|
+| Import path | `@skitsaas/sdk` | `@skitsaas/sdk` | `@/components/ui/build-form` or `@/components/ui/template-build-form` |
+| Requires `@/` aliases | No | No | Yes |
+| shadcn components (`Input`, `Button`, `Label`) | Yes — via host adapter | No — SDK fallback renderer | Yes |
+| CTC payload (`ui.form` class overrides) | Yes — via `TemplateBuildForm` resolver | No | Yes |
+| `ThemedAsyncSubmitButton` | Yes — via host adapter | No — plain `<button>` | Yes |
+| `successLabel` on submit | Yes — via host adapter | No | Yes |
+| `submit.confirm` (confirm modal before submit) | Yes — via host adapter | No | Yes |
+| `BuildModal` confirm/delete flow | Yes — via host adapter | No | Yes |
 
 ## Form contract (same in both)
 
-| Capability | SDK `BuildForm` | source-host `BuildForm` |
-|---|---|---|
-| `defineBuildForm`, `buildFormField.*` | Yes | Yes |
-| `withBuildFormValues` prefill | Yes | Yes |
-| `withBuildFormValidation` | Yes | Yes |
-| All field types: `text`, `email`, `password`, `tel`, `url`, `date`, `number`, `textarea`, `select`, `checkbox`, `hidden` | Yes | Yes |
-| `repeater` field (dynamic rows) | Yes | Yes |
-| `dynamicOptions` / `optionsKey` | Yes | Yes |
-| `disableWhen` on fields and sub-fields | Yes | Yes |
-| `mask` (`digits`, `decimal`, `currency`, `phone`, `slug`, `upper`, `lower`) | Yes | Yes |
-| `colSpan`, responsive grid | Yes | Yes |
-| Sections with `title` / `description` | Yes | Yes |
-| Blur / change local validation | Yes | Yes |
-| Preflight AJAX to `/api/forms/validate` | Yes | Yes |
-| Server validation hydration via `useActionState` | Yes | Yes |
-| `useFormStatus` pending state | Yes | Yes |
-| No-JS `<noscript>` submit fallback | Yes | Yes |
+| Capability | SDK-only module code in SkitSaaS | SDK-only outside host | Direct host renderer import |
+|---|---|---|---|
+| `defineBuildForm`, `buildFormField.*` | Yes | Yes | Yes |
+| `withBuildFormValues` prefill | Yes | Yes | Yes |
+| `withBuildFormValidation` | Yes | Yes | Yes |
+| All field types: `text`, `email`, `password`, `tel`, `url`, `date`, `number`, `textarea`, `select`, `checkbox`, `hidden` | Yes | Yes | Yes |
+| `repeater` field (dynamic rows) | Yes | Yes | Yes |
+| `dynamicOptions` / `optionsKey` | Yes | Yes | Yes |
+| `disableWhen` on fields and sub-fields | Yes | Yes | Yes |
+| `mask` (`digits`, `decimal`, `currency`, `phone`, `slug`, `upper`, `lower`) | Yes | Yes | Yes |
+| `colSpan`, responsive grid | Yes | Yes | Yes |
+| Sections with `title` / `description` | Yes | Yes | Yes |
+| Blur / change local validation | Yes | Yes | Yes |
+| Preflight AJAX to `/api/forms/validate` | Yes | Yes | Yes |
+| Server validation hydration via `useActionState` | Yes | Yes | Yes |
+| `useFormStatus` pending state | Yes | Yes | Yes |
+| No-JS `<noscript>` submit fallback | Yes | Yes | Yes |
 
 ## Validation helpers (always from SDK)
 
@@ -62,17 +65,23 @@ import {
 ## Which renderer to use in this project
 
 ```tsx
-// definition — always from SDK
-import { defineBuildForm, buildFormField } from '@skitsaas/sdk';
-
-// renderer — host (source-host modules have full access to @/)
-import { BuildForm } from '@/components/ui/build-form';
-// or with CTC:
-import { TemplateBuildForm } from '@/components/ui/template-build-form';
+import {
+  BuildForm,
+  TemplateBuildForm,
+  defineBuildForm,
+  buildFormField,
+} from '@skitsaas/sdk';
 ```
 
-The SDK `BuildForm` is the safe default for `source-package` and other host-free contexts.
-The host renderer stays the right path when a module is `source-host` and wants full parity with core UI.
+Use SDK imports for normal module code in both `source-package` and
+`source-host`.
+
+- Prefer `TemplateBuildForm` in server-rendered pages that need host `ui.form`
+  payload resolution.
+- Use `BuildForm` in client components, widgets, or pages where the form
+  definition alone is enough.
+- Reserve direct host renderer imports for core routes or host-internal renderer
+  work.
 
 ## Runtime bridge available now
 
@@ -92,7 +101,7 @@ Inside SkitSaaS, the app root now installs a host adapter provider for `BuildFor
 
 Current behavior:
 
-- SDK owns the authoring contract and a working fallback renderer.
+- SDK owns the authoring contract and a working standalone renderer.
 - Host code can explicitly replace the renderer with `templateRenderer`.
 - Host code can also provide a default runtime adapter for all SDK `BuildForm` instances.
 - `TemplateBuildForm` can resolve `ui.form` payload metadata from the host without module-side `@/` imports.
@@ -106,7 +115,8 @@ If a module uses only SDK imports:
 - inside SkitSaaS, `BuildForm` can delegate to the host renderer and gain async submit + confirm modal behavior
 - inside SkitSaaS, `TemplateBuildForm` can also receive host `ui.form` payloads for CTC-driven class overrides
 
-For full host parity from SDK-only module code, prefer `TemplateBuildForm` in server-rendered pages.
+For full host parity from SDK-only module code, prefer `TemplateBuildForm` in
+server-rendered pages.
 
 ## What the runtime adapter should own
 
@@ -116,7 +126,8 @@ Assuming Tailwind is always present, the SDK can keep the base field rendering a
 - confirm modal rendering (`BuildModal` / alert-dialog behavior)
 - form skin payload (host maps `ui.form` CTC into a portable class/payload contract)
 
-That keeps the portable renderer simple and avoids duplicating all form logic in two places.
+That keeps the SDK contract portable and avoids duplicating all form logic in
+two places.
 
 ## What not to do
 

@@ -44,6 +44,8 @@ If the task targets a specific module, then read:
    - Use SDK contracts first.
    - Use host imports only when the task is intentionally `source-host` and the
      SDK does not yet cover the capability.
+   - BuildForm and `TemplateBuildForm` no longer need host imports for normal
+     module parity inside SkitSaaS.
 4. If module work exposes a reusable gap, stop the shortcut.
    - Switch to `core-sdk-evolution`.
    - Add the shared contract first.
@@ -67,17 +69,18 @@ If the task targets a specific module, then read:
 
 ## Module mode rules
 
-- Repository default: prefer `source-host` unless isolation or portability is a
-  real requirement.
+- Do not choose a new module mode silently. Ask for `source-host` vs
+  `source-package` when it is not specified.
 - `source-package` must stay SDK-only.
 - `source-host` may use host internals only after an SDK-first check.
 - Even in `source-host`, keep routing, actions, config, and data contracts as
   SDK-first as possible.
+- BuildForm and `TemplateBuildForm` should stay on SDK imports for normal
+  module code.
 
 ## Companion skills
 
 - `skss-module-authoring` for module implementation
-- `module-boundary-guard` for import boundary checks
 - `core-sdk-evolution` when the SDK surface is missing
 - `core-routing-runtime` for shared routing/proxy changes
 - `core-ui-systems` for shared form/datatable/i18n runtime changes
@@ -105,7 +108,7 @@ pnpm modules:i18n
 ```
 
 If a module was touched, also run the boundary checks from
-`module-boundary-guard`.
+`skss-module-authoring/references/verification.md`.
 
 ## Stop conditions
 

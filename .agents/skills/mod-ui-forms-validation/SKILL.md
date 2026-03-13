@@ -12,6 +12,7 @@ FormBuilder definitions, validation rules, server action controllers, and nav wi
 ## Required References
 
 - `docs/forms/01-form-build-system.md` — FormBuilder architecture, field types, validation layers, SDK contract
+- `docs/forms/02-sdk-vs-source-host.md` — current renderer rule inside SkitSaaS vs outside-host fallback
 - `docs/modules/03-permissions-actions.md` — `createValidatedServerActionController` pattern
 - `docs/modules/06-nav-widgets.md` — nav widget structure (UI/slot/rendering side; load `mod-routing-api-permissions` for API/permissions side)
 
@@ -109,6 +110,18 @@ const formDef = composeBuildFormDefinition(validatedCreateItemForm, {
 });
 ```
 
+## Renderer Rule
+
+Use SDK renderers only:
+
+- server-rendered module pages: prefer `TemplateBuildForm` from `@skitsaas/sdk`
+- client components and widgets: use `BuildForm` from `@skitsaas/sdk`
+- inside SkitSaaS, those SDK imports already inherit host submit/confirm/`ui.form`
+  behavior through the runtime bridge
+- outside SkitSaaS, the same imports fall back cleanly to the standalone SDK path
+
+Do not import host wrappers from `@/components/ui/*` just to get form parity.
+
 ## Field Types
 
 `hidden` | `text` | `email` | `password` | `tel` | `url` | `date` | `number` | `textarea` | `select` | `checkbox` | `repeater`
@@ -117,7 +130,11 @@ For `repeater` and `dynamicOptions` patterns, see `docs/forms/01-form-build-syst
 
 ## Nav Widgets (UI Side)
 
-Nav widgets that display forms or UI slots should be authored as module components. The widget's `widgetHandler` returns JSX that can include form definitions rendered via `BuildForm` from `@skitsaas/sdk` (portable renderer). Do not import `TemplateBuildForm` (host-only wrapper).
+Nav widgets that display forms or UI slots should be authored as module
+components. The widget's `widgetHandler` returns JSX that can include form
+definitions rendered via `BuildForm` or `TemplateBuildForm` from
+`@skitsaas/sdk`, depending on whether the widget is client- or server-rendered.
+Do not import the host wrappers under `@/components/ui/*`.
 
 For the API calls and permissions side of a nav widget, load `mod-routing-api-permissions`.
 

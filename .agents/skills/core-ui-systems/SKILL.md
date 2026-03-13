@@ -21,8 +21,12 @@ Host-side FormBuilder (registry, renderer, validation adapter), DataTable system
 | File | Purpose |
 |------|---------|
 | `app/sdk/src/forms.ts` | FormBuilder type definitions (SDK) |
-| `components/ui/build-form.tsx` | FormBuilder renderer (`'use client'`) |
-| `components/ui/template-build-form.tsx` | Server wrapper for BuildForm |
+| `app/sdk/src/ui/build-form.tsx` | Public SDK BuildForm renderer + fallback path |
+| `app/sdk/src/ui/template-build-form.tsx` | Public SDK server wrapper for host `ui.form` payload resolution |
+| `components/ui/build-form.tsx` | Host renderer implementation targeted by the SDK adapter |
+| `components/ui/template-build-form.tsx` | Host server wrapper used by core routes |
+| `components/ui/sdk-build-form-provider.tsx` | App-root bridge that delegates SDK `BuildForm` to the host renderer |
+| `lib/modules/sdk-server-bootstrap.ts` | Server bootstrap that wires BuildForm DB validation + `ui.form` template resolution |
 | `lib/forms/registry-catalog.ts` | Form metadata catalog |
 | `lib/forms/registry.ts` | Form → server action mapping |
 | `lib/forms/runtime.ts` | Field value/colSpan helpers |
@@ -32,22 +36,30 @@ Host-side FormBuilder (registry, renderer, validation adapter), DataTable system
 
 ## FormBuilder — Host Pattern
 
-Forms registered in Core must use:
+Public module-facing FormBuilder stays SDK-first:
 
-1. Factory function in `app/(dashboard)/<area>/.../forms.ts`
-2. Import + entry in `lib/forms/registry-catalog.ts`
-3. Action import + entry in `lib/forms/registry.ts`
-4. Compose using `composeRegisteredBuildFormDefinition(formId, base, options)`
+1. `BuildForm` and `TemplateBuildForm` remain imports from `@skitsaas/sdk`.
+2. The host owns the adapter provider and template resolver that upgrade those
+   SDK imports inside SkitSaaS.
+
+Forms registered in Core must then use:
+
+1. factory function in `app/(dashboard)/<area>/.../forms.ts`
+2. import + entry in `lib/forms/registry-catalog.ts`
+3. action import + entry in `lib/forms/registry.ts`
+4. compose using `composeRegisteredBuildFormDefinition(formId, base, options)`
 
 Module forms do NOT use the host registry — they use `composeBuildFormDefinition` from `@skitsaas/sdk` directly.
 
 ## Adding a New Field Type to FormBuilder
 
 1. Add type definition to `app/sdk/src/forms.ts`.
-2. Add renderer case to `components/ui/build-form.tsx`.
-3. Add normalization handling to `lib/forms/runtime.ts` if needed.
-4. Update `docs/forms/01-form-build-system.md`.
-5. Rebuild SDK: `pnpm build` in `app/sdk/`, then `pnpm install` from root.
+2. Add renderer case to `app/sdk/src/ui/build-form.tsx`.
+3. Add matching host-renderer support to `components/ui/build-form.tsx` when
+   parity inside SkitSaaS should include the richer host path.
+4. Add normalization handling to `lib/forms/runtime.ts` if needed.
+5. Update `docs/forms/01-form-build-system.md`.
+6. Rebuild SDK: `pnpm build` in `app/sdk/`, then `pnpm install` from root.
 
 ## i18n Runtime
 

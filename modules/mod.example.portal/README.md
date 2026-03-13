@@ -7,7 +7,7 @@ authenticated pages, CSS loading control, and portal-scoped API routes.
 Portals are completely independent from the marketing frontend — the middleware rewrites
 portal requests to an internal dispatcher that does not inherit `(frontend)/layout.tsx`.
 
-## What this demonstrates
+## Scope
 
 | Feature | File |
 |---|---|
@@ -23,7 +23,16 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 | Auth-required page | `portal/hub/members/page.tsx` |
 | Dynamic route `{id}` + auth | `portal/hub/members/[id]/page.tsx` |
 
-## URL structure
+## Module metadata
+
+- `moduleId`: `mod.example.portal`
+- `moduleMode`: `source-host`
+- `sourceEntry`: `src/manifest.ts`
+- `routesEntry`: `src/routes.ts`
+- `portalInit`: `src/portal-init.ts`
+- `sdkRange`: `^1.5.0`
+
+## Routes and endpoints
 
 ```
 /hub                  → home (public)
@@ -34,7 +43,12 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 /api/hub/members/{id} → API: member detail (auth required)
 ```
 
-## How to enable
+## Config and env
+
+- No module-specific env matrix is required for this example.
+- Runtime behavior is driven by the portal metadata declared in `src/portal-init.ts`.
+
+## Tests and validation
 
 ```bash
 pnpm modules:prepare
@@ -100,6 +114,16 @@ GET /hub/members
 Direct access to `/portal-internal/*` returns 404. The portal pages are served under `app/(portal)/`,
 which does NOT inherit the `(frontend)` marketing layout.
 
+## Templates and CTC
+
+- This example does not declare a module `templatePack`.
+- It demonstrates portable SDK UI inside a portal page (`DataTable` and `TemplateBuildForm`).
+
+## Database and migrations
+
+- No module-owned DB tables.
+- No module migrations.
+
 ## File structure
 
 ```
@@ -130,3 +154,9 @@ mod.example.portal/
 | `src/portal-init.ts` | Node.js (server) | Registers page components via `.page()` and portal metadata via `.register()` |
 
 Never import `portal-init.ts` from edge files. Never call `.page()` or `.register()` from `routes.ts`.
+
+## Troubleshooting
+
+- If `/hub/*` does not resolve, run `pnpm modules:prepare` and confirm `module.json` still declares both `routesEntry` and `portalInit`.
+- If a protected page becomes public, verify every `.page()` path in `src/portal-init.ts` still has a matching named route in `src/routes.ts`.
+- If the post-login redirect changes unexpectedly, verify `redirectRoles` or `isDefaultPortal` in `src/portal-init.ts`.
