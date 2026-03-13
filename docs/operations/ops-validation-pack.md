@@ -32,9 +32,10 @@ Run locally or in staging with DB access:
 3. Theme runtime determinism tests:
    - `npx tsx --test tests/theme/theme-runtime.test.ts`
 
-Optional parity safety check:
+Legacy note:
 
-- `pnpm restructure:parity`
+- `pnpm restructure:parity` is retired after the contract cleanup.
+- Use `pnpm restructure:canary` for ongoing drift/health detection instead.
 
 ## 4) UI route checklist (manual)
 
@@ -54,15 +55,23 @@ Capture new snapshots and record date/location if behavior changed.
 
 ## 5) Module enable/disable validation (staging)
 
-The registry includes `ops.diagnostics` for runtime checks. It is not enabled by default.
+This repo ships the built-in `ops.diagnostics` module in the core registry for
+admin runtime smoke checks. It exposes `/admin/modules/ops.diagnostics` when the
+row is enabled in `app_modules`.
 
 Example SQL (staging only):
 
 ```sql
 insert into app_modules (module_id, version, status, install_mode, installed_at, enabled_at, created_at, updated_at)
-values ('ops.diagnostics', '1.0.0', 'enabled', 'plugin', now(), now(), now(), now())
+values ('ops.diagnostics', '1.0.0', 'enabled', 'core', now(), now(), now(), now())
 on conflict (module_id)
-do update set status = 'enabled', enabled_at = now(), updated_at = now();
+do update set
+  version = '1.0.0',
+  status = 'enabled',
+  install_mode = 'core',
+  enabled_at = now(),
+  disabled_at = null,
+  updated_at = now();
 ```
 
 Optional helper script:
@@ -71,6 +80,22 @@ Optional helper script:
 npx tsx scripts/restructure-toggle-ops-module.ts enable
 npx tsx scripts/restructure-toggle-ops-module.ts disable
 ```
+
+Prefer the helper when possible because it validates `MODULE_ID` against the
+registry and derives the manifest version/install mode automatically.
+
+To validate a different module instead:
+
+```
+MODULE_ID=<real-module-id> MODULE_VERSION=<module-version> npx tsx scripts/restructure-toggle-ops-module.ts enable
+MODULE_ID=<real-module-id> npx tsx scripts/restructure-toggle-ops-module.ts disable
+```
+
+Requirements for `<real-module-id>`:
+
+- module must exist in the registry
+- prefer the manifest version for `MODULE_VERSION`
+- use a module with `dashboardPage` only if you also want dashboard dispatcher validation
 
 Validation steps:
 
@@ -85,6 +110,8 @@ where module_id = 'ops.diagnostics';
 ```
 
 4. Confirm nav entry disappears and route returns 404.
+5. If you also need dashboard dispatcher coverage, repeat the same flow with a
+   real registered module that exposes `/dashboard/modules/<real-module-id>`.
 
 ## 6) Theme policy and override validation
 

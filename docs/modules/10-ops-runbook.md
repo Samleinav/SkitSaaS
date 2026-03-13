@@ -7,11 +7,15 @@ sidebar_position: 10
 
 ## Enable or disable a module
 
-Use SQL (or an admin script if you add one):
+For quick admin dispatcher smoke checks, use the built-in `ops.diagnostics`
+module from the core registry.
+
+If the `app_modules` row does not exist yet, run `pnpm modules:sync` first or
+use the helper script below.
 
 ```sql
 update app_modules
-set status = 'enabled', enabled_at = now(), updated_at = now()
+set status = 'enabled', enabled_at = now(), disabled_at = null, updated_at = now()
 where module_id = 'ops.diagnostics';
 ```
 
@@ -21,6 +25,23 @@ Disable:
 update app_modules
 set status = 'disabled', updated_at = now()
 where module_id = 'ops.diagnostics';
+```
+
+Helper script:
+
+```bash
+npx tsx scripts/restructure-toggle-ops-module.ts enable
+npx tsx scripts/restructure-toggle-ops-module.ts disable
+```
+
+The helper validates the target module against the registry and derives the
+default version/install mode from the manifest.
+
+To target a different registered module instead:
+
+```bash
+MODULE_ID=<real-module-id> MODULE_VERSION=<module-version> npx tsx scripts/restructure-toggle-ops-module.ts enable
+MODULE_ID=<real-module-id> npx tsx scripts/restructure-toggle-ops-module.ts disable
 ```
 
 ## Sync app_modules
@@ -56,12 +77,13 @@ This checks registry vs DB state and surfaces missing manifests or invalid statu
 
 ## Dispatcher smoke
 
-Admin and dashboard module pages should 404 when disabled.
+`ops.diagnostics` only ships an admin page. Its admin route should 404 when
+disabled.
 
 Suggested checks:
 
 - `/admin/modules/ops.diagnostics`
-- `/dashboard/modules/ops.diagnostics`
+- `/dashboard/modules/<real-module-id>` when you explicitly choose a module that defines `dashboardPage`
 
 ## Evidence
 
