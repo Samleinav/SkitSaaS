@@ -1,14 +1,12 @@
 /**
  * Route definitions for mod.example.portal — EDGE-SAFE.
  *
- * This file is imported by lib/routing/all-routes.ts (middleware/edge context).
+ * This file is imported by lib/routing/all-routes.generated.ts (middleware/edge context)
+ * after `pnpm modules:prepare` picks up `module.json.routesEntry`.
  * It only defines proxy chains and route names — no React components, no handlers.
  *
- * To enable middleware proxy enforcement, uncomment this module in:
- *   lib/routing/all-routes.ts
- *
- * To register portal pages for the Node.js dispatcher, see portal-init.ts and:
- *   lib/portals/all-portals.ts
+ * To register portal pages for the Node.js dispatcher, pair this file with
+ * `portal-init.ts` and declare both `routesEntry` and `portalInit` in `module.json`.
  *
  * URL structure:
  *   /hub             → home  (public)
@@ -20,7 +18,7 @@
 import '@/lib/routing/area-setup'; // must be first
 import { RoutePortal, RouteApiPortal } from '@skitsaas/sdk';
 import { EXAMPLE_PORTAL_NAME } from './constants';
-// import { proxyRoles } from '@/lib/routing/proxies'; // uncomment to add role enforcement
+// import { proxyRoles } from '@/lib/routing/proxies'; // optional: add role enforcement
 
 // ---------------------------------------------------------------------------
 // Page routes

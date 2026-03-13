@@ -10,7 +10,10 @@ sidebar_position: 3
 Admin dispatcher uses `requireAdminAccess()` before resolving the module. This ensures:
 
 - user is authenticated
-- user role is `owner` or `admin`
+- user satisfies `enrichUser(user).isAdmin()`
+
+In the current default host config that means global `users.role='admin'`.
+If your deployment customizes `adminAreaRoles`, the dispatcher follows that config.
 
 If you need extra checks (team membership, feature flags, plan gates), enforce inside the module handler.
 
@@ -28,27 +31,29 @@ Validate inside the module handler or in a shared helper.
 
 ## API modules
 
-API dispatcher does **not** apply any guard. You must authenticate in `apiHandler`.
+API dispatcher does **not** apply a blanket guard by itself. Access is defined by
+the module contract you choose:
+
+- preferred: typed `apiRoutes` entries with `RouteApi(...).auth('user' | 'admin')`
+- legacy: `apiHandler` created with `createModuleApiRouter(...)`
 
 Example:
 
 ```ts
-import { createModuleApiRouter } from '@skitsaas/sdk/server';
+import { RouteApi } from '@skitsaas/sdk';
 
-export const apiHandler = createModuleApiRouter({
-  routes: [
-    {
-      method: 'POST',
-      path: '/admin-sync',
-      auth: 'admin',
-      handler: () => Response.json({ ok: true })
-    }
-  ]
-});
+const AdminSyncRoute = RouteApi('/modules/mod.analytics/admin-sync')
+  .POST()
+  .auth('admin')
+  .name('mod.analytics.api.admin-sync');
+
+export const apiRoutes = [
+  AdminSyncRoute.handler(() => Response.json({ ok: true }))
+];
 ```
 
 For custom permission checks (ownership, team membership, quotas), use
-`canAccess` or validate directly in `handler`.
+route `.proxy([...])`, legacy `canAccess`, or validate directly in `handler`.
 
 ## Server actions
 

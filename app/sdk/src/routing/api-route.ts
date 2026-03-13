@@ -83,7 +83,7 @@ export type ApiRouteEntry = {
    * Requires configureApiAuthProxies({ roleCheck }) to be configured.
    *
    * @example
-   * RouteApi('/api/modules/mod.x/owner-reports').GET().auth('user').roles('owner', 'teacher')
+   * RouteApi('/modules/mod.x/owner-reports').GET().auth('user').roles('owner', 'teacher')
    */
   roles?: string[];
   rateLimitConfig?: RateLimitConfig;
@@ -464,7 +464,7 @@ export class ApiMethodRouteBuilder {
    * Rate limit runs first in the proxy chain (before auth — cheapest check first).
    *
    * @example
-   * RouteApi('/api/modules/mod.x/export').POST().auth('user').rateLimit({
+   * RouteApi('/modules/mod.x/export').POST().auth('user').rateLimit({
    *   limit: 10, windowSeconds: 60
    * })
    *
@@ -514,7 +514,7 @@ export class ApiMethodRouteBuilder {
    * Requires configureApiAuthProxies({ roleCheck }) in area-setup.ts.
    *
    * @example
-   * RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+   * RouteApi('/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
    */
   roles(...allowedRoles: string[]): ApiMethodRouteBuilder {
     return new ApiMethodRouteBuilder(
@@ -532,7 +532,7 @@ export class ApiMethodRouteBuilder {
    * Returns `this` for chaining.
    *
    * @example
-   * RouteApi('/api/modules/mod.x/users').GET().auth('user').name('mod.x.api.users.list')
+   * RouteApi('/modules/mod.x/users').GET().auth('user').name('mod.x.api.users.list')
    * route('mod.x.api.users.list') // '/api/modules/mod.x/users'
    */
   name(routeName: string): this {

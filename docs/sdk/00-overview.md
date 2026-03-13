@@ -236,7 +236,7 @@ Host shortcut: `lib/auth/current-user.ts` → `getCurrentUser(): Promise<RichUse
 **Multi-role API routing** — restrict an endpoint to specific roles:
 
 ```ts
-RouteApi('/api/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
+RouteApi('/modules/mod.school/reports').GET().auth('user').roles('owner', 'teacher')
 ```
 
 Requires `configureApiAuthProxies({ roleCheck: (roles) => proxyApiRoles(roles) })` in `lib/routing/area-setup.ts` (already configured by default).
@@ -625,32 +625,34 @@ Declarative route registration for module API and module pages:
 
 ```ts
 import {
-  createModuleApiRouter,
   createModulePageRouter
 } from '@skitsaas/sdk/server';
+import { defineModule, RouteApi } from '@skitsaas/sdk';
 
-export const apiHandler = createModuleApiRouter({
-  routes: [
-    {
-      method: 'GET',
-      path: '/health',
-      handler: () => Response.json({ ok: true })
-    },
-    {
-      method: 'POST',
-      path: '/items',
-      auth: 'user',
-      roles: ['admin', 'owner'],
-      handler: ({ user }) => Response.json({ ok: true, userId: user?.id })
-    }
-  ]
-});
+const ApiRoutes = {
+  health: RouteApi('/modules/mod.analytics/health').GET().name('mod.analytics.api.health'),
+  create: RouteApi('/modules/mod.analytics/items')
+    .POST()
+    .auth('admin')
+    .name('mod.analytics.api.items.create'),
+};
 
 export const dashboardPage = createModulePageRouter({
   routes: [
     { path: '/', handler: () => <div>Home</div> },
     { path: '/items/:itemId', auth: 'user', handler: ({ params }) => params.itemId }
   ]
+});
+
+export default defineModule({
+  moduleId: 'mod.analytics',
+  version: '1.0.0',
+  displayName: 'Analytics',
+  apiRoutes: [
+    ApiRoutes.health.handler(() => Response.json({ ok: true })),
+    ApiRoutes.create.handler(() => Response.json({ ok: true }, { status: 201 })),
+  ],
+  dashboardPage,
 });
 ```
 
@@ -666,7 +668,7 @@ import { and, eq, pgTable, serial, varchar } from '@skitsaas/sdk/db';
   - `MAJOR`: breaking SDK API/contract changes for modules.
   - `MINOR`: backwards-compatible feature additions.
   - `PATCH`: backwards-compatible fixes only.
-- Modules should declare `sdkRange` in `module.json` (for example `^0.1.0`).
+- Modules should declare `sdkRange` in `module.json` (for example `^1.3.5`).
 - `source-package` modules should keep `react`, `react-dom`, `next`,
   `@skitsaas/sdk` aligned as peers.
 - `pnpm modules:build` runs in strict compatibility mode by default and validates

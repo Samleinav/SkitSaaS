@@ -108,14 +108,10 @@ export default defineModule({
   adminNavItems: [],
   dashboardNavItems: [],
 
-  adminRouteAliases: {},
-  dashboardRouteAliases: {},
+  adminRouteAliases: [],
+  dashboardRouteAliases: [],
 
   eventHandlers: [],
-
-  adminPageHandler: undefined,
-  dashboardPageHandler: undefined,
-  apiHandler: undefined,
 });
 ```
 
@@ -133,8 +129,8 @@ pnpm modules:sync        # upserts app_modules rows
 
 For a single module during development:
 ```bash
-pnpm modules:build --module=mod.<id>
-pnpm modules:migrate --module=mod.<id>
+pnpm modules:build -- --module=mod.<id>
+pnpm modules:migrate -- --module=mod.<id>
 ```
 
 ## Boundary Check (Run Before Every Commit)

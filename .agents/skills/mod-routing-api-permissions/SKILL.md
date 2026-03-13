@@ -15,7 +15,7 @@ Module routes (admin + dashboard + API), permissions, server actions, rate limit
 - `docs/modules/03-permissions-actions.md` — permissions model, server actions, rate limiting
 - `docs/modules/06-nav-widgets.md` — nav items + widgets (load `mod-ui-forms-validation` for UI/rendering side)
 - `docs/modules/07-api-modules.md` — API dispatcher contract
-- `docs/sdk/00-overview.md` — `createModuleApiRouter`, `createModulePageRouter`, `withRateLimit`, route factories
+- `docs/sdk/00-overview.md` — `RouteApi`, `createModulePageRouter`, `withRateLimit`, route factories
 
 ## Boundary Rules
 
@@ -26,7 +26,8 @@ FORBIDDEN:
   getCurrentFeatureControllerByScope  (host-only)
   adminAction, dashboardAction        (host-only controllers)
 
-REQUIRED for API routes:    createModuleApiRouter      → @skitsaas/sdk/server
+PREFERRED for API routes:   RouteApi + apiRoutes       → @skitsaas/sdk / manifest.ts
+ALLOWED legacy API router:  createModuleApiRouter      → @skitsaas/sdk/server
 REQUIRED for page routes:   createModulePageRouter     → @skitsaas/sdk/server
 REQUIRED for server actions: createValidatedServerActionController → @skitsaas/sdk/server
 REQUIRED for rate limiting: withRateLimit, checkRateLimit → @skitsaas/sdk
@@ -42,28 +43,39 @@ Modules are served at:
 
 Use `adminRouteAliases` / `dashboardRouteAliases` in manifest for friendly URLs.
 
-## API Handler
+## API Routes
 
 ```ts
-import { createModuleApiRouter } from '@skitsaas/sdk/server';
+// src/routes.ts
+import { RouteApi } from '@skitsaas/sdk';
 
-export const apiHandler = createModuleApiRouter({
-  routes: [
-    {
-      method: 'GET',
-      path: '/health',
-      handler: () => Response.json({ ok: true })
-    },
-    {
-      method: 'POST',
-      path: '/items',
-      auth: 'user',              // 'none' | 'user' | 'admin'
-      roles: ['admin', 'owner'], // optional extra role check
-      handler: async ({ user, params, body }) => {
-        return Response.json({ ok: true });
-      }
-    }
-  ]
+const BASE = '/modules/mod.<id>';
+
+export const ModuleApiRoutes = {
+  health: RouteApi(`${BASE}/health`).GET().name('mod.<id>.api.health'),
+  create: RouteApi(`${BASE}/items`)
+    .POST()
+    .auth('admin')
+    .rateLimit({ limit: 10, windowSeconds: 60 })
+    .name('mod.<id>.api.items.create'),
+} as const;
+```
+
+```ts
+// src/manifest.ts
+import { defineModule } from '@skitsaas/sdk';
+import { ModuleApiRoutes } from './routes';
+
+export default defineModule({
+  moduleId: 'mod.<id>',
+  version: '0.1.0',
+  displayName: 'Module',
+  apiRoutes: [
+    ModuleApiRoutes.health.handler(() => Response.json({ ok: true })),
+    ModuleApiRoutes.create.handler(async () => {
+      return Response.json({ ok: true }, { status: 201 });
+    }),
+  ],
 });
 ```
 
@@ -103,9 +115,10 @@ export const createItemAction = controller.action(async ({ values }) => {
 ```ts
 import { withRateLimit } from '@skitsaas/sdk';
 
-// Inside API handler:
-const limited = await withRateLimit('mod.<id>.endpoint', clientIp, { max: 10, windowMs: 60_000 });
-if (!limited.ok) return Response.json({ error: 'rate_limit' }, { status: 429 });
+export const POST = withRateLimit(
+  { limit: 10, windowSeconds: 60 },
+  async () => Response.json({ ok: true })
+);
 ```
 
 ## Nav Items and Route Aliases
@@ -113,10 +126,10 @@ if (!limited.ok) return Response.json({ error: 'rate_limit' }, { status: 429 });
 In manifest:
 
 ```ts
-adminNavItems: [{ label: 'Items', href: '/admin/my-module', icon: 'list' }],
-adminRouteAliases: { '/admin/my-module': '/' },
-dashboardNavItems: [{ label: 'Items', href: '/dashboard/my-module', icon: 'list' }],
-dashboardRouteAliases: { '/dashboard/my-module': '/' },
+adminNavItems: [{ id: 'mod.<id>.admin.nav', label: 'Items', href: '/admin/my-module' }],
+adminRouteAliases: ['/admin/my-module'],
+dashboardNavItems: [{ id: 'mod.<id>.dashboard.nav', label: 'Items', href: '/dashboard/my-module' }],
+dashboardRouteAliases: ['/dashboard/my-module'],
 ```
 
 Rules:

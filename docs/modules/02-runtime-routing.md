@@ -161,7 +161,8 @@ Use `RouteApi(...).METHOD()` in `routes.ts` (edge-safe) and attach handlers in `
 ```ts
 import { RouteApi } from '@skitsaas/sdk'
 
-const BASE = '/api/modules/mod.my-feature'
+// RouteApi() prepends the API base automatically (default '/api').
+const BASE = '/modules/mod.my-feature'
 
 export const MyApiRoutes = {
   health: RouteApi(`${BASE}/health`).GET().name('my-feature.api.health'),

@@ -14,11 +14,12 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 | `RoutePortal` factory + `.name()` | `src/routes.ts` |
 | `RouteApiPortal` scoped API builder | `src/routes.ts` |
 | `.page()` + `.register()` (Node.js context) | `src/portal-init.ts` |
-| `isDefaultPortal: true` (post-login redirect) | `src/portal-init.ts` |
+| `redirectRoles: ['hubrole']` (post-login redirect) | `src/portal-init.ts` |
 | `coreCss` option (core CSS loading control) | `src/portal-init.ts` |
 | `module.json` auto-registration fields | `module.json` |
 | Portal layout with `PortalLayoutProps` | `portal/hub/layout.tsx` |
 | Public page (no auth) | `portal/hub/home/page.tsx` |
+| Public registration page with SDK form/table | `portal/hub/register/page.tsx` |
 | Auth-required page | `portal/hub/members/page.tsx` |
 | Dynamic route `{id}` + auth | `portal/hub/members/[id]/page.tsx` |
 
@@ -26,6 +27,7 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 
 ```
 /hub                  → home (public)
+/hub/register         → registration (public)
 /hub/members          → member list (auth required)
 /hub/members/{id}     → member detail (auth required + dynamic param)
 /api/hub/members      → API: list members (auth required)
@@ -72,13 +74,14 @@ When `userTheme` is set to a theme ID string, CSS is managed entirely by the the
 
 ## Post-login redirect
 
-`isDefaultPortal: true` is set in `src/portal-init.ts`, so all authenticated non-admin users
-are redirected to `/hub` after login. To restrict to a specific role instead, replace it with:
+`redirectRoles: ['hubrole']` is set in `src/portal-init.ts`, so users with role `hubrole`
+are redirected to `/hub` after login. To make the portal the global fallback for all
+authenticated non-admin users instead, replace it with:
 
 ```ts
 HubRoute.register({
   ...
-  redirectRoles: ['member'],  // only users with role 'member' → /hub after login
+  isDefaultPortal: true,
 });
 ```
 
@@ -106,6 +109,7 @@ mod.example.portal/
     constants.ts            ← module ID + portal name ('hub')
     routes.ts               ← EDGE: RoutePortal + RouteApiPortal + .name()
     portal-init.ts          ← NODE.JS: .page() + .register()
+    forms.ts                ← shared form definition for /hub/register
     manifest.ts             ← defineModule()
   portal/
     hub/

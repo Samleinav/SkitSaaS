@@ -45,7 +45,7 @@ Four areas are available from `@skitsaas/sdk`:
 
 | Factory | Default prefix | Default proxies |
 |---------|----------------|----------------|
-| `RouteAdmin(path)` | `/admin` | `proxyAdmin` (session + DB admin/owner role) |
+| `RouteAdmin(path)` | `/admin` | `proxyAdmin` (session + `adminAreaRoles`) |
 | `RouteDashboard(path)` | `/dashboard` | `proxyAuth` (session + DB active user) |
 | `RouteFrontend(path)` | *(none)* | none |
 | `RouteApi(path)` | `/api` | none — use `.GET()/.POST()/.auth()` on the returned `ApiRouteBuilder` |
@@ -204,7 +204,7 @@ Each module defines its own routes file. Modules import only from `@skitsaas/sdk
 import { RouteAdmin, RouteDashboard, RouteApi } from '@skitsaas/sdk'
 
 const ADMIN_BASE = '/custom/my-feature'
-const API_BASE = '/api/modules/mod.my-feature'
+const API_BASE = '/modules/mod.my-feature'
 
 // Page routes (admin + dashboard)
 export const MyFeatureRoutes = {
@@ -227,15 +227,24 @@ export const MyFeatureApiRoutes = {
 } as const
 ```
 
-Module routes do **not** need to import `area-setup`. The host runs it via `all-routes.ts → core/routes.ts` before any module routes are evaluated.
+When a module route file is imported through the host bootstrap, `area-setup`
+is already configured.
 
-To include a module's proxy chains in `proxy.ts`, add the import to `lib/routing/all-routes.ts`:
+- `source-host` examples in this repo may still keep
+  `import '@/lib/routing/area-setup'` as a defensive first import.
+- `source-package` modules must not import host internals and should rely on
+  the host bootstrap to configure route/auth defaults before their routes load.
 
-```ts
-// lib/routing/all-routes.ts
-import '@/core/routes'
-import '@/../modules/mod.my-feature/src/routes'  // add this line
+To include a module's proxy chains in `proxy.ts`, prefer declaring
+`routesEntry` in `module.json` and then running `pnpm modules:prepare`:
+
+```json
+{
+  "routesEntry": "src/routes.ts"
+}
 ```
+
+This generates the import in `lib/routing/all-routes.generated.ts`.
 
 ## Proxy chain architecture
 
@@ -260,9 +269,9 @@ type RouteProxyFn = (request: NextRequest) => Promise<NextResponse | null>
 
 | Proxy | Use | Auth failure |
 |-------|-----|--------------|
-| `proxyAdmin` | Page routes needing admin/owner session | Redirect `/admin/login` |
+| `proxyAdmin` | Page routes needing an admin session (`adminAreaRoles`) | Redirect `/admin/login` |
 | `proxyAuth` | Page routes needing any active session | Redirect `/sign-in` |
-| `proxyApiAdmin` | API routes needing admin/owner session | `403 Forbidden` JSON |
+| `proxyApiAdmin` | API routes needing an admin session (`adminAreaRoles`) | `403 Forbidden` JSON |
 | `proxyApiAuth` | API routes needing any active session | `401 Unauthorized` JSON |
 
 All four live in `lib/routing/proxies.ts`.
@@ -294,7 +303,7 @@ For module API routes, use the `ApiMethodRouteBuilder` pattern. `RouteApi('/path
 ```ts
 import { RouteApi } from '@skitsaas/sdk'
 
-const BASE = '/api/modules/mod.my-feature'
+const BASE = '/modules/mod.my-feature'
 
 export const MyFeatureApiRoutes = {
   list:   RouteApi(`${BASE}/items`).GET().auth('user').name('my-feature.api.items.list'),
@@ -468,7 +477,18 @@ import '@/lib/routing/area-setup'
 import { RouteAdmin, RouteDashboard } from '@skitsaas/sdk'
 ```
 
-Module `routes.ts` files do **not** need this. `lib/routing/all-routes.ts` imports `core/routes.ts` first, so by the time any module's routes.ts is evaluated, area defaults are already configured.
+For `source-host` route files, a common defensive pattern is:
+
+```ts
+import '@/lib/routing/area-setup'
+```
+
+That import is defensive rather than strictly required when the file is loaded
+through `lib/routing/all-routes.ts`.
+
+`source-package` modules must not use that import. They stay SDK-only and rely
+on the host bootstrap to configure route defaults before the module route file
+is evaluated.
 
 ## TypeScript type safety
 
@@ -490,12 +510,12 @@ Routes.admin.users            // ✅ RouteBuilder "/admin/users"
 2. Add to `core/routes.ts` (core) or `modules/<id>/src/routes.ts` (module — SDK only, no `@/lib/` imports).
 3. Call `.name('area.section.action')` — use dotted namespacing.
 4. If the route needs extra proxies (feature flags, etc.), chain `.proxy([...])` before `.name()`.
-5. For modules: add the import to `lib/routing/all-routes.ts` so proxy chains are registered.
+5. For modules: declare `"routesEntry": "src/routes.ts"` in `module.json` and run `pnpm modules:prepare` so proxy chains are registered.
 6. Use `Routes.area.section` in JSX hrefs — never hardcode strings.
 
 **API routes (module):**
 
-1. Use `RouteApi('/api/modules/<moduleId>/path').GET()` (or `.POST()`, `.PUT()`, etc.).
+1. Use `RouteApi('/modules/<moduleId>/path').GET()` (or `.POST()`, `.PUT()`, etc.).
 2. Chain `.auth('user' | 'admin')`, `.rateLimit({...})`, `.proxy([...])` as needed.
 3. Call `.name('mod.x.api.section.action')` for named URL access.
 4. Add to `modules/<id>/src/routes.ts` (routes.ts is edge-safe — no handler imports).

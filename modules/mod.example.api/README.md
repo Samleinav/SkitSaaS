@@ -1,27 +1,32 @@
 # mod.example.api
 
-Example source-host module that exposes a minimal module API endpoint.
+Example source-host module that exposes a typed module API surface.
 
 ## Scope
 
-- Demonstrates `apiHandler` registration through `createModuleApiRouter`.
-- Exposes one test endpoint for runtime/dispatcher checks.
+- Demonstrates `RouteApi(...).METHOD().name()` metadata in `src/routes.ts`.
+- Demonstrates `apiRoutes` handler attachment in `src/manifest.ts`.
+- Exposes public, authenticated, and admin-only endpoints for runtime checks.
 
 ## Module metadata
 
 - `moduleId`: `mod.example.api`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^0.1.0`
+- `sdkRange`: `^1.3.5`
 
 ## API routes
 
 - Canonical module API base:
   - `/api/modules/mod.example.api/*`
-- Implemented endpoint:
+- Implemented endpoints:
   - `GET /api/modules/mod.example.api/test`
+  - `GET /api/modules/mod.example.api/status`
+  - `POST /api/modules/mod.example.api/items`
+  - `GET /api/modules/mod.example.api/items/{id}`
+  - `DELETE /api/modules/mod.example.api/items/{id}`
 
-Sample response:
+Sample response for `GET /api/modules/mod.example.api/test`:
 
 ```json
 {
@@ -61,4 +66,5 @@ npx tsx --test tests/modules/module-runtime.test.ts
 ## Troubleshooting
 
 - If endpoint returns module not found, confirm module is enabled in `app_modules`.
+- If an authenticated endpoint is unexpectedly public, verify the route metadata in `src/routes.ts` still uses `.auth('user')` or `.auth('admin')`.
 - If endpoint path is not reachable, verify dispatcher route `app/api/modules/[moduleId]/[[...slug]]/route.ts` is active and module runtime flags are enabled.

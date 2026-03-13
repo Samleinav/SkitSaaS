@@ -13,8 +13,9 @@
  *   route('example.admin.home')                   // "/admin/custom/example-suite"
  *   route('example.admin.edit', { id: 5 })        // "/admin/custom/example-suite/edit/5"
  *
- * To enable per-route proxy chains in proxy.ts, uncomment this module's
- * import line in lib/routing/all-routes.ts.
+ * If this module later needs proxy.ts to enforce custom per-route extras,
+ * declare `routesEntry: "src/routes.ts"` in module.json and run
+ * `pnpm modules:prepare`.
  */
 import '@/lib/routing/area-setup'; // must be first — ensures proxyAdmin/proxyAuth are configured
 import { RouteAdmin, RouteDashboard } from '@skitsaas/sdk';

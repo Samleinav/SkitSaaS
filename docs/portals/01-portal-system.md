@@ -375,7 +375,7 @@ Each module registers its own portal independently. They coexist without conflic
 ```
 /school            → mod.school (standalone, role: teacher)
 /guardian          → mod.guardian (standalone, role: guardian)
-/hub               → mod.example.portal (standalone, isDefaultPortal: true)
+/hub               → mod.example.portal (standalone, redirectRoles: ['hubrole'])
 /dashboard/support → mod.support (dashboard area, role: support-agent)
 ```
 

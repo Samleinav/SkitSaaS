@@ -52,7 +52,9 @@ export const SCHOOL_PORTAL_NAME = 'school';
 ### 3. Create `src/routes.ts` (edge-safe)
 
 Rules:
-- First line must be `import '@/lib/routing/area-setup';`
+- `source-host`: first line should be `import '@/lib/routing/area-setup';`
+- `source-package`: do not import host internals; rely on the host bootstrap
+  and keep the rest of this file SDK-only
 - Only imports from `@skitsaas/sdk`, `@/lib/routing/proxies`, and module-local `./constants`
 - No React imports, no DB imports, no `portal-init` imports
 - `.auth()` = any logged-in user; `.proxy([proxyRoles(['role'])])` = role-restricted
@@ -249,7 +251,7 @@ is thrown before the page renders.
 | Calling `.page()` from `routes.ts` | Move `.page()` calls to `portal-init.ts` |
 | Importing `portal-init.ts` from `routes.ts` | These are in separate runtimes — never cross-import |
 | Folder named `_portal` or `_anything` in `app/` | Next.js treats `_` prefixed folders as private (no route generated) |
-| Forgetting `import '@/lib/routing/area-setup'` as first line in `routes.ts` | SDK area defaults are not injected → `.auth()` fails |
+| `source-host`: forgetting `import '@/lib/routing/area-setup'` as first line in `routes.ts` | SDK area defaults are not injected → `.auth()` fails |
 | `HubRoute('')` path ends in trailing slash `/hub/` | Fixed in SDK: trailing slashes are trimmed automatically |
 | Not running `pnpm modules:prepare` after editing `module.json` | Generated files not updated → portal not registered |
 | Setting `redirectRoles` but forgetting `proxyRoles` | User is redirected to portal but has no access (infinite redirect loop risk) |

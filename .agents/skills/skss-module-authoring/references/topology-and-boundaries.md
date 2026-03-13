@@ -55,8 +55,11 @@ Exception policy:
 
 ## Routes, proxies, and rate limits
 
-- Keep `import '@/lib/routing/area-setup'` as the first line of module
-  `src/routes.ts` whenever route builders are used.
+- `source-host` route files may keep `import '@/lib/routing/area-setup'` as
+  the first line when they need host-configured `.auth()` / proxy defaults.
+- `source-package` route files must stay SDK-only and rely on the host
+  bootstrap to configure area defaults and API auth proxies before loading the
+  generated module routes.
 - `.name(...)` registers the route. Without it, the named route registry and
   portal proxy chain cannot see the route.
 - `.auth()` and `.proxy([...])` set access control for route builders.

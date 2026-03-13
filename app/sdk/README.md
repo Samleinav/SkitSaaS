@@ -27,8 +27,14 @@ Peer dependencies:
 Create a module manifest and export it as default:
 
 ```ts
-import { defineModule } from '@skitsaas/sdk';
-import { createModuleApiRouter } from '@skitsaas/sdk/server';
+import { defineModule, RouteApi } from '@skitsaas/sdk';
+
+const HelloApiRoutes = {
+  ping: RouteApi('/modules/mod.example.hello/ping')
+    .GET()
+    .auth('user')
+    .name('mod.example.hello.api.ping')
+};
 
 export default defineModule({
   moduleId: 'mod.example.hello',
@@ -41,16 +47,9 @@ export default defineModule({
   frontendRouteAliases: ['/hello'],
   frontendRouteAccess: 'public',
 
-  apiHandler: createModuleApiRouter({
-    routes: [
-      {
-        method: 'GET',
-        path: '/ping',
-        auth: 'user',
-        handler: async () => Response.json({ ok: true })
-      }
-    ]
-  })
+  apiRoutes: [
+    HelloApiRoutes.ping.handler(async () => Response.json({ ok: true }))
+  ]
 });
 ```
 

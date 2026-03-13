@@ -13,7 +13,7 @@ Example source-host module that adds a simple admin page and admin nav alias.
 - `moduleId`: `mod.example.admin`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^0.1.0`
+- `sdkRange`: `^1.3.5`
 
 ## Routes
 

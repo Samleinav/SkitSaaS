@@ -13,7 +13,7 @@ Example source-host module that demonstrates dashboard + frontend aliases and fr
 - `moduleId`: `mod.example.dashboard`
 - `moduleMode`: `source-host`
 - `sourceEntry`: `src/manifest.ts`
-- `sdkRange`: `^0.1.0`
+- `sdkRange`: `^1.3.5`
 
 ## Routes
 

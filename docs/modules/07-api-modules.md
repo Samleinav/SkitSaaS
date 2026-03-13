@@ -11,7 +11,10 @@ API modules are handled by the dispatcher route:
 /api/modules/[moduleId]/[[...slug]]
 ```
 
-The handler is defined in the manifest as `apiHandler`.
+The manifest can expose module APIs in two ways:
+
+- preferred: `apiRoutes` built from `RouteApi(...).METHOD().handler(fn)`
+- legacy: `apiHandler` from `createModuleApiRouter(...)`
 
 ## Contract
 
@@ -22,9 +25,54 @@ type ModuleApiHandler = (
 ) => Promise<Response>;
 ```
 
-Use `context.slug` to route internally, or use the SDK router helper for declarative registration.
+Use `context.slug` to route internally, or prefer typed route metadata for new modules.
 
-## Recommended: Declarative Router
+## Preferred: typed `apiRoutes`
+
+```ts
+import { RouteApi } from '@skitsaas/sdk';
+
+const BASE = '/modules/mod.example.api';
+
+export const ExampleApiRoutes = {
+  health: RouteApi(`${BASE}/health`).GET().name('mod.example.api.health'),
+  list: RouteApi(`${BASE}/items`).GET().auth('user').name('mod.example.api.items.list'),
+  create: RouteApi(`${BASE}/items`).POST().auth('admin').name('mod.example.api.items.create'),
+  update: RouteApi(`${BASE}/items/{itemId}`).PATCH().auth('user').name('mod.example.api.items.update'),
+} as const;
+```
+
+```ts
+import { defineModule } from '@skitsaas/sdk';
+import { ExampleApiRoutes } from './routes';
+
+export default defineModule({
+  moduleId: 'mod.example.api',
+  version: '0.1.0',
+  displayName: 'Example API',
+  apiRoutes: [
+    ExampleApiRoutes.health.handler(() => Response.json({ ok: true })),
+    ExampleApiRoutes.list.handler(() => Response.json({ items: [] })),
+    ExampleApiRoutes.create.handler(() => Response.json({ ok: true }, { status: 201 })),
+    ExampleApiRoutes.update.handler((_request, params) =>
+      Response.json({ itemId: params.itemId })
+    )
+  ]
+});
+```
+
+Typed route builders support:
+
+- method control (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)
+- auth policy via `.auth('none' | 'user' | 'admin')`
+- role allowlists via `.roles(...)`
+- rate limiting via `.rateLimit(...)`
+- extra proxy checks via `.proxy([...])`
+- named URL registration via `.name(...)`
+
+## Legacy: `createModuleApiRouter`
+
+Still supported for migration work and existing modules such as `mod.example.suite`.
 
 ```ts
 import { createModuleApiRouter } from '@skitsaas/sdk/server';
@@ -40,7 +88,7 @@ export const apiHandler = createModuleApiRouter({
       method: 'POST',
       path: '/items',
       auth: 'user',
-      roles: ['admin', 'owner'],
+      roles: ['admin'],
       handler: ({ user }) => Response.json({ ok: true, userId: user?.id })
     },
     {
@@ -64,10 +112,14 @@ export const apiHandler = createModuleApiRouter({
 
 ## Authentication
 
-The dispatcher does **not** apply auth by itself. Auth is your responsibility in module code.
+The dispatcher does not apply a blanket auth policy to every module API.
+Authentication and authorization come from the route contract:
 
-With `createModuleApiRouter`, use `auth` and `roles`. For domain-specific checks
-(team membership, feature gates, ownership), keep them in `canAccess` or inside the route handler.
+- typed routes: `.auth(...)`, optional `.roles(...)`, optional `.proxy([...])`
+- legacy router: `auth`, `roles`, and `canAccess`
+
+For domain-specific checks such as team membership, feature gates, or ownership,
+keep the decision in route proxies, `canAccess`, or the route handler.
 
 ## Errors
 
@@ -75,4 +127,7 @@ Return explicit status codes and JSON errors. The helper already returns default
 
 ## Next.js Note
 
-Next.js route handlers are filesystem-based (`route.ts`). There is no built-in runtime registry like Laravel `Route::...` for dynamically loaded modules. In this project, the module dispatcher + `createModuleApiRouter` is the equivalent abstraction.
+Next.js route handlers are filesystem-based (`route.ts`). There is no built-in
+runtime registry like Laravel `Route::...` for dynamically loaded modules. In
+this project, the module dispatcher plus `apiRoutes` or `createModuleApiRouter`
+is the equivalent abstraction.
