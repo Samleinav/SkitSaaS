@@ -84,12 +84,18 @@ export const validatedCreateItemForm = withBuildFormValidation(createItemForm, {
 ```ts
 // modules/mod.<id>/src/actions.ts
 'use server'
-import { createValidatedServerActionController } from '@skitsaas/sdk/server';
+import {
+  createValidatedServerActionController,
+  getAdminDb,
+  requireUser
+} from '@skitsaas/sdk/server';
 import { validatedCreateItemForm } from './forms';
 
-const controller = createValidatedServerActionController(validatedCreateItemForm);
+const withValidatedAction = createValidatedServerActionController({
+  requireUser: () => requireUser<{ id: number }>()
+});
 
-export const createItemAction = controller.action(async ({ values }) => {
+export const createItemAction = withValidatedAction(validatedCreateItemForm, async ({ values }) => {
   const db = getAdminDb<any>();
   // insert into module-owned table
   return { ok: true };

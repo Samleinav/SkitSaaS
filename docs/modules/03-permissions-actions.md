@@ -61,16 +61,24 @@ route `.proxy([...])`, legacy `canAccess`, or validate directly in `handler`.
 
 ```ts
 'use server'
-import { createValidatedServerActionController } from '@skitsaas/sdk/server'
+import {
+  createValidatedServerActionController,
+  requireUser
+} from '@skitsaas/sdk/server'
 import { myItemForm } from './forms'
 
-const controller = createValidatedServerActionController(myItemForm)
+const withValidatedAction = createValidatedServerActionController({
+  requireUser: () => requireUser<{ id: number }>()
+})
 
-export const createMyItemAction = controller.action(async ({ values }) => {
+export const createMyItemAction = withValidatedAction(myItemForm, async ({ values }) => {
   // values are validated; handle the mutation here
   return { ok: true }
 })
 ```
+
+For admin-only module mutations, pass `requireUser: () => requireAdmin<...>()`
+instead.
 
 **For core host pages** (not modules), the existing wrappers remain available:
 - Admin: `adminAction` from `app/(dashboard)/admin/controller.ts`
@@ -78,20 +86,46 @@ export const createMyItemAction = controller.action(async ({ values }) => {
 
 ## Rate limiting
 
-Apply rate limiting to module API handlers using `withRateLimit` from `@skitsaas/sdk`. Do **not** import from `@/lib/routing/rate-limit` in module code.
+For typed module `apiRoutes`, prefer `.rateLimit(...)` on `RouteApi(...).METHOD()`.
+Use `withRateLimit` from `@skitsaas/sdk` when the module still uses
+`createModuleApiRouter(...)` or a standalone handler. Do **not** import from
+`@/lib/routing/rate-limit` in module code.
 
 ```ts
-import { withRateLimit } from '@skitsaas/sdk'
+import { RouteApi, defineModule } from '@skitsaas/sdk'
 
-// Simple per-IP limit
-const rateLimitedHandler = withRateLimit(
-  { limit: 10, windowSeconds: 60 },
-  async (request) => Response.json({ ok: true })
-)
+const AdminSyncRoute = RouteApi('/modules/mod.analytics/admin-sync')
+  .POST()
+  .auth('admin')
+  .rateLimit({ limit: 10, windowSeconds: 60 })
+  .name('mod.analytics.api.admin-sync')
+
+export default defineModule({
+  moduleId: 'mod.analytics',
+  version: '1.0.0',
+  displayName: 'Analytics',
+  apiRoutes: [
+    AdminSyncRoute.handler(() => Response.json({ ok: true }))
+  ]
+})
 ```
 
 For per-plan limits see `docs/proxies/02-security.md`.
 
+Legacy/standalone handler example:
+
+```ts
+import { withRateLimit } from '@skitsaas/sdk'
+
+const rateLimitedHandler = withRateLimit(
+  { limit: 10, windowSeconds: 60 },
+  async (request, context) => Response.json({ ok: true })
+)
+```
+
 ## Recommendation
 
-For each module create a small `actions.ts` file and use `createValidatedServerActionController` for mutations. Apply `withRateLimit` from SDK on API routes that need limiting.
+For each module create a small `actions.ts` file and use
+`createValidatedServerActionController` for mutations. Prefer
+`RouteApi(...).rateLimit(...)` for typed module `apiRoutes`, and keep
+`withRateLimit` for legacy `createModuleApiRouter(...)` or standalone handlers.

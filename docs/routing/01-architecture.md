@@ -158,11 +158,19 @@ If module code needs mutations, place actions next to module feature code and us
 
 ```ts
 'use server'
-import { createValidatedServerActionController } from '@skitsaas/sdk/server'
+import {
+  createValidatedServerActionController,
+  requireUser
+} from '@skitsaas/sdk/server'
 import { myItemForm } from './forms'
 
-const controller = createValidatedServerActionController(myItemForm)
-export const createItemAction = controller.action(async ({ values }) => { ... })
+const withValidatedAction = createValidatedServerActionController({
+  requireUser: () => requireUser<{ id: number }>()
+})
+export const createItemAction = withValidatedAction(
+  myItemForm,
+  async ({ values }) => { ... }
+)
 ```
 
 Do **not** use `adminAction`/`dashboardAction` from host internals in module code — those are core-host utilities not available to SDK-only modules.

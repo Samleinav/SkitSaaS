@@ -30,7 +30,8 @@ PREFERRED for API routes:   RouteApi + apiRoutes       → @skitsaas/sdk / manif
 ALLOWED legacy API router:  createModuleApiRouter      → @skitsaas/sdk/server
 REQUIRED for page routes:   createModulePageRouter     → @skitsaas/sdk/server
 REQUIRED for server actions: createValidatedServerActionController → @skitsaas/sdk/server
-REQUIRED for rate limiting: withRateLimit, checkRateLimit → @skitsaas/sdk
+PREFERRED for typed API rate limiting: RouteApi(...).METHOD().rateLimit(...) → @skitsaas/sdk
+ALLOWED legacy/standalone rate limiting: withRateLimit, checkRateLimit → @skitsaas/sdk
 ```
 
 ## Dispatcher Routes
@@ -99,12 +100,17 @@ For module forms use `createValidatedServerActionController` (never host-only `a
 
 ```ts
 'use server'
-import { createValidatedServerActionController } from '@skitsaas/sdk/server';
+import {
+  createValidatedServerActionController,
+  requireUser
+} from '@skitsaas/sdk/server';
 import { myForm } from './forms';
 
-const controller = createValidatedServerActionController(myForm);
+const withValidatedAction = createValidatedServerActionController({
+  requireUser: () => requireUser<{ id: number }>()
+});
 
-export const createItemAction = controller.action(async ({ values }) => {
+export const createItemAction = withValidatedAction(myForm, async ({ values }) => {
   // values are already validated server-side
   return { ok: true };
 });
@@ -113,11 +119,27 @@ export const createItemAction = controller.action(async ({ values }) => {
 ## Rate Limiting
 
 ```ts
+import { RouteApi } from '@skitsaas/sdk';
+
+const BASE = '/modules/mod.<id>';
+
+export const ModuleApiRoutes = {
+  create: RouteApi(`${BASE}/items`)
+    .POST()
+    .auth('admin')
+    .rateLimit({ limit: 10, windowSeconds: 60 })
+    .name('mod.<id>.api.items.create'),
+} as const;
+```
+
+For legacy `createModuleApiRouter(...)` handlers or standalone handlers:
+
+```ts
 import { withRateLimit } from '@skitsaas/sdk';
 
-export const POST = withRateLimit(
+const rateLimitedHandler = withRateLimit(
   { limit: 10, windowSeconds: 60 },
-  async () => Response.json({ ok: true })
+  async (request, context) => Response.json({ ok: true })
 );
 ```
 
