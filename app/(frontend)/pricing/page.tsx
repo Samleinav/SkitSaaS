@@ -588,7 +588,7 @@ function PricingSection({
           {emptyLabel}
         </p>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {displayTemplates.map((template) => {
             const planRelation = classifySubscriptionPlanRelation({
               currentTemplate,
@@ -699,6 +699,8 @@ function PricingCard({
 }) {
   const checkoutEnabled = enabledPaymentMethods.length > 0;
   const isCurrentTemplate = planRelation === 'same_template';
+  const featureItems = features.length > 0 ? features : [noFeaturesLabel];
+  const hasPublicFeatures = features.length > 0;
   const checkoutDisabled =
     isCurrentTemplate || !checkoutEnabled || !selfServiceEnabled;
   const disabledLabel = isCurrentTemplate
@@ -728,7 +730,7 @@ function PricingCard({
   return (
     <div
       className={cn(
-        'marketing-panel group relative flex h-full flex-col overflow-hidden rounded-[2rem] p-6 transition duration-300',
+        'marketing-panel group relative flex h-full min-h-[34rem] flex-col overflow-hidden rounded-[2rem] p-6 transition duration-300',
         isCurrentTemplate
           ? 'border-amber-200/50 shadow-[0_26px_60px_rgba(0,0,0,0.55)]'
           : 'border-white/10 hover:-translate-y-1 hover:border-amber-200/28',
@@ -737,34 +739,39 @@ function PricingCard({
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(212,175,55,0.14),transparent_36%)]" />
       <div className="relative flex h-full flex-col">
-        <div className="flex flex-wrap items-center gap-2">
-          {planRelationLabel ? (
-            <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-amber-100 uppercase">
-              {planRelationLabel}
-            </span>
-          ) : null}
-          {discountPercent ? (
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-emerald-300 uppercase">
-              {interpolate(discountLabel, { percent: discountPercent })}
-            </span>
-          ) : null}
+        <div className="flex min-h-9 items-start justify-between gap-3">
+          <div className="flex min-h-9 flex-wrap gap-2">
+            {planRelationLabel ? (
+              <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-amber-100 uppercase">
+                {planRelationLabel}
+              </span>
+            ) : null}
+            {discountPercent ? (
+              <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-emerald-300 uppercase">
+                {interpolate(discountLabel, { percent: discountPercent })}
+              </span>
+            ) : null}
+          </div>
+
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-zinc-300 uppercase">
             {intervalLabel}
           </span>
         </div>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 flex min-h-[5.75rem] flex-col justify-start gap-3">
           <h3 className="font-[family-name:var(--font-marketing-serif)] text-3xl font-medium text-zinc-100">
             {name}
           </h3>
-          {trialDays > 0 ? (
-            <p className="text-sm leading-relaxed text-zinc-400">
-              {interpolate(trialLabel, { days: trialDays })}
-            </p>
-          ) : null}
+          <div className="min-h-[1.5rem]">
+            {trialDays > 0 ? (
+              <p className="text-sm leading-relaxed text-zinc-400">
+                {interpolate(trialLabel, { days: trialDays })}
+              </p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-6 flex min-h-[6.75rem] flex-col justify-end gap-3 border-t border-white/10 pt-6">
           <div className="flex flex-wrap items-end gap-3">
             <p className="text-5xl font-semibold tracking-tight text-zinc-100">
               {priceLabel}
@@ -780,38 +787,49 @@ function PricingCard({
           </p>
         </div>
 
-        <ul className="mt-8 space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-          {(features.length > 0 ? features : [noFeaturesLabel]).map((feature, index) => (
-            <li key={index} className="flex items-start gap-3">
-              <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-200" />
-              <span className="text-sm leading-relaxed text-zinc-300">{feature}</span>
-            </li>
-          ))}
-        </ul>
-
-        {enabledPaymentMethods.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {enabledPaymentMethods.map((method) => (
-              <span
-                key={method}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-zinc-300 uppercase"
-              >
-                {method}
-              </span>
+        <div className="mt-6 flex flex-1 flex-col">
+          <ul className="min-h-[8.75rem] space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
+            {featureItems.map((feature, index) => (
+              <li key={index} className="flex items-start gap-3">
+                <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-200" />
+                <span
+                  className={cn(
+                    'text-sm leading-relaxed',
+                    hasPublicFeatures ? 'text-zinc-300' : 'text-zinc-400'
+                  )}
+                >
+                  {feature}
+                </span>
+              </li>
             ))}
-          </div>
-        ) : null}
+          </ul>
 
-        <div className="mt-6 space-y-3">
-          {checkoutNode}
-          {!checkoutNode && !auxiliaryMessage ? (
-            <p className="text-xs leading-relaxed text-zinc-500">
-              {noPaymentConfiguredLabel}
-            </p>
-          ) : null}
-          {auxiliaryMessage ? (
-            <p className="text-xs leading-relaxed text-zinc-500">{auxiliaryMessage}</p>
-          ) : null}
+          <div className="mt-5 min-h-[2rem]">
+            {enabledPaymentMethods.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {enabledPaymentMethods.map((method) => (
+                  <span
+                    key={method}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-zinc-300 uppercase"
+                  >
+                    {method}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-auto pt-6 space-y-3">
+            {checkoutNode}
+            {!checkoutNode && !auxiliaryMessage ? (
+              <p className="text-xs leading-relaxed text-zinc-500">
+                {noPaymentConfiguredLabel}
+              </p>
+            ) : null}
+            {auxiliaryMessage ? (
+              <p className="text-xs leading-relaxed text-zinc-500">{auxiliaryMessage}</p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { useI18n } from '@skitsaas/sdk';
-import { Boxes, Check, UserRound, Users } from 'lucide-react';
 
 type TemplateProps = {
   data?: Record<string, unknown>;
@@ -32,14 +31,6 @@ type ResolvedOverviewItem = {
   label: string;
   value: string;
   hint?: string;
-};
-
-type DemoPricingCard = {
-  title: string;
-  priceLabel: string;
-  footerKey: string;
-  noteKeys: readonly string[];
-  descriptionKey?: string;
 };
 
 function asNonEmptyString(value: unknown, fallback: string) {
@@ -216,92 +207,6 @@ function resolveOverviewItem(
   return null;
 }
 
-function DemoPricingSection({
-  id,
-  icon,
-  title,
-  description,
-  cards,
-  t
-}: {
-  id: string;
-  icon: ReactNode;
-  title: string;
-  description: string;
-  cards: readonly DemoPricingCard[];
-  t: (key: string) => string;
-}) {
-  return (
-    <section id={id} className="space-y-6">
-      <div className="max-w-3xl space-y-3">
-        <span className="inline-flex items-center gap-2 rounded-full border border-amber-200/20 bg-amber-200/10 px-4 py-1 text-[11px] font-medium tracking-[0.2em] text-amber-100 uppercase">
-          {icon}
-          {title}
-        </span>
-        <p className="text-sm leading-relaxed text-zinc-400 sm:text-base">
-          {description}
-        </p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {cards.map((card, index) => (
-          <article
-            key={`${id}:${card.title}`}
-            className="theme-first-frontend-panel relative overflow-hidden rounded-[1.75rem] p-6"
-          >
-            <div
-              className={`pointer-events-none absolute -right-10 -top-8 h-28 w-28 rounded-full blur-3xl ${
-                index === 0
-                  ? 'bg-amber-200/12'
-                  : index === 1
-                    ? 'bg-yellow-100/10'
-                    : 'bg-orange-200/10'
-              }`}
-            />
-
-            <div className="relative flex h-full flex-col">
-              <div className="space-y-3">
-                <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-                  {title}
-                </p>
-                <h3 className="font-[family-name:var(--font-marketing-serif)] text-3xl font-medium text-zinc-100">
-                  {card.title}
-                </h3>
-                {card.descriptionKey ? (
-                  <p className="text-sm leading-relaxed text-zinc-400">
-                    {t(card.descriptionKey)}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="mt-8">
-                <p className="font-[family-name:var(--font-marketing-serif)] text-4xl font-medium text-zinc-100">
-                  {card.priceLabel}
-                </p>
-                <p className="mt-2 text-[11px] tracking-[0.18em] text-zinc-500 uppercase">
-                  {t(card.footerKey)}
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {card.noteKeys.map((noteKey) => (
-                  <span
-                    key={`${card.title}:${noteKey}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-zinc-200"
-                  >
-                    <Check className="h-3.5 w-3.5 text-amber-100" />
-                    {t(noteKey)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default function PageFrontendPricingTemplate({
   data,
   className,
@@ -314,84 +219,6 @@ export default function PageFrontendPricingTemplate({
     .filter(isResolvedOverviewItem)
     .slice(0, 4);
   const sectionLinks = asSectionLinks(data?.sectionLinks);
-  const userPricingDemos: readonly DemoPricingCard[] = [
-    {
-      title: 'Solo',
-      priceLabel: '$12',
-      footerKey: 'USD / user',
-      noteKeys: ['1 seat', 'Personal workspace', 'Email support']
-    },
-    {
-      title: 'Studio',
-      priceLabel: '$24',
-      footerKey: 'USD / user',
-      noteKeys: ['5 seats', 'Shared workspace', 'Priority inbox']
-    },
-    {
-      title: 'Scale',
-      priceLabel: '$49',
-      footerKey: 'USD / user',
-      noteKeys: ['25 seats', 'Advanced roles', 'Launch support']
-    }
-  ];
-  const teamPricingDemos: readonly DemoPricingCard[] = [
-    {
-      title: 'Core Team',
-      priceLabel: '$89',
-      footerKey: 'USD / team',
-      noteKeys: ['1 team', 'Shared billing', 'Member roles']
-    },
-    {
-      title: 'Ops Team',
-      priceLabel: '$169',
-      footerKey: 'USD / team',
-      noteKeys: ['3 teams', 'Usage review', 'Ops handoff']
-    },
-    {
-      title: 'Scale Team',
-      priceLabel: '$329',
-      footerKey: 'USD / team',
-      noteKeys: ['10 teams', 'Multi-team rollout', 'Priority support']
-    }
-  ];
-  const categoryPricingDemos: readonly DemoPricingCard[] = [
-    {
-      title: t('Free'),
-      priceLabel: t('Free forever'),
-      footerKey: 'Pack line',
-      descriptionKey:
-        'The full SKSS open-source core so you can self-host, extend, and ship on your own roadmap.',
-      noteKeys: [
-        'Full open-source SKSS host',
-        'Editable core source code',
-        'Build your own modules and product flows'
-      ]
-    },
-    {
-      title: t('Commercial SaaS'),
-      priceLabel: t('Coming Soon'),
-      footerKey: 'Pack line',
-      descriptionKey:
-        'Support, ready-to-use modules, and a commercial license for one SaaS product.',
-      noteKeys: [
-        'Commercial support and implementation guidance',
-        'Ready-to-use commercial modules',
-        'License for 1 SaaS'
-      ]
-    },
-    {
-      title: t('Enterprise'),
-      priceLabel: t('Coming Soon'),
-      footerKey: 'Pack line',
-      descriptionKey:
-        'Enterprise support plus premium modules like SSO, ChatAI, Email Pro, and other ready-to-use add-ons.',
-      noteKeys: [
-        'SSO, ChatAI, and Email Pro modules',
-        'Enterprise ready-to-use module pack',
-        'Priority rollout and architecture support'
-      ]
-    }
-  ];
 
   return (
     <main
@@ -473,54 +300,8 @@ export default function PageFrontendPricingTemplate({
         </div>
       </section>
 
-      <div className="mt-12 space-y-16">
-        <section className="space-y-5">
-          <div className="max-w-3xl space-y-3">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-1 text-[11px] font-medium tracking-[0.18em] text-zinc-200 uppercase">
-              {t('Demo subscription layouts')}
-            </span>
-            <p className="text-sm leading-relaxed text-zinc-400 sm:text-base">
-              {t(
-                'This pricing page can showcase live subscription templates and multiple presentation patterns at the same time.'
-              )}
-            </p>
-          </div>
-        </section>
-
-        <DemoPricingSection
-          id="demo-by-user"
-          icon={<UserRound className="h-3.5 w-3.5" />}
-          title={t('By user')}
-          description={t(
-            'Seat-based pricing for products that scale one user at a time.'
-          )}
-          cards={userPricingDemos}
-          t={t}
-        />
-
-        <DemoPricingSection
-          id="demo-by-team"
-          icon={<Users className="h-3.5 w-3.5" />}
-          title={t('By team')}
-          description={t(
-            'Workspace pricing for teams that buy access as a shared operating unit.'
-          )}
-          cards={teamPricingDemos}
-          t={t}
-        />
-
-        <DemoPricingSection
-          id="demo-by-category"
-          icon={<Boxes className="h-3.5 w-3.5" />}
-          title={t('By category')}
-          description={t(
-            'Commercial-line comparison that folds the /packs story into pricing.'
-          )}
-          cards={categoryPricingDemos}
-          t={t}
-        />
-
-        <section id="live-subscriptions" className="space-y-5">
+      <section id="live-subscriptions" className="mt-14 space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl space-y-3">
             <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-1 text-[11px] font-medium tracking-[0.18em] text-zinc-200 uppercase">
               {t('Current subscription templates')}
@@ -531,10 +312,10 @@ export default function PageFrontendPricingTemplate({
               )}
             </p>
           </div>
+        </div>
 
-          {children}
-        </section>
-      </div>
+        <div className="space-y-16">{children}</div>
+      </section>
     </main>
   );
 }

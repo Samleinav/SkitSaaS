@@ -94,12 +94,6 @@ async function PublicHeader() {
             {header.pricing}
           </Link>
           <Link
-            href="/packs"
-            className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
-          >
-            {header.packs}
-          </Link>
-          <Link
             href="/docs"
             className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
           >
