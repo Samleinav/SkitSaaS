@@ -529,7 +529,7 @@ import {
 import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
 
-const ADMIN_ROLES = new Set(['owner', 'admin']);
+const ADMIN_ROLES = new Set(['admin']);
 
 async function requireDashboardUser() {
   const user = await getUser();

@@ -19,12 +19,12 @@ export type RoleContextAffinity = 'standalone' | 'team_member';
 export type AppConfigRoles = {
   /**
    * Roles that can access the /admin area.
-   * Defaults to ['admin', 'owner'] if not set.
+   * Defaults to ['admin'] if not set.
    */
   adminArea?: string[];
   /**
    * Roles that can access the /dashboard area.
-   * Defaults to ['member'] if not set.
+   * Defaults to ['member', 'owner'] if not set.
    * Note: adminArea roles always resolve to system_admin context in the dashboard.
    */
   dashboardArea?: string[];
