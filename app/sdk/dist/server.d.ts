@@ -4,6 +4,8 @@ import type { ModuleApiHandler, ModulePageHandler, ModuleRouteContext } from './
 import type { BuildFormDefinition, BuildFormValue, BuildFormValues } from './forms.js';
 import type { SdkCreateNotificationInput, SdkCreateNotificationResult, SdkNotificationTeamRecipients } from './notifications/types.js';
 import { type BuildFormDbRef, type BuildFormValidationResult, type ValidatedBuildFormDefinition } from './form-validation.js';
+export type { BuildFormUiTemplateResolution, BuildFormUiTemplateResolverAdapter, BuildFormUiTemplateResolverContext } from './ui/build-form-contract.js';
+export { configureBuildFormUiTemplateResolver } from './ui/build-form-template-resolver.js';
 export type EventEmitterAdapter = {
     emitEvent: <TPayload extends EventPayload>(hook: EventHook, payload: TPayload, context?: EventEmitContext) => Promise<EventDispatchResult>;
     emitEventAsync?: <TPayload extends EventPayload>(hook: EventHook, payload: TPayload, context?: EventEmitContext) => Promise<EventDispatchResult>;

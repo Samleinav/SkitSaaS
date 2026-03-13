@@ -36,6 +36,40 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 
 ---
 
+## 2026-03-13 - sdk-build-form-runtime-bridge
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: cross-module-ui-contract
+- `type`: change
+- `summary`: BuildForm now supports a host runtime bridge for source-package parity. The SDK adds `BuildFormUiAdapterProvider` for client render delegation and `TemplateBuildForm` plus `configureBuildFormUiTemplateResolver(...)` for host `ui.form` payload resolution.
+- `sdk_surface`: `@skitsaas/sdk`, `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/ui/build-form-contract.ts`
+  - `app/sdk/src/ui/build-form-adapter.tsx`
+  - `app/sdk/src/ui/build-form-template-resolver.ts`
+  - `app/sdk/src/ui/template-build-form.tsx`
+  - `app/sdk/src/ui/build-form.tsx`
+  - `app/sdk/src/ui/index.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/src/server.ts`
+  - `components/ui/sdk-build-form-provider.tsx`
+  - `lib/modules/sdk-server-bootstrap.ts`
+- `notes`: |
+    SDK v1.5.0 -> v1.6.0 (MINOR).
+
+    Goal: keep source-package modules fully SDK-only while still allowing host
+    parity when loaded inside SkitSaaS.
+
+    Runtime split:
+    - client: `BuildFormUiAdapterProvider` lets the host render SDK `BuildForm`
+      instances through the host renderer
+    - server: `TemplateBuildForm` asks the host for `ui.form` template payload
+      metadata via `configureBuildFormUiTemplateResolver(...)`
+
+    Fallback remains mandatory: if no adapter/resolver is configured, SDK
+    `BuildForm` continues using its own renderer.
+
 ## 2026-03-11 - sdk-richuser-multirole-routing
 
 - `status`: published

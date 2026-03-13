@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import {
   configureAuth,
   configureBuildFormDbValidation,
+  configureBuildFormUiTemplateResolver,
   configureDatabase,
   configureEventEmitter,
   configureModuleConfig,
@@ -34,6 +35,7 @@ import {
   configureBuildFormValidationObservability,
   createBuildFormSysActivityObserver
 } from '@/lib/forms/observability';
+import { resolveUiFormTemplateForArea } from '@/lib/templates/ui-form';
 import * as rootSchema from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
 import { emitEvent, emitEventAsync } from '@/lib/events/bus';
@@ -146,6 +148,27 @@ function normalizeRole(value: unknown) {
   return value.trim().toLowerCase();
 }
 
+function normalizeBuildFormTemplateArea(value: string | null | undefined) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (normalized === 'public') {
+    return 'frontend' as const;
+  }
+
+  if (
+    normalized === 'admin' ||
+    normalized === 'dashboard' ||
+    normalized === 'frontend' ||
+    normalized === 'global'
+  ) {
+    return normalized;
+  }
+
+  return 'frontend' as const;
+}
+
 async function requireAdminDashboardUser() {
   const currentUser = await requireDashboardUser();
   const role = normalizeRole((currentUser as { role?: unknown }).role);
@@ -241,6 +264,31 @@ export function bootstrapModuleSdkServer() {
 
   configureBuildFormDbValidation({
     lookup: resolveBuildFormDbLookup
+  });
+
+  configureBuildFormUiTemplateResolver({
+    resolveFormTemplate: async ({
+      area,
+      route = null,
+      themeId = null,
+      moduleId = null,
+      data
+    }) => {
+      const template = await resolveUiFormTemplateForArea({
+        area: normalizeBuildFormTemplateArea(area),
+        route,
+        themeId,
+        moduleId,
+        data
+      });
+
+      return {
+        templateId: template.templateId,
+        templateSource: template.source,
+        templateComponentId: 'ui.form',
+        templatePayload: template.payload
+      };
+    }
   });
 
   configureBuildFormValidationObservability(

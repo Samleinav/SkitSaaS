@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { useFormStatus } from 'react-dom';
+import { useBuildFormUiAdapter } from './build-form-adapter.js';
+import type { SdkBuildFormProps } from './build-form-contract.js';
 import type {
   BuildFormDefinition,
   BuildFormFieldDefinition,
@@ -36,20 +38,6 @@ import {
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
-
-export type SdkBuildFormProps = {
-  definition: BuildFormDefinition;
-  area?: string;
-  className?: string;
-  /**
-   * Optional custom renderer — supplied by the host/theme to replace the default
-   * plain-Tailwind output with a fully-styled implementation (e.g. shadcn-based).
-   *
-   * This is the sdk-level hook for the `ui.form.*` template slot:
-   *   <BuildForm definition={form} templateRenderer={hostRenderer} />
-   */
-  templateRenderer?: (props: SdkBuildFormProps) => React.ReactNode;
-};
 
 // ---------------------------------------------------------------------------
 // Validation UI state helpers (inlined from lib/forms/validation/results.ts)
@@ -325,7 +313,6 @@ function RepeaterField({
     const rows = definition.repeaterRows?.[field.name];
     if (rows && rows.length > 0) return rows;
     return [createEmptyRepeaterRow(field)];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [rows, setRows] = React.useState<BuildFormRepeaterRow[]>(initialRows);
@@ -968,8 +955,15 @@ function SubmitButton({
 // ---------------------------------------------------------------------------
 
 export function BuildForm(props: SdkBuildFormProps) {
+  const adapter = useBuildFormUiAdapter();
+
   if (props.templateRenderer) {
     return <>{props.templateRenderer(props)}</>;
   }
+
+  if (adapter?.renderBuildForm) {
+    return <>{adapter.renderBuildForm(props)}</>;
+  }
+
   return <DefaultBuildForm {...props} />;
 }

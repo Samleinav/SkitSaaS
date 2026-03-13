@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
-  BuildForm,
   DataTable,
+  TemplateBuildForm,
   buildTableColumn,
   defineBuildTable,
 } from '@skitsaas/sdk';
@@ -114,7 +114,7 @@ export default function HubRegisterPage(_props: PageProps) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
           Create your account
         </h2>
-        <BuildForm
+        <TemplateBuildForm
           definition={form}
           area="frontend"
         />

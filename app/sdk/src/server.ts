@@ -38,6 +38,12 @@ import {
   type BuildFormValidationRule,
   type ValidatedBuildFormDefinition
 } from './form-validation.js';
+export type {
+  BuildFormUiTemplateResolution,
+  BuildFormUiTemplateResolverAdapter,
+  BuildFormUiTemplateResolverContext
+} from './ui/build-form-contract.js';
+export { configureBuildFormUiTemplateResolver } from './ui/build-form-template-resolver.js';
 
 function toTrimmedString(value: unknown) {
   if (typeof value !== 'string') {

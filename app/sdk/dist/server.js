@@ -1,5 +1,6 @@
 import vine, { ValidationError } from '@vinejs/vine';
 import { createBuildFormValidationResultFromFieldErrors, createBuildFormValidationResult, createBuildFormValidationIssue, getBuildFormValidationRulesForFieldRuntime, getBuildFormFieldByName, listBuildFormFields, normalizeBuildFormValuesFromFormData } from './form-validation.js';
+export { configureBuildFormUiTemplateResolver } from './ui/build-form-template-resolver.js';
 function toTrimmedString(value) {
     if (typeof value !== 'string') {
         return '';

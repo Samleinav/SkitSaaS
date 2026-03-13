@@ -321,7 +321,11 @@ const editForm = withBuildFormValues(baseForm, {
 ```
 
 Use the SDK to describe fields, layout, submit target, confirm flows, and prefills.
-The host app resolves rendering and theming through `TemplateBuildForm` + CTC.
+The SDK ships a fallback renderer through `BuildForm`.
+When the module runs inside SkitSaaS, the host can upgrade that same SDK form through:
+
+- `BuildFormUiAdapterProvider` for runtime render delegation
+- `TemplateBuildForm` for host `ui.form` payload resolution
 
 If you need to attach request metadata, submit UI, and prefills in one step, use `composeBuildFormDefinition(...)` instead of chaining helpers manually.
 

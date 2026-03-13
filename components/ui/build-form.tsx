@@ -250,7 +250,6 @@ function RepeaterField({
       return rows;
     }
     return [createEmptyRepeaterRow(field)];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [rows, setRows] = React.useState<BuildFormRepeaterRow[]>(initialRows);

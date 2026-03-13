@@ -2,6 +2,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import * as React from 'react';
 import { useFormStatus } from 'react-dom';
+import { useBuildFormUiAdapter } from './build-form-adapter.js';
 import { applyBuildFormFieldMask, isBuildFormTruthyValue, normalizeBuildFormColumns, normalizeBuildFormGap, resolveBuildFormValue, toBuildFormValueString, } from '../forms.js';
 import { getBuildFormValidation, getBuildFormValidationRulesForField, normalizeBuildFormValuesFromFormData, resolveBuildFormValidationDebounceMs, resolveBuildFormValidationTriggers, shouldRunBuildFormPreflight, validateBuildFormLocally, } from '../form-validation.js';
 function createBuildFormValidationUiState(result) {
@@ -193,7 +194,6 @@ function RepeaterField({ field, definition, columns, }) {
         if (rows && rows.length > 0)
             return rows;
         return [createEmptyRepeaterRow(field)];
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     const [rows, setRows] = React.useState(initialRows);
     const minRows = field.minRows ?? 1;
@@ -440,8 +440,12 @@ function SubmitButton({ idleLabel, pendingLabel, }) {
 // Public component — delegates to templateRenderer if provided
 // ---------------------------------------------------------------------------
 export function BuildForm(props) {
+    const adapter = useBuildFormUiAdapter();
     if (props.templateRenderer) {
         return _jsx(_Fragment, { children: props.templateRenderer(props) });
+    }
+    if (adapter?.renderBuildForm) {
+        return _jsx(_Fragment, { children: adapter.renderBuildForm(props) });
     }
     return _jsx(DefaultBuildForm, { ...props });
 }

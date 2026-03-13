@@ -40,6 +40,8 @@ Exports:
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
 - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
 - portable form renderer (`BuildForm`, `SdkBuildFormProps`) — client component, usable in modules and portal pages without host imports
+- portable form host bridge (`BuildFormUiAdapterProvider`) — lets the host delegate SDK `BuildForm` rendering without module-side `@/` imports
+- server form wrapper (`TemplateBuildForm`, `SdkTemplateBuildFormProps`) — resolves host `ui.form` payloads when the host adapter is configured
 - typed route factories (`RouteAdmin`, `RouteDashboard`, `RouteFrontend`, `RouteApi`, `RouteBuilder`)
 - named route registry (`route`, `registerRoute`, `getRegisteredRoute`, `RouteNotFoundError`)
 - proxy area configuration (`configureAreaDefaults`, `matchRouteProxyChain`, `resolveAreaFallbackChain`)
@@ -74,16 +76,23 @@ Structured form contract:
 - `parseOptionalPositiveInt(...)`
 - `BuildForm` — portable `'use client'` renderer for modules and portal pages
 - `SdkBuildFormProps` — props type for `BuildForm`
+- `BuildFormUiAdapterProvider` — optional host bridge for runtime render delegation
+- `TemplateBuildForm` — async server wrapper that resolves host `ui.form` payload metadata when available
+- `SdkTemplateBuildFormProps` — props type for `TemplateBuildForm`
 
 `composeBuildFormDefinition(...)` lets core or module code apply `request`, `submit`, and `values` in one pass instead of repeating `defineBuildForm(...) + withBuildFormRequest(...) + withBuildFormValues(...)` on every page. `buildFormValidationPreset.blur(...)` centralizes the common authoring preset used by most CRUD forms (`client.validateOn=['blur']`, plus optional preflight defaults).
 
-`BuildForm` from `@skitsaas/sdk` is the portable fallback renderer. For this
-project's default `source-host` modules, keep form definitions and validation in
-the SDK but render through `@/components/ui/build-form` or
-`@/components/ui/template-build-form` when you need host parity such as
-`ThemedAsyncSubmitButton`, `successLabel`, `ui.form` CTC payload, or confirm
-modal behavior. Use SDK `BuildForm` mainly for portable/source-package contexts
-where host imports are unavailable.
+`BuildForm` from `@skitsaas/sdk` is the portable fallback renderer. The SDK now
+also exposes a host bridge path:
+
+- `BuildFormUiAdapterProvider` lets the host delegate SDK `BuildForm` instances
+  to a richer renderer at runtime
+- `TemplateBuildForm` lets server-rendered module pages receive host `ui.form`
+  payload metadata without importing host internals
+
+That means a `source-package` module can stay SDK-only and still upgrade to host
+submit/modal/CTC behavior when it runs inside SkitSaaS. Outside the host, the
+SDK fallback renderer remains the default.
 
 The datatable story is stronger today: keep `BuildTableDefinition` and helpers
 in the SDK, and use SDK `DataTable` as the normal default. Source-host modules
@@ -128,6 +137,7 @@ Exports:
 - `createServerActionController`
 - `createValidatedServerActionController`
 - `configureBuildFormDbValidation`
+- `configureBuildFormUiTemplateResolver`
 - `createFormReader`
 - `validateBuildFormOnServer`
 - `validateBuildFormWithHandler`
