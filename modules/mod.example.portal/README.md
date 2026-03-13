@@ -1,18 +1,19 @@
 # mod.example.portal
 
-Example module demonstrating the **portal system** in SKSS. Shows how a module can register
-a named portal served at a custom URL prefix (`/hub/*`) with its own layout, public and
-authenticated pages, CSS loading control, and portal-scoped API routes.
+Example module demonstrating the portal system in SKSS. It shows how a module can
+register a named portal served at `/hub/*` with its own layout, public and
+authenticated pages, CSS loading control, and portal API metadata.
 
-Portals are completely independent from the marketing frontend — the middleware rewrites
-portal requests to an internal dispatcher that does not inherit `(frontend)/layout.tsx`.
+Portals are completely independent from the marketing frontend. The middleware
+rewrites portal requests to an internal dispatcher that does not inherit
+`app/(frontend)/layout.tsx`.
 
 ## Scope
 
 | Feature | File |
 |---|---|
 | `RoutePortal` factory + `.name()` | `src/routes.ts` |
-| `RouteApiPortal` scoped API builder | `src/routes.ts` |
+| `RouteApiPortal` scoped API metadata | `src/routes.ts` |
 | `.page()` + `.register()` (Node.js context) | `src/portal-init.ts` |
 | `redirectRoles: ['hubrole']` (post-login redirect) | `src/portal-init.ts` |
 | `coreCss` option (core CSS loading control) | `src/portal-init.ts` |
@@ -32,16 +33,26 @@ portal requests to an internal dispatcher that does not inherit `(frontend)/layo
 - `portalInit`: `src/portal-init.ts`
 - `sdkRange`: `^1.5.0`
 
-## Routes and endpoints
+## Routes and API metadata
 
+Implemented portal pages:
+
+```text
+/hub
+/hub/register
+/hub/members
+/hub/members/{id}
 ```
-/hub                  → home (public)
-/hub/register         → registration (public)
-/hub/members          → member list (auth required)
-/hub/members/{id}     → member detail (auth required + dynamic param)
-/api/hub/members      → API: list members (auth required)
-/api/hub/members/{id} → API: member detail (auth required)
-```
+
+Declared portal API metadata:
+
+- `GET /api/hub/members`
+- `GET /api/hub/members/{id}`
+
+This example does not ship host bridge files under `app/api/hub/*`, so those
+portal API endpoints are not active by default. To activate them, add host
+bridge files that wrap `HubApiRoutes.*.handler(...)` with
+`withApiRouteEntries(...)` as documented in `docs/portals/01-portal-system.md`.
 
 ## Config and env
 
@@ -55,16 +66,17 @@ pnpm modules:prepare
 pnpm dev
 ```
 
-That's it. The `module.json` fields `routesEntry` and `portalInit` are read by `modules:prepare`,
-which auto-generates the bootstrap imports in:
-- `lib/routing/all-routes.generated.ts` — middleware proxy chain (edge)
-- `lib/portals/all-portals.generated.ts` — page registry (Node.js)
+The `module.json` fields `routesEntry` and `portalInit` are read by
+`modules:prepare`, which auto-generates the bootstrap imports in:
+
+- `lib/routing/all-routes.generated.ts` for the middleware proxy chain
+- `lib/portals/all-portals.generated.ts` for the page registry
 
 Navigate to `http://localhost:3000/hub`.
 
 ## CSS loading
 
-By default portals load the **frontend core CSS bundle** (globals + Tailwind CSS variables).
+By default portals load the frontend core CSS bundle (globals + Tailwind CSS variables).
 Control this with the `coreCss` option in `.register()`:
 
 ```ts
@@ -72,25 +84,25 @@ HubRoute.register({
   layout: ...,
   userTheme: false,
 
-  // coreCss: true           → default: loads /.generated/core-assets/frontend/core-*.css
-  // coreCss: 'dashboard'    → loads the dashboard core CSS instead
-  // coreCss: false          → no core CSS — bring your own via head.css
+  // coreCss: true        -> default: loads /.generated/core-assets/frontend/core-*.css
+  // coreCss: 'dashboard' -> loads the dashboard core CSS instead
+  // coreCss: false       -> no core CSS, bring your own via head.css
 
   // head: {
-  //   css: ['/my-portal.css'],  // extra CSS URLs, loaded after core
-  //   js:  ['/my-portal.js'],   // extra JS URLs
+  //   css: ['/my-portal.css'],
+  //   js: ['/my-portal.js'],
   // },
 });
 ```
 
-When `userTheme` is set to a theme ID string, CSS is managed entirely by the theme system
-(`resolveAreaAssetHrefsBySelection`) and `coreCss` / `head` are ignored.
+When `userTheme` is set to a theme ID string, CSS is managed entirely by the
+theme system (`resolveAreaAssetHrefsBySelection`) and `coreCss` / `head` are ignored.
 
 ## Post-login redirect
 
-`redirectRoles: ['hubrole']` is set in `src/portal-init.ts`, so users with role `hubrole`
-are redirected to `/hub` after login. To make the portal the global fallback for all
-authenticated non-admin users instead, replace it with:
+`redirectRoles: ['hubrole']` is set in `src/portal-init.ts`, so users with role
+`hubrole` are redirected to `/hub` after login. To make the portal the global
+fallback for all authenticated non-admin users instead, replace it with:
 
 ```ts
 HubRoute.register({
@@ -101,18 +113,18 @@ HubRoute.register({
 
 ## How the middleware rewrite works
 
-```
+```text
 GET /hub/members
-  → proxy.ts detects 'hub' in portalPrefixSet
-  → runs proxy chain (auth enforcement — may redirect to login)
-  → NextResponse.rewrite('/portal-internal/hub/members')
-  → app/(portal)/portal-internal/[...slug]/page.tsx
-  → resolvePortalPage({ portalName: 'hub', slug: ['members'] })
-  → HubLayout wraps HubMembersPage
+  -> proxy.ts detects 'hub' in portalPrefixSet
+  -> runs proxy chain (auth enforcement may redirect to login)
+  -> NextResponse.rewrite('/portal-internal/hub/members')
+  -> app/(portal)/portal-internal/[...slug]/page.tsx
+  -> resolvePortalPage({ portalName: 'hub', slug: ['members'] })
+  -> HubLayout wraps HubMembersPage
 ```
 
-Direct access to `/portal-internal/*` returns 404. The portal pages are served under `app/(portal)/`,
-which does NOT inherit the `(frontend)` marketing layout.
+Direct access to `/portal-internal/*` returns 404. Portal pages are served
+under `app/(portal)/`, which does not inherit the `(frontend)` marketing layout.
 
 ## Templates and CTC
 
@@ -126,31 +138,28 @@ which does NOT inherit the `(frontend)` marketing layout.
 
 ## File structure
 
-```
+```text
 mod.example.portal/
-  module.json               ← routesEntry + portalInit for auto-registration
+  module.json
   src/
-    constants.ts            ← module ID + portal name ('hub')
-    routes.ts               ← EDGE: RoutePortal + RouteApiPortal + .name()
-    portal-init.ts          ← NODE.JS: .page() + .register()
-    forms.ts                ← shared form definition for /hub/register
-    manifest.ts             ← defineModule()
+    constants.ts
+    routes.ts
+    portal-init.ts
+    manifest.ts
   portal/
     hub/
-      layout.tsx            ← portal layout (PortalLayoutProps)
-      home/
-        page.tsx            ← /hub (public)
-      members/
-        page.tsx            ← /hub/members (auth)
-        [id]/
-          page.tsx          ← /hub/members/{id} (auth + dynamic param)
+      layout.tsx
+      home/page.tsx
+      register/page.tsx
+      members/page.tsx
+      members/[id]/page.tsx
 ```
 
 ## Two-file split: edge vs Node.js
 
 | File | Context | Purpose |
 |---|---|---|
-| `src/routes.ts` | Edge (middleware) | Registers proxy chains via `.name()` |
+| `src/routes.ts` | Edge (middleware) | Registers proxy chains and portal API metadata |
 | `src/portal-init.ts` | Node.js (server) | Registers page components via `.page()` and portal metadata via `.register()` |
 
 Never import `portal-init.ts` from edge files. Never call `.page()` or `.register()` from `routes.ts`.
@@ -159,4 +168,5 @@ Never import `portal-init.ts` from edge files. Never call `.page()` or `.registe
 
 - If `/hub/*` does not resolve, run `pnpm modules:prepare` and confirm `module.json` still declares both `routesEntry` and `portalInit`.
 - If a protected page becomes public, verify every `.page()` path in `src/portal-init.ts` still has a matching named route in `src/routes.ts`.
+- If `/api/hub/*` is expected to work, confirm the host bridge files under `app/api/hub/*` exist and use `withApiRouteEntries(...)`.
 - If the post-login redirect changes unexpectedly, verify `redirectRoles` or `isDefaultPortal` in `src/portal-init.ts`.

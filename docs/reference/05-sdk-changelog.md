@@ -34,6 +34,11 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 - `notes`: contexto/impacto
 ```
 
+Nota:
+- este archivo conserva tanto cambios publicados como notas historicas de implementacion
+- algunos snippets viejos muestran patrones que ya no son la guia preferida
+- para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
+
 ---
 
 ## 2026-03-13 - sdk-page-route-roles-and-bootstrap-hardening
@@ -180,6 +185,11 @@ Cada vez que aparezca un SDK-gap durante implementacion de modulos:
 ---
 
 ## Plan de implementación: sdk-gap-subscription-quota-controller
+
+Nota historica:
+- esta seccion preserva el plan original del gap
+- los ejemplos usan `createModuleApiRouter(...)` porque fueron escritos antes de que `apiRoutes` tipados fuera la ruta preferida
+- para implementaciones nuevas, usar `RouteApi(...).METHOD()` mas `apiRoutes` en el manifiesto salvo que se este documentando un flujo legacy
 
 ### Adapter interface (host-side)
 

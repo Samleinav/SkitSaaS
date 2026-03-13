@@ -70,6 +70,7 @@ middleware with a 404 before the route handler runs.
 | `lib/portals/role-routing.ts` | `resolveRoleRedirect(role, canAccessAdmin)` — post-login redirect logic |
 | `lib/routing/proxies.ts` | `proxyAuth`, `proxyRoles()`, `proxyAdmin` — host middleware proxy functions wired into SDK bootstrap |
 | `lib/routing/all-routes.generated.ts` | **Auto-generated** by `modules:prepare` from `routesEntry` field in `module.json` |
+| `lib/routing/with-api-route.ts` | `withApiRouteEntries()` bridge for typed `app/api/*/route.ts` handlers |
 | `proxy.ts` | Detects `portalPrefixSet`, runs proxy chain, rewrites to `portal-internal` |
 
 ## Two-File Split: Edge vs Node.js
@@ -182,6 +183,9 @@ export const SchoolApiRoutes = {
   studentDetail: SchoolApi('/students/{id}').GET().auth('user').name('school.api.student'),
 } as const;
 ```
+
+Declaring `SchoolApiRoutes` only creates typed metadata. `/api/school/*` becomes active
+only after you add host bridge files under `app/api/school/*/route.ts`.
 
 ### Step 4: `src/portal-init.ts` (Node.js only)
 
@@ -345,24 +349,46 @@ Priority order in `lib/portals/role-routing.ts`:
 
 ## API Routes
 
-Portal API endpoints live at `/api/<portalName>/*`. The module creates the Next.js handler files
-manually; `RouteApiPortal` provides the typed route builder:
+Portal API endpoints live at `/api/<portalName>/*`, but `RouteApiPortal(...)` only declares
+typed route metadata. Unlike module APIs under `/api/modules/<moduleId>/*`, portal APIs are
+not dispatched through the module runtime catch-all route. Activate them with host bridge files
+under `app/api/<portalName>/*/route.ts` and wrap the typed entries with `withApiRouteEntries(...)`.
 
 ```ts
 // src/routes.ts
 export const SchoolApi = RouteApiPortal('school');
-export const GetStudents = SchoolApi('/students').GET().auth('user').name('school.api.students');
-export const PostEnroll  = SchoolApi('/enroll').POST().auth('user').name('school.api.enroll');
+export const SchoolApiRoutes = {
+  studentsList: SchoolApi('/students').GET().auth('user').name('school.api.students.list'),
+  studentDetail: SchoolApi('/students/{id}').GET().auth('user').name('school.api.students.detail'),
+} as const;
 ```
 
 ```ts
 // app/api/school/students/route.ts
-import { GetStudents } from '@/../modules/mod.school/src/routes';
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
+import { SchoolApiRoutes } from '@/../modules/mod.school/src/routes';
 
-export const GET = GetStudents.handler(async (req, ctx) => {
-  return Response.json({ students: [] });
-}).nextHandler;
+export const GET = withApiRouteEntries(
+  SchoolApiRoutes.studentsList.handler(async () => {
+    return Response.json({ students: [] });
+  })
+);
 ```
+
+```ts
+// app/api/school/students/[id]/route.ts
+import { withApiRouteEntries } from '@/lib/routing/with-api-route';
+import { SchoolApiRoutes } from '@/../modules/mod.school/src/routes';
+
+export const GET = withApiRouteEntries(
+  SchoolApiRoutes.studentDetail.handler(async (_request, params) => {
+    return Response.json({ id: params.id });
+  })
+);
+```
+
+`ApiMethodRouteBuilder.handler(...)` returns an `ApiRouteEntry`, not a Next.js route handler.
+The current bridge helper is `withApiRouteEntries(...)`; older `.nextHandler` examples are stale.
 
 ---
 
