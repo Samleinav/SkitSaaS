@@ -319,7 +319,8 @@ export class ApiMethodRouteBuilder {
      *
      * - 'none'  — public (default)
      * - 'user'  — requires active session; uses proxy injected via configureApiAuthProxies
-     * - 'admin' — requires admin/owner session; uses proxy injected via configureApiAuthProxies
+     * - 'admin' — requires an admin session; uses proxy injected via configureApiAuthProxies
+     *              (host-configurable, default adminAreaRoles = ['admin'])
      */
     auth(level) {
         return new ApiMethodRouteBuilder(this.path, this.method, level, this._rateLimitConfig, this._extraProxies, this._roles);

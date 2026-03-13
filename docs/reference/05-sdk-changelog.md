@@ -41,6 +41,27 @@ Nota:
 
 ---
 
+## 2026-03-13 - sdk-routing-builder-lazy-next-server-import
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: Route builder role guards no longer import `next/server` eagerly, so source-package contract tests can import compiled manifests in plain Node without resolving Next runtime helpers up front.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/routing/builder.ts`
+  - `app/sdk/package.json`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.7.0 -> v1.7.1 (PATCH).
+
+    `RouteBuilder.roles(...)` still returns the same runtime guard behavior, but
+    the SDK now defers the Next runtime import until the guard actually runs and
+    uses the Node-resolvable `next/server.js` entry. This keeps source-package
+    contract tests plain-Node-safe when they only need to import a compiled
+    module manifest and inspect its exported shape.
+
 ## 2026-03-13 - sdk-page-route-roles-and-bootstrap-hardening
 
 - `status`: published

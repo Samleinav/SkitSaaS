@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { registerRoute } from './registry.js';
 const routeBuilderProxyConfig = {
     roleCheck: null,
@@ -15,6 +14,7 @@ function createLazyRoleProxy(allowedRoles) {
     return async (request) => {
         const roleCheck = routeBuilderProxyConfig.roleCheck;
         if (!roleCheck) {
+            const { NextResponse } = await import('next/server.js');
             return new NextResponse('Route role guard is not configured.', {
                 status: 500,
             });
