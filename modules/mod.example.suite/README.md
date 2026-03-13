@@ -6,9 +6,9 @@ Comprehensive reference module for the host runtime.
 
 This module demonstrates, in a single module:
 
-- admin routes with subpages (`home`, `create`, `edit/:id`, `settings`)
-- dashboard routes with subpages (`home`, `create`, `items/:id`)
-- API routes with auth/role checks
+- admin routes with subpages (`home`, `create`, `edit/:itemId`, `settings`)
+- dashboard routes with subpages (`home`, `create`, `items/:itemId`)
+- API routes wired through `createModuleApiRouter(...)` via `apiHandler`
 - module-owned database tables
 - server actions for admin and dashboard forms
 - module widgets (`adminDashboardWidgets`, `dashboardWidgets`)
@@ -26,14 +26,14 @@ This module demonstrates, in a single module:
 
 - `/admin/custom/example-suite`
 - `/admin/custom/example-suite/create`
-- `/admin/custom/example-suite/edit/:id`
+- `/admin/custom/example-suite/edit/:itemId`
 - `/admin/custom/example-suite/settings`
 
 ### Dashboard aliases
 
 - `/dashboard/custom/example-suite`
 - `/dashboard/custom/example-suite/create`
-- `/dashboard/custom/example-suite/items/:id`
+- `/dashboard/custom/example-suite/items/:itemId`
 
 ### API routes
 
@@ -47,7 +47,13 @@ Implemented endpoints:
 - `GET /api/modules/mod.example.suite/items`
 - `GET /api/modules/mod.example.suite/items?scope=admin` (admin only view)
 - `POST /api/modules/mod.example.suite/items`
-- `PATCH /api/modules/mod.example.suite/items/:id`
+- `PATCH /api/modules/mod.example.suite/items/:itemId`
+
+This module keeps the larger `source-host` API shape:
+
+- `src/api-handler.ts` defines the route list with `createModuleApiRouter(...)`
+- `src/manifest.ts` attaches it as `apiHandler: exampleSuiteApiHandler`
+- typed per-route `apiRoutes` are demonstrated instead in `mod.example.api`
 
 ## Database objects
 
@@ -130,10 +136,13 @@ Current template pack entries:
 
 Current structured form usage:
 
-- admin create page uses `TemplateBuildForm`
-- admin edit page uses `TemplateBuildForm` with prefills
-- admin settings page uses `TemplateBuildForm` sections for grouped settings
+- admin create page uses host `TemplateBuildForm`
+- admin edit page uses host `TemplateBuildForm` with prefills
+- admin settings page uses host `TemplateBuildForm` sections for grouped settings
 - delete flow uses confirm submit through the same form system
+
+Because this module is a `source-host` example, those pages currently import
+`TemplateBuildForm` from `@/components/ui/template-build-form`.
 
 Recommended rollout order for module forms:
 
