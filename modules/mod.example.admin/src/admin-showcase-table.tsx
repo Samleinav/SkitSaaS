@@ -108,5 +108,5 @@ const adminTemplatesTable = defineBuildTable<ExampleAdminTemplateRow, any>({
 });
 
 export function ExampleAdminShowcaseTable() {
-  return <DataTable definition={adminTemplatesTable} />;
+  return <DataTable definition={adminTemplatesTable} className="example-admin-data-table" />;
 }

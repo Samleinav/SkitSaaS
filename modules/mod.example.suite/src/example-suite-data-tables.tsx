@@ -253,6 +253,7 @@ export function ExampleSuiteAdminItemsDataTable({
   return (
     <DataTable
       definition={buildAdminItemsTableDefinition(items)}
+      className="example-suite-data-table"
       tableClassName="min-w-[940px]"
     />
   );
@@ -266,6 +267,7 @@ export function ExampleSuiteDashboardItemsDataTable({
   return (
     <DataTable
       definition={buildDashboardItemsTableDefinition(items)}
+      className="example-suite-data-table"
       tableClassName="min-w-[760px]"
     />
   );
@@ -279,6 +281,7 @@ export function ExampleSuiteRecentItemsDataTable({
   return (
     <DataTable
       definition={buildRecentItemsTableDefinition(items)}
+      className="example-suite-data-table"
       tableClassName="min-w-[620px]"
     />
   );

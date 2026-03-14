@@ -133,6 +133,154 @@ const EXAMPLE_ADMIN_STYLES = `
   background: rgba(245, 158, 11, 0.18);
   color: #b45309;
 }
+
+.example-admin-data-table {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.example-admin-data-table .sdk-data-table__header,
+.example-admin-data-table .sdk-data-table__toolbar,
+.example-admin-data-table .sdk-data-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.example-admin-data-table .sdk-data-table__header-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.example-admin-data-table .sdk-data-table__header-description,
+.example-admin-data-table .sdk-data-table__pagination-summary,
+.example-admin-data-table .sdk-data-table__filter-label {
+  font-size: 0.84rem;
+  color: rgba(17, 24, 39, 0.7);
+}
+
+.example-admin-data-table .sdk-data-table__toolbar-content,
+.example-admin-data-table .sdk-data-table__toolbar-filters,
+.example-admin-data-table .sdk-data-table__pagination-actions,
+.example-admin-data-table .sdk-data-table__cell-actions,
+.example-admin-data-table .sdk-data-table__confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.example-admin-data-table .sdk-data-table__filter,
+.example-admin-data-table .sdk-data-table__pagination-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.example-admin-data-table .sdk-data-table__toolbar-search,
+.example-admin-data-table .sdk-data-table__filter input,
+.example-admin-data-table .sdk-data-table__filter select,
+.example-admin-data-table .sdk-data-table__pagination-page-size select {
+  min-height: 2.2rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(217, 119, 6, 0.2);
+  background: rgba(255, 251, 235, 0.92);
+  color: #111827;
+  padding: 0.42rem 0.7rem;
+}
+
+.example-admin-data-table .sdk-data-table__toolbar-search {
+  min-width: 15rem;
+}
+
+.example-admin-data-table .sdk-data-table__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.example-admin-data-table .sdk-data-table__table th {
+  padding: 0.6rem 0.5rem;
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(146, 64, 14, 0.82);
+}
+
+.example-admin-data-table .sdk-data-table__table td {
+  padding: 0.7rem 0.5rem;
+  vertical-align: top;
+  border-top: 1px solid rgba(217, 119, 6, 0.12);
+}
+
+.example-admin-data-table .sdk-data-table__sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.example-admin-data-table .sdk-data-table__sort-indicator {
+  opacity: 0.72;
+}
+
+.example-admin-data-table .sdk-data-table__cell-actions a,
+.example-admin-data-table .sdk-data-table__cell-actions button,
+.example-admin-data-table .sdk-data-table__header-actions a,
+.example-admin-data-table .sdk-data-table__header-actions button,
+.example-admin-data-table .sdk-data-table__toolbar-actions a,
+.example-admin-data-table .sdk-data-table__toolbar-actions button,
+.example-admin-data-table .sdk-data-table__pagination-actions button,
+.example-admin-data-table .sdk-data-table__confirm-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(217, 119, 6, 0.16);
+  background: rgba(255, 251, 235, 0.92);
+  color: #9a3412;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.example-admin-data-table .sdk-data-table__confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(17, 24, 39, 0.48);
+  z-index: 60;
+}
+
+.example-admin-data-table .sdk-data-table__confirm-dialog {
+  width: min(100%, 28rem);
+  border-radius: 1rem;
+  border: 1px solid rgba(217, 119, 6, 0.22);
+  background: rgba(255, 255, 255, 0.98);
+  padding: 1rem;
+  display: grid;
+  gap: 0.85rem;
+  box-shadow: 0 24px 68px rgba(120, 53, 15, 0.22);
+}
+
+@media (max-width: 900px) {
+  .example-admin-data-table .sdk-data-table__toolbar-search {
+    min-width: 100%;
+  }
+}
 `;
 
 export async function renderExampleAdminPage() {
