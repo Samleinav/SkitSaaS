@@ -69,26 +69,81 @@ function isTemplateNavItem(value: unknown): value is TemplateNavItem {
   return typeof c.href === 'string' && typeof c.label === 'string';
 }
 
+function getPathMatchSpecificity(
+  pathname: string,
+  href: string,
+  exact: boolean,
+  matchPrefixes: string[] = []
+) {
+  const candidates = [href, ...matchPrefixes];
+  let bestScore = -1;
+
+  for (const candidate of candidates) {
+    if (exact) {
+      if (pathname === candidate) {
+        bestScore = Math.max(bestScore, candidate.length);
+      }
+      continue;
+    }
+
+    if (pathname === candidate || pathname.startsWith(`${candidate}/`)) {
+      bestScore = Math.max(bestScore, candidate.length);
+    }
+  }
+
+  return bestScore;
+}
+
 function matchesPath(
   pathname: string,
   href: string,
   exact: boolean,
   matchPrefixes: string[] = []
 ) {
-  if (exact) {
-    return pathname === href || matchPrefixes.some((p) => pathname === p);
-  }
-  if (pathname === href || pathname.startsWith(`${href}/`)) return true;
-  return matchPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  return getPathMatchSpecificity(pathname, href, exact, matchPrefixes) >= 0;
 }
 
-function isChildItemActive(pathname: string, item: TemplateNavChildItem) {
+function getActiveChildHref(pathname: string, children: TemplateNavChildItem[]) {
+  let bestHref: string | null = null;
+  let bestScore = -1;
+
+  for (const child of children) {
+    const score = getPathMatchSpecificity(
+      pathname,
+      child.href,
+      child.exact ?? false,
+      child.matchPrefixes
+    );
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestHref = child.href;
+    }
+  }
+
+  return bestHref;
+}
+
+function isChildItemActive(
+  pathname: string,
+  item: TemplateNavChildItem,
+  activeChildHref?: string | null
+) {
+  if (activeChildHref !== undefined) {
+    return activeChildHref === item.href;
+  }
+
   return matchesPath(pathname, item.href, item.exact ?? false, item.matchPrefixes);
 }
 
 function isNavItemActive(pathname: string, item: TemplateNavItem) {
   if (matchesPath(pathname, item.href, item.exact ?? false, item.matchPrefixes)) return true;
-  return item.children?.some((child) => isChildItemActive(pathname, child)) ?? false;
+
+  const childrenItems = Array.isArray(item.children)
+    ? item.children.filter(isTemplateNavChildItem)
+    : [];
+
+  return getActiveChildHref(pathname, childrenItems) !== null;
 }
 
 function resolveNavGroup(item: TemplateNavItem): NavGroupKey {
@@ -149,11 +204,14 @@ export default function SectionAdminNavTemplate({
 
   function renderItem(item: TemplateNavItem) {
     const Icon = iconMap[item.icon ?? ''] ?? Package;
-    const isActive = isNavItemActive(pathname, item);
     const childrenItems = Array.isArray(item.children)
       ? item.children.filter(isTemplateNavChildItem)
       : [];
     const hasChildren = childrenItems.length > 0;
+    const activeChildHref = hasChildren ? getActiveChildHref(pathname, childrenItems) : null;
+    const isActive =
+      matchesPath(pathname, item.href, item.exact ?? false, item.matchPrefixes) ||
+      activeChildHref !== null;
     const isExpanded = hasChildren && expandedItemHref === item.href;
 
     return (
@@ -223,7 +281,7 @@ export default function SectionAdminNavTemplate({
         {hasChildren && isExpanded ? (
           <div className="ml-7 space-y-px border-l border-sidebar-border/80 pl-2">
             {childrenItems.map((child) => {
-              const isChildActive = isChildItemActive(pathname, child);
+              const isChildActive = isChildItemActive(pathname, child, activeChildHref);
               return (
                 <Link
                   key={child.href}
