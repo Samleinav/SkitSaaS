@@ -210,7 +210,8 @@ Nota:
 Nota historica:
 - esta seccion preserva el plan original del gap
 - los ejemplos usan `createModuleApiRouter(...)` porque fueron escritos antes de que `apiRoutes` tipados fuera la ruta preferida
-- para implementaciones nuevas, usar `RouteApi(...).METHOD()` mas `apiRoutes` en el manifiesto salvo que se este documentando un flujo legacy
+- para implementaciones nuevas, usar `RouteApi(...).METHOD()` en `routes.ts` para la metadata
+  y `apiRoutes` en el manifiesto para adjuntar handlers, salvo que se este documentando un flujo legacy
 
 ### Adapter interface (host-side)
 

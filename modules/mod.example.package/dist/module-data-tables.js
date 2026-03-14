@@ -173,16 +173,16 @@ export function ExamplePackageAdminItemsDataTable({ items, adminAlias }) {
     return (_jsx(DataTable, { definition: buildAdminItemsTableDefinition({
             items,
             adminAlias
-        }), tableClassName: "min-w-[960px]" }));
+        }), className: "example-package-data-table", tableClassName: "min-w-[960px]" }));
 }
 export function ExamplePackageDashboardItemsDataTable({ items, dashboardAlias }) {
     return (_jsx(DataTable, { definition: buildDashboardItemsTableDefinition({
             items,
             dashboardAlias
-        }), tableClassName: "min-w-[760px]" }));
+        }), className: "example-package-data-table", tableClassName: "min-w-[760px]" }));
 }
 export function ExamplePackageRecentItemsDataTable({ items }) {
     return (_jsx(DataTable, { definition: buildRecentItemsTableDefinition({
             items
-        }), tableClassName: "min-w-[620px]" }));
+        }), className: "example-package-data-table", tableClassName: "min-w-[620px]" }));
 }

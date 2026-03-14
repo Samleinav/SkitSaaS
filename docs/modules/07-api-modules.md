@@ -13,8 +13,10 @@ API modules are handled by the dispatcher route:
 
 The manifest can expose module APIs in two ways:
 
-- preferred: `apiRoutes` built from `RouteApi(...).METHOD().handler(fn)`
-- legacy: `apiHandler` from `createModuleApiRouter(...)`
+- preferred: typed `apiRoutes`, where route metadata is declared first with
+  `RouteApi(...).METHOD()` and handlers are attached later with `.handler(fn)`
+- legacy: `apiHandler`, a single request handler/router created with
+  `createModuleApiRouter(...)`
 
 ## Contract
 
@@ -27,7 +29,34 @@ type ModuleApiHandler = (
 
 Use `context.slug` to route internally, or prefer typed route metadata for new modules.
 
+## Important distinction
+
+There are three related pieces here:
+
+- `RouteApi(...).METHOD()` in `routes.ts`:
+  metadata-only route registration
+- `apiRoutes` in `manifest.ts`:
+  the final typed route entries after attaching handlers with `.handler(fn)`
+- `apiHandler`:
+  one legacy all-in-one router/handler function
+
+That means `apiRoutes` is not "metadata only" by itself. The metadata-only part
+is the builder definition you keep in `routes.ts`.
+
+This split exists on purpose:
+
+- `routes.ts` stays edge-safe and lightweight
+- the host can load route metadata, names, auth, rate limits, and proxies
+  without eagerly importing heavy handler modules
+- middleware and other metadata consumers do not pay the cost of loading backend
+  handlers they will never execute
+- actual request handling still happens only when the module API dispatcher
+  resolves the manifest and dispatches the matched entry
+
 ## Preferred: typed `apiRoutes`
+
+Put the route contract in `routes.ts` and keep handler imports out of that file.
+Then attach the handlers in `manifest.ts`.
 
 ```ts
 import { RouteApi } from '@skitsaas/sdk';
@@ -70,9 +99,18 @@ Typed route builders support:
 - extra proxy checks via `.proxy([...])`
 - named URL registration via `.name(...)`
 
+The key architectural benefit is that `routes.ts` can be imported where only
+route metadata is needed, while handler code remains in the Node.js manifest
+path and loads only for actual API dispatch.
+
 ## Legacy: `createModuleApiRouter`
 
 Still supported for migration work and existing modules such as `mod.example.suite`.
+
+With this style, matching, auth metadata, and handler dispatch live together in
+the same router definition. That is simpler for older modules, but it does not
+provide the same metadata-first separation as the typed `RouteApi(...).METHOD()`
+plus `apiRoutes` pattern.
 
 ```ts
 import { createModuleApiRouter } from '@skitsaas/sdk/server';

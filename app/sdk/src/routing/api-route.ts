@@ -570,6 +570,8 @@ export class ApiMethodRouteBuilder {
    * Attach a handler function. Returns an ApiRouteEntry ready for defineModule's apiRoutes array.
    *
    * Call this in manifest.ts (Node.js only — this is where handler imports live).
+   * Keep RouteApi(...).METHOD() builder declarations in routes.ts so metadata can
+   * be imported without eagerly loading backend handlers.
    *
    * @example
    * // manifest.ts

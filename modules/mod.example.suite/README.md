@@ -43,6 +43,13 @@ Base:
 
 - `/api/modules/mod.example.suite`
 
+Pattern used here:
+
+- `src/api-handler.ts` exports one legacy `apiHandler`
+- matching, auth checks, and request dispatch live together in that router
+- unlike the typed `RouteApi(...).METHOD()` plus `apiRoutes` pattern, this does
+  not split metadata registration from handler loading
+
 Implemented endpoints:
 
 - `GET /api/modules/mod.example.suite/health`

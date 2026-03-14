@@ -45,6 +45,11 @@ test('api returns 401 when unauthenticated', async () => {
 Typed `apiRoutes` should be tested through `dispatchApiRoutes(...)` or by
 calling the specific entry handler directly:
 
+Remember the split:
+
+- `RouteApi(...).METHOD()` in `routes.ts` is metadata-only
+- `apiRoutes` test inputs are the final entries after `.handler(...)`
+
 ```ts
 import assert from 'node:assert/strict';
 import test from 'node:test';

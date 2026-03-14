@@ -1,3 +1,4 @@
+import '@/lib/modules/sdk-server-bootstrap';
 import { resolveModuleApiHandler } from '@/lib/modules/runtime';
 import {
   isAreaEnabled,

@@ -352,6 +352,15 @@ type ApiHandlerFn = (
 ) => Response | Promise<Response>
 ```
 
+Important distinction:
+
+- `RouteApi(...).METHOD()` in `routes.ts` is metadata-only
+- `apiRoutes` in `manifest.ts` is the final typed entry list after `.handler(...)`
+- `apiHandler` is the legacy all-in-one router/handler alternative
+
+The split keeps metadata importable in lightweight contexts such as route
+registration and policy setup, without eagerly loading backend handlers.
+
 **Proxy execution order** per matched route:
 
 ```
@@ -531,6 +540,8 @@ Routes.admin.users            // ✅ RouteBuilder "/admin/users"
 3. Call `.name('mod.x.api.section.action')` for named URL access.
 4. Add to `modules/<id>/src/routes.ts` (routes.ts is edge-safe — no handler imports).
 5. Attach handlers in `manifest.ts`: `apiRoutes: [ MyApiRoutes.list.handler(fn), ... ]`.
+6. Keep in mind: metadata lives in `routes.ts`; `apiRoutes` is the runtime entry
+   list with handlers attached.
 
 **API routes (core host standalone):**
 

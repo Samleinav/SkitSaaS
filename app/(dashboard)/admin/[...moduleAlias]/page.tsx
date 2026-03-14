@@ -1,3 +1,4 @@
+import '@/lib/modules/sdk-server-bootstrap';
 import { notFound } from 'next/navigation';
 import { resolveModulePageByPath } from '@/lib/modules/runtime';
 import { requireAdminAccess } from '../guards';

@@ -191,6 +191,7 @@ export function ExamplePackageAdminItemsDataTable({
         items,
         adminAlias
       })}
+      className="example-package-data-table"
       tableClassName="min-w-[960px]"
     />
   );
@@ -206,6 +207,7 @@ export function ExamplePackageDashboardItemsDataTable({
         items,
         dashboardAlias
       })}
+      className="example-package-data-table"
       tableClassName="min-w-[760px]"
     />
   );
@@ -217,6 +219,7 @@ export function ExamplePackageRecentItemsDataTable({ items }) {
       definition={buildRecentItemsTableDefinition({
         items
       })}
+      className="example-package-data-table"
       tableClassName="min-w-[620px]"
     />
   );

@@ -668,6 +668,12 @@ export default defineModule({
 });
 ```
 
+`RouteApi(...).METHOD()` is the metadata-first part of this pattern. Keep those
+builders in `routes.ts`, then attach handlers in `manifest.ts` via `apiRoutes`.
+That separation avoids importing backend handler code in places that only need
+route metadata. By contrast, legacy `apiHandler` combines routing and handler
+dispatch in one function.
+
 And Drizzle through SDK:
 
 ```ts

@@ -188,9 +188,13 @@ export type ModuleManifest = {
   frontendPage?: ModulePageHandler;
   apiHandler?: ModuleApiHandler;
   /**
-   * Typed API routes defined with RouteApi(...).METHOD().auth().rateLimit().handler(fn).
+   * Preferred typed API surface.
+   *
+   * Define route metadata first in routes.ts with RouteApi(...).METHOD().auth().rateLimit(),
+   * then attach handlers here in manifest.ts with .handler(fn).
+   *
+   * This keeps route metadata importable without eagerly loading handler modules.
    * Takes precedence over apiHandler when present.
-   * Define route metadata in routes.ts (edge-safe) and attach handlers here in manifest.ts.
    */
   apiRoutes?: ApiRouteEntry[];
   eventHandlers?: ModuleEventHandler[];

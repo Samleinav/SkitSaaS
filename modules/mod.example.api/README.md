@@ -6,6 +6,8 @@ Example source-host module that exposes a typed module API surface.
 
 - Demonstrates `RouteApi(...).METHOD().name()` metadata in `src/routes.ts`.
 - Demonstrates `apiRoutes` handler attachment in `src/manifest.ts`.
+- Shows the intended split: metadata stays lightweight in `routes.ts`, while
+  handler code is attached later in the manifest.
 - Exposes public, authenticated, and admin-only endpoints for runtime checks.
 
 ## Module metadata
@@ -16,6 +18,15 @@ Example source-host module that exposes a typed module API surface.
 - `sdkRange`: `^1.7.1`
 
 ## API routes
+
+Pattern used here:
+
+- `src/routes.ts`:
+  route metadata only
+- `src/manifest.ts`:
+  `apiRoutes` entries with handlers attached via `.handler(...)`
+
+This keeps handler modules out of places that only need route metadata.
 
 - Canonical module API base:
   - `/api/modules/mod.example.api/*`

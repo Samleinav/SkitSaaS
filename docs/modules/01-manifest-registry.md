@@ -26,8 +26,9 @@ Optional fields:
 - `frontendSlots`
 - `adminDashboardWidgets` / `dashboardWidgets`
 - `adminPage` / `dashboardPage` / `frontendPage`
-- `apiRoutes` (preferred typed API entries)
-- `apiHandler` (legacy module API router)
+- `apiRoutes` (preferred typed API entries; metadata is declared separately in
+  `routes.ts`, then handlers are attached in the manifest)
+- `apiHandler` (legacy module API router/handler)
 - `eventHandlers`
 - `templatePack` (`defaults` / `overrides`)
 - `runtimeConfig` (`namespace`, manifest-defined editable BuildForm fields for `/admin/app-config/modules`)
@@ -90,8 +91,16 @@ defineModule({
 });
 ```
 
-`apiRoutes` is the current preferred API surface. `apiHandler` remains supported for legacy modules,
-but `apiRoutes` takes precedence when both are present.
+`apiRoutes` is the current preferred API surface. The intended split is:
+
+- `routes.ts`: `RouteApi(...).METHOD()` metadata only
+- `manifest.ts`: `apiRoutes: [MyApiRoutes.list.handler(fn)]`
+
+This keeps route registration lightweight in contexts that only need metadata,
+while still letting the dispatcher execute the attached handler at request time.
+
+`apiHandler` remains supported for legacy modules, but `apiRoutes` takes
+precedence when both are present.
 
 ## Validation
 

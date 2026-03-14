@@ -1,3 +1,4 @@
+import '@/lib/modules/sdk-server-bootstrap';
 import { notFound, redirect } from 'next/navigation';
 import {
   evaluateFrontendModuleAccess,

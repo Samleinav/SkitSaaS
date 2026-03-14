@@ -1,3 +1,4 @@
+import '@/lib/modules/sdk-server-bootstrap';
 import { notFound, redirect } from 'next/navigation';
 import { getUser } from '@/lib/db/queries';
 import { resolveModulePage } from '@/lib/modules/runtime';

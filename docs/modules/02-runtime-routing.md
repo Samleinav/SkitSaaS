@@ -205,6 +205,14 @@ Handler signature:
 (request: Request, params: Record<string, string>) => Response | Promise<Response>
 ```
 
+Why split it this way:
+
+- `routes.ts` may be imported for route registration, named-route lookup, auth
+  metadata, rate limits, or proxy metadata
+- those consumers should not eagerly load backend handler modules
+- handler imports stay in `manifest.ts`, so the heavier Node.js code is loaded
+  only when the module API dispatcher actually needs to execute the request
+
 Available builder methods:
 
 | Method | Description |
@@ -233,7 +241,9 @@ const apiHandler = createModuleApiRouter({
 defineModule({ moduleId: 'mod.my-feature', apiHandler })
 ```
 
-`apiRoutes` takes precedence over `apiHandler` when both are present — prefer `apiRoutes` for new modules.
+`apiRoutes` takes precedence over `apiHandler` when both are present. Prefer
+`apiRoutes` for new modules when you want typed route metadata separated from
+handler loading; keep `apiHandler` for legacy or migration-oriented modules.
 
 ## Feature flag gates
 

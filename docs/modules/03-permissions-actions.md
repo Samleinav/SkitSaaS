@@ -34,7 +34,9 @@ Validate inside the module handler or in a shared helper.
 API dispatcher does **not** apply a blanket guard by itself. Access is defined by
 the module contract you choose:
 
-- preferred: typed `apiRoutes` entries with `RouteApi(...).auth('user' | 'admin')`
+- preferred: typed `apiRoutes` entries, with route metadata declared via
+  `RouteApi(...).auth('user' | 'admin')` in `routes.ts` and handlers attached in
+  `manifest.ts`
 - legacy: `apiHandler` created with `createModuleApiRouter(...)`
 
 Example:
@@ -54,6 +56,10 @@ export const apiRoutes = [
 
 For custom permission checks (ownership, team membership, quotas), use
 route `.proxy([...])`, legacy `canAccess`, or validate directly in `handler`.
+
+This separation is intentional: auth/rate-limit/proxy metadata can be imported
+without pulling the backend handler modules into contexts that only need route
+registration or policy inspection.
 
 ## Server actions
 

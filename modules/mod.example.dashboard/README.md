@@ -10,6 +10,8 @@ Source-host example module that now acts as the lightweight SDK showcase for das
 - SDK `TemplateBuildForm` on the dashboard page
 - SDK `DataTable` in both local and remote modes
 - typed `apiRoutes` backing a `source.url` table on the frontend page
+- typed route metadata kept in `src/routes.ts`, with handlers attached later in
+  `src/manifest.ts`
 
 ## Module metadata
 
