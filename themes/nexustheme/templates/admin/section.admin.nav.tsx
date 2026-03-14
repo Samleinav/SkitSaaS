@@ -115,38 +115,23 @@ export default function SectionAdminNavTemplate({
     Array.isArray(data?.navItems) ? data.navItems.filter(isTemplateNavItem) : []
   ).filter((item) => item.href !== '/admin/logs');
 
-  const activeParentItemKeys = useMemo(
+  const activeParentItemHref = useMemo(
     () =>
-      new Set(
-        navItems
-          .filter((item) => {
-            const childrenItems = Array.isArray(item.children)
-              ? item.children.filter(isTemplateNavChildItem)
-              : [];
-            if (!childrenItems.length) return false;
-            return isNavItemActive(pathname, item);
-          })
-          .map((item) => item.href)
-      ),
+      navItems.find((item) => {
+        const childrenItems = Array.isArray(item.children)
+          ? item.children.filter(isTemplateNavChildItem)
+          : [];
+        if (!childrenItems.length) return false;
+        return isNavItemActive(pathname, item);
+      })?.href ?? null,
     [navItems, pathname]
   );
 
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [expandedItemHref, setExpandedItemHref] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeParentItemKeys.size) return;
-    setExpandedItems((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      for (const href of activeParentItemKeys) {
-        if (!(href in next)) {
-          next[href] = true;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [activeParentItemKeys]);
+    setExpandedItemHref(activeParentItemHref);
+  }, [activeParentItemHref]);
 
   if (navItems.length === 0) {
     return <>{children ?? null}</>;
@@ -169,14 +154,13 @@ export default function SectionAdminNavTemplate({
       ? item.children.filter(isTemplateNavChildItem)
       : [];
     const hasChildren = childrenItems.length > 0;
-    const isExpanded =
-      hasChildren && (expandedItems[item.href] ?? activeParentItemKeys.has(item.href));
+    const isExpanded = hasChildren && expandedItemHref === item.href;
 
     return (
-      <div key={item.href} className="space-y-0.5">
+      <div key={item.href} className="space-y-px">
         <div
           className={mergeClassNames(
-            'group flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-sm transition-colors',
+            'group flex items-center gap-1 rounded-lg px-1 py-0.5 text-sm transition-colors',
             isActive
               ? 'bg-sidebar-accent text-sidebar-accent-foreground'
               : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
@@ -186,11 +170,14 @@ export default function SectionAdminNavTemplate({
             href={item.href}
             prefetch={false}
             aria-current={isActive ? 'page' : undefined}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-0.5 py-1.5"
+            onClick={() => {
+              setExpandedItemHref(hasChildren ? item.href : null);
+            }}
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-0.5 py-1"
           >
             <span
               className={mergeClassNames(
-                'flex size-7 items-center justify-center rounded-md border',
+                'flex size-6 items-center justify-center rounded-md border',
                 isActive
                   ? 'border-sidebar-primary/30 bg-sidebar-primary text-sidebar-primary-foreground'
                   : 'border-sidebar-border bg-sidebar text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
@@ -198,7 +185,7 @@ export default function SectionAdminNavTemplate({
             >
               <Icon className="h-3.5 w-3.5" />
             </span>
-            <span className="min-w-0 flex-1 truncate text-[15px] font-medium leading-tight">
+            <span className="min-w-0 flex-1 truncate text-[14px] font-medium leading-tight">
               {item.label}
             </span>
           </Link>
@@ -207,14 +194,11 @@ export default function SectionAdminNavTemplate({
             <button
               type="button"
               className={mergeClassNames(
-                'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-sidebar/80',
+                'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-sidebar/80',
                 isExpanded ? 'text-sidebar-accent-foreground' : 'text-muted-foreground'
               )}
               onClick={() => {
-                setExpandedItems((prev) => ({
-                  ...prev,
-                  [item.href]: !isExpanded
-                }));
+                setExpandedItemHref((prev) => (prev === item.href ? null : item.href));
               }}
               aria-label={`${isExpanded ? t('Collapse') : t('Expand')} ${item.label}`}
               aria-expanded={isExpanded}
@@ -237,7 +221,7 @@ export default function SectionAdminNavTemplate({
         </div>
 
         {hasChildren && isExpanded ? (
-          <div className="ml-9 space-y-0.5 border-l border-sidebar-border/80 pl-2">
+          <div className="ml-7 space-y-px border-l border-sidebar-border/80 pl-2">
             {childrenItems.map((child) => {
               const isChildActive = isChildItemActive(pathname, child);
               return (
@@ -246,8 +230,11 @@ export default function SectionAdminNavTemplate({
                   href={child.href}
                   prefetch={false}
                   aria-current={isChildActive ? 'page' : undefined}
+                  onClick={() => {
+                    setExpandedItemHref(item.href);
+                  }}
                   className={mergeClassNames(
-                    'flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] transition-colors',
+                    'flex items-center gap-2 rounded-md px-1.5 py-1 text-[12px] transition-colors',
                     isChildActive
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground'
@@ -278,16 +265,16 @@ export default function SectionAdminNavTemplate({
       data-nexus-admin-nav="true"
     >
       {/* Scrollable main nav */}
-      <div className="nexus-admin-nav-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-2 pr-1.5">
+      <div className="nexus-admin-nav-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto p-1.5 pr-1">
         {NAV_GROUP_ORDER.map((groupKey) => {
           const items = groupedItems[groupKey];
           if (!items.length) return null;
           return (
             <section key={groupKey} className="space-y-0.5">
-              <p className="px-2 pt-1 pb-1 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+              <p className="px-1.5 pt-1 pb-0.5 text-[9px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                 {t(groupKey === 'dashboards' ? 'Dashboards' : groupKey === 'apps' ? 'Apps' : 'Settings')}
               </p>
-              <div className="space-y-0.5">{items.map(renderItem)}</div>
+              <div className="space-y-px">{items.map(renderItem)}</div>
             </section>
           );
         })}
@@ -295,7 +282,7 @@ export default function SectionAdminNavTemplate({
 
       {/* Settings — always pinned at bottom */}
       {groupedItems['settings'].length > 0 && (
-        <div className="shrink-0 border-t border-sidebar-border/70 p-2 space-y-0.5">
+        <div className="shrink-0 space-y-px border-t border-sidebar-border/70 p-1.5">
           {groupedItems['settings'].map(renderItem)}
         </div>
       )}
