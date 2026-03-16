@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR, { mutate } from 'swr';
-import { ArrowRight, Home, LogOut, Shield } from 'lucide-react';
+import { ArrowRight, Home, LogOut, Shield, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -44,6 +44,12 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
   const router = useRouter();
   const pathname = usePathname();
   const isAdmin = user ? enrichUser(user).isAdmin() : false;
+  const activeArea =
+    pathname?.startsWith('/admin')
+      ? 'admin'
+      : pathname?.startsWith('/dashboard')
+        ? 'dashboard'
+        : null;
 
   async function handleSignOut() {
     await signOut();
@@ -98,6 +104,34 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
     tone === 'public'
       ? 'cursor-pointer text-zinc-100 focus:bg-amber-200/10 focus:text-amber-100'
       : 'cursor-pointer';
+  const areaItems = [
+    {
+      key: 'dashboard' as const,
+      href: '/dashboard',
+      label: header.dashboard,
+      icon: Home
+    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'admin' as const,
+            href: '/admin',
+            label: header.admin,
+            icon: Shield
+          }
+        ]
+      : [])
+  ] satisfies Array<{
+    key: 'admin' | 'dashboard';
+    href: string;
+    label: string;
+    icon: LucideIcon;
+  }>;
+  const sortedAreaItems = [...areaItems].sort((left, right) => {
+    if (activeArea === left.key) return -1;
+    if (activeArea === right.key) return 1;
+    return 0;
+  });
 
   return (
     <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -125,20 +159,18 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className={contentClassName}>
-        <DropdownMenuItem className={itemClassName}>
-          <Link href="/dashboard" prefetch={false} className="flex w-full items-center">
-            <Home className="mr-2 h-4 w-4" />
-            <span>{header.dashboard}</span>
-          </Link>
-        </DropdownMenuItem>
-        {isAdmin ? (
-          <DropdownMenuItem className={itemClassName}>
-            <Link href="/admin" prefetch={false} className="flex w-full items-center">
-              <Shield className="mr-2 h-4 w-4" />
-              <span>{header.admin}</span>
-            </Link>
-          </DropdownMenuItem>
-        ) : null}
+        {sortedAreaItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <DropdownMenuItem key={item.key} className={itemClassName}>
+              <Link href={item.href} prefetch={false} className="flex w-full items-center">
+                <Icon className="mr-2 h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
         <DropdownMenuItem
           className={cn('w-full flex-1', itemClassName)}
           onSelect={() => {
