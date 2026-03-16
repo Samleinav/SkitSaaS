@@ -2,8 +2,11 @@ import type { AppConfig } from '@/lib/runtime-config/types';
 
 const appConfig: AppConfig = {
   projectName: 'S-Kit-SaaS',
-  moduleRuntimeMode: 'db',
-  modules: {},
+  // Keep DB-backed modules working while force-enabling selected modules from config.
+  moduleRuntimeMode: 'hybrid',
+  modules: {
+    'mod.artificial.scientist': true
+  },
 
   // ---------------------------------------------------------------------------
   // Role definitions — customize to match your SaaS user model.
