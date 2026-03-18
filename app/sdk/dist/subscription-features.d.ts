@@ -6,6 +6,7 @@ export type QuotaContext = {
     teamId: number | null;
     userId: number | null;
 };
+export type SubscriptionFeatureValueType = 'text' | 'number' | 'boolean' | 'null';
 /**
  * Result of checkFeature — tells the caller whether the feature is enabled
  * and, if it has a numeric limit, what the current usage is.
@@ -32,6 +33,24 @@ export type QuotaStatus = {
     remaining: number | null;
     /** When the usage counter resets (e.g. monthly). Undefined if no reset cycle. */
     resetAt?: Date;
+};
+/**
+ * Raw feature value resolved from the current subscription plan. This is the
+ * read-only path for plan configuration, independent from quota usage.
+ */
+export type PlanFeatureValueResult = {
+    /** Whether the current plan defines a row for this feature key. */
+    found: boolean;
+    /** Stored value type from `subscription_template_features`. */
+    valueType: SubscriptionFeatureValueType | null;
+    /** Raw stored value after trimming. */
+    rawValue: string | null;
+    /** Parsed boolean value when `valueType === 'boolean'`. */
+    booleanValue: boolean | null;
+    /** Parsed numeric value when `valueType === 'number'`. */
+    numberValue: number | null;
+    /** Parsed text value when `valueType === 'text'`. */
+    textValue: string | null;
 };
 /**
  * Options for consumeQuota.
@@ -71,6 +90,15 @@ export declare class QuotaExceededError extends Error {
  */
 export interface SubscriptionFeaturesAdapter {
     /**
+     * Return the raw feature value defined on the current subscription plan.
+     * This does not inspect or mutate quota usage.
+     */
+    getPlanFeatureValue?: (featureKey: string, ctx: QuotaContext) => Promise<{
+        found: boolean;
+        valueType: SubscriptionFeatureValueType | null;
+        rawValue: string | null;
+    }>;
+    /**
      * Return the feature flag / limit for a given feature key within
      * the current subscription plan of the target scope.
      * - enabled: false  → feature not available on this plan
@@ -99,6 +127,19 @@ export interface SubscriptionFeaturesAdapter {
     }>;
 }
 export declare function configureSubscriptionFeatures(adapter: SubscriptionFeaturesAdapter): void;
+/**
+ * Read the raw value configured on the current subscription plan for a feature
+ * key. This is the SDK path for numeric plan limits that are not usage-tracked.
+ *
+ * Use `checkFeature()` / `getQuotaStatus()` / `consumeQuota()` only when the
+ * feature also tracks usage in `quota_usage`.
+ */
+export declare function getPlanFeatureValue(featureKey: string, ctx: QuotaContext): Promise<PlanFeatureValueResult>;
+/**
+ * Convenience helper for module code that only needs a numeric plan limit.
+ * Returns the stored numeric value without reading or mutating quota usage.
+ */
+export declare function getPlanFeatureNumber(featureKey: string, ctx: QuotaContext, fallback?: number | null): Promise<number | null>;
 /**
  * Check whether a feature is enabled and whether its quota has been reached.
  *

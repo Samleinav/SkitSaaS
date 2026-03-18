@@ -27,6 +27,7 @@ export {
 } from 'drizzle-orm';
 
 export {
+  customType,
   pgTable,
   serial,
   bigserial,

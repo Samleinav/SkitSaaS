@@ -70,6 +70,16 @@ const t = await getServerTranslator();
 return { error: t('Invalid email or password. Please try again.') };
 ```
 
+For module pages and server actions, the same runtime is available through the
+SDK server entrypoint:
+
+```ts
+import { getActionTranslator, getServerTranslator } from '@skitsaas/sdk/server';
+
+const t = await getServerTranslator({ moduleId: 'mod.analytics' });
+const actionT = await getActionTranslator({ moduleId: 'mod.analytics' });
+```
+
 Inside server actions, prefer `getActionTranslator()` so locale resolution does
 not depend on `connection()`:
 
@@ -139,6 +149,7 @@ Current core pilots:
 - login server action errors in `app/(login)/actions.ts`
 - dashboard invite warning notification in `app/(dashboard)/dashboard/home-core.tsx`
 - relative-time helper in `lib/i18n/formatting.ts`
+- module server pages can now use `getServerTranslator({ moduleId })` from `@skitsaas/sdk/server`
 
 Theme usage:
 

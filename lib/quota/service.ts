@@ -1,13 +1,56 @@
 import 'server-only';
 
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { QuotaContext, SubscriptionFeaturesAdapter } from '@skitsaas/sdk/server';
+import type {
+  QuotaContext,
+  SubscriptionFeatureValueType,
+  SubscriptionFeaturesAdapter
+} from '@skitsaas/sdk/server';
 import { adminDb } from '@/lib/db/drizzle';
 import {
   subscriptionAssignments,
   subscriptionTemplateFeatures,
   quotaUsage,
 } from '@/lib/db/schema';
+
+const TRUE_VALUES = new Set([
+  '1',
+  'true',
+  'yes',
+  'y',
+  'on',
+  'enabled',
+  'allow',
+  'allowed'
+]);
+
+const FALSE_VALUES = new Set([
+  '0',
+  'false',
+  'no',
+  'n',
+  'off',
+  'disabled',
+  'deny',
+  'denied'
+]);
+
+function parseBooleanFeatureValue(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (TRUE_VALUES.has(normalized)) {
+    return true;
+  }
+
+  if (FALSE_VALUES.has(normalized)) {
+    return false;
+  }
+
+  return null;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +90,59 @@ async function resolveTemplateId(ctx: QuotaContext): Promise<number | null> {
   }
 
   return null;
+}
+
+async function resolveTemplateFeature(
+  featureKey: string,
+  ctx: QuotaContext
+): Promise<{
+  found: boolean;
+  valueType: SubscriptionFeatureValueType | null;
+  rawValue: string | null;
+}> {
+  const templateId = await resolveTemplateId(ctx);
+  if (!templateId) {
+    return {
+      found: false,
+      valueType: null,
+      rawValue: null
+    };
+  }
+
+  const rows = await adminDb
+    .select({
+      featureValue: subscriptionTemplateFeatures.featureValue,
+      valueType: subscriptionTemplateFeatures.valueType
+    })
+    .from(subscriptionTemplateFeatures)
+    .where(
+      and(
+        eq(subscriptionTemplateFeatures.templateId, templateId),
+        eq(subscriptionTemplateFeatures.featureKey, featureKey)
+      )
+    )
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) {
+    return {
+      found: false,
+      valueType: null,
+      rawValue: null
+    };
+  }
+
+  return {
+    found: true,
+    valueType:
+      row.valueType === 'boolean' ||
+      row.valueType === 'number' ||
+      row.valueType === 'text' ||
+      row.valueType === 'null'
+        ? row.valueType
+        : null,
+    rawValue: row.featureValue
+  };
 }
 
 /**
@@ -109,43 +205,37 @@ async function resolvePeriod(ctx: QuotaContext): Promise<{ start: Date; end: Dat
 // ─── Adapter implementation ───────────────────────────────────────────────────
 
 export const quotaAdapter: SubscriptionFeaturesAdapter = {
-  async getFeatureLimit(featureKey, ctx) {
-    const templateId = await resolveTemplateId(ctx);
+  async getPlanFeatureValue(featureKey, ctx) {
+    return resolveTemplateFeature(featureKey, ctx);
+  },
 
-    if (!templateId) {
+  async getFeatureLimit(featureKey, ctx) {
+    const feature = await resolveTemplateFeature(featureKey, ctx);
+
+    if (!feature.found) {
       // No subscription → treat as no access (feature not available)
       return { enabled: false, limit: null };
     }
 
-    const rows = await adminDb
-      .select({
-        featureValue: subscriptionTemplateFeatures.featureValue,
-        valueType: subscriptionTemplateFeatures.valueType,
-      })
-      .from(subscriptionTemplateFeatures)
-      .where(
-        and(
-          eq(subscriptionTemplateFeatures.templateId, templateId),
-          eq(subscriptionTemplateFeatures.featureKey, featureKey)
-        )
-      )
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) {
-      return { enabled: false, limit: null };
+    // valueType 'boolean' / 'null' → feature flag with no numeric limit
+    if (feature.valueType === 'null') {
+      return { enabled: true, limit: null };
     }
 
-    // valueType 'boolean' / 'null' → feature flag with no numeric limit
-    if (row.valueType === 'boolean' || row.valueType === 'null' || row.valueType === 'text') {
-      const enabled =
-        row.featureValue === 'true' || row.featureValue === '1' || row.featureValue === 'yes';
-      return { enabled, limit: null };
+    if (feature.valueType === 'boolean') {
+      return {
+        enabled: parseBooleanFeatureValue(feature.rawValue) ?? false,
+        limit: null
+      };
+    }
+
+    if (feature.valueType === 'text') {
+      return { enabled: feature.rawValue !== null, limit: null };
     }
 
     // valueType 'number' → numeric limit
-    if (row.valueType === 'number') {
-      const limit = row.featureValue !== null ? parseInt(row.featureValue, 10) : null;
+    if (feature.valueType === 'number') {
+      const limit = feature.rawValue !== null ? parseInt(feature.rawValue, 10) : null;
       if (limit === null || isNaN(limit)) {
         return { enabled: true, limit: null };
       }

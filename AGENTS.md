@@ -208,7 +208,7 @@ If docs and code disagree:
   - `/admin/subscriptions/organization/[teamId]/edit`
   - `/admin/subscriptions/user/[userId]/edit`
   - `/admin/suscriptions` (legacy redirect)
-  - `/admin/products` (module alias from `mod.commerce.products` when enabled)
+  - `/admin/products` (module alias from a product-management module when enabled)
   - `/admin/payments`
   - `/admin/orders`
   - `/admin/orders/create`

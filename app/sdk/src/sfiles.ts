@@ -37,6 +37,11 @@ export type SFilePermission = {
   grantedAt: Date;
 };
 
+export type SFileReadResult = {
+  file: SFile;
+  buffer: Buffer;
+};
+
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 export type SFilesConfig = {
@@ -143,6 +148,9 @@ export interface ISfilesManager {
   /** Get a single file record (throws if not found or no access) */
   get(actor: SFilesActorContext, id: number): Promise<SFile>;
 
+  /** Load the file binary after permission checks. */
+  read(actor: SFilesActorContext, id: number): Promise<SFileReadResult>;
+
   /** Soft-delete a file (owner or admin only) */
   delete(actor: SFilesActorContext, id: number): Promise<void>;
 
@@ -172,17 +180,95 @@ export interface ISfilesManager {
   getPermissions(actor: SFilesActorContext, fileId: number): Promise<SFilePermission[]>;
 }
 
+export interface ActorBoundSfilesManager {
+  upload(
+    file: File | Buffer,
+    filename: string,
+    options?: UploadOptions
+  ): Promise<SFile>;
+  list(options?: ListOptions): Promise<ListResult>;
+  get(id: number): Promise<SFile>;
+  read(id: number): Promise<SFileReadResult>;
+  delete(id: number): Promise<void>;
+  search(options: SearchOptions): Promise<SFile[]>;
+  rename(id: number, options: RenameOptions): Promise<SFile>;
+  move(id: number, options: MoveOptions): Promise<SFile>;
+  getUrl(id: number, options?: GetUrlOptions): Promise<string>;
+  zip(options: ZipOptions): Promise<SFile>;
+  setPermissions(fileId: number, options: SetPermissionsOptions): Promise<void>;
+  getPermissions(fileId: number): Promise<SFilePermission[]>;
+}
+
 // ─── Service locator ─────────────────────────────────────────────────────────
 // The host app calls registerSfiles() once (lib/sfiles/index.ts).
 // Modules import { sfiles } from '@skitsaas/sdk/sfiles' and use it directly.
 
 let _instance: ISfilesManager | null = null;
 
+function readRegisteredSfiles(): ISfilesManager {
+  if (!_instance) {
+    throw new Error(
+      '[Sfiles] Not initialized. Ensure the host loads lib/sfiles before ' +
+        'using @skitsaas/sdk/sfiles.'
+    );
+  }
+
+  return _instance;
+}
+
 /**
  * Register the Sfiles singleton. Called once by the host app in lib/sfiles/index.ts.
  */
 export function registerSfiles(instance: ISfilesManager): void {
   _instance = instance;
+}
+
+/**
+ * Bind a resolved actor context to the public manager so callers no longer
+ * repeat the actor parameter on every operation.
+ */
+export function bindSfilesActor(
+  actor: SFilesActorContext,
+  manager: ISfilesManager = readRegisteredSfiles()
+): ActorBoundSfilesManager {
+  return {
+    upload(file, filename, options) {
+      return manager.upload(file, filename, options, actor);
+    },
+    list(options) {
+      return manager.list(actor, options);
+    },
+    get(id) {
+      return manager.get(actor, id);
+    },
+    read(id) {
+      return manager.read(actor, id);
+    },
+    delete(id) {
+      return manager.delete(actor, id);
+    },
+    search(options) {
+      return manager.search(actor, options);
+    },
+    rename(id, options) {
+      return manager.rename(actor, id, options);
+    },
+    move(id, options) {
+      return manager.move(actor, id, options);
+    },
+    getUrl(id, options) {
+      return manager.getUrl(actor, id, options);
+    },
+    zip(options) {
+      return manager.zip(actor, options);
+    },
+    setPermissions(fileId, options) {
+      return manager.setPermissions(actor, fileId, options);
+    },
+    getPermissions(fileId) {
+      return manager.getPermissions(actor, fileId);
+    }
+  };
 }
 
 /**
@@ -195,12 +281,6 @@ export function registerSfiles(instance: ISfilesManager): void {
  */
 export const sfiles: ISfilesManager = new Proxy({} as ISfilesManager, {
   get(_target, prop: string) {
-    if (!_instance) {
-      throw new Error(
-        `[Sfiles] Not initialized — cannot call sfiles.${prop}(). ` +
-        'Ensure lib/sfiles is loaded before using sfiles from the SDK.'
-      );
-    }
-    return (_instance as unknown as Record<string, unknown>)[prop];
+    return (readRegisteredSfiles() as unknown as Record<string, unknown>)[prop];
   },
 });

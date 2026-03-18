@@ -10,10 +10,16 @@ This section documents the host module runtime only. Documentation for concrete 
 
 This repository ships a **module runtime** that lets you add admin/dashboard pages, API endpoints, nav entries, and widgets without changing the core routes. The runtime is **manifest driven** (code) and **state driven** (DB).
 
-Current authoring default in this repository:
+Current authoring reality in this repository:
 
-- build new modules as `source-host` unless you intentionally need isolated packaging/build
-- keep shared contracts in `@skitsaas/sdk`; even in `source-host`, prefer SDK-first module code and use host imports only for real host-only gaps
+- many existing modules still run as `source-host`
+- shared capabilities should still be consumed from `@skitsaas/sdk` first
+- any direct host import in module code should be treated as migration debt
+
+Target architecture:
+
+- move modules toward `source-package` portability over time
+- keep host imports only as temporary escape hatches while an SDK gap is being closed
 
 Core components:
 
@@ -48,8 +54,8 @@ Runtime state rules:
 Module mode rules (`module.json` -> `moduleMode`):
 
 - `prebuilt`: host imports compiled `entry`.
-- `source-host`: host imports/transpiles module source (`sourceEntry`). This is the recommended default in this repo.
-- `source-package`: host requires compiled `entry`; no runtime fallback to source. Treat this as an advanced secondary path when you intentionally need isolated packaging/build.
+- `source-host`: host imports/transpiles module source (`sourceEntry`). This is the current operational default for many legacy modules while they migrate toward SDK-only portability.
+- `source-package`: host requires compiled `entry`; no runtime fallback to source. This is the long-term portable target for modules that should stop depending on host internals.
 - optional `templatePack` metadata in `module.json` allows build/prepare validation of template artifacts (`defaultEntry`/`overrideEntry`).
 
 Build/prepare pipeline:
@@ -64,6 +70,7 @@ pnpm modules:sync
 
 Authoring reference:
 
+- `docs/sdk/01-sdk-first-migration.md` for the migration path from `source-host` convenience to `source-package` portability.
 - `docs/modules/13-source-package-template.md` for the advanced `source-package` starter template and checklist.
 - `docs/themes/03-template-controller.md` for component template precedence and CTC contract.
 

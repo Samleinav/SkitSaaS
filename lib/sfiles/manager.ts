@@ -3,6 +3,7 @@ import type {
   SFile,
   SFileBackend,
   SFilePermission,
+  SFileReadResult,
   SFilesAdapter,
   SFilesActorContext,
   SFilesConfig,
@@ -26,6 +27,7 @@ import { renameOperation } from './operations/rename';
 import { moveOperation } from './operations/move';
 import { urlOperation } from './operations/url';
 import { zipOperation } from './operations/zip';
+import { readOperation } from './operations/read';
 
 export class SfilesManager implements ISfilesManager {
   private readonly backend: SFileBackend;
@@ -55,6 +57,10 @@ export class SfilesManager implements ISfilesManager {
     if (!file) throw Object.assign(new Error('File not found'), { code: 'NOT_FOUND' });
     await assertReadAccess(file, actor);
     return file;
+  }
+
+  async read(actor: SFilesActorContext, id: number): Promise<SFileReadResult> {
+    return readOperation(id, actor, this.adapter);
   }
 
   async delete(actor: SFilesActorContext, id: number): Promise<void> {

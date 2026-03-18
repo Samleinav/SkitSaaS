@@ -96,28 +96,106 @@ assignment (user or team) and then apply the template features for that scope.
 
 ## Module Access via SDK
 
-Modules **must not** import `getDashboardFeatureController`, `getCurrentFeatureControllerByScope`, or any `@/lib/features/*` path. Those are host-only helpers.
+Modules **must not** import `getDashboardFeatureController`,
+`getCurrentFeatureControllerByScope`, or any `@/lib/features/*` path. Those are
+host-only helpers.
 
-Modules use the SDK quota controller instead:
+For module code there are now two approved SDK patterns:
+
+### 1. Read plan configuration only
+
+Use this when the module just needs the value configured on the current plan,
+for example a numeric limit, a model tier, or a boolean toggle. This path does
+**not** read or mutate `quota_usage`.
 
 ```ts
-import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '@skitsaas/sdk/server';
+import { getPlanFeatureNumber, getPlanFeatureValue } from '@skitsaas/sdk/server';
+
+const ctx = { teamId: user.teamId, userId: null };
+
+const maxDailyRuns = await getPlanFeatureNumber(
+  'mod.analytics.runs.daily.max',
+  ctx,
+  3
+);
+
+const modelTier = await getPlanFeatureValue(
+  'mod.analytics.model.tier',
+  ctx
+);
+// → { found: true, valueType: 'text', textValue: 'deep', ... }
+```
+
+### 2. Enforce usage-tracked quota
+
+Use this when the feature has a plan-derived limit **and** the module tracks
+usage over time.
+
+```ts
+import {
+  checkFeature,
+  getQuotaStatus,
+  consumeQuota,
+  QuotaExceededError
+} from '@skitsaas/sdk/server';
 
 const ctx = { teamId: user.teamId, userId: null };
 
 // Check if a feature is enabled and quota is available
-const feature = await checkFeature('dashboard.team.reports.daily', ctx);
+const feature = await checkFeature('mod.analytics.reports.daily', ctx);
 if (!feature.enabled || feature.exhausted) { /* 403 / 429 */ }
 
 // Read quota status for a dashboard widget
-const status = await getQuotaStatus('dashboard.team.reports.daily', ctx);
+const status = await getQuotaStatus('mod.analytics.reports.daily', ctx);
 // → { limit: 100, used: 47, remaining: 53, resetAt: Date }
 
 // Consume quota (intent-based, strict mode throws QuotaExceededError)
-await consumeQuota('dashboard.team.reports.daily', ctx, { strict: true });
+await consumeQuota('mod.analytics.reports.daily', ctx, { strict: true });
 ```
 
-The SDK bridges module code to the host `subscription_template_features` + `subscription_assignments` + `quota_usage` tables via `lib/quota/service.ts` (configured in `lib/modules/sdk-server-bootstrap.ts`). Feature keys are defined in `lib/features/catalog.ts`.
+### Naming policy for module-owned keys
+
+- Prefix module keys with the module id or an equivalent module namespace:
+  - `mod.example.suite.items.max`
+  - `mod.analytics.runs.daily.max`
+  - `mod.analytics.model.tier`
+- Use suffixes that reflect intent:
+  - `.enabled` for booleans
+  - `.max` for numeric limits
+  - `.tier`, `.mode`, `.label` for text values
+- Scope comes from `QuotaContext` (`teamId` / `userId`), not from the key
+  itself, unless the module intentionally publishes separate user/team features.
+
+### Do module keys have to live in `lib/features/catalog.ts`?
+
+No, not by default.
+
+- Host-managed keys such as `dashboard.team.members.max` still belong in
+  `lib/features/catalog.ts`.
+- Module-owned keys can be stored directly in
+  `subscription_template_features` and read through SDK helpers without a
+  catalog entry.
+- Add a module key to `lib/features/catalog.ts` only if the host wants that key
+  to be a first-class managed feature with central validation/defaults/labels in
+  the core admin flows.
+
+### Migration path away from direct billing-table joins
+
+Do not join `subscription_assignments` or `subscription_template_features`
+inside module code.
+
+- Before: module query joins billing tables to read a plan value.
+- After: module uses `getPlanFeatureNumber(...)` or `getPlanFeatureValue(...)`.
+- If the module also tracks usage, keep plan reads and quota usage separate:
+  - `getPlanFeatureNumber(...)` for the configured plan limit
+  - `checkFeature(...)`, `getQuotaStatus(...)`, `consumeQuota(...)` for runtime usage
+
+The SDK bridges module code to the host
+`subscription_template_features` + `subscription_assignments` + `quota_usage`
+tables via `lib/quota/service.ts` (configured in
+`lib/modules/sdk-server-bootstrap.ts`). `lib/features/catalog.ts` remains the
+source of truth for host-managed core keys, not a requirement for every
+module-owned key.
 
 ## Boundaries (What does not belong here)
 
@@ -138,4 +216,3 @@ Keep these topics in their own docs:
 - Checkout and payment event lifecycle: `docs/subscriptions/payment-events-lifecycle.md`
 - Checkout change validation checklist: `docs/subscriptions/checkout-subscription-change-checklist.md`
 - Dashboard subscription management screens: `docs/subscriptions/dashboard-subscription-management.md`
-

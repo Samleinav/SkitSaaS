@@ -426,7 +426,9 @@ export {
 
 // Subscription feature flags & quota tracking (public types only; functions via @skitsaas/sdk/server)
 export type {
+  SubscriptionFeatureValueType,
   QuotaContext,
+  PlanFeatureValueResult,
   FeatureCheckResult,
   QuotaStatus,
   ConsumeOptions,

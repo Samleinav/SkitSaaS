@@ -10,6 +10,8 @@ import type {
   ModulePageHandler,
   ModuleRouteContext
 } from './modules/manifest.js';
+import type { UseI18nOptions } from './i18n/runtime.js';
+import type { Translator } from './i18n/types.js';
 import vine, { ValidationError } from '@vinejs/vine';
 import type {
   BuildFormDefinition,
@@ -22,6 +24,12 @@ import type {
   SdkCreateNotificationResult,
   SdkNotificationTeamRecipients
 } from './notifications/types.js';
+import {
+  bindSfilesActor,
+  type ActorBoundSfilesManager,
+  type SFilesActorContext
+} from './sfiles.js';
+import { enrichUser } from './user-roles.js';
 import {
   type BuildFormDbCondition,
   type BuildFormDbRef,
@@ -302,6 +310,73 @@ export async function setSessionForUser(
   }
 
   await adapter.setSessionForUser(userId, options);
+}
+
+type SfilesAuthUser = {
+  id: number;
+  role?: string | null;
+};
+
+export async function getCurrentSfilesActor(): Promise<SFilesActorContext> {
+  const user = await getUser<SfilesAuthUser>();
+  if (!user || !Number.isInteger(user.id) || user.id <= 0) {
+    return {
+      userId: null,
+      isAdmin: false
+    };
+  }
+
+  return {
+    userId: user.id,
+    isAdmin: enrichUser({
+      id: user.id,
+      role: typeof user.role === 'string' ? user.role : ''
+    }).isAdmin()
+  };
+}
+
+export async function getCurrentSfiles(): Promise<ActorBoundSfilesManager> {
+  return bindSfilesActor(await getCurrentSfilesActor());
+}
+
+export type I18nAdapter = {
+  getServerTranslator: (options?: UseI18nOptions) => Promise<Translator>;
+  getActionTranslator?: (options?: UseI18nOptions) => Promise<Translator>;
+};
+
+let i18nAdapter: I18nAdapter | null = null;
+
+export function configureI18n(adapter: I18nAdapter) {
+  i18nAdapter = adapter;
+}
+
+function readI18nAdapter() {
+  if (!i18nAdapter) {
+    throw new Error(
+      'Module SDK i18n adapter not configured. Call configureI18n(...) in host bootstrap.'
+    );
+  }
+
+  return i18nAdapter;
+}
+
+export async function getServerTranslator(
+  options: UseI18nOptions = {}
+): Promise<Translator> {
+  const adapter = readI18nAdapter();
+  return adapter.getServerTranslator(options);
+}
+
+export async function getActionTranslator(
+  options: UseI18nOptions = {}
+): Promise<Translator> {
+  const adapter = readI18nAdapter();
+
+  if (adapter.getActionTranslator) {
+    return adapter.getActionTranslator(options);
+  }
+
+  return adapter.getServerTranslator(options);
 }
 
 export type NotificationAdapter = {
@@ -1958,6 +2033,8 @@ export function createModulePageRouter<TUser = unknown>({
 
 export {
   configureSubscriptionFeatures,
+  getPlanFeatureValue,
+  getPlanFeatureNumber,
   checkFeature,
   getQuotaStatus,
   consumeQuota,
@@ -1966,12 +2043,20 @@ export {
 
 export type {
   SubscriptionFeaturesAdapter,
+  SubscriptionFeatureValueType,
   QuotaContext,
+  PlanFeatureValueResult,
   FeatureCheckResult,
   QuotaStatus,
   ConsumeOptions,
   ConsumeResult,
 } from './subscription-features.js';
+
+export type {
+  ActorBoundSfilesManager,
+  SFileReadResult,
+  SFilesActorContext
+} from './sfiles.js';
 
 // ─── RichUser / role checks / UserContext ─────────────────────────────────────
 

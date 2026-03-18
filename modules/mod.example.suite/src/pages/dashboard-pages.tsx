@@ -2,8 +2,8 @@ import {
   TemplateBuildForm,
   composeBuildFormDefinition
 } from '@skitsaas/sdk';
-import { getUser } from '@skitsaas/sdk/server';
-import { EXAMPLE_SUITE_DASHBOARD_ALIAS } from '../constants';
+import { getServerTranslator, getUser } from '@skitsaas/sdk/server';
+import { EXAMPLE_SUITE_DASHBOARD_ALIAS, EXAMPLE_SUITE_MODULE_ID } from '../constants';
 import { createExampleSuiteItemDashboardAction } from '../actions';
 import {
   getEditableExampleSuiteItemForUser,
@@ -50,6 +50,7 @@ function mapDashboardTableRows(
 }
 
 export async function renderExampleSuiteDashboardHomePage() {
+  const t = await getServerTranslator({ moduleId: EXAMPLE_SUITE_MODULE_ID });
   const user = await getUser<ExampleSuiteSessionUser>();
   if (!user) {
     return null;
@@ -66,32 +67,34 @@ export async function renderExampleSuiteDashboardHomePage() {
 
   return (
     <ExampleSuiteShell
-      eyebrow="Dashboard route"
-      title="Example Suite Dashboard"
-      description="The dashboard side now mirrors the admin module visually while keeping a local SDK DataTable and a dedicated dashboard-only create form."
-      chips={['Local DataTable', 'Owner-aware records']}
+      eyebrow={t('Dashboard route')}
+      title={t('Example Suite Dashboard')}
+      description={t(
+        'The dashboard side now mirrors the admin module visually while keeping a local SDK DataTable and a dedicated dashboard-only create form.'
+      )}
+      chips={[t('Local DataTable'), t('Owner-aware records')]}
       actions={
         settings.allowDashboardCreate ? (
           <ExampleSuiteActionLink
             href={`${EXAMPLE_SUITE_DASHBOARD_ALIAS}/create`}
-            label="New Record"
+            label={t('New Record')}
             tone="primary"
           />
         ) : undefined
       }
     >
       <ExampleSuitePanel
-        eyebrow="Summary"
-        title="Your visibility"
-        description="Records are visible when they are public or owned by your user."
+        eyebrow={t('Summary')}
+        title={t('Your visibility')}
+        description={t('Records are visible when they are public or owned by your user.')}
       >
         <ExampleSuiteSummary
           items={[
-            { label: 'Visible records', value: items.length },
-            { label: 'Owned by you', value: ownItemsCount },
-            { label: 'Public', value: publicItemsCount },
+            { label: t('Visible records'), value: items.length },
+            { label: t('Owned by you'), value: ownItemsCount },
+            { label: t('Public records'), value: publicItemsCount },
             {
-              label: 'Create access',
+              label: t('Create access'),
               value: settings.allowDashboardCreate ? 'enabled' : 'disabled'
             }
           ]}
@@ -99,12 +102,14 @@ export async function renderExampleSuiteDashboardHomePage() {
       </ExampleSuitePanel>
 
       <ExampleSuitePanel
-        eyebrow="Local table"
-        title="Visible records"
-        description="This route intentionally keeps the table local to contrast with the remote admin view."
+        eyebrow={t('Local table')}
+        title={t('Visible records')}
+        description={t(
+          'This route intentionally keeps the table local to contrast with the remote admin view.'
+        )}
       >
         {tableItems.length === 0 ? (
-          <p className="example-suite-empty">No records available.</p>
+          <p className="example-suite-empty">{t('No records available.')}</p>
         ) : (
           <ExampleSuiteDashboardItemsDataTable items={tableItems} />
         )}
@@ -114,6 +119,7 @@ export async function renderExampleSuiteDashboardHomePage() {
 }
 
 export async function renderExampleSuiteDashboardCreatePage() {
+  const t = await getServerTranslator({ moduleId: EXAMPLE_SUITE_MODULE_ID });
   const [user, settings] = await Promise.all([
     getUser<ExampleSuiteSessionUser>(),
     getExampleSuiteSettings()
@@ -150,29 +156,34 @@ export async function renderExampleSuiteDashboardCreatePage() {
 
   return (
     <ExampleSuiteShell
-      eyebrow="Dashboard create"
-      title="Create dashboard record"
-      description="The dashboard route now uses the same SDK form contract instead of a handwritten HTML form."
-      chips={[`default status: ${settings.defaultStatus}`]}
+      eyebrow={t('Dashboard create')}
+      title={t('Create dashboard record')}
+      description={t(
+        'The dashboard route now uses the same SDK form contract instead of a handwritten HTML form.'
+      )}
+      chips={[`${t('Default status')}: ${settings.defaultStatus}`]}
       actions={
-        <ExampleSuiteActionLink href={EXAMPLE_SUITE_DASHBOARD_ALIAS} label="Back to module" />
+        <ExampleSuiteActionLink
+          href={EXAMPLE_SUITE_DASHBOARD_ALIAS}
+          label={t('Back to module')}
+        />
       }
     >
       <ExampleSuitePanel
-        eyebrow="FormBuilder"
-        title="Create record"
-        description="Available only when module settings allow dashboard writes."
+        eyebrow={t('FormBuilder')}
+        title={t('Create record')}
+        description={t('Available only when module settings allow dashboard writes.')}
       >
         {!settings.allowDashboardCreate ? (
           <p className="example-suite-empty">
-            Dashboard create is disabled by module settings.
+            {t('Dashboard create is disabled by module settings.')}
           </p>
         ) : (
           <TemplateBuildForm
             definition={createForm}
             area="dashboard"
             route={`${EXAMPLE_SUITE_DASHBOARD_ALIAS}/create`}
-            moduleId="mod.example.suite"
+            moduleId={EXAMPLE_SUITE_MODULE_ID}
             slot="mod.example.suite.dashboard.create.form"
           />
         )}

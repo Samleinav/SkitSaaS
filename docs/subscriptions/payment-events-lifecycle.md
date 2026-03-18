@@ -149,16 +149,6 @@ Lifecycle executor closes the active subscription assignment so feature/quota lo
 - team: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
 - user: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
 
-### Example E: Extension module one-time webhook
-
-1. A module webhook handler under `app/api/modules/[moduleId]/[[...slug]]` verifies provider signature and resolves module intent state.
-2. The module applies fulfillment transition guards (`pending/session_created -> paid/failed/canceled`).
-3. The module writes core order evidence through `recordCheckoutEvent(...)` with `orderType='one_time'`.
-4. Core settlement transaction write-through is still applied (`payment_transactions`).
-5. Subscription lifecycle projector is skipped because order type is not `subscription`.
-
-Module-specific implementation details must stay in the module's own documentation (`modules/<moduleId>/README.md`).
-
 ## Admin subscriptions visibility
 
 Routes:
@@ -191,4 +181,3 @@ Routes:
 - `app/api/stripe/webhook/route.ts`
 - `app/api/paypal/webhook/route.ts`
 - `app/(dashboard)/admin/orders/actions.ts`
-

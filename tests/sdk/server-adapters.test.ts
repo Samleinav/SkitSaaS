@@ -8,13 +8,16 @@ import {
   configureAuth,
   configureDatabase,
   configureEventEmitter,
+  configureI18n,
   configureModuleConfig,
   configureRevalidation,
   createFormReader,
   emitEvent,
+  getActionTranslator,
   getDb,
   getTable,
   getModuleConfigValue,
+  getServerTranslator,
   getUser,
   hasOwn,
   findTable,
@@ -62,6 +65,14 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await assert.rejects(
     () => createNotification({ message: 'System notice' }),
     /Module SDK notification adapter not configured/
+  );
+  await assert.rejects(
+    () => getServerTranslator(),
+    /Module SDK i18n adapter not configured/
+  );
+  await assert.rejects(
+    () => getActionTranslator(),
+    /Module SDK i18n adapter not configured/
   );
   assert.throws(
     () => getDb(),
@@ -148,6 +159,48 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await setModuleConfigValue('mod.test', 'api.mode', null);
   const removedValue = await getModuleConfigValue('mod.test', 'api.mode');
   assert.equal(removedValue, null);
+
+  const i18nCalls: Array<{
+    source: 'server' | 'action';
+    moduleId?: string | null;
+  }> = [];
+  configureI18n({
+    getServerTranslator: async (options = {}) => {
+      i18nCalls.push({
+        source: 'server',
+        moduleId: options.moduleId ?? null
+      });
+      return (key) =>
+        key === 'Hello' && options.moduleId === 'mod.test'
+          ? 'Hola modulo'
+          : key === 'Hello'
+            ? 'Hola'
+            : key;
+    },
+    getActionTranslator: async (options = {}) => {
+      i18nCalls.push({
+        source: 'action',
+        moduleId: options.moduleId ?? null
+      });
+      return (key) =>
+        key === 'Saved' && options.moduleId === 'mod.test'
+          ? 'Guardado modulo'
+          : key === 'Saved'
+            ? 'Guardado'
+            : key;
+    }
+  });
+
+  const serverTranslate = await getServerTranslator({ moduleId: 'mod.test' });
+  assert.equal(serverTranslate('Hello'), 'Hola modulo');
+
+  const actionTranslate = await getActionTranslator({ moduleId: 'mod.test' });
+  assert.equal(actionTranslate('Saved'), 'Guardado modulo');
+
+  assert.deepEqual(i18nCalls, [
+    { source: 'server', moduleId: 'mod.test' },
+    { source: 'action', moduleId: 'mod.test' }
+  ]);
 
   const createdNotifications: Array<{
     message: string;

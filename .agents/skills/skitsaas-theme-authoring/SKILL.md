@@ -129,13 +129,13 @@ If module-level templates exist, create this subdirectory:
 
 Example:
 
-- `templates/mods/mod.commerce.products/`
+- `templates/mods/mod.example.suite/`
 
 Important:
 
 - the theme registry uses file name as `componentId` (without folder)
 - avoid cross-module collisions using unique file names with module prefix
-- recommended filename example: `mod.commerce.products.section.admin.products.card.tsx`
+- recommended filename example: `mod.example.suite.section.dashboard.example.card.tsx`
 
 ### 6. Host visual integration
 

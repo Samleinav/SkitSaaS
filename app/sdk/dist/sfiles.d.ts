@@ -24,6 +24,10 @@ export type SFilePermission = {
     userId: number;
     grantedAt: Date;
 };
+export type SFileReadResult = {
+    file: SFile;
+    buffer: Buffer;
+};
 export type SFilesConfig = {
     backend: SFileBackend;
     localRoot: string;
@@ -101,6 +105,8 @@ export interface ISfilesManager {
     list(actor: SFilesActorContext, options?: ListOptions): Promise<ListResult>;
     /** Get a single file record (throws if not found or no access) */
     get(actor: SFilesActorContext, id: number): Promise<SFile>;
+    /** Load the file binary after permission checks. */
+    read(actor: SFilesActorContext, id: number): Promise<SFileReadResult>;
     /** Soft-delete a file (owner or admin only) */
     delete(actor: SFilesActorContext, id: number): Promise<void>;
     /** Full-text search on file names visible to actor */
@@ -118,10 +124,29 @@ export interface ISfilesManager {
     /** List all per-user grants for a file (owner or admin only) */
     getPermissions(actor: SFilesActorContext, fileId: number): Promise<SFilePermission[]>;
 }
+export interface ActorBoundSfilesManager {
+    upload(file: File | Buffer, filename: string, options?: UploadOptions): Promise<SFile>;
+    list(options?: ListOptions): Promise<ListResult>;
+    get(id: number): Promise<SFile>;
+    read(id: number): Promise<SFileReadResult>;
+    delete(id: number): Promise<void>;
+    search(options: SearchOptions): Promise<SFile[]>;
+    rename(id: number, options: RenameOptions): Promise<SFile>;
+    move(id: number, options: MoveOptions): Promise<SFile>;
+    getUrl(id: number, options?: GetUrlOptions): Promise<string>;
+    zip(options: ZipOptions): Promise<SFile>;
+    setPermissions(fileId: number, options: SetPermissionsOptions): Promise<void>;
+    getPermissions(fileId: number): Promise<SFilePermission[]>;
+}
 /**
  * Register the Sfiles singleton. Called once by the host app in lib/sfiles/index.ts.
  */
 export declare function registerSfiles(instance: ISfilesManager): void;
+/**
+ * Bind a resolved actor context to the public manager so callers no longer
+ * repeat the actor parameter on every operation.
+ */
+export declare function bindSfilesActor(actor: SFilesActorContext, manager?: ISfilesManager): ActorBoundSfilesManager;
 /**
  * Sfiles singleton — import and use directly from any module or server-side code.
  * The host must have imported lib/sfiles before any method is called.

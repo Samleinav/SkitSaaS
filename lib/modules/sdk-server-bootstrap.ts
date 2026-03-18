@@ -1,4 +1,5 @@
 import 'server-only';
+import '@/lib/sfiles';
 
 import { revalidatePath as nextRevalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -8,6 +9,7 @@ import {
   configureBuildFormUiTemplateResolver,
   configureDatabase,
   configureEventEmitter,
+  configureI18n,
   configureModuleConfig,
   configureNotifications,
   configureRevalidation,
@@ -35,6 +37,10 @@ import {
   configureBuildFormValidationObservability,
   createBuildFormSysActivityObserver
 } from '@/lib/forms/observability';
+import {
+  getActionTranslator as getHostActionTranslator,
+  getServerTranslator as getHostServerTranslator
+} from '@/lib/i18n/server';
 import { resolveUiFormTemplateForArea } from '@/lib/templates/ui-form';
 import * as rootSchema from '@/lib/db/schema';
 import { getUser } from '@/lib/db/queries';
@@ -224,6 +230,11 @@ export function bootstrapModuleSdkServer() {
 
   configureNotifications({
     createNotification: createSystemNotification
+  });
+
+  configureI18n({
+    getServerTranslator: getHostServerTranslator,
+    getActionTranslator: getHostActionTranslator
   });
 
   configureDatabase({

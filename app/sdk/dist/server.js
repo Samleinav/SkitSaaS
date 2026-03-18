@@ -1,4 +1,6 @@
 import vine, { ValidationError } from '@vinejs/vine';
+import { bindSfilesActor } from './sfiles.js';
+import { enrichUser } from './user-roles.js';
 import { createBuildFormValidationResultFromFieldErrors, createBuildFormValidationResult, createBuildFormValidationIssue, getBuildFormValidationRulesForFieldRuntime, getBuildFormFieldByName, listBuildFormFields, normalizeBuildFormValuesFromFormData } from './form-validation.js';
 export { configureBuildFormUiTemplateResolver } from './ui/build-form-template-resolver.js';
 function toTrimmedString(value) {
@@ -138,6 +140,46 @@ export async function setSessionForUser(userId, options) {
         throw new Error('setSessionForUser requires a positive integer userId.');
     }
     await adapter.setSessionForUser(userId, options);
+}
+export async function getCurrentSfilesActor() {
+    const user = await getUser();
+    if (!user || !Number.isInteger(user.id) || user.id <= 0) {
+        return {
+            userId: null,
+            isAdmin: false
+        };
+    }
+    return {
+        userId: user.id,
+        isAdmin: enrichUser({
+            id: user.id,
+            role: typeof user.role === 'string' ? user.role : ''
+        }).isAdmin()
+    };
+}
+export async function getCurrentSfiles() {
+    return bindSfilesActor(await getCurrentSfilesActor());
+}
+let i18nAdapter = null;
+export function configureI18n(adapter) {
+    i18nAdapter = adapter;
+}
+function readI18nAdapter() {
+    if (!i18nAdapter) {
+        throw new Error('Module SDK i18n adapter not configured. Call configureI18n(...) in host bootstrap.');
+    }
+    return i18nAdapter;
+}
+export async function getServerTranslator(options = {}) {
+    const adapter = readI18nAdapter();
+    return adapter.getServerTranslator(options);
+}
+export async function getActionTranslator(options = {}) {
+    const adapter = readI18nAdapter();
+    if (adapter.getActionTranslator) {
+        return adapter.getActionTranslator(options);
+    }
+    return adapter.getServerTranslator(options);
 }
 let notificationAdapter = null;
 export function configureNotifications(adapter) {
@@ -1098,6 +1140,6 @@ export function createModulePageRouter({ routes, readRoles, adminRoles = DEFAULT
     };
 }
 // ─── Subscription Features / Quota Controller ─────────────────────────────────
-export { configureSubscriptionFeatures, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';
+export { configureSubscriptionFeatures, getPlanFeatureValue, getPlanFeatureNumber, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';
 // ─── RichUser / role checks / UserContext ─────────────────────────────────────
 export { configureUserRoles, configureUserContext, enrichUser, } from './user-roles.js';

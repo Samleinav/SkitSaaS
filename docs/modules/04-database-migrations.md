@@ -64,6 +64,79 @@ Compatibility note:
 
 It is fine to reference core tables (`users`, `teams`, `payment_orders`) if needed. Keep constraints explicit and avoid circular dependencies.
 
+SDK-first policy:
+
+- do not import `@/lib/db/schema` from a module just to reference a host table
+- when a module needs an FK to a host table such as `users`, `teams`, or
+  `sfiles`, define a minimal local stub with the same table name and referenced
+  primary key column
+- keep the module-owned table itself under the module prefix (`mod_<module>_*`)
+
+Example:
+
+```ts
+import { integer, pgTable, serial, text } from '@skitsaas/sdk/db';
+
+const users = pgTable('users', {
+  id: integer('id').primaryKey()
+});
+
+export const modComments = pgTable('mod_example_comments', {
+  id: serial('id').primaryKey(),
+  ownerUserId: integer('owner_user_id').references(() => users.id, {
+    onDelete: 'cascade'
+  }),
+  body: text('body').notNull()
+});
+```
+
+## Advanced PostgreSQL types
+
+For SDK-first modules, prefer `@skitsaas/sdk/db` even when you need advanced
+column types such as `vector`.
+
+- `@skitsaas/sdk/db` re-exports `customType(...)`
+- modules can define a local custom type without importing
+  `drizzle-orm/pg-core` directly
+- this keeps advanced schema code compatible with both `source-host` and future
+  `source-package` migration
+
+Example:
+
+```ts
+import {
+  customType,
+  integer,
+  pgTable,
+  serial,
+  text
+} from '@skitsaas/sdk/db';
+
+const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+}>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 1536})`;
+  },
+  toDriver(value) {
+    return `[${value.join(',')}]`;
+  }
+});
+
+const sfiles = pgTable('sfiles', {
+  id: integer('id').primaryKey()
+});
+
+export const embeddingDocs = pgTable('mod_example_embedding_docs', {
+  id: serial('id').primaryKey(),
+  sourceFileId: integer('source_file_id').references(() => sfiles.id),
+  content: text('content').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }).notNull()
+});
+```
+
 ## Rollback strategy
 
 If you uninstall a module:

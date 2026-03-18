@@ -4,9 +4,7 @@ const appConfig: AppConfig = {
   projectName: 'S-Kit-SaaS',
   // Keep DB-backed modules working while force-enabling selected modules from config.
   moduleRuntimeMode: 'hybrid',
-  modules: {
-    'mod.artificial.scientist': true
-  },
+  modules: {},
 
   // ---------------------------------------------------------------------------
   // Role definitions — customize to match your SaaS user model.

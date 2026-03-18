@@ -41,6 +41,166 @@ Nota:
 
 ---
 
+## 2026-03-18 - sdk-source-package-migration-checklist
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: SDK migration docs now treat `source-host` as a transitional convenience and document the full checklist to reach `source-package` portability, including before/after replacements for server i18n, storage, plan feature reads, and DB/schema cases.
+- `sdk_surface`: `@skitsaas/sdk`, `@skitsaas/sdk/server`, `@skitsaas/sdk/db`, `@skitsaas/sdk/sfiles`
+- `files`:
+  - `docs/sdk/01-sdk-first-migration.md`
+  - `docs/modules/00-overview.md`
+  - `plans/full-sdk-adaptation-gap-pack.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    Docs-only change; no SDK version bump.
+
+    The migration guidance now makes the architecture goal explicit:
+
+    - `source-host` is an intermediate convenience mode
+    - `source-package` portability is the long-term target
+
+    It also adds a concrete audit-and-replace checklist so maintainers can
+    migrate existing modules without re-discovering which surfaces already have
+    SDK replacements and which cases are still genuine gaps.
+
+## 2026-03-18 - sdk-db-customtype-and-host-fk-pattern
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk/db` now re-exports `customType(...)`, and the docs define the sanctioned SDK-first pattern for pgvector-style columns plus host-table FK stubs without importing host schema files.
+- `sdk_surface`: `@skitsaas/sdk/db`
+- `files`:
+  - `app/sdk/src/db.ts`
+  - `app/sdk/package.json`
+  - `tests/sdk/db-advanced-exports.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `docs/modules/04-database-migrations.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.11.0 -> v1.12.0 (MINOR).
+
+    Advanced module schemas can now stay on the public SDK path for two common
+    portability gaps:
+
+    - PostgreSQL custom types via `customType(...)`, including pgvector-style
+      builders
+    - host-table foreign keys by declaring minimal local stubs such as
+      `pgTable('users', { id: integer('id').primaryKey() })`
+
+    This keeps module schema code compatible with the long-term goal of moving
+    from `source-host` toward `source-package` without reaching into
+    `@/lib/db/schema` or importing `drizzle-orm/pg-core` directly for these
+    common advanced cases.
+
+## 2026-03-18 - sdk-sfiles-actor-bound-read
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk/sfiles` now supports actor-bound manager wrappers and raw binary reads, while `@skitsaas/sdk/server` can resolve `getCurrentSfilesActor()` and `getCurrentSfiles()` without host storage imports.
+- `sdk_surface`: `@skitsaas/sdk/sfiles`, `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/sfiles.ts`
+  - `app/sdk/src/server.ts`
+  - `app/sdk/package.json`
+  - `lib/sfiles/index.ts`
+  - `lib/sfiles/manager.ts`
+  - `lib/sfiles/api-actor.ts`
+  - `lib/modules/sdk-server-bootstrap.ts`
+  - `tests/sdk/sfiles-server.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `docs/sdk/01-sdk-first-migration.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.10.0 -> v1.11.0 (MINOR).
+
+    New storage contract pieces:
+
+    - `sfiles.read(actor, fileId)` -> `{ file, buffer }`
+    - `bindSfilesActor(actor, sfiles?)`
+    - `getCurrentSfilesActor()`
+    - `getCurrentSfiles()`
+
+    This closes the common source-host gap where a module needed host
+    `SfilesManager` or `@/lib/sfiles/api-actor` just to upload/read/delete a
+    private artifact. Permission enforcement still lives in the host manager,
+    not in module code.
+
+## 2026-03-18 - sdk-plan-feature-reads
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk/server` now exposes `getPlanFeatureValue` and `getPlanFeatureNumber` so modules can read plan-derived feature values without joining billing tables or conflating them with usage-tracked quota reads.
+- `sdk_surface`: `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/subscription-features.ts`
+  - `app/sdk/src/server.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/package.json`
+  - `lib/quota/service.ts`
+  - `tests/sdk/subscription-features.test.ts`
+  - `docs/subscriptions/features-and-quotas.md`
+  - `docs/sdk/00-overview.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.9.0 -> v1.10.0 (MINOR).
+
+    The subscription SDK now separates two concerns explicitly:
+
+    - plan configuration reads:
+      - `getPlanFeatureValue(featureKey, ctx)`
+      - `getPlanFeatureNumber(featureKey, ctx, fallback?)`
+    - usage-tracked quota:
+      - `checkFeature(...)`
+      - `getQuotaStatus(...)`
+      - `consumeQuota(...)`
+
+    Module-owned feature keys no longer need to be treated as if they must live
+    in `lib/features/catalog.ts`. The catalog remains the host-managed registry
+    for core keys and central validation, while module-prefixed keys can be
+    stored/read through the SDK without direct joins to billing tables.
+
+## 2026-03-18 - sdk-server-i18n-translator
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: mod.example.suite
+- `type`: change
+- `summary`: `@skitsaas/sdk/server` now exposes `configureI18n`, `getServerTranslator`, and `getActionTranslator` so modules can resolve flat i18n in server pages and actions without importing host `@/lib/i18n/server`.
+- `sdk_surface`: `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/package.json`
+  - `lib/modules/sdk-server-bootstrap.ts`
+  - `modules/mod.example.suite/src/pages/admin-pages.tsx`
+  - `modules/mod.example.suite/src/pages/dashboard-pages.tsx`
+  - `modules/mod.example.suite/module.json`
+  - `tests/sdk/server-adapters.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.8.0 -> v1.9.0 (MINOR).
+
+    The host now bootstraps an i18n adapter into `@skitsaas/sdk/server`.
+    Module pages and actions can call:
+
+    - `getServerTranslator({ moduleId })`
+    - `getActionTranslator({ moduleId })`
+
+    This keeps server-side module i18n on the public SDK path and allows the
+    translator to resolve the module-scoped flat registry before falling back
+    to the shared runtime.
+
 ## 2026-03-17 - sdk-i18n-module-scoped-flat-runtime
 
 - `status`: published

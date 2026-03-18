@@ -24,7 +24,108 @@ function readAdapter() {
     }
     return _adapter;
 }
+const TRUE_VALUES = new Set([
+    '1',
+    'true',
+    'yes',
+    'y',
+    'on',
+    'enabled',
+    'allow',
+    'allowed',
+    'unlimited',
+    '*'
+]);
+const FALSE_VALUES = new Set([
+    '0',
+    'false',
+    'no',
+    'n',
+    'off',
+    'disabled',
+    'deny',
+    'denied'
+]);
+function normalizeRawFeatureValue(value) {
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+}
+function normalizeFeatureValueType(value) {
+    return value === 'text' ||
+        value === 'number' ||
+        value === 'boolean' ||
+        value === 'null'
+        ? value
+        : null;
+}
+function parseBooleanFeatureValue(value) {
+    if (!value) {
+        return null;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (TRUE_VALUES.has(normalized)) {
+        return true;
+    }
+    if (FALSE_VALUES.has(normalized)) {
+        return false;
+    }
+    return null;
+}
+function parseNumberFeatureValue(value) {
+    if (!value) {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
 // ─── Public SDK surface ───────────────────────────────────────────────────────
+/**
+ * Read the raw value configured on the current subscription plan for a feature
+ * key. This is the SDK path for numeric plan limits that are not usage-tracked.
+ *
+ * Use `checkFeature()` / `getQuotaStatus()` / `consumeQuota()` only when the
+ * feature also tracks usage in `quota_usage`.
+ */
+export async function getPlanFeatureValue(featureKey, ctx) {
+    const adapter = readAdapter();
+    if (!adapter.getPlanFeatureValue) {
+        throw new Error('Subscription features adapter does not provide getPlanFeatureValue(featureKey, ctx).');
+    }
+    const feature = await adapter.getPlanFeatureValue(featureKey, ctx);
+    if (!feature?.found) {
+        return {
+            found: false,
+            valueType: null,
+            rawValue: null,
+            booleanValue: null,
+            numberValue: null,
+            textValue: null
+        };
+    }
+    const valueType = normalizeFeatureValueType(feature.valueType);
+    const rawValue = normalizeRawFeatureValue(feature.rawValue);
+    return {
+        found: true,
+        valueType,
+        rawValue,
+        booleanValue: valueType === 'boolean' ? parseBooleanFeatureValue(rawValue) : null,
+        numberValue: valueType === 'number' ? parseNumberFeatureValue(rawValue) : null,
+        textValue: valueType === 'text' ? rawValue : null
+    };
+}
+/**
+ * Convenience helper for module code that only needs a numeric plan limit.
+ * Returns the stored numeric value without reading or mutating quota usage.
+ */
+export async function getPlanFeatureNumber(featureKey, ctx, fallback = null) {
+    const feature = await getPlanFeatureValue(featureKey, ctx);
+    return feature.valueType === 'number' && feature.numberValue !== null
+        ? feature.numberValue
+        : fallback;
+}
 /**
  * Check whether a feature is enabled and whether its quota has been reached.
  *

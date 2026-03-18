@@ -53,6 +53,7 @@ Exports:
 - datatable portable renderer (`DataTable`)
 - rate limiting (`withRateLimit`, `checkRateLimit`, `configureRateLimitBackend`, `resolveClientIp`)
 - role checks (`enrichUser`, `RichUser`, `UserContext`, `RichUserMethods`) — client+server safe
+- storage helpers from `@skitsaas/sdk/sfiles` (`sfiles`, `bindSfilesActor`) for SDK-first file workflows
 
 Structured form contract:
 
@@ -111,6 +112,9 @@ Exports:
 - `getUser`
 - `requireUser`
 - `requireAdmin`
+- `configureI18n`
+- `getServerTranslator`
+- `getActionTranslator`
 - `configureNotifications`
 - `createNotification`
 - `notifyGlobal`
@@ -147,7 +151,11 @@ Exports:
 - `parseJsonBody`
 - `isJsonRecord`
 - `hasOwn`
+- `getCurrentSfilesActor`
+- `getCurrentSfiles`
 - `configureSubscriptionFeatures`
+- `getPlanFeatureValue`
+- `getPlanFeatureNumber`
 - `checkFeature`
 - `getQuotaStatus`
 - `consumeQuota`
@@ -156,9 +164,94 @@ Exports:
 - `configureUserContext`
 - `enrichUser` (also in `@skitsaas/sdk`)
 
+Server i18n helpers let modules stay on SDK imports in server-rendered pages
+and server actions:
+
+```ts
+import { getServerTranslator, getActionTranslator } from '@skitsaas/sdk/server';
+
+const t = await getServerTranslator({ moduleId: 'mod.analytics' });
+const actionT = await getActionTranslator({ moduleId: 'mod.analytics' });
+```
+
+Both resolve the active locale through the host bootstrap and use the same flat
+translation runtime as `useI18n({ moduleId })`.
+
+## Sfiles
+
+For module-owned file workflows, use `@skitsaas/sdk/sfiles` for the public
+manager and `@skitsaas/sdk/server` when you want the current request actor
+resolved for you.
+
+```ts
+import { getCurrentSfiles } from '@skitsaas/sdk/server';
+
+const sfiles = await getCurrentSfiles();
+
+const artifact = await sfiles.upload(
+  Buffer.from(JSON.stringify({ ok: true }), 'utf8'),
+  'artifact.json',
+  {
+    folder: '/modules/mod.example.suite/artifacts/',
+    visibility: 'private',
+    metadata: {
+      moduleId: 'mod.example.suite',
+      purpose: 'artifact'
+    }
+  }
+);
+
+const loaded = await sfiles.read(artifact.id);
+const downloadUrl = await sfiles.getUrl(artifact.id);
+await sfiles.delete(artifact.id);
+```
+
+When the module already has a resolved actor, bind it directly:
+
+```ts
+import { bindSfilesActor, sfiles } from '@skitsaas/sdk/sfiles';
+
+const actorSfiles = bindSfilesActor({ userId: user.id, isAdmin: false }, sfiles);
+const result = await actorSfiles.read(fileId);
+```
+
+Rules:
+
+- permission and ownership enforcement stays in the host manager
+- modules should not import `@/lib/sfiles`, `@/lib/sfiles/api-actor`, or host adapters
+- `read(...)` is the SDK path for raw binary access to private artifacts
+- `getCurrentSfiles()` is the easiest server-side path when the module just
+  wants “current request actor + manager”
+
 ## Subscription Feature Gates & Quota
 
-Modules check plan features and track usage exclusively through the SDK:
+Modules handle subscription features through two SDK paths.
+
+### Read plan configuration
+
+Use this when the module needs the configured plan value but is not reading or
+mutating usage:
+
+```ts
+import { getPlanFeatureNumber, getPlanFeatureValue } from '@skitsaas/sdk/server';
+
+const ctx = { teamId: user.teamId, userId: null };
+
+const maxDailyRuns = await getPlanFeatureNumber(
+  'mod.analytics.runs.daily.max',
+  ctx,
+  3
+);
+
+const modelTier = await getPlanFeatureValue(
+  'mod.analytics.model.tier',
+  ctx
+);
+```
+
+### Enforce usage-tracked quota
+
+Use this when the feature also tracks usage in `quota_usage`:
 
 ```ts
 import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '@skitsaas/sdk/server';
@@ -166,12 +259,12 @@ import { checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError } from '
 const ctx = { teamId: user.teamId, userId: null };
 
 // Check: is feature enabled and quota not exhausted?
-const feature = await checkFeature('dashboard.team.reports.daily', ctx);
+const feature = await checkFeature('mod.analytics.reports.daily', ctx);
 if (!feature.enabled) return forbidden();
 if (feature.exhausted) return quotaExceeded();
 
 // Read current quota standing
-const status = await getQuotaStatus('dashboard.team.reports.daily', ctx);
+const status = await getQuotaStatus('mod.analytics.reports.daily', ctx);
 // → { limit: 100, used: 47, remaining: 53, resetAt: Date }
 
 // Consume quota — three patterns:
@@ -188,9 +281,25 @@ run: async (payload) => {
 }
 ```
 
-The adapter (`lib/quota/service.ts`) reads `subscription_template_features` + `subscription_assignments` and writes to `quota_usage`. Feature keys are defined in `lib/features/catalog.ts`.
+The adapter (`lib/quota/service.ts`) reads
+`subscription_template_features` + `subscription_assignments` and writes to
+`quota_usage`.
 
-Public types also available from `@skitsaas/sdk`: `QuotaContext`, `FeatureCheckResult`, `QuotaStatus`, `ConsumeOptions`, `ConsumeResult`, `QuotaExceededError`.
+Key policy:
+
+- core-managed keys stay in `lib/features/catalog.ts`
+- module-owned keys do not need a catalog entry to be read through SDK
+- prefer module-prefixed names such as `mod.example.suite.items.max`
+
+Rule of thumb:
+
+- `getPlanFeatureNumber(...)` / `getPlanFeatureValue(...)` = read plan config
+- `checkFeature(...)` / `getQuotaStatus(...)` / `consumeQuota(...)` = enforce usage-tracked quota
+
+Public types also available from `@skitsaas/sdk`:
+`SubscriptionFeatureValueType`, `PlanFeatureValueResult`, `QuotaContext`,
+`FeatureCheckResult`, `QuotaStatus`, `ConsumeOptions`, `ConsumeResult`,
+`QuotaExceededError`.
 
 ## RichUser — Role Checks & User Context
 
@@ -280,7 +389,49 @@ Curated Drizzle exports via SDK entrypoint.
 Examples:
 
 - query helpers: `and`, `or`, `eq`, `desc`, `sql`
-- pg-core builders: `pgTable`, `serial`, `varchar`, `integer`, `timestamp`
+- pg-core builders: `pgTable`, `serial`, `varchar`, `integer`, `timestamp`, `customType`
+
+Approved advanced pattern:
+
+- use `customType(...)` from `@skitsaas/sdk/db` for custom PostgreSQL types such
+  as `vector`
+- for host-table FKs (`users`, `teams`, `sfiles`), define a minimal local table
+  stub in the module schema instead of importing `@/lib/db/schema`
+
+Example:
+
+```ts
+import { customType, integer, pgTable, serial, text } from '@skitsaas/sdk/db';
+
+const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+}>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 1536})`;
+  },
+  toDriver(value) {
+    return `[${value.join(',')}]`;
+  }
+});
+
+const users = pgTable('users', {
+  id: integer('id').primaryKey()
+});
+
+const sfiles = pgTable('sfiles', {
+  id: integer('id').primaryKey()
+});
+
+const embeddingDocs = pgTable('mod_embedding_docs', {
+  id: serial('id').primaryKey(),
+  ownerUserId: integer('owner_user_id').references(() => users.id),
+  sourceFileId: integer('source_file_id').references(() => sfiles.id),
+  content: text('content').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }).notNull()
+});
+```
 
 ### `@skitsaas/sdk/build`
 

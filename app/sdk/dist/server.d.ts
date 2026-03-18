@@ -1,8 +1,11 @@
 import type { EventDispatchResult, EventEmitContext, EventHook, EventPayload } from './events/types.js';
 import type { ReactNode } from 'react';
 import type { ModuleApiHandler, ModulePageHandler, ModuleRouteContext } from './modules/manifest.js';
+import type { UseI18nOptions } from './i18n/runtime.js';
+import type { Translator } from './i18n/types.js';
 import type { BuildFormDefinition, BuildFormValue, BuildFormValues } from './forms.js';
 import type { SdkCreateNotificationInput, SdkCreateNotificationResult, SdkNotificationTeamRecipients } from './notifications/types.js';
+import { type ActorBoundSfilesManager, type SFilesActorContext } from './sfiles.js';
 import { type BuildFormDbRef, type BuildFormValidationResult, type ValidatedBuildFormDefinition } from './form-validation.js';
 export type { BuildFormUiTemplateResolution, BuildFormUiTemplateResolverAdapter, BuildFormUiTemplateResolverContext } from './ui/build-form-contract.js';
 export { configureBuildFormUiTemplateResolver } from './ui/build-form-template-resolver.js';
@@ -51,6 +54,15 @@ export declare function setSessionForUser(userId: number, options?: {
     userAgent?: string | null;
     metadata?: Record<string, unknown> | null;
 }): Promise<void>;
+export declare function getCurrentSfilesActor(): Promise<SFilesActorContext>;
+export declare function getCurrentSfiles(): Promise<ActorBoundSfilesManager>;
+export type I18nAdapter = {
+    getServerTranslator: (options?: UseI18nOptions) => Promise<Translator>;
+    getActionTranslator?: (options?: UseI18nOptions) => Promise<Translator>;
+};
+export declare function configureI18n(adapter: I18nAdapter): void;
+export declare function getServerTranslator(options?: UseI18nOptions): Promise<Translator>;
+export declare function getActionTranslator(options?: UseI18nOptions): Promise<Translator>;
 export type NotificationAdapter = {
     createNotification: (input: SdkCreateNotificationInput) => Promise<SdkCreateNotificationResult>;
 };
@@ -231,7 +243,8 @@ export type ModulePageRouterOptions<TUser = unknown> = {
 };
 export declare function createModuleApiRouter<TUser = unknown>({ routes, readRoles, adminRoles, onUnauthorized, onForbidden, onMethodNotAllowed, onNotFound }: ModuleApiRouterOptions<TUser>): ModuleApiHandler;
 export declare function createModulePageRouter<TUser = unknown>({ routes, readRoles, adminRoles, onUnauthorized, onForbidden, onNotFound }: ModulePageRouterOptions<TUser>): ModulePageHandler;
-export { configureSubscriptionFeatures, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';
-export type { SubscriptionFeaturesAdapter, QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
+export { configureSubscriptionFeatures, getPlanFeatureValue, getPlanFeatureNumber, checkFeature, getQuotaStatus, consumeQuota, QuotaExceededError, } from './subscription-features.js';
+export type { SubscriptionFeaturesAdapter, SubscriptionFeatureValueType, QuotaContext, PlanFeatureValueResult, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
+export type { ActorBoundSfilesManager, SFileReadResult, SFilesActorContext } from './sfiles.js';
 export { configureUserRoles, configureUserContext, enrichUser, } from './user-roles.js';
 export type { UserRolesConfig, UserContext, RichUser, RichUserMethods, } from './user-roles.js';

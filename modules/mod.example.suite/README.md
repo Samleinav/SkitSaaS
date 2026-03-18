@@ -20,7 +20,7 @@ This module demonstrates, in a single module:
 - `moduleId`: `mod.example.suite`
 - `moduleMode`: `source-host`
 - entry file: `src/manifest.ts`
-- `sdkRange`: `^1.7.1`
+- `sdkRange`: `^1.9.0`
 
 ## Routes
 

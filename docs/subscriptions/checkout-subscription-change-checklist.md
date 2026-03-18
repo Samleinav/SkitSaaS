@@ -38,14 +38,11 @@ Use this checklist when changing checkout behavior for subscription purchases (n
 - Run targeted lifecycle and checkout tests:
 
 ```bash
-npx tsx --test tests/payments/order-subscription-lifecycle.test.ts tests/payments/checkout-system-one-time.test.ts
+npx tsx --test tests/payments/order-subscription-lifecycle.test.ts
 ```
 
-- If module checkout integrations are touched, also run:
-
-```bash
-npx tsx --test tests/modules/mod-commerce-onetime-api.test.ts tests/modules/mod-commerce-onetime-validation.test.ts tests/modules/mod-commerce-onetime-stripe-webhook.test.ts tests/modules/mod-commerce-onetime-paypal-webhook.test.ts
-```
+- Module-owned checkout integrations must be validated from the module test suite,
+  not from the shared core payment tests.
 
 - Confirm no regressions in admin/dashboard subscription pages:
   - `app/(dashboard)/admin/subscriptions/*`
@@ -57,6 +54,3 @@ npx tsx --test tests/modules/mod-commerce-onetime-api.test.ts tests/modules/mod-
 
 - [Payment Events and Subscription Lifecycle](./payment-events-lifecycle.md)
 - [Dashboard Subscription Management](./dashboard-subscription-management.md)
-- Module-specific one-time payments runbook:
-  - `modules/mod.commerce.one-time-payments/README.md`
-

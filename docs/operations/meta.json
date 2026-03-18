@@ -5,7 +5,6 @@
     "system-activity-logs",
     "email-system",
     "ops-validation-pack",
-    "ops-canary-pack",
-    "ops-commerce-onetime-runbook"
+    "ops-canary-pack"
   ]
 }

@@ -26,9 +26,11 @@ registerSfiles(sfiles);
 
 // Re-export types for convenience
 export type {
+  ActorBoundSfilesManager,
   SFile,
   SFileBackend,
   SFilePermission,
+  SFileReadResult,
   SFileVisibility,
   SFilesActorContext,
   ISfilesManager,

@@ -150,10 +150,14 @@ Runtime state table:
 
 - `app_modules`
 
-Backend commerce modules currently available:
+Example modules currently included in this repository:
 
-- `mod.commerce.products` (product catalog with `subscription` and `one_time` kinds)
-- `mod.commerce.one-time-payments` (one-time checkout intents, fulfillment projection, Stripe/PayPal webhook reconciliation)
+- `mod.example.admin`
+- `mod.example.api`
+- `mod.example.dashboard`
+- `mod.example.package`
+- `mod.example.portal`
+- `mod.example.suite`
 
 ## 9) Events and hooks
 

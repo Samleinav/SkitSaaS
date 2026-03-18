@@ -44,7 +44,7 @@ export type { PortalConfig, PortalLayoutProps, PortalRegisterOptions, PortalRout
 export { RoutePortal, RouteApiPortal, PortalRouteBuilder, portalMetaRegistry, portalPrefixSet, dashboardPortalSet, getPortalMeta, getAllPortalNames, getPortalPages, } from './routing/portal.js';
 export type { RateLimitContext, RateLimitResult, RateLimitHandler, RateLimitConfig, RateLimitBackendContext, RateLimitBackendHandler } from './routing/rate-limit.js';
 export { configureRateLimitBackend, resolveClientIp, checkRateLimit, withRateLimit } from './routing/rate-limit.js';
-export type { QuotaContext, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
+export type { SubscriptionFeatureValueType, QuotaContext, PlanFeatureValueResult, FeatureCheckResult, QuotaStatus, ConsumeOptions, ConsumeResult, } from './subscription-features.js';
 export { QuotaExceededError } from './subscription-features.js';
 export { enrichUser } from './user-roles.js';
 export type { UserRolesConfig, UserContext, RichUser, RichUserMethods } from './user-roles.js';
