@@ -54,6 +54,20 @@ themes/<your-theme>/
 }
 ```
 
+Optional locale extension in `config.ts`:
+
+```ts
+import { defineThemeConfig } from '@skitsaas/sdk';
+
+export default defineThemeConfig({
+  additionalLocales: ['fr']
+});
+```
+
+Use `additionalLocales` when the theme should expose a locale in the host
+language switcher even if the core host does not provide a typed locale tree
+for it yet. Missing host strings still fall back to the default locale.
+
 ## Frontend routes (`routes.ts`)
 
 Frontend themes are route-driven.
@@ -315,6 +329,7 @@ Preferred declaration lives in `config.ts` under `assets`:
 import { defineThemeConfig } from '@skitsaas/sdk';
 
 export default defineThemeConfig({
+  additionalLocales: ['fr'],
   assets: {
     globalCssByArea: {
       frontend: 'global.css'

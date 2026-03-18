@@ -5,6 +5,10 @@ export type ModuleMessageTree = {
 };
 
 export type FlatTranslationsByLocale = Record<string, Record<string, string>>;
+export type FlatTranslationsByModuleId = Record<
+  ModuleI18nNamespace,
+  FlatTranslationsByLocale
+>;
 
 export type FlatTranslationConflict = {
   key: string;

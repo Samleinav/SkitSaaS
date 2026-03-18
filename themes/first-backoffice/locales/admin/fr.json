@@ -1,3 +1,18 @@
 {
-  "Admin table": "Tableau d'administration"
+  "Admin": "Admin",
+  "Admin table": "Tableau d'administration",
+  "App Config": "Config application",
+  "Choose a section and manage runtime values.": "Choisissez une section et gerez les valeurs runtime.",
+  "Configuration sections": "Sections de configuration",
+  "Email": "Email",
+  "General": "General",
+  "Language": "Langue",
+  "Logs": "Journaux",
+  "Modules": "Modules",
+  "Orders": "Commandes",
+  "Payment methods": "Methodes de paiement",
+  "Payments": "Paiements",
+  "Review installed modules, edit manifest-defined runtime values, and disable modules in an emergency.": "Passez en revue les modules installes, modifiez les valeurs runtime du manifeste et desactivez les modules en urgence.",
+  "Subscriptions": "Abonnements",
+  "Users": "Utilisateurs"
 }

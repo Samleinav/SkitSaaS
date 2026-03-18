@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { CircleIcon } from 'lucide-react';
 import { signInAdmin, signInDashboard, signUp } from './actions';
 import { ActionState } from '@/lib/auth/middleware';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { cn } from '@/lib/utils';
 import { ThemedAsyncSubmitButton } from '@/components/ui/themed-async-submit-button';
@@ -51,8 +51,7 @@ export function Login({
   allowPasswordLogin?: boolean;
   providerOptions?: LoginProviderOption[];
 }) {
-  const messages = useAreaMessages('login');
-  const auth = messages.auth;
+  const t = useI18n({ area: 'login', themeId });
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect');
   const templateId = searchParams.get('templateId');
@@ -93,6 +92,7 @@ export function Login({
         <div className="mb-6 flex justify-end">
           <LanguageSwitcher
             area="login"
+            themeId={themeId}
             triggerClassName="rounded-sm border-amber-200/20 bg-zinc-900/80 text-zinc-200 hover:bg-zinc-900 hover:text-amber-100"
           />
         </div>
@@ -106,7 +106,9 @@ export function Login({
           </div>
 
           <h2 className="mt-6 text-center font-[family-name:var(--font-auth-serif)] text-3xl font-semibold text-zinc-100">
-            {mode === 'signin' ? auth.signInTitle : auth.signUpTitle}
+            {mode === 'signin'
+              ? t('Sign in to your account')
+              : t('Create your account')}
           </h2>
 
           {showPasswordForm ? (
@@ -117,7 +119,7 @@ export function Login({
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-zinc-300">
-                  {auth.email}
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
@@ -128,21 +130,21 @@ export function Login({
                   required
                   maxLength={50}
                   className="h-11 rounded-sm border-zinc-700 bg-zinc-900/70 text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-200/40 focus-visible:ring-amber-200/35"
-                  placeholder={auth.emailPlaceholder}
+                  placeholder={t('Enter your email')}
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium text-zinc-300">
-                    {auth.password}
+                    {t('Password')}
                   </Label>
                   {mode === 'signin' ? (
                     <Link
                       href="/forgot-password"
                       className="text-xs text-zinc-500 hover:text-amber-100 transition-colors"
                     >
-                      {auth.forgotPassword}
+                      {t('Forgot password?')}
                     </Link>
                   ) : null}
                 </div>
@@ -156,7 +158,7 @@ export function Login({
                   minLength={8}
                   maxLength={100}
                   className="h-11 rounded-sm border-zinc-700 bg-zinc-900/70 text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-200/40 focus-visible:ring-amber-200/35"
-                  placeholder={auth.passwordPlaceholder}
+                  placeholder={t('Enter your password')}
                 />
               </div>
 
@@ -165,8 +167,8 @@ export function Login({
               <ThemedAsyncSubmitButton
                 themeId={themeId}
                 slot={mode === 'signin' ? 'login.signin.submit' : 'login.signup.submit'}
-                idleLabel={mode === 'signin' ? auth.signIn : auth.signUp}
-                pendingLabel={auth.loading}
+                idleLabel={mode === 'signin' ? t('Sign in') : t('Sign up')}
+                pendingLabel={t('Loading...')}
                 className="h-11 w-full rounded-sm border border-amber-200/30 bg-amber-200/10 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black"
               />
             </form>
@@ -174,8 +176,8 @@ export function Login({
             <div className="mt-8 space-y-4">
               <div className="rounded-sm border border-zinc-700 bg-zinc-900/70 p-4 text-sm text-zinc-300">
                 {mode === 'signin'
-                  ? auth.passwordSignInDisabled
-                  : auth.passwordSignUpDisabled}
+                  ? t('Password sign-in is disabled for this area. Use an enabled provider.')
+                  : t('Account creation with password is disabled for this area.')}
               </div>
               {state?.error ? <div className="text-sm text-red-300">{state.error}</div> : null}
             </div>
@@ -189,14 +191,16 @@ export function Login({
                   href={`${provider.startPath}?area=${authArea}`}
                   className="inline-flex h-11 w-full items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900/70 px-4 text-xs font-semibold tracking-[0.15em] text-zinc-200 uppercase transition-colors hover:border-amber-200/30 hover:text-amber-100"
                 >
-                  {auth.continueWith} {provider.displayName}
+                  {t('Continue with')} {provider.displayName}
                 </Link>
               ))}
             </div>
           ) : null}
 
           {!showPasswordForm && mode === 'signin' && !showExternalProviders ? (
-            <p className="mt-6 text-sm text-zinc-400">{auth.noExternalProviders}</p>
+            <p className="mt-6 text-sm text-zinc-400">
+              {t('No external login provider is currently available.')}
+            </p>
           ) : null}
 
           {showModeSwitch ? (
@@ -207,7 +211,9 @@ export function Login({
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="bg-[#0c0c0c] px-3 text-zinc-500">
-                    {mode === 'signin' ? auth.newToPlatform : auth.alreadyHaveAccount}
+                    {mode === 'signin'
+                      ? t('New to our platform?')
+                      : t('Already have an account?')}
                   </span>
                 </div>
               </div>
@@ -217,7 +223,9 @@ export function Login({
                   href={switchModeHref}
                   className="inline-flex h-11 w-full items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900/70 px-4 text-xs font-semibold tracking-[0.15em] text-zinc-300 uppercase transition-colors hover:border-amber-200/30 hover:text-amber-100"
                 >
-                  {mode === 'signin' ? auth.createAccount : auth.signInExisting}
+                  {mode === 'signin'
+                    ? t('Create an account')
+                    : t('Sign in to existing account')}
                 </Link>
               </div>
             </div>

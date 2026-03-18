@@ -1,7 +1,7 @@
 export { EVENT_HOOKS } from './events/catalog.js';
 export { defineModule, validateModuleManifest } from './modules/manifest.js';
 export { createTranslator } from './i18n/translator.js';
-export { I18nProvider, useI18n, resolveThemeTranslationsByLocale, resolveI18nTranslationsByLocale } from './i18n/theme.js';
+export { I18nProvider, useI18n, resolveThemeTranslationsByLocale, resolveModuleTranslationsByLocale, resolveI18nTranslationsByLocale } from './i18n/theme.js';
 export { defineThemeConfig } from './theme/config.js';
 export { buildTableAction, buildTableFilter, buildTableColumn, composeBuildTableDefinition, defineBuildTable, withBuildTableData, withBuildTableQuery } from './datatables/definition.js';
 export { DEFAULT_BUILD_TABLE_PAGE, DEFAULT_BUILD_TABLE_PAGE_SIZE, filterBuildTableData, formatBuildTablePaginationSummary, normalizeBuildTablePage, normalizeBuildTablePageSize, normalizeBuildTableQueryState, normalizeBuildTableSortDirection, paginateBuildTableData, resolveBuildTableView, sortBuildTableData } from './datatables/state.js';

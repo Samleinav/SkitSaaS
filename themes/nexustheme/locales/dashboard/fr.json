@@ -1,10 +1,19 @@
 {
   "Account": "Compte",
+  "Activity": "Activite",
+  "Activity Log": "Journal d'activite",
   "Billing": "Facturation",
   "Dashboard table": "Tableau du dashboard",
+  "General": "General",
+  "Language": "Langue",
   "Log out": "Se déconnecter",
   "Notifications": "Notifications",
+  "Recent Activity": "Activite recente",
   "Search": "Rechercher",
   "Search...": "Rechercher...",
+  "Security": "Securite",
+  "Settings": "Parametres",
+  "Subscriptions": "Abonnements",
+  "Team": "Equipe",
   "Toggle sidebar": "Basculer le panneau"
 }

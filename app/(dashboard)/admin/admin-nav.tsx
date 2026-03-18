@@ -14,7 +14,7 @@ import {
   Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import type { PrivateLayoutMode } from '@/lib/layout/private-area';
 
 type AdminNavProps = {
@@ -81,56 +81,56 @@ export function AdminNav({
   mode = 'compact',
   moduleItems = []
 }: AdminNavProps) {
-  const messages = useAreaMessages('admin');
+  const t = useI18n({ area: 'admin' });
   const pathname = usePathname();
   const coreItems: AdminNavItem[] = [
     {
       href: '/admin',
       icon: LayoutDashboard,
-      label: messages.layout.title,
+      label: t('Admin'),
       exact: true
     },
     {
       href: '/admin/users',
       icon: Users,
-      label: messages.nav.users
+      label: t('Users')
     },
     {
       href: '/admin/subscriptions',
       icon: LayoutTemplate,
-      label: messages.nav.subscriptions,
+      label: t('Subscriptions'),
       matchPrefixes: ['/admin/subscriptions', '/admin/suscriptions'],
       children: [
         {
           href: '/admin/subscriptions',
-          label: messages.subscriptionsPage.subscriptionsTitle
+          label: t('Subscriptions')
         },
         {
           href: '/admin/subscriptions/templates',
-          label: messages.subscriptionsPage.templatesTitle
+          label: t('Subscription Templates')
         }
       ]
     },
     {
       href: '/admin/payments',
       icon: ReceiptText,
-      label: messages.nav.payments
+      label: t('Payments')
     },
     {
       href: '/admin/orders',
       icon: ShoppingCart,
-      label: messages.nav.orders
+      label: t('Orders')
     },
     {
       href: '/admin/logs',
       icon: FileText,
-      label: messages.nav.logs
+      label: t('Logs')
     }
   ];
   const appConfigItem: AdminNavItem = {
     href: '/admin/app-config',
     icon: Settings2,
-    label: messages.nav.appConfig
+    label: t('App Config')
   };
   const navItems: AdminNavItem[] = [
     ...coreItems,

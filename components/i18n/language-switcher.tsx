@@ -13,7 +13,7 @@ import {
 import { setLocaleAction } from '@/app/actions/locale';
 import { SUPPORTED_LOCALES, type AppLocale } from '@/lib/i18n/config';
 import { getLocaleDisplayName } from '@/lib/i18n/formatting';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { type I18nArea } from '@/lib/i18n/messages';
 import { useLocale } from './language-provider';
 
@@ -21,16 +21,17 @@ const LOCALE_OPTIONS = SUPPORTED_LOCALES;
 
 export function LanguageSwitcher({
   area,
+  themeId,
   triggerClassName
 }: {
   area: I18nArea;
+  themeId?: string | null;
   triggerClassName?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const locale = useLocale();
-  const messages = useAreaMessages(area);
-  const language = messages.language;
+  const t = useI18n({ area, themeId });
   const currentLabel = getLocaleDisplayName(locale, locale);
 
   function handleChange(nextLocale: AppLocale) {
@@ -55,7 +56,7 @@ export function LanguageSwitcher({
           disabled={isPending}
         >
           <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline">{language.label}:</span>
+          <span className="hidden sm:inline">{t('Language')}:</span>
           <span>{currentLabel}</span>
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         </Button>

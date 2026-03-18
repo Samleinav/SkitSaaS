@@ -2,7 +2,7 @@
 
 import { loadScript } from '@paypal/paypal-js';
 import { useEffect, useRef, useState } from 'react';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 
 type PayPalCheckoutButtonProps = {
   clientId: string;
@@ -30,8 +30,7 @@ export function PayPalCheckoutButton({
   checkoutToken,
   currency
 }: PayPalCheckoutButtonProps) {
-  const messages = useAreaMessages('global');
-  const paypalMessages = messages.paypal;
+  const t = useI18n({ area: 'global' });
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,7 +109,9 @@ export function PayPalCheckoutButton({
                 return Promise.reject(new Error('Unauthorized'));
               }
 
-              setError(paymentStartBody.error || paypalMessages.unableToConfirm);
+              setError(
+                paymentStartBody.error || t('Unable to confirm PayPal subscription.')
+              );
               return Promise.reject(new Error('Plan not available'));
             }
 
@@ -120,7 +121,7 @@ export function PayPalCheckoutButton({
           },
           onApprove: async (data) => {
             if (!data.subscriptionID) {
-              setError(paypalMessages.missingSubscriptionId);
+              setError(t('PayPal did not return a subscription ID.'));
               return;
             }
 
@@ -143,7 +144,7 @@ export function PayPalCheckoutButton({
                 return;
               }
 
-              setError(body.error || paypalMessages.unableToConfirm);
+              setError(body.error || t('Unable to confirm PayPal subscription.'));
               return;
             }
 
@@ -156,16 +157,16 @@ export function PayPalCheckoutButton({
                 method: 'POST'
               }
             ).catch(() => null);
-            setError(paypalMessages.canceled);
+            setError(t('PayPal checkout was canceled.'));
             window.location.reload();
           },
           onError: () => {
-            setError(paypalMessages.failed);
+            setError(t('PayPal checkout failed. Please try again.'));
           }
         });
 
         if (!buttons.isEligible()) {
-          setError(paypalMessages.unavailable);
+          setError(t('PayPal is not available for this account.'));
           return;
         }
 
@@ -173,7 +174,7 @@ export function PayPalCheckoutButton({
         await buttons.render(containerRef.current);
       } catch {
         if (!isUnmounted) {
-          setError(paypalMessages.unableToLoad);
+          setError(t('Unable to load PayPal checkout.'));
         }
       }
     }
@@ -186,7 +187,7 @@ export function PayPalCheckoutButton({
         void closeButtons();
       }
     };
-  }, [checkoutToken, clientId, currency, paypalMessages]);
+  }, [checkoutToken, clientId, currency, t]);
 
   return (
     <div className="space-y-2">

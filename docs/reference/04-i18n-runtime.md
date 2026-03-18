@@ -57,6 +57,12 @@ const t = useI18n();
 notify.warning(t('You must be a team owner to invite new members.'));
 ```
 
+Module-local scope:
+
+```ts
+const t = useI18n({ moduleId: 'mod.analytics' });
+```
+
 On the server:
 
 ```ts
@@ -95,6 +101,18 @@ Core flat keys are derived from `lib/i18n/locales/<locale>/*.ts`. If a string
 does not exist in those locale bundles, the translator falls back to the
 original English key.
 
+Supported locales for the language switcher are no longer limited to the core
+locale folders. `pnpm i18n:prepare` now publishes the union of:
+
+- core locales found under `lib/i18n/locales/*`
+- theme `additionalLocales` declared in `themes/<themeId>/config.ts`
+- module `additionalLocales` declared in `ModuleManifest`
+- module flat translation locale filenames under `i18n/translations/*.json`
+
+If a supported locale does not have a typed core bundle, `useAreaMessages(...)`
+falls back to the default locale (`en`) while flat translators still resolve
+any available theme/module overrides for that locale.
+
 For modules, flat keys come from:
 
 - `modules/<moduleId>/i18n/translations/<locale>.json`
@@ -106,6 +124,10 @@ For themes, flat keys come from:
 
 Theme translations are merged on top of the core flat registry for the active
 `themeId + area`. `global` applies first, then the requested area overrides it.
+
+Module flat translations are also generated into a module-scoped registry, so
+`useI18n({ moduleId })` can resolve that module's locale bucket before it falls
+back to the shared flat registry.
 
 If two sources define the same `locale + key` with different values,
 `pnpm i18n:prepare` fails.

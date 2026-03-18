@@ -192,6 +192,19 @@ Rules:
 - theme translations override core flat keys for the matching `themeId + area`
 - if a key is not provided by the theme, `useI18n(...)` falls back to the core
   host translation
+- if you want the locale to appear in the global language switcher even when
+  the core does not ship `lib/i18n/locales/<locale>/*`, declare it in
+  `config.ts` with `additionalLocales`
+
+Example:
+
+```ts
+import { defineThemeConfig } from '@skitsaas/sdk';
+
+export default defineThemeConfig({
+  additionalLocales: ['fr']
+});
+```
 
 ### Build step
 

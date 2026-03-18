@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { signOut } from '@/app/(login)/actions';
 import { type User } from '@/lib/db/schema';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { enrichUser } from '@skitsaas/sdk';
 
@@ -37,8 +37,7 @@ function getUserInitials(user: Pick<User, 'name' | 'email'>) {
 }
 
 export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
-  const messages = useAreaMessages('global');
-  const header = messages.header;
+  const t = useI18n({ area: 'global' });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const router = useRouter();
@@ -66,10 +65,10 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
             href="/pricing"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            {header.pricing}
+            {t('Pricing')}
           </Link>
           <Button asChild className="rounded-full">
-            <Link href="/sign-up">{header.signUp}</Link>
+            <Link href="/sign-up">{t('Sign up')}</Link>
           </Button>
         </>
       );
@@ -81,14 +80,14 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
           href="/login"
           className="hidden text-xs font-medium tracking-[0.2em] text-zinc-400 uppercase transition-colors hover:text-zinc-100 sm:inline-flex"
         >
-          {header.signIn}
+          {t('Sign in')}
         </Link>
         <Button
           asChild
           className="h-10 rounded-sm border border-amber-200/30 bg-amber-300/10 px-4 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black"
         >
           <Link href="/sign-up" className="inline-flex items-center gap-2">
-            {header.signUp}
+            {t('Sign up')}
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
@@ -108,7 +107,7 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
     {
       key: 'dashboard' as const,
       href: '/dashboard',
-      label: header.dashboard,
+      label: t('Dashboard'),
       icon: Home
     },
     ...(isAdmin
@@ -116,7 +115,7 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
           {
             key: 'admin' as const,
             href: '/admin',
-            label: header.admin,
+            label: t('Admin'),
             icon: Shield
           }
         ]
@@ -178,7 +177,7 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{header.signOut}</span>
+          <span>{t('Sign out')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

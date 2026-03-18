@@ -2,7 +2,7 @@
 
 import { loadScript } from '@paypal/paypal-js';
 import { useEffect, useRef, useState } from 'react';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 
 type PayPalButtonProps = {
   clientId: string;
@@ -30,8 +30,7 @@ export function PayPalButton({
   changeMode = null,
   scheduledStartTime = null
 }: PayPalButtonProps) {
-  const messages = useAreaMessages('global');
-  const paypalMessages = messages.paypal;
+  const t = useI18n({ area: 'global' });
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +96,7 @@ export function PayPalButton({
                 return Promise.reject(new Error('Unauthorized'));
               }
 
-              setError(planBody.error || paypalMessages.unableToConfirm);
+              setError(planBody.error || t('Unable to confirm PayPal subscription.'));
               return Promise.reject(new Error('Plan not available'));
             }
 
@@ -110,7 +109,7 @@ export function PayPalButton({
           },
           onApprove: async (data) => {
             if (!data.subscriptionID) {
-              setError(paypalMessages.missingSubscriptionId);
+              setError(t('PayPal did not return a subscription ID.'));
               return;
             }
 
@@ -134,22 +133,22 @@ export function PayPalButton({
                 return;
               }
 
-              setError(body.error || paypalMessages.unableToConfirm);
+              setError(body.error || t('Unable to confirm PayPal subscription.'));
               return;
             }
 
             window.location.href = body.redirectUrl || '/dashboard';
           },
           onCancel: () => {
-            setError(paypalMessages.canceled);
+            setError(t('PayPal checkout was canceled.'));
           },
           onError: () => {
-            setError(paypalMessages.failed);
+            setError(t('PayPal checkout failed. Please try again.'));
           }
         });
 
         if (!buttons.isEligible()) {
-          setError(paypalMessages.unavailable);
+          setError(t('PayPal is not available for this account.'));
           return;
         }
 
@@ -157,7 +156,7 @@ export function PayPalButton({
         await buttons.render(containerRef.current);
       } catch {
         if (!isUnmounted) {
-          setError(paypalMessages.unableToLoad);
+          setError(t('Unable to load PayPal checkout.'));
         }
       }
     }
@@ -174,9 +173,9 @@ export function PayPalButton({
     clientId,
     currency,
     templateId,
-    paypalMessages,
     changeMode,
-    scheduledStartTime
+    scheduledStartTime,
+    t
   ]);
 
   return (

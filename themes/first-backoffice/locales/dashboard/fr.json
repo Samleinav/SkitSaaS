@@ -1,3 +1,13 @@
 {
-  "Dashboard table": "Tableau du dashboard"
+  "Activity": "Activite",
+  "Activity Log": "Journal d'activite",
+  "Dashboard table": "Tableau du dashboard",
+  "General": "General",
+  "Language": "Langue",
+  "Recent Activity": "Activite recente",
+  "Security": "Securite",
+  "Settings": "Parametres",
+  "Subscriptions": "Abonnements",
+  "Team": "Equipe",
+  "Toggle sidebar": "Basculer le panneau"
 }

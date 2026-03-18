@@ -21,7 +21,7 @@ import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { PrivateBreadcrumb } from '@/components/ui/private-breadcrumb';
 import { ThemeTemplate } from '@/components/ui/theme-template';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import {
   DASHBOARD_LAYOUT_STYLE,
   PRIVATE_LAYOUT_MODE
@@ -117,7 +117,18 @@ export default function DashboardLayout({
   contextType: DashboardContextType;
   moduleItems?: Array<{ href: string; label: string; exact?: boolean }>;
 }) {
-  const messages = useAreaMessages('dashboard');
+  const t = useI18n({ area: 'dashboard' });
+  const dashboardText = {
+    settings: t('Settings'),
+    toggleSidebar: t('Toggle sidebar'),
+    nav: {
+      team: t('Team'),
+      general: t('General'),
+      activity: t('Activity'),
+      security: t('Security'),
+      subscriptions: t('Subscriptions')
+    }
+  };
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isAdjusted = PRIVATE_LAYOUT_MODE === 'adjusted';
@@ -126,35 +137,35 @@ export default function DashboardLayout({
     {
       href: '/dashboard/general',
       icon: Settings,
-      label: messages.layout.nav.general
+      label: dashboardText.nav.general
     },
     {
       href: '/dashboard/activity',
       icon: Activity,
-      label: messages.layout.nav.activity
+      label: dashboardText.nav.activity
     },
     {
       href: '/dashboard/security',
       icon: Shield,
-      label: messages.layout.nav.security
+      label: dashboardText.nav.security
     },
     {
       href: '/dashboard/subscriptions',
       icon: CreditCard,
-      label: messages.layout.nav.subscriptions
+      label: dashboardText.nav.subscriptions
     }
   ];
   const navItems: DashboardNavItem[] = [
     {
       href: '/dashboard',
       icon: Users,
-      label: messages.layout.nav.team,
+      label: dashboardText.nav.team,
       exact: true
     },
     {
       href: '/dashboard/general',
       icon: Settings,
-      label: messages.layout.settings,
+      label: dashboardText.settings,
       children: settingsSubItems
     }
   ];
@@ -188,7 +199,7 @@ export default function DashboardLayout({
             onClick={() => setIsSidebarOpen((open) => !open)}
           >
             {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            <span className="text-sm">{messages.layout.toggleSidebar}</span>
+            <span className="text-sm">{dashboardText.toggleSidebar}</span>
           </Button>
 
           <div className="flex items-center gap-2">
@@ -218,16 +229,16 @@ export default function DashboardLayout({
 
               <span className="relative mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
                 <Settings className="h-3.5 w-3.5" />
-                {messages.layout.settings}
+                {dashboardText.settings}
               </span>
 
               <h2 className="relative text-2xl font-semibold tracking-tight text-white">
-                {messages.layout.settings}
+                {dashboardText.settings}
               </h2>
               <p className="relative mt-1 text-sm text-white/70">
-                {messages.layout.nav.team} - {messages.layout.nav.general} -{' '}
-                {messages.layout.nav.activity} - {messages.layout.nav.security} -{' '}
-                {messages.layout.nav.subscriptions}
+                {dashboardText.nav.team} - {dashboardText.nav.general} -{' '}
+                {dashboardText.nav.activity} - {dashboardText.nav.security} -{' '}
+                {dashboardText.nav.subscriptions}
               </p>
 
               <div className="relative mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
@@ -343,7 +354,7 @@ export default function DashboardLayout({
           type="button"
           onClick={() => setIsSidebarOpen(false)}
           className="fixed inset-0 z-30 bg-slate-950/70 xl:hidden"
-          aria-label={messages.layout.toggleSidebar}
+          aria-label={dashboardText.toggleSidebar}
         />
       ) : null}
 
@@ -366,15 +377,15 @@ export default function DashboardLayout({
 
             <span className="relative mb-3 inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-900/70 px-3 py-1 text-xs font-medium text-slate-200">
               <Settings className="h-3.5 w-3.5 text-blue-200" />
-              {messages.layout.settings}
+              {dashboardText.settings}
             </span>
             <h2 className="relative text-xl font-semibold text-white">
-              {messages.layout.settings}
+              {dashboardText.settings}
             </h2>
             <p className="relative mt-1 text-sm text-slate-300">
-              {messages.layout.nav.team} - {messages.layout.nav.general} -{' '}
-              {messages.layout.nav.activity} - {messages.layout.nav.security} -{' '}
-              {messages.layout.nav.subscriptions}
+              {dashboardText.nav.team} - {dashboardText.nav.general} -{' '}
+              {dashboardText.nav.activity} - {dashboardText.nav.security} -{' '}
+              {dashboardText.nav.subscriptions}
             </p>
           </div>
 
@@ -499,13 +510,13 @@ export default function DashboardLayout({
 
             <PrivateBreadcrumb
               rootHref="/dashboard"
-              rootLabel={messages.layout.settings}
+              rootLabel={dashboardText.settings}
               className="flex-1"
               labels={{
-                general: messages.layout.nav.general,
-                activity: messages.layout.nav.activity,
-                security: messages.layout.nav.security,
-                subscriptions: messages.layout.nav.subscriptions
+                general: dashboardText.nav.general,
+                activity: dashboardText.nav.activity,
+                security: dashboardText.nav.security,
+                subscriptions: dashboardText.nav.subscriptions
               }}
             />
 

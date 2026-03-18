@@ -89,3 +89,28 @@ test('validateModuleManifest rejects duplicate runtime config fields in the same
     )
   );
 });
+
+test('validateModuleManifest accepts valid additionalLocales entries', () => {
+  const manifest = defineModule({
+    moduleId: 'mod.locales.valid',
+    version: '1.0.0',
+    displayName: 'Locales Valid',
+    additionalLocales: ['fr', 'pt-BR', 'zh_hans']
+  });
+
+  assert.deepEqual(validateModuleManifest(manifest), []);
+});
+
+test('validateModuleManifest rejects invalid and duplicate additionalLocales entries', () => {
+  const manifest = defineModule({
+    moduleId: 'mod.locales.invalid',
+    version: '1.0.0',
+    displayName: 'Locales Invalid',
+    additionalLocales: ['fr', 'FR', 'bad locale', '']
+  });
+
+  const errors = validateModuleManifest(manifest);
+  assert.ok(errors.includes('module_additional_locales_duplicate:fr'));
+  assert.ok(errors.includes('module_additional_locales_invalid:2'));
+  assert.ok(errors.includes('module_additional_locales_invalid:3'));
+});

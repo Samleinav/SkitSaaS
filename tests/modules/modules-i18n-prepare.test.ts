@@ -117,13 +117,29 @@ test('i18n:prepare ingests module flat translations and prefers dist output when
     logWarnings: false
   });
   const generated = await importGeneratedTranslations(result.translationsPath);
+  const generatedByModule = await importGeneratedTranslations(
+    result.moduleFlatTranslationsPath
+  );
   const flatTranslationsByLocale = generated.flatTranslationsByLocale as Record<
     string,
     Record<string, string>
   >;
+  const flatTranslationsByModuleId =
+    generatedByModule.flatTranslationsByModuleId as Record<
+      string,
+      Record<string, Record<string, string>>
+    >;
 
   assert.equal(flatTranslationsByLocale.es?.['Alpha title'], 'Titulo Alpha');
   assert.equal(flatTranslationsByLocale.es?.['Beta title'], 'Titulo desde dist');
+  assert.equal(
+    flatTranslationsByModuleId['mod.alpha']?.es?.['Alpha title'],
+    'Titulo Alpha'
+  );
+  assert.equal(
+    flatTranslationsByModuleId['mod.beta']?.es?.['Beta title'],
+    'Titulo desde dist'
+  );
 });
 
 test('i18n:prepare fails on conflicting module flat translations', async () => {

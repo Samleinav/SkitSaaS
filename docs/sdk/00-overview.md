@@ -22,6 +22,7 @@ Exports:
 
 - `defineModule`
 - `ModuleManifest`
+- `ModuleManifest.additionalLocales` (extend supported locales without adding a core typed locale bundle)
 - `ModuleRouteContext`
 - `ModulePageHandler`
 - `ModuleApiHandler`
@@ -34,7 +35,8 @@ Exports:
 - `EventHook`
 - `EVENT_HOOKS`
 - `ModuleMessagesByArea` (module i18n bundles)
-- `createTranslator` and `FlatTranslationsByLocale` (flat natural-key i18n helper)
+- `useI18n`, `createTranslator`, `FlatTranslationsByLocale`, and `FlatTranslationsByModuleId` (flat natural-key i18n helpers)
+- `defineThemeConfig` / `ThemeConfig.additionalLocales` for theme-side locale registration
 - persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
@@ -484,6 +486,8 @@ Example flat JSON:
 Rules:
 
 - flat files must be a single-level object of `English key -> translated value`
+- `useI18n({ moduleId: 'mod.analytics' })` resolves that module bucket before
+  the shared flat registry
 - if `dist/i18n/translations` exists, the host reads `dist` for that module
 - conflicting `locale + key` values fail `pnpm i18n:prepare`
 

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { CircleIcon } from 'lucide-react';
 import { resetPassword } from '../../actions';
 import { ActionState } from '@/lib/auth/middleware';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { ThemedAsyncSubmitButton } from '@/components/ui/themed-async-submit-button';
 
@@ -30,8 +30,7 @@ export function ResetPassword({
   token: string;
   themeId?: string | null;
 }) {
-  const messages = useAreaMessages('login');
-  const t = messages.resetPassword;
+  const t = useI18n({ area: 'login', themeId });
 
   const [state, formAction] = useActionState<ActionState, FormData>(
     resetPassword,
@@ -60,10 +59,10 @@ export function ResetPassword({
           </div>
 
           <h2 className="mt-6 text-center font-[family-name:var(--font-auth-serif)] text-3xl font-semibold text-zinc-100">
-            {t.title}
+            {t('Choose a new password')}
           </h2>
           <p className="mt-2 text-center text-sm text-zinc-400">
-            {t.description}
+            {t('Must be at least 8 characters.')}
           </p>
 
           <form className="mt-8 space-y-6" action={formAction}>
@@ -71,7 +70,7 @@ export function ResetPassword({
 
             <div className="space-y-2">
               <Label htmlFor="newPassword" className="text-sm font-medium text-zinc-300">
-                {t.newPassword}
+                {t('New password')}
               </Label>
               <Input
                 id="newPassword"
@@ -82,13 +81,13 @@ export function ResetPassword({
                 minLength={8}
                 maxLength={100}
                 className="h-11 rounded-sm border-zinc-700 bg-zinc-900/70 text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-200/40 focus-visible:ring-amber-200/35"
-                placeholder={t.newPasswordPlaceholder}
+                placeholder={t('New password')}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-300">
-                {t.confirmPassword}
+                {t('Confirm password')}
               </Label>
               <Input
                 id="confirmPassword"
@@ -99,7 +98,7 @@ export function ResetPassword({
                 minLength={8}
                 maxLength={100}
                 className="h-11 rounded-sm border-zinc-700 bg-zinc-900/70 text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-200/40 focus-visible:ring-amber-200/35"
-                placeholder={t.confirmPasswordPlaceholder}
+                placeholder={t('Confirm password')}
               />
             </div>
 
@@ -110,8 +109,8 @@ export function ResetPassword({
             <ThemedAsyncSubmitButton
               themeId={themeId}
               slot="login.reset-password.submit"
-              idleLabel={t.setPassword}
-              pendingLabel={t.updating}
+              idleLabel={t('Set new password')}
+              pendingLabel={t('Updating...')}
               className="h-11 w-full rounded-sm border border-amber-200/30 bg-amber-200/10 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black"
             />
           </form>
@@ -121,7 +120,7 @@ export function ResetPassword({
               href="/login"
               className="text-xs text-zinc-500 hover:text-amber-100 transition-colors"
             >
-              {t.backToSignIn}
+              {t('Back to sign in')}
             </Link>
           </div>
         </div>

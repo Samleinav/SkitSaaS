@@ -7,136 +7,62 @@ import {
   type ReactNode
 } from 'react';
 import { createTranslator } from './translator.js';
-import type { FlatTranslationsByLocale, Translator } from './types.js';
-
-export type ThemeTranslationsByArea = Record<string, FlatTranslationsByLocale>;
-export type ThemeTranslationsRegistry = Record<string, ThemeTranslationsByArea>;
+import type {
+  FlatTranslationsByLocale,
+  FlatTranslationsByModuleId,
+  Translator
+} from './types.js';
+import {
+  EMPTY_MODULE_TRANSLATIONS,
+  EMPTY_THEME_TRANSLATIONS,
+  EMPTY_TRANSLATIONS,
+  resolveI18nTranslationsByLocale
+} from './runtime.js';
+import type {
+  ThemeTranslationsRegistry,
+  UseI18nOptions
+} from './runtime.js';
 
 type I18nContextValue = {
   locale: string;
   defaultLocale: string;
   translationsByLocale: FlatTranslationsByLocale;
   themeTranslationsByThemeId: ThemeTranslationsRegistry;
+  moduleTranslationsByModuleId: FlatTranslationsByModuleId;
 };
 
-export type UseI18nOptions = {
-  themeId?: string | null;
-  area?: string | null;
-  translationsByLocale?: FlatTranslationsByLocale;
-};
-
-const EMPTY_TRANSLATIONS: FlatTranslationsByLocale = Object.freeze({});
-const EMPTY_THEME_TRANSLATIONS: ThemeTranslationsRegistry = Object.freeze({});
+export type {
+  ThemeTranslationsByArea,
+  ThemeTranslationsRegistry,
+  UseI18nOptions
+} from './runtime.js';
+export {
+  resolveThemeTranslationsByLocale,
+  resolveModuleTranslationsByLocale,
+  resolveI18nTranslationsByLocale
+} from './runtime.js';
 
 const I18nContext = createContext<I18nContextValue>({
   locale: 'en',
   defaultLocale: 'en',
   translationsByLocale: EMPTY_TRANSLATIONS,
-  themeTranslationsByThemeId: EMPTY_THEME_TRANSLATIONS
+  themeTranslationsByThemeId: EMPTY_THEME_TRANSLATIONS,
+  moduleTranslationsByModuleId: EMPTY_MODULE_TRANSLATIONS
 });
-
-function normalizeArea(value: string | null | undefined) {
-  const normalized = value?.trim().toLowerCase();
-  return normalized ? normalized : null;
-}
-
-function normalizeThemeId(value: string | null | undefined) {
-  const normalized = value?.trim().toLowerCase();
-  return normalized ? normalized : null;
-}
-
-export function resolveThemeTranslationsByLocale({
-  registry,
-  themeId,
-  area
-}: {
-  registry: ThemeTranslationsRegistry;
-  themeId?: string | null;
-  area?: string | null;
-}): FlatTranslationsByLocale {
-  const normalizedThemeId = normalizeThemeId(themeId);
-  const normalizedArea = normalizeArea(area);
-
-  if (!normalizedThemeId) {
-    return EMPTY_TRANSLATIONS;
-  }
-
-  const themeTranslations = registry[normalizedThemeId];
-  if (!themeTranslations) {
-    return EMPTY_TRANSLATIONS;
-  }
-
-  const globalTranslations = themeTranslations.global ?? EMPTY_TRANSLATIONS;
-  const areaTranslations = normalizedArea
-    ? themeTranslations[normalizedArea] ?? EMPTY_TRANSLATIONS
-    : EMPTY_TRANSLATIONS;
-  const locales = Array.from(
-    new Set([
-      ...Object.keys(globalTranslations),
-      ...Object.keys(areaTranslations)
-    ])
-  ).sort((left, right) => left.localeCompare(right));
-
-  return Object.fromEntries(
-    locales.map((locale) => [
-      locale,
-      {
-        ...(globalTranslations[locale] ?? {}),
-        ...(areaTranslations[locale] ?? {})
-      }
-    ])
-  );
-}
-
-export function resolveI18nTranslationsByLocale({
-  baseTranslationsByLocale,
-  themeTranslationsByThemeId,
-  themeId,
-  area,
-  translationsByLocale
-}: {
-  baseTranslationsByLocale: FlatTranslationsByLocale;
-  themeTranslationsByThemeId: ThemeTranslationsRegistry;
-  themeId?: string | null;
-  area?: string | null;
-  translationsByLocale?: FlatTranslationsByLocale;
-}): FlatTranslationsByLocale {
-  const overrideTranslations =
-    translationsByLocale ??
-    resolveThemeTranslationsByLocale({
-      registry: themeTranslationsByThemeId,
-      themeId,
-      area
-    });
-  const locales = Array.from(
-    new Set([
-      ...Object.keys(baseTranslationsByLocale),
-      ...Object.keys(overrideTranslations)
-    ])
-  ).sort((left, right) => left.localeCompare(right));
-
-  return Object.fromEntries(
-    locales.map((locale) => [
-      locale,
-      {
-        ...(baseTranslationsByLocale[locale] ?? {}),
-        ...(overrideTranslations[locale] ?? {})
-      }
-    ])
-  );
-}
 
 export function I18nProvider({
   locale,
   defaultLocale = 'en',
   translationsByLocale = EMPTY_TRANSLATIONS,
   themeTranslationsByThemeId = EMPTY_THEME_TRANSLATIONS,
+  moduleTranslationsByModuleId = EMPTY_MODULE_TRANSLATIONS,
   children
 }: {
   locale: string;
   defaultLocale?: string;
   translationsByLocale?: FlatTranslationsByLocale;
   themeTranslationsByThemeId?: ThemeTranslationsRegistry;
+  moduleTranslationsByModuleId?: FlatTranslationsByModuleId;
   children: ReactNode;
 }) {
   const value = useMemo(
@@ -144,9 +70,16 @@ export function I18nProvider({
       locale,
       defaultLocale,
       translationsByLocale,
-      themeTranslationsByThemeId
+      themeTranslationsByThemeId,
+      moduleTranslationsByModuleId
     }),
-    [defaultLocale, locale, themeTranslationsByThemeId, translationsByLocale]
+    [
+      defaultLocale,
+      locale,
+      moduleTranslationsByModuleId,
+      themeTranslationsByThemeId,
+      translationsByLocale
+    ]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -157,21 +90,26 @@ export function useI18n(options: UseI18nOptions = {}): Translator {
     locale,
     defaultLocale,
     translationsByLocale: baseTranslationsByLocale,
-    themeTranslationsByThemeId
+    themeTranslationsByThemeId,
+    moduleTranslationsByModuleId
   } = useContext(I18nContext);
 
   const translationsByLocale = useMemo(
     () =>
       resolveI18nTranslationsByLocale({
         baseTranslationsByLocale,
+        moduleTranslationsByModuleId,
         themeTranslationsByThemeId,
         themeId: options.themeId,
         area: options.area,
+        moduleId: options.moduleId,
         translationsByLocale: options.translationsByLocale
       }),
     [
       baseTranslationsByLocale,
+      moduleTranslationsByModuleId,
       options.area,
+      options.moduleId,
       options.themeId,
       options.translationsByLocale,
       themeTranslationsByThemeId

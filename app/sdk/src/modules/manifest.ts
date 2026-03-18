@@ -172,6 +172,7 @@ export type ModuleManifest = {
   version: string;
   displayName: string;
   description?: string;
+  additionalLocales?: string[];
   i18n?: ModuleMessagesByArea;
   adminNavItems?: ModuleNavItem[];
   dashboardNavItems?: ModuleNavItem[];
@@ -217,6 +218,7 @@ export function validateModuleManifest(manifest: ModuleManifest) {
   const errors: string[] = [];
   const componentIdPattern = /^[a-z0-9]+(?:[.-][a-z0-9]+)+$/;
   const slotIdPattern = componentIdPattern;
+  const localePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   const authProviderIdPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
   const paymentMethodIdPattern = authProviderIdPattern;
   const runtimeConfigNamespacePattern =
@@ -235,6 +237,31 @@ export function validateModuleManifest(manifest: ModuleManifest) {
 
   if (!manifest.displayName || !manifest.displayName.trim()) {
     errors.push('module_display_name_missing');
+  }
+
+  if (manifest.additionalLocales !== undefined) {
+    if (!Array.isArray(manifest.additionalLocales)) {
+      errors.push('module_additional_locales_invalid');
+    } else {
+      const seenAdditionalLocales = new Set<string>();
+
+      for (let index = 0; index < manifest.additionalLocales.length; index += 1) {
+        const rawLocale = String(manifest.additionalLocales[index] ?? '').trim();
+        const normalizedLocale = rawLocale.replace(/_/g, '-').toLowerCase();
+
+        if (!normalizedLocale || !localePattern.test(normalizedLocale)) {
+          errors.push(`module_additional_locales_invalid:${index}`);
+          continue;
+        }
+
+        if (seenAdditionalLocales.has(normalizedLocale)) {
+          errors.push(`module_additional_locales_duplicate:${normalizedLocale}`);
+          continue;
+        }
+
+        seenAdditionalLocales.add(normalizedLocale);
+      }
+    }
   }
 
   const validateAliases = (

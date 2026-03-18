@@ -41,6 +41,72 @@ Nota:
 
 ---
 
+## 2026-03-17 - sdk-i18n-module-scoped-flat-runtime
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: Flat i18n now publishes a module-scoped registry so `useI18n({ moduleId })` can resolve module-local translations before the shared flat registry.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/i18n/runtime.ts`
+  - `app/sdk/src/i18n/theme.tsx`
+  - `app/sdk/src/i18n/types.ts`
+  - `app/sdk/src/index.ts`
+  - `components/theme/theme-i18n-host.tsx`
+  - `lib/i18n/runtime.ts`
+  - `lib/i18n/client.ts`
+  - `lib/i18n/server.ts`
+  - `scripts/i18n-prepare.ts`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/sdk/00-overview.md`
+- `notes`: |
+    The generated flat runtime now has two layers:
+    - shared `locale -> key/value`
+    - scoped `moduleId -> locale -> key/value`
+
+    Resolution order for the flat translator is now:
+    - base/shared flat registry
+    - module-local flat registry when `moduleId` is provided
+    - theme `global + area` overrides
+    - explicit `translationsByLocale` overrides
+    - default locale fallback
+    - raw key
+
+    `useAreaMessages(...)` remains intact as the legacy typed host tree.
+
+## 2026-03-16 - sdk-i18n-additional-locales-registration
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: Themes and modules can now register `additionalLocales` so the generated `SUPPORTED_LOCALES` set is no longer gated only by `lib/i18n/locales/*`.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/theme/config.ts`
+  - `app/sdk/src/modules/manifest.ts`
+  - `scripts/i18n-prepare.ts`
+  - `lib/i18n/messages/index.ts`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/themes/01-theme-runtime.md`
+  - `docs/themes/02-theme-authoring-guide.md`
+- `notes`: |
+    SDK v1.7.1 -> v1.8.0 (MINOR).
+
+    `SUPPORTED_LOCALES` now comes from:
+    - core locale folders under `lib/i18n/locales/*`
+    - theme `additionalLocales` declared in `config.ts`
+    - module `additionalLocales` declared in `ModuleManifest`
+    - module flat translation locale filenames
+
+    If a supported locale does not have a typed core message tree,
+    `useAreaMessages(...)` falls back to `en`, while flat translators still
+    resolve any available theme/module overrides for that locale.
+
 ## 2026-03-13 - sdk-routing-builder-lazy-next-server-import
 
 - `status`: published

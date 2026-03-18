@@ -13,7 +13,7 @@ import {
 import type { ComponentType } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeTemplate } from '@/components/ui/theme-template';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 
 type AppConfigSectionKey = 'general' | 'paymentMethods' | 'email' | 'modules';
@@ -86,9 +86,8 @@ export function AppConfigSectionNavClient({
 }: {
   extraItems?: AppConfigSectionExtraItem[];
 }) {
-  const messages = useAreaMessages('admin');
+  const t = useI18n({ area: 'admin' });
   const pathname = usePathname();
-  const appConfig = messages.appConfig;
   const isRootPage = pathname === '/admin/app-config';
 
   if (!isRootPage) {
@@ -107,17 +106,39 @@ export function AppConfigSectionNavClient({
     <Card className="border-border/70">
       <CardHeader>
         <div className="space-y-1">
-          <CardTitle>{appConfig.navigationTitle}</CardTitle>
-          <CardDescription>{appConfig.navigationDescription}</CardDescription>
+          <CardTitle>{t('Configuration sections')}</CardTitle>
+          <CardDescription>
+            {t('Choose a section and manage runtime values.')}
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="grid gap-3 pt-0 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const label = item.label ?? (item.key ? appConfig.sections[item.key] : '');
+          const label =
+            item.label ??
+            (item.key
+              ? {
+                  general: t('General'),
+                  paymentMethods: t('Payment methods'),
+                  email: t('Email'),
+                  modules: t('Modules')
+                }[item.key]
+              : '');
           const description =
             item.description ??
-            (item.key ? appConfig.sectionDescriptions[item.key] : '');
+            (item.key
+              ? {
+                  general: t('Core organization settings and shared behavior.'),
+                  paymentMethods: t(
+                    'Configure Stripe/PayPal runtime keys and provider options.'
+                  ),
+                  email: t('Configure SMTP delivery and inspect notification logs.'),
+                  modules: t(
+                    'Review installed modules, edit manifest-defined runtime values, and disable modules in an emergency.'
+                  )
+                }[item.key]
+              : '');
           const fallbackItem = (
             <Link
               key={item.href}

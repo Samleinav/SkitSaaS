@@ -9,7 +9,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 
 type NotifyTone = 'success' | 'error' | 'info' | 'warning';
 
@@ -156,8 +156,7 @@ function NotifyViewport({
 }
 
 export function NotifyProvider({ children }: { children: React.ReactNode }) {
-  const messages = useAreaMessages('global');
-  const notifyMessages = messages.notify;
+  const t = useI18n({ area: 'global' });
   const [items, setItems] = React.useState<NotifyItem[]>([]);
   const timersRef = React.useRef<Map<string, number>>(new Map());
 
@@ -176,7 +175,12 @@ export function NotifyProvider({ children }: { children: React.ReactNode }) {
       const id = createNotifyId();
       const resolvedTitle =
         title ?? (tone === 'warning' || tone === 'error'
-          ? getDefaultTitle(tone, notifyMessages.titles)
+          ? getDefaultTitle(tone, {
+              success: t('Success'),
+              error: t('Error'),
+              info: t('Info'),
+              warning: t('Warning')
+            })
           : undefined);
 
       setItems((current) => [
@@ -196,7 +200,7 @@ export function NotifyProvider({ children }: { children: React.ReactNode }) {
 
       return id;
     },
-    [dismiss, notifyMessages.titles]
+    [dismiss, t]
   );
 
   React.useEffect(
@@ -235,7 +239,7 @@ export function NotifyProvider({ children }: { children: React.ReactNode }) {
       <NotifyViewport
         items={items}
         onDismiss={dismiss}
-        dismissAriaLabel={notifyMessages.dismissAria}
+        dismissAriaLabel={t('Dismiss notification')}
       />
     </NotifyContext.Provider>
   );

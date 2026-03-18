@@ -30,5 +30,6 @@ export type ThemeConfig = {
     Provider?: (props: ThemeProviderProps) => ReactNode;
     head?: ThemeHeadConfig;
     assets?: ThemeAssetsConfig;
+    additionalLocales?: string[];
 };
 export declare function defineThemeConfig(config: ThemeConfig): ThemeConfig;

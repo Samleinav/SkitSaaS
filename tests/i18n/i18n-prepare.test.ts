@@ -13,6 +13,11 @@ function writeLocaleAreaFile(rootDir: string, locale: string, area: string) {
   fs.writeFileSync(filePath, 'export default {};\n', 'utf8');
 }
 
+function writeFile(filePath: string, contents: string) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, contents, 'utf8');
+}
+
 test('i18n:prepare generates supported locales and core message registry', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-prepare-'));
 
@@ -42,6 +47,15 @@ test('i18n:prepare generates supported locales and core message registry', async
     translations,
     /export const flatTranslationConflictsByLocale = \{\s*"en": \[],\s*"fr": \[]\s*\} satisfies Record<string, FlatTranslationConflict\[]>;/s
   );
+
+  const moduleTranslations = fs.readFileSync(
+    result.moduleFlatTranslationsPath,
+    'utf8'
+  );
+  assert.match(
+    moduleTranslations,
+    /export const flatTranslationsByModuleId: FlatTranslationsByModuleId = \{\s*\};/s
+  );
 });
 
 test('i18n:prepare fails when a locale is missing a required area file', async () => {
@@ -59,4 +73,56 @@ test('i18n:prepare fails when a locale is missing a required area file', async (
     () => runI18nPrepare({ rootDir: tempRoot, logWarnings: false }),
     /Missing login\.ts for locale "fr"/
   );
+});
+
+test('i18n:prepare extends supported locales from theme config and module manifest registrations', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-prepare-extended-'));
+
+  for (const area of AREAS) {
+    writeLocaleAreaFile(tempRoot, 'en', area);
+  }
+
+  writeFile(
+    path.join(tempRoot, 'themes', 'pilot', 'theme.json'),
+    JSON.stringify({
+      themeId: 'theme.pilot.admin',
+      version: '1.0.0',
+      areas: ['admin'],
+      mode: 'tokens',
+      entryTokens: 'tokens.css',
+      themeRange: '^1.0.0'
+    })
+  );
+  writeFile(path.join(tempRoot, 'themes', 'pilot', 'tokens.css'), ':root{}');
+  writeFile(
+    path.join(tempRoot, 'themes', 'pilot', 'config.ts'),
+    'export default { additionalLocales: ["fr"] };\n'
+  );
+
+  writeFile(
+    path.join(tempRoot, 'modules', 'mod.alpha', 'module.json'),
+    JSON.stringify({
+      moduleId: 'mod.alpha',
+      version: '1.0.0',
+      sourceEntry: 'src/manifest.ts'
+    })
+  );
+  writeFile(
+    path.join(tempRoot, 'modules', 'mod.alpha', 'src', 'manifest.ts'),
+    'export default { additionalLocales: ["pt-BR", "fr"] };\n'
+  );
+
+  const result = await runI18nPrepare({ rootDir: tempRoot, logWarnings: false });
+
+  assert.deepEqual(result.locales, ['en', 'fr', 'pt-br']);
+
+  const supportedLocales = fs.readFileSync(result.supportedLocalesPath, 'utf8');
+  assert.match(
+    supportedLocales,
+    /export const SUPPORTED_LOCALES = \["en","fr","pt-br"\] as const;/
+  );
+
+  const coreMessages = fs.readFileSync(result.coreMessagesPath, 'utf8');
+  assert.doesNotMatch(coreMessages, /locales\/fr\/dashboard/);
+  assert.doesNotMatch(coreMessages, /locales\/pt-br\/dashboard/);
 });

@@ -35,9 +35,9 @@ export type AreaMessagesMap = {
 export type I18nArea = keyof AreaMessagesMap;
 
 const typedCoreMessagesByArea: {
-  [K in I18nArea]: Record<AppLocale, CoreAreaMessagesMap[K]>;
+  [K in I18nArea]: Partial<Record<AppLocale, CoreAreaMessagesMap[K]>>;
 } = coreMessagesByArea as {
-  [K in I18nArea]: Record<AppLocale, CoreAreaMessagesMap[K]>;
+  [K in I18nArea]: Partial<Record<AppLocale, CoreAreaMessagesMap[K]>>;
 };
 
 function mergeModuleMessages<TMessages>(
@@ -57,7 +57,14 @@ function getCoreMessages<TArea extends I18nArea>(
   locale: AppLocale
 ): CoreAreaMessagesMap[TArea] {
   const areaMessages = typedCoreMessagesByArea[area];
-  return areaMessages[locale] ?? areaMessages[DEFAULT_LOCALE];
+  const fallbackMessages = areaMessages[DEFAULT_LOCALE];
+  if (fallbackMessages) {
+    return areaMessages[locale] ?? fallbackMessages;
+  }
+
+  throw new Error(
+    `Missing default core messages for area "${area}" and locale "${DEFAULT_LOCALE}".`
+  );
 }
 
 function getModuleMessages(area: I18nArea, locale: AppLocale) {

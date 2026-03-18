@@ -9,3 +9,10 @@ test('getAreaMessages falls back to DEFAULT_LOCALE', () => {
 
   assert.equal(other.nav.users, fallback.nav.users);
 });
+
+test('getAreaMessages falls back to DEFAULT_LOCALE for supported locales without core bundles', () => {
+  const fallback = getAreaMessages('admin', DEFAULT_LOCALE);
+  const french = getAreaMessages('admin', resolveLocale('fr'));
+
+  assert.equal(french.nav.users, fallback.nav.users);
+});

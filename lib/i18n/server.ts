@@ -6,6 +6,7 @@ import {
   type I18nArea,
   getAreaMessages
 } from './messages';
+import { type HostUseI18nOptions, resolveHostI18nTranslationsByLocale } from './runtime';
 import { createTranslator, type Translator } from './translator';
 
 async function readLocaleFromCookies(): Promise<AppLocale> {
@@ -39,12 +40,16 @@ export async function getServerLocaleAndMessages<TArea extends I18nArea>(
   };
 }
 
-export async function getServerTranslator(): Promise<Translator> {
+export async function getServerTranslator(
+  options: HostUseI18nOptions = {}
+): Promise<Translator> {
   const locale = await getRequestLocale();
-  return createTranslator(locale);
+  return createTranslator(locale, resolveHostI18nTranslationsByLocale(options));
 }
 
-export async function getActionTranslator(): Promise<Translator> {
+export async function getActionTranslator(
+  options: HostUseI18nOptions = {}
+): Promise<Translator> {
   const locale = await getActionLocale();
-  return createTranslator(locale);
+  return createTranslator(locale, resolveHostI18nTranslationsByLocale(options));
 }

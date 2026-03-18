@@ -4,6 +4,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const AREAS = ['global', 'admin', 'dashboard', 'login'] as const;
 const DEFAULT_LOCALE = 'en';
+const MODULE_SOURCE_ENTRY_CANDIDATES = [
+  'src/manifest.ts',
+  'src/manifest.tsx',
+  'src/manifest.js',
+  'src/manifest.mjs'
+] as const;
+const THEME_CONFIG_ENTRY_CANDIDATES = ['config.ts', 'config.tsx'] as const;
+const LOCALE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type I18nArea = (typeof AREAS)[number];
 type TranslationNode =
@@ -20,6 +28,7 @@ export type FlatTranslationConflict = {
 };
 
 type FlatTranslationsByLocale = Record<string, Record<string, string>>;
+type FlatTranslationsByModuleId = Record<string, FlatTranslationsByLocale>;
 type FlatTranslationSourcesByLocale = Record<string, Record<string, string>>;
 type FlatTranslationConflictsByLocale = Record<string, FlatTranslationConflict[]>;
 type CoreMessagesByArea = Record<I18nArea, Record<string, TranslationNode>>;
@@ -62,6 +71,24 @@ function resolveModulesDir(rootDir: string, override?: string | null) {
   return null;
 }
 
+function resolveThemesDir(rootDir: string, override?: string | null) {
+  if (override) {
+    return path.isAbsolute(override) ? override : path.join(rootDir, override);
+  }
+
+  const envDir = process.env.THEMES_DIR?.trim();
+  if (envDir) {
+    return path.isAbsolute(envDir) ? envDir : path.join(rootDir, envDir);
+  }
+
+  const primary = path.join(rootDir, 'themes');
+  if (fs.existsSync(primary)) {
+    return primary;
+  }
+
+  return null;
+}
+
 function resolveModuleTranslationsRoot(moduleDir: string) {
   const distRoot = path.join(moduleDir, 'dist', 'i18n', 'translations');
   if (fs.existsSync(distRoot)) {
@@ -76,7 +103,7 @@ function resolveModuleTranslationsRoot(moduleDir: string) {
   return null;
 }
 
-function loadModuleId(moduleDir: string) {
+function loadModuleJson(moduleDir: string) {
   const moduleJsonPath = path.join(moduleDir, 'module.json');
   if (!fs.existsSync(moduleJsonPath)) {
     return null;
@@ -84,8 +111,7 @@ function loadModuleId(moduleDir: string) {
 
   try {
     const raw = fs.readFileSync(moduleJsonPath, 'utf8');
-    const parsed = JSON.parse(raw) as { moduleId?: string };
-    return parsed.moduleId ?? null;
+    return JSON.parse(raw) as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -101,6 +127,68 @@ function relativePath(rootDir: string, filePath: string) {
   return relative || filePath;
 }
 
+function normalizeLocaleCode(value: unknown) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().replace(/_/g, '-').toLowerCase();
+  if (!normalized || !LOCALE_PATTERN.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function fileDeclaresAdditionalLocales(filePath: string) {
+  try {
+    return fs.readFileSync(filePath, 'utf8').includes('additionalLocales');
+  } catch {
+    return false;
+  }
+}
+
+function collectDeclaredLocales({
+  value,
+  owner,
+  warnings
+}: {
+  value: unknown;
+  owner: string;
+  warnings: string[];
+}) {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    warnings.push(`${owner} additionalLocales must be an array of locale codes.`);
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const locales: string[] = [];
+
+  for (const entry of value) {
+    const locale = normalizeLocaleCode(entry);
+    if (!locale) {
+      warnings.push(
+        `${owner} declares invalid locale ${JSON.stringify(entry)} in additionalLocales.`
+      );
+      continue;
+    }
+
+    if (seen.has(locale)) {
+      continue;
+    }
+
+    seen.add(locale);
+    locales.push(locale);
+  }
+
+  return locales.sort((left, right) => left.localeCompare(right));
+}
+
 function sortStringMap(input: Record<string, string>) {
   return Object.fromEntries(
     Object.entries(input).sort(([left], [right]) => left.localeCompare(right))
@@ -112,6 +200,17 @@ function sortStringMapByLocale(input: FlatTranslationsByLocale) {
     Object.entries(input)
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([locale, translations]) => [locale, sortStringMap(translations)])
+  );
+}
+
+function sortStringMapByModuleId(input: FlatTranslationsByModuleId) {
+  return Object.fromEntries(
+    Object.entries(input)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([moduleId, translationsByLocale]) => [
+        moduleId,
+        sortStringMapByLocale(translationsByLocale)
+      ])
   );
 }
 
@@ -184,6 +283,123 @@ function isFlatTranslationRecord(
 async function importLocaleModule(filePath: string) {
   const href = `${pathToFileURL(filePath).href}?ts=${Date.now()}`;
   return import(href);
+}
+
+function resolveModuleManifestPath(moduleDir: string, moduleJson: Record<string, unknown>) {
+  const sourceEntryRaw =
+    typeof moduleJson.sourceEntry === 'string' ? moduleJson.sourceEntry.trim() : '';
+  if (sourceEntryRaw) {
+    const absolute = path.isAbsolute(sourceEntryRaw)
+      ? sourceEntryRaw
+      : path.join(moduleDir, sourceEntryRaw);
+    if (fs.existsSync(absolute)) {
+      return absolute;
+    }
+  }
+
+  const entryRaw =
+    typeof moduleJson.entry === 'string' ? moduleJson.entry.trim() : '';
+  if (entryRaw) {
+    const absolute = path.isAbsolute(entryRaw)
+      ? entryRaw
+      : path.join(moduleDir, entryRaw);
+    if (fs.existsSync(absolute)) {
+      return absolute;
+    }
+  }
+
+  for (const candidate of MODULE_SOURCE_ENTRY_CANDIDATES) {
+    const absolute = path.join(moduleDir, candidate);
+    if (fs.existsSync(absolute)) {
+      return absolute;
+    }
+  }
+
+  return null;
+}
+
+function resolveThemeConfigPath(packDir: string) {
+  for (const candidate of THEME_CONFIG_ENTRY_CANDIDATES) {
+    const absolute = path.join(packDir, candidate);
+    if (fs.existsSync(absolute)) {
+      return absolute;
+    }
+  }
+
+  return null;
+}
+
+async function importOptionalDefault(filePath: string) {
+  const href = `${pathToFileURL(filePath).href}?ts=${Date.now()}`;
+  const imported = await import(href);
+  return imported.default as Record<string, unknown> | undefined;
+}
+
+async function loadThemeAdditionalLocales({
+  rootDir,
+  themesDir: themesDirOverride
+}: {
+  rootDir: string;
+  themesDir?: string;
+}) {
+  const themesDir = resolveThemesDir(rootDir, themesDirOverride ?? null);
+  const warnings: string[] = [];
+  const localeSet = new Set<string>();
+
+  if (themesDir && fs.existsSync(themesDir)) {
+    const packDirs = fs
+      .readdirSync(themesDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(themesDir, entry.name))
+      .sort((left, right) => left.localeCompare(right));
+
+    for (const packDir of packDirs) {
+      const themeJsonPath = path.join(packDir, 'theme.json');
+      if (!fs.existsSync(themeJsonPath)) {
+        continue;
+      }
+
+      let themeId = path.basename(packDir);
+      try {
+        const themeJson = readJsonFile(themeJsonPath) as { themeId?: string };
+        if (typeof themeJson?.themeId === 'string' && themeJson.themeId.trim()) {
+          themeId = themeJson.themeId.trim();
+        }
+      } catch {
+        warnings.push(
+          `Theme ${themeId}: unable to parse ${relativePath(rootDir, themeJsonPath)} while collecting additionalLocales.`
+        );
+      }
+
+      const configPath = resolveThemeConfigPath(packDir);
+      if (!configPath) {
+        continue;
+      }
+
+      try {
+        const config = (await importOptionalDefault(configPath)) ?? {};
+        const locales = collectDeclaredLocales({
+          value: config.additionalLocales,
+          owner: `Theme ${themeId}`,
+          warnings
+        });
+        for (const locale of locales) {
+          localeSet.add(locale);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        warnings.push(
+          `Theme ${themeId}: failed loading ${relativePath(rootDir, configPath)} (${message}).`
+        );
+      }
+    }
+  }
+
+  return {
+    themesDir,
+    warnings,
+    locales: [...localeSet].sort((left, right) => left.localeCompare(right))
+  };
 }
 
 async function loadCoreMessagesByArea(
@@ -370,7 +586,7 @@ function buildCoreFlatTranslationsByLocale(coreMessagesByArea: CoreMessagesByAre
   };
 }
 
-function loadModuleFlatTranslations({
+async function loadModuleFlatTranslations({
   rootDir,
   modulesDir: modulesDirOverride
 }: {
@@ -379,8 +595,10 @@ function loadModuleFlatTranslations({
 }) {
   const modulesDir = resolveModulesDir(rootDir, modulesDirOverride ?? null);
   const translationsByLocale: FlatTranslationsByLocale = {};
+  const translationsByModuleId: FlatTranslationsByModuleId = {};
   const sourcePathsByLocale: FlatTranslationSourcesByLocale = {};
   const warnings: string[] = [];
+  const declaredLocaleSet = new Set<string>();
 
   if (modulesDir && fs.existsSync(modulesDir)) {
     const moduleDirs = fs
@@ -390,7 +608,9 @@ function loadModuleFlatTranslations({
       .sort((left, right) => left.localeCompare(right));
 
     for (const moduleDir of moduleDirs) {
-      const moduleId = loadModuleId(moduleDir);
+      const moduleJson = loadModuleJson(moduleDir);
+      const moduleId =
+        typeof moduleJson?.moduleId === 'string' ? moduleJson.moduleId : null;
       if (!moduleId) {
         continue;
       }
@@ -400,6 +620,28 @@ function loadModuleFlatTranslations({
           `Module ${moduleId} does not follow "mod.*" namespace. Skipping flat translations.`
         );
         continue;
+      }
+
+      if (moduleJson) {
+        const manifestPath = resolveModuleManifestPath(moduleDir, moduleJson);
+        if (manifestPath && fileDeclaresAdditionalLocales(manifestPath)) {
+          try {
+            const manifest = (await importOptionalDefault(manifestPath)) ?? {};
+            const locales = collectDeclaredLocales({
+              value: manifest.additionalLocales,
+              owner: `Module ${moduleId}`,
+              warnings
+            });
+            for (const locale of locales) {
+              declaredLocaleSet.add(locale);
+            }
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            warnings.push(
+              `Module ${moduleId}: failed loading ${relativePath(rootDir, manifestPath)} (${message}).`
+            );
+          }
+        }
       }
 
       const translationsRoot = resolveModuleTranslationsRoot(moduleDir);
@@ -425,6 +667,9 @@ function loadModuleFlatTranslations({
         }
 
         const registry = (translationsByLocale[locale] ??= {});
+        const moduleRegistry = ((translationsByModuleId[moduleId] ??=
+          Object.create(null) as FlatTranslationsByLocale)[locale] ??=
+          Object.create(null) as Record<string, string>);
         const sourcePaths = (sourcePathsByLocale[locale] ??=
           Object.create(null) as Record<string, string>);
 
@@ -432,6 +677,7 @@ function loadModuleFlatTranslations({
           ([left], [right]) => left.localeCompare(right)
         )) {
           const existingValue = registry[key];
+          moduleRegistry[key] = value;
 
           if (existingValue === undefined) {
             registry[key] = value;
@@ -450,9 +696,13 @@ function loadModuleFlatTranslations({
   }
 
   return {
+    declaredLocales: [...declaredLocaleSet].sort((left, right) =>
+      left.localeCompare(right)
+    ),
     modulesDir,
     warnings,
     translationsByLocale: sortStringMapByLocale(translationsByLocale),
+    translationsByModuleId: sortStringMapByModuleId(translationsByModuleId),
     sourcePathsByLocale: sortStringMapByLocale(sourcePathsByLocale)
   };
 }
@@ -626,9 +876,24 @@ export const flatTranslationConflictsByLocale = ${JSON.stringify(
 `;
 }
 
+function createModuleFlatTranslationsBody(
+  translationsByModuleId: FlatTranslationsByModuleId
+) {
+  return `// Auto-generated by pnpm i18n:prepare. Do not edit.
+import type { FlatTranslationsByModuleId } from '@skitsaas/sdk';
+
+export const flatTranslationsByModuleId: FlatTranslationsByModuleId = ${JSON.stringify(
+    translationsByModuleId,
+    null,
+    2
+  )};
+`;
+}
+
 export type I18nPrepareOptions = {
   rootDir?: string;
   modulesDir?: string;
+  themesDir?: string;
   logWarnings?: boolean;
 };
 
@@ -639,7 +904,9 @@ export type I18nPrepareResult = {
   supportedLocalesPath: string;
   coreMessagesPath: string;
   translationsPath: string;
+  moduleFlatTranslationsPath: string;
   modulesDir: string | null;
+  themesDir: string | null;
   warnings: string[];
 };
 
@@ -655,23 +922,23 @@ export async function runI18nPrepare(
     );
   }
 
-  const locales = fs
+  const coreLocales = fs
     .readdirSync(localesRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right));
 
-  if (locales.length === 0) {
+  if (coreLocales.length === 0) {
     throw new Error('No locale directories found under lib/i18n/locales.');
   }
 
-  if (!locales.includes(DEFAULT_LOCALE)) {
+  if (!coreLocales.includes(DEFAULT_LOCALE)) {
     throw new Error(
       `Default locale "${DEFAULT_LOCALE}" is missing from lib/i18n/locales.`
     );
   }
 
-  for (const locale of locales) {
+  for (const locale of coreLocales) {
     for (const area of AREAS) {
       const filePath = path.join(localesRoot, locale, `${area}.ts`);
       if (!fs.existsSync(filePath)) {
@@ -700,16 +967,26 @@ export async function runI18nPrepare(
     'i18n',
     'translations.generated.ts'
   );
+  const moduleFlatTranslationsPath = path.join(
+    rootDir,
+    'lib',
+    'i18n',
+    'module-flat-translations.generated.ts'
+  );
 
   const coreMessagesByArea = await loadCoreMessagesByArea(
     localesRoot,
-    locales,
+    coreLocales,
     rootDir
   );
   const coreFlatTranslations = buildCoreFlatTranslationsByLocale(coreMessagesByArea);
-  const moduleFlatTranslations = loadModuleFlatTranslations({
+  const moduleFlatTranslations = await loadModuleFlatTranslations({
     rootDir,
     modulesDir: options.modulesDir
+  });
+  const themeLocales = await loadThemeAdditionalLocales({
+    rootDir,
+    themesDir: options.themesDir
   });
   const mergedFlatTranslations = mergeFlatTranslationsByLocale({
     coreTranslationsByLocale: coreFlatTranslations.translationsByLocale,
@@ -718,6 +995,14 @@ export async function runI18nPrepare(
     moduleTranslationsByLocale: moduleFlatTranslations.translationsByLocale,
     moduleSourcePathsByLocale: moduleFlatTranslations.sourcePathsByLocale
   });
+  const locales = Array.from(
+    new Set([
+      ...coreLocales,
+      ...themeLocales.locales,
+      ...moduleFlatTranslations.declaredLocales,
+      ...Object.keys(moduleFlatTranslations.translationsByLocale)
+    ])
+  ).sort((left, right) => left.localeCompare(right));
 
   if (hasFlatTranslationConflicts(mergedFlatTranslations.conflictsByLocale)) {
     throw new Error(
@@ -735,7 +1020,7 @@ export async function runI18nPrepare(
   );
 
   ensureOutputDir(coreMessagesPath);
-  fs.writeFileSync(coreMessagesPath, createCoreMessagesBody(locales), 'utf8');
+  fs.writeFileSync(coreMessagesPath, createCoreMessagesBody(coreLocales), 'utf8');
 
   ensureOutputDir(translationsPath);
   fs.writeFileSync(
@@ -744,9 +1029,18 @@ export async function runI18nPrepare(
     'utf8'
   );
 
-  if (moduleFlatTranslations.warnings.length && options.logWarnings !== false) {
+  ensureOutputDir(moduleFlatTranslationsPath);
+  fs.writeFileSync(
+    moduleFlatTranslationsPath,
+    createModuleFlatTranslationsBody(moduleFlatTranslations.translationsByModuleId),
+    'utf8'
+  );
+
+  const warnings = [...moduleFlatTranslations.warnings, ...themeLocales.warnings];
+
+  if (warnings.length && options.logWarnings !== false) {
     console.warn('[i18n:prepare] warnings:');
-    for (const warning of moduleFlatTranslations.warnings) {
+    for (const warning of warnings) {
       console.warn(`- ${warning}`);
     }
   }
@@ -758,8 +1052,10 @@ export async function runI18nPrepare(
     supportedLocalesPath,
     coreMessagesPath,
     translationsPath,
+    moduleFlatTranslationsPath,
     modulesDir: moduleFlatTranslations.modulesDir,
-    warnings: moduleFlatTranslations.warnings
+    themesDir: themeLocales.themesDir,
+    warnings
   };
 }
 

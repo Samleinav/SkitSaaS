@@ -45,6 +45,7 @@ export { defineModule, validateModuleManifest } from './modules/manifest.js';
 export type {
   ModuleI18nNamespace,
   FlatTranslationsByLocale,
+  FlatTranslationsByModuleId,
   FlatTranslationConflict,
   Translator,
   ModuleMessageTree,
@@ -58,6 +59,7 @@ export {
   I18nProvider,
   useI18n,
   resolveThemeTranslationsByLocale,
+  resolveModuleTranslationsByLocale,
   resolveI18nTranslationsByLocale,
   type ThemeTranslationsByArea,
   type ThemeTranslationsRegistry,

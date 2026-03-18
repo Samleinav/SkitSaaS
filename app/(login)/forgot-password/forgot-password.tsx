@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { CircleIcon } from 'lucide-react';
 import { requestPasswordReset } from '../actions';
 import { ActionState } from '@/lib/auth/middleware';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { ThemedAsyncSubmitButton } from '@/components/ui/themed-async-submit-button';
 
@@ -28,9 +28,7 @@ export function ForgotPassword({
 }: {
   themeId?: string | null;
 }) {
-  const messages = useAreaMessages('login');
-  const t = messages.forgotPassword;
-  const tAuth = messages.auth;
+  const t = useI18n({ area: 'login', themeId });
 
   const [state, formAction] = useActionState<ActionState, FormData>(
     requestPasswordReset,
@@ -59,10 +57,10 @@ export function ForgotPassword({
           </div>
 
           <h2 className="mt-6 text-center font-[family-name:var(--font-auth-serif)] text-3xl font-semibold text-zinc-100">
-            {t.title}
+            {t('Reset your password')}
           </h2>
           <p className="mt-2 text-center text-sm text-zinc-400">
-            {t.description}
+            {t("Enter your email and we'll send you a reset link.")}
           </p>
 
           {state?.success ? (
@@ -73,7 +71,7 @@ export function ForgotPassword({
             <form className="mt-8 space-y-6" action={formAction}>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-zinc-300">
-                  {tAuth.email}
+                  {t('Email')}
                 </Label>
                 <Input
                   id="email"
@@ -83,7 +81,7 @@ export function ForgotPassword({
                   required
                   maxLength={255}
                   className="h-11 rounded-sm border-zinc-700 bg-zinc-900/70 text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-200/40 focus-visible:ring-amber-200/35"
-                  placeholder={t.emailPlaceholder}
+                  placeholder={t('you@example.com')}
                 />
               </div>
 
@@ -94,8 +92,8 @@ export function ForgotPassword({
               <ThemedAsyncSubmitButton
                 themeId={themeId}
                 slot="login.forgot-password.submit"
-                idleLabel={t.sendResetLink}
-                pendingLabel={t.sending}
+                idleLabel={t('Send reset link')}
+                pendingLabel={t('Sending...')}
                 className="h-11 w-full rounded-sm border border-amber-200/30 bg-amber-200/10 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black"
               />
             </form>
@@ -108,7 +106,7 @@ export function ForgotPassword({
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="bg-[#0c0c0c] px-3 text-zinc-500">
-                  {t.rememberPassword}
+                  {t('Remember your password?')}
                 </span>
               </div>
             </div>
@@ -117,7 +115,7 @@ export function ForgotPassword({
                 href="/login"
                 className="inline-flex h-11 w-full items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900/70 px-4 text-xs font-semibold tracking-[0.15em] text-zinc-300 uppercase transition-colors hover:border-amber-200/30 hover:text-amber-100"
               >
-                {t.backToSignIn}
+                {t('Back to sign in')}
               </Link>
             </div>
           </div>
