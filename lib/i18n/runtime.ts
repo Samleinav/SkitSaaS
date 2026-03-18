@@ -1,7 +1,7 @@
 import {
   resolveI18nTranslationsByLocale,
   type UseI18nOptions
-} from '@skitsaas/sdk';
+} from '@skitsaas/sdk/i18n/runtime';
 import { flatTranslationsByModuleId } from './module-flat-translations.generated';
 import { THEME_TRANSLATIONS_BY_THEME_ID } from './theme-translations.generated';
 import { flatTranslationsByLocale } from './translations.generated';

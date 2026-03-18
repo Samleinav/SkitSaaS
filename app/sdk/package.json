@@ -9,6 +9,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./server": "./dist/server.js",
+    "./i18n/runtime": "./dist/i18n/runtime.js",
     "./db": "./dist/db.js",
     "./datatables": "./dist/datatables/index.js",
     "./datatables/server": "./dist/datatables/server.js",

@@ -57,14 +57,16 @@ export { createTranslator } from './i18n/translator.js';
 
 export {
   I18nProvider,
-  useI18n,
+  useI18n
+} from './i18n/theme.js';
+export {
   resolveThemeTranslationsByLocale,
   resolveModuleTranslationsByLocale,
   resolveI18nTranslationsByLocale,
   type ThemeTranslationsByArea,
   type ThemeTranslationsRegistry,
   type UseI18nOptions
-} from './i18n/theme.js';
+} from './i18n/runtime.js';
 
 export {
   defineThemeConfig,
