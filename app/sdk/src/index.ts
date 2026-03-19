@@ -36,6 +36,8 @@ export type {
   ModulePaymentOrderType,
   ModulePaymentMethodRoutes,
   ModulePaymentMethod,
+  ModuleLanguagePackScope,
+  ModuleLanguagePack,
   ModuleUserRole,
   ModuleManifest,
   ApiRouteEntry,

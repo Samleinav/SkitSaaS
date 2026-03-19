@@ -31,7 +31,9 @@ export type {
   ModuleAuthProvider,
   ModulePaymentOrderType,
   ModulePaymentMethodRoutes,
-  ModulePaymentMethod
+  ModulePaymentMethod,
+  ModuleLanguagePackScope,
+  ModuleLanguagePack
 } from '@skitsaas/sdk';
 
 export type ModuleUserRole = {

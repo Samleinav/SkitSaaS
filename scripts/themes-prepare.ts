@@ -10,6 +10,7 @@ import {
   validateThemePackManifest,
   type ThemePackManifest
 } from '../lib/themes/manifest';
+import { extractStaticAdditionalLocalesFromFile } from './static-additional-locales';
 import {
   BACKOFFICE_BASELINE_THEME_ID,
   BACKOFFICE_REQUIRED_CODE_TEMPLATE_IDS,
@@ -59,6 +60,7 @@ export type ResolvedThemePack = {
   codeTemplates: CodeTemplateEntry[];
   hasThemeConfig: boolean;
   themeConfigImportPath: string | null;
+  additionalLocales: string[];
   hasFrontendRoutes: boolean;
   frontendRoutesImportPath: string | null;
 };
@@ -1046,6 +1048,19 @@ function resolveThemeConfigImportPath({
   };
 }
 
+function resolveThemeConfigFilePath(packDir: string) {
+  const canonicalCandidates = ['config.ts', 'config.tsx'] as const;
+
+  for (const candidate of canonicalCandidates) {
+    const absolutePath = path.join(packDir, candidate);
+    if (fs.existsSync(absolutePath)) {
+      return absolutePath;
+    }
+  }
+
+  return null;
+}
+
 function resolveThemeRoutesImportPath({
   packDir,
   rootDir
@@ -1191,6 +1206,7 @@ function serializeThemePackForOutput(pack: ResolvedThemePack) {
     codeTemplates: pack.codeTemplates,
     hasThemeConfig: pack.hasThemeConfig,
     themeConfigImportPath: pack.themeConfigImportPath,
+    additionalLocales: pack.additionalLocales,
     hasFrontendRoutes: pack.hasFrontendRoutes,
     frontendRoutesImportPath: pack.frontendRoutesImportPath
   };
@@ -1224,6 +1240,7 @@ function writeGeneratedThemeRegistry({
     '  codeTemplates: CodeTemplateRegistryEntry[];\n' +
     '  hasThemeConfig: boolean;\n' +
     '  themeConfigImportPath?: string | null;\n' +
+    '  additionalLocales?: string[];\n' +
     '  hasFrontendRoutes: boolean;\n' +
     '  frontendRoutesImportPath?: string | null;\n' +
     '};\n\n' +
@@ -1745,6 +1762,14 @@ export async function runThemesPrepare(
         packDir,
         rootDir
       });
+      const themeConfigFilePath = resolveThemeConfigFilePath(packDir);
+      const additionalLocalesFromConfig = themeConfigFilePath
+        ? extractStaticAdditionalLocalesFromFile(
+            themeConfigFilePath,
+            `Theme ${manifest.themeId}`
+          )
+        : { locales: [], warnings: [] };
+      warnings.push(...additionalLocalesFromConfig.warnings);
       const frontendRoutesImportPath = resolveThemeRoutesImportPath({
         packDir,
         rootDir
@@ -1777,6 +1802,7 @@ export async function runThemesPrepare(
         codeTemplates,
         hasThemeConfig: themeConfigResolution.hasThemeConfig,
         themeConfigImportPath: themeConfigResolution.importPath,
+        additionalLocales: additionalLocalesFromConfig.locales,
         hasFrontendRoutes: Boolean(frontendRoutesImportPath),
         frontendRoutesImportPath
       });

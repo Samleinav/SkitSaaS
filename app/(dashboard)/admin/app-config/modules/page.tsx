@@ -8,11 +8,12 @@ import {
 import { AsyncSubmitButton } from '@/components/ui/async-submit-button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { setModuleRuntimeStatusAction } from './actions';
 import { getAdminAppConfigModulesData } from './config';
 import { createAdminModuleRuntimeConfigForm } from './forms';
+import { createAdminAppConfigModulesCopy } from './i18n';
 import { AdminAppConfigModulesDataTable } from './modules-data-table';
 
 function renderStatusPill({
@@ -39,11 +40,10 @@ function renderStatusPill({
 }
 
 export default async function AdminAppConfigModulesPage() {
-  const messages = await getServerMessages('admin');
-  const appConfig = messages.appConfig;
+  const t = await getServerTranslator({ area: 'admin' });
   const themeSelection = await getThemeSelectionForArea('admin');
   const { moduleRuntimeMode, modules } = await getAdminAppConfigModulesData();
-  const modulesCopy = appConfig.modules;
+  const modulesCopy = createAdminAppConfigModulesCopy(t);
   const runtimeModeLabel = modulesCopy.runtimeModes[moduleRuntimeMode];
 
   const fallbackPage = (
@@ -61,7 +61,7 @@ export default async function AdminAppConfigModulesPage() {
             {runtimeModeLabel}
           </p>
           <p>{modulesCopy.runtimeModeDescription}</p>
-          <p>{appConfig.envPriority}</p>
+          <p>{modulesCopy.envPriority}</p>
         </CardContent>
       </Card>
 
@@ -73,7 +73,7 @@ export default async function AdminAppConfigModulesPage() {
         <CardContent>
           <AdminAppConfigModulesDataTable
             data={modules}
-            messages={messages}
+            copy={modulesCopy}
           />
         </CardContent>
       </Card>
@@ -81,7 +81,7 @@ export default async function AdminAppConfigModulesPage() {
       {modules.map((module) => {
         const runtimeConfigForm = createAdminModuleRuntimeConfigForm({
           module,
-          messages
+          copy: modulesCopy
         });
         const dbStatusLabel =
           module.dbStatus === 'enabled'

@@ -4,13 +4,13 @@ import {
   defineBuildForm,
   type BuildFormDefinition
 } from '@skitsaas/sdk';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { upsertModuleRuntimeConfigAction } from './actions';
 import type {
   AdminAppConfigModuleItem,
   AdminModuleRuntimeConfigFieldState,
   ModuleConfigSource
 } from './config';
+import type { AdminAppConfigModulesCopy } from './i18n';
 
 type AdminModuleRuntimeConfigBuildFormCopy = {
   envPrefix: string;
@@ -132,22 +132,22 @@ function createModuleRuntimeConfigField({
 
 export function createAdminModuleRuntimeConfigForm({
   module,
-  messages
+  copy
 }: {
   module: AdminAppConfigModuleItem;
-  messages: AdminMessages;
+  copy: AdminAppConfigModulesCopy;
 }): BuildFormDefinition | null {
   if (module.configFields.length === 0) {
     return null;
   }
 
-  const copy: AdminModuleRuntimeConfigBuildFormCopy = {
-    envPrefix: messages.appConfig.envPrefix,
-    sourcePrefix: messages.appConfig.sourcePrefix,
-    overriddenByEnv: messages.appConfig.overriddenByEnv,
-    dbFallbackValue: messages.appConfig.dbFallbackValue,
-    save: messages.appConfig.modules.save,
-    saving: messages.appConfig.modules.saving
+  const formCopy: AdminModuleRuntimeConfigBuildFormCopy = {
+    envPrefix: copy.envPrefix,
+    sourcePrefix: copy.sourcePrefix,
+    overriddenByEnv: copy.overriddenByEnv,
+    dbFallbackValue: copy.dbFallbackValue,
+    save: copy.save,
+    saving: copy.saving
   };
 
   return composeBuildFormDefinition(
@@ -164,7 +164,7 @@ export function createAdminModuleRuntimeConfigForm({
         ...module.configFields.map((field) =>
           createModuleRuntimeConfigField({
             field,
-            copy
+            copy: formCopy
           })
         )
       ]
@@ -175,8 +175,8 @@ export function createAdminModuleRuntimeConfigForm({
         method: 'post'
       },
       submit: {
-        idleLabel: copy.save,
-        pendingLabel: copy.saving,
+        idleLabel: formCopy.save,
+        pendingLabel: formCopy.saving,
         align: 'end',
         size: 'sm',
         variant: 'outline'

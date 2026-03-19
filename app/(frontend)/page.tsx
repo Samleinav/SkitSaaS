@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeFrontendRoute } from '@/components/theme/theme-frontend-route';
 import { Terminal } from './terminal';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 
 type FeatureCardProps = {
@@ -35,31 +35,32 @@ function FeatureCard({ icon: Icon, title, description }: FeatureCardProps) {
 }
 
 export default async function HomePage() {
-  const messages = await getServerMessages('global');
-  const { header, home } = messages;
+  const t = await getServerTranslator({ area: 'global' });
 
   const fallbackPage = (
     <main className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-14 sm:px-6 lg:px-8">
       <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-8 animate-[marketing-rise_650ms_ease-out]">
           <span className="inline-flex items-center rounded-full border border-amber-200/20 bg-amber-200/10 px-4 py-1 text-[11px] font-medium tracking-[0.2em] text-amber-100 uppercase">
-            {home.badge}
+            {t('SaaS Starter Kit')}
           </span>
 
           <div className="space-y-4">
             <h1 className="font-[family-name:var(--font-marketing-serif)] text-5xl font-medium leading-[1.05] text-zinc-100 sm:text-6xl lg:text-7xl">
-              {home.hero.titleLine1}
+              {t('Build Your SaaS')}
               <span className="marketing-text-gradient block italic">
-                {home.hero.titleLine2}
+                {t('Faster Than Ever')}
               </span>
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-              {home.hero.description}
+              {t(
+                'Launch your SaaS product in record time with our powerful, ready-to-use template. Packed with modern technologies and essential integrations.'
+              )}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-                        <a
+            <a
               href="https://github.com/Samleinav/s-kit-saas"
               target="_blank"
               rel="noreferrer"
@@ -68,7 +69,7 @@ export default async function HomePage() {
                 variant="outline"
                 className="h-12 rounded-sm border-zinc-700 bg-zinc-900/70 px-6 text-[11px] tracking-[0.18em] text-zinc-100 uppercase hover:border-amber-200/40 hover:bg-zinc-900 hover:text-amber-100"
               >
-                {home.cta.viewCodeButton}
+                {t('View the code')}
               </Button>
             </a>
           </div>
@@ -79,7 +80,7 @@ export default async function HomePage() {
                 01
               </p>
               <p className="mt-2 text-sm font-medium text-zinc-100">
-                {home.features.reactTitle}
+                {t('Next.js and React')}
               </p>
             </div>
             <div className="marketing-panel rounded-xl p-4">
@@ -87,7 +88,7 @@ export default async function HomePage() {
                 02
               </p>
               <p className="mt-2 text-sm font-medium text-zinc-100">
-                {home.features.dbTitle}
+                {t('Postgres and Drizzle ORM')}
               </p>
             </div>
             <div className="marketing-panel rounded-xl p-4">
@@ -95,7 +96,7 @@ export default async function HomePage() {
                 03
               </p>
               <p className="mt-2 text-sm font-medium text-zinc-100">
-                {home.features.stripeTitle}
+                {t('Stripe + PayPal Payments')}
               </p>
             </div>
           </div>
@@ -112,24 +113,24 @@ export default async function HomePage() {
 
           <div className="marketing-panel absolute -top-5 right-0 hidden max-w-[220px] rounded-xl p-4 md:block animate-[marketing-float_8s_ease-in-out_infinite]">
             <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-              {home.showcase.securityLabel}
+              {t('Security')}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-amber-100" />
               <p className="text-sm font-medium text-zinc-100">
-                {home.showcase.securityValue}
+                {t('Auth + RBAC')}
               </p>
             </div>
           </div>
 
           <div className="marketing-panel absolute -bottom-6 left-0 hidden max-w-[220px] rounded-xl p-4 md:block animate-[marketing-float_8s_ease-in-out_infinite_1.4s]">
             <p className="text-[10px] tracking-[0.2em] text-zinc-500 uppercase">
-              {home.showcase.billingLabel}
+              {t('Billing')}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-amber-100" />
               <p className="text-sm font-medium text-zinc-100">
-                {header.pricing}
+                {t('Pricing')}
               </p>
             </div>
           </div>
@@ -139,28 +140,34 @@ export default async function HomePage() {
       <section id="features" className="mt-24 space-y-6">
         <div className="max-w-3xl space-y-2">
           <p className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase">
-            {header.features}
+            {t('Features')}
           </p>
           <h2 className="font-[family-name:var(--font-marketing-serif)] text-4xl font-medium text-zinc-100 sm:text-5xl">
-            {home.showcase.sectionTitle}
+            {t('Build fast. Ship clean. Scale without rewrites.')}
           </h2>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={Rocket}
-            title={home.features.reactTitle}
-            description={home.features.reactDescription}
+            title={t('Next.js and React')}
+            description={t(
+              'Leverage the power of modern web technologies for optimal performance and developer experience.'
+            )}
           />
           <FeatureCard
             icon={Database}
-            title={home.features.dbTitle}
-            description={home.features.dbDescription}
+            title={t('Postgres and Drizzle ORM')}
+            description={t(
+              'Robust database solution with an intuitive ORM for efficient data management and scalability.'
+            )}
           />
           <FeatureCard
             icon={CreditCard}
-            title={home.features.stripeTitle}
-            description={home.features.stripeDescription}
+            title={t('Stripe + PayPal Payments')}
+            description={t(
+              'Accept cards with Stripe and subscriptions with PayPal using built-in checkout and webhook flows.'
+            )}
           />
         </div>
       </section>
@@ -171,15 +178,17 @@ export default async function HomePage() {
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="space-y-3">
               <h2 className="font-[family-name:var(--font-marketing-serif)] text-3xl font-medium text-zinc-100 sm:text-4xl">
-                {home.cta.title}
+                {t('Ready to launch your SaaS?')}
               </h2>
               <p className="max-w-3xl text-base text-zinc-400">
-                {home.cta.description}
+                {t(
+                  "Our template provides everything you need to get your SaaS up and running quickly. Don't waste time on boilerplate - focus on what makes your product unique."
+                )}
               </p>
             </div>
             <Link href="/pricing">
               <Button className="h-12 rounded-sm border border-amber-200/30 bg-amber-200/10 px-6 text-[11px] font-semibold tracking-[0.18em] text-amber-100 uppercase transition-colors hover:bg-amber-200 hover:text-black">
-                {header.pricing}
+                {t('Pricing')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

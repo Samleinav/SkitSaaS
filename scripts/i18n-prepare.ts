@@ -32,6 +32,14 @@ type FlatTranslationsByModuleId = Record<string, FlatTranslationsByLocale>;
 type FlatTranslationSourcesByLocale = Record<string, Record<string, string>>;
 type FlatTranslationConflictsByLocale = Record<string, FlatTranslationConflict[]>;
 type CoreMessagesByArea = Record<I18nArea, Record<string, TranslationNode>>;
+type GeneratedThemePackMetadata = {
+  themeId?: string;
+  additionalLocales?: unknown;
+};
+type GeneratedModuleMetadata = {
+  moduleId?: string;
+  additionalLocales?: unknown;
+};
 
 function ensureOutputDir(filePath: string) {
   const dir = path.dirname(filePath);
@@ -285,6 +293,11 @@ async function importLocaleModule(filePath: string) {
   return import(href);
 }
 
+async function importModuleNamespace(filePath: string) {
+  const href = `${pathToFileURL(filePath).href}?ts=${Date.now()}`;
+  return import(href);
+}
+
 function resolveModuleManifestPath(moduleDir: string, moduleJson: Record<string, unknown>) {
   const sourceEntryRaw =
     typeof moduleJson.sourceEntry === 'string' ? moduleJson.sourceEntry.trim() : '';
@@ -342,9 +355,46 @@ async function loadThemeAdditionalLocales({
   rootDir: string;
   themesDir?: string;
 }) {
+  const generatedThemeMetadataPath = path.join(
+    rootDir,
+    'lib',
+    'themes',
+    'external.generated.ts'
+  );
   const themesDir = resolveThemesDir(rootDir, themesDirOverride ?? null);
   const warnings: string[] = [];
   const localeSet = new Set<string>();
+
+  if (fs.existsSync(generatedThemeMetadataPath)) {
+    try {
+      const generated = await importModuleNamespace(generatedThemeMetadataPath);
+      const packs = Array.isArray(generated.EXTERNAL_THEME_PACKS)
+        ? (generated.EXTERNAL_THEME_PACKS as GeneratedThemePackMetadata[])
+        : [];
+
+      for (const pack of packs) {
+        const locales = collectDeclaredLocales({
+          value: pack.additionalLocales,
+          owner: `Theme ${String(pack.themeId ?? 'unknown')}`,
+          warnings
+        });
+        for (const locale of locales) {
+          localeSet.add(locale);
+        }
+      }
+
+      return {
+        themesDir,
+        warnings,
+        locales: [...localeSet].sort((left, right) => left.localeCompare(right))
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      warnings.push(
+        `Unable to load generated theme metadata from ${relativePath(rootDir, generatedThemeMetadataPath)} (${message}). Falling back to direct theme config discovery.`
+      );
+    }
+  }
 
   if (themesDir && fs.existsSync(themesDir)) {
     const packDirs = fs
@@ -593,12 +643,51 @@ async function loadModuleFlatTranslations({
   rootDir: string;
   modulesDir?: string;
 }) {
+  const generatedModuleMetadataPath = path.join(
+    rootDir,
+    'lib',
+    'modules',
+    'external-meta.generated.ts'
+  );
   const modulesDir = resolveModulesDir(rootDir, modulesDirOverride ?? null);
   const translationsByLocale: FlatTranslationsByLocale = {};
   const translationsByModuleId: FlatTranslationsByModuleId = {};
   const sourcePathsByLocale: FlatTranslationSourcesByLocale = {};
   const warnings: string[] = [];
   const declaredLocaleSet = new Set<string>();
+  const declaredLocalesByModuleId = new Map<string, string[]>();
+
+  if (fs.existsSync(generatedModuleMetadataPath)) {
+    try {
+      const generated = await importModuleNamespace(generatedModuleMetadataPath);
+      const entries = Array.isArray(generated.EXTERNAL_MODULE_META)
+        ? (generated.EXTERNAL_MODULE_META as GeneratedModuleMetadata[])
+        : [];
+
+      for (const entry of entries) {
+        const moduleId =
+          typeof entry.moduleId === 'string' ? entry.moduleId.trim() : '';
+        if (!moduleId) {
+          continue;
+        }
+
+        const locales = collectDeclaredLocales({
+          value: entry.additionalLocales,
+          owner: `Module ${moduleId}`,
+          warnings
+        });
+        declaredLocalesByModuleId.set(moduleId, locales);
+        for (const locale of locales) {
+          declaredLocaleSet.add(locale);
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      warnings.push(
+        `Unable to load generated module metadata from ${relativePath(rootDir, generatedModuleMetadataPath)} (${message}). Falling back to direct manifest discovery.`
+      );
+    }
+  }
 
   if (modulesDir && fs.existsSync(modulesDir)) {
     const moduleDirs = fs
@@ -622,7 +711,11 @@ async function loadModuleFlatTranslations({
         continue;
       }
 
-      if (moduleJson) {
+      if (declaredLocalesByModuleId.has(moduleId)) {
+        for (const locale of declaredLocalesByModuleId.get(moduleId) ?? []) {
+          declaredLocaleSet.add(locale);
+        }
+      } else if (moduleJson) {
         const manifestPath = resolveModuleManifestPath(moduleDir, moduleJson);
         if (manifestPath && fileDeclaresAdditionalLocales(manifestPath)) {
           try {

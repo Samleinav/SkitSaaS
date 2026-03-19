@@ -19,6 +19,8 @@ Minimal required fields:
 Optional fields:
 
 - `description`
+- `additionalLocales`
+- `languagePack` (`scopes` for explicit language-pack provider intent)
 - `i18n`
 - `adminNavItems` / `dashboardNavItems` / `frontendNavItems`
 - `adminRouteAliases` / `dashboardRouteAliases` / `frontendRouteAliases`
@@ -106,6 +108,8 @@ precedence when both are present.
 
 `validateModuleManifest` enforces more than required fields:
 
+- `additionalLocales` format + duplicate checks
+- `languagePack.scopes` enum + duplicate checks
 - alias format and duplicate checks (`admin`/`dashboard`/`frontend`)
 - `frontendRouteAccess` enum validation
 - `frontendSlots` (`slotId` format/duplicates + handler function)

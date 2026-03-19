@@ -19,19 +19,18 @@ import {
   getSubscriptionTemplateWithFeaturesById
 } from '@/lib/db/queries';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPES } from '@/lib/payments/subscription-feature-types';
 import type { SubscriptionFeatureValueType } from '@/lib/payments/subscription-feature-types';
+import { createAdminSubscriptionTemplateFormCopy } from '../../../i18n';
 
 export default async function AdminEditSubscriptionTemplatePage({
   params
 }: {
   params: Promise<{ templateId: string }>;
 }) {
-  const messages = await getServerMessages('admin');
-  const subscriptionsPage = messages.subscriptionsPage;
-  const tf = messages.templateForm;
+  const t = await getServerTranslator({ area: 'admin' });
   await requireAdminAccess();
 
   const { templateId } = await params;
@@ -45,43 +44,6 @@ export default async function AdminEditSubscriptionTemplatePage({
     notFound();
   }
   const themeSelection = await getThemeSelectionForArea('admin');
-
-  const templateCopy = {
-    planSectionTitle: tf.planSectionTitle,
-    templateNameLabel: tf.templateNameLabel,
-    templateNamePlaceholder: tf.templateNamePlaceholder,
-    targetScopeLabel: tf.targetScopeLabel,
-    categoryKeyLabel: tf.categoryKeyLabel,
-    categoryKeyPlaceholder: tf.categoryKeyPlaceholder,
-    hierarchyRankLabel: tf.hierarchyRankLabel,
-    hierarchyRankPlaceholder: tf.hierarchyRankPlaceholder,
-    scopeLabels: tf.scopes,
-    billingIntervalLabel: tf.billingIntervalLabel,
-    intervalLabels: tf.intervals,
-    priceLabel: tf.priceLabel,
-    pricePlaceholder: tf.pricePlaceholder,
-    compareAtPriceLabel: tf.compareAtPriceLabel,
-    compareAtPricePlaceholder: tf.compareAtPricePlaceholder,
-    currencyLabel: tf.currencyLabel,
-    currencyPlaceholder: tf.currencyPlaceholder,
-    trialDaysLabel: tf.trialDaysLabel,
-    trialDaysPlaceholder: tf.trialDaysPlaceholder,
-    featuresSectionTitle: tf.featuresSectionTitle,
-    featuresSectionHint: tf.featuresSectionHint,
-    featureKeyLabel: tf.featureKeyLabel,
-    featureLabelLabel: tf.featureLabelLabel,
-    featureTypeLabel: tf.featureTypeLabel,
-    featureValueLabel: tf.featureValueLabel,
-    featureValueLabelLabel: tf.featureValueLabelLabel,
-    featurePublicLabel: tf.featurePublicLabel,
-    featureKeyPlaceholder: tf.featureKeyPlaceholder,
-    featureLabelPlaceholder: tf.featureLabelPlaceholder,
-    featureValuePlaceholder: tf.featureValuePlaceholder,
-    featureValueLabelPlaceholder: tf.featureValueLabelPlaceholder,
-    addFeature: tf.addFeature,
-    removeFeature: tf.remove,
-    valueTypeLabels: tf.valueTypes
-  };
 
   const featureRows =
     template.features.length > 0
@@ -102,11 +64,13 @@ export default async function AdminEditSubscriptionTemplatePage({
 
   const editTemplateForm = composeRegisteredBuildFormDefinition(
     'admin-edit-subscription-template-form',
-    createAdminEditSubscriptionTemplateBuildFormBase({ copy: templateCopy }),
+    createAdminEditSubscriptionTemplateBuildFormBase({
+      copy: createAdminSubscriptionTemplateFormCopy(t)
+    }),
     {
       submit: {
-        idleLabel: tf.updateTemplate,
-        pendingLabel: `${tf.updateTemplate}...`,
+        idleLabel: t('Update template'),
+        pendingLabel: `${t('Update template')}...`,
         align: 'end'
       },
       values: {
@@ -135,8 +99,8 @@ export default async function AdminEditSubscriptionTemplatePage({
     createAdminRequestTemplateActiveUpdateBuildFormBase(),
     {
       submit: {
-        idleLabel: subscriptionsPage.activeUpdateAction,
-        pendingLabel: subscriptionsPage.activeUpdateActionPending,
+        idleLabel: t('Queue active updates'),
+        pendingLabel: t('Queueing updates...'),
         align: 'end',
         size: 'sm',
         variant: 'outline'
@@ -152,14 +116,16 @@ export default async function AdminEditSubscriptionTemplatePage({
     createAdminDeleteSubscriptionTemplateBuildFormBase(),
     {
       submit: {
-        idleLabel: subscriptionsPage.delete,
-        pendingLabel: `${subscriptionsPage.delete}...`,
+        idleLabel: t('Delete'),
+        pendingLabel: `${t('Delete')}...`,
         align: 'start',
         confirm: {
-          title: subscriptionsPage.confirmDeleteTitle,
-          description: subscriptionsPage.confirmDeleteDescription,
-          confirmLabel: subscriptionsPage.confirm,
-          cancelLabel: subscriptionsPage.cancel,
+          title: t('Delete this template?'),
+          description: t(
+            'Teams using this template will be moved to free until reassigned.'
+          ),
+          confirmLabel: t('Delete template'),
+          cancelLabel: t('Cancel'),
           triggerVariant: 'destructive',
           confirmVariant: 'destructive'
         }
@@ -173,18 +139,22 @@ export default async function AdminEditSubscriptionTemplatePage({
   const fallbackPage = (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <CardTitle>{subscriptionsPage.editTitle}</CardTitle>
+        <CardTitle>{t('Edit Subscription Template')}</CardTitle>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/admin/subscriptions/templates">{subscriptionsPage.backToTemplates}</Link>
+          <Link href="/admin/subscriptions/templates">
+            {t('Back to templates')}
+          </Link>
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="rounded-md border border-border/70 bg-muted/20 p-4">
           <p className="text-sm font-medium text-foreground">
-            {subscriptionsPage.activeUpdateTitle}
+            {t('Active Subscription Update')}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {subscriptionsPage.activeUpdateDescription}
+            {t(
+              'Queue a manual migration task for active subscriptions using this template.'
+            )}
           </p>
           <div className="mt-3">
             <TemplateBuildForm
@@ -202,7 +172,9 @@ export default async function AdminEditSubscriptionTemplatePage({
           slot="admin.subscriptions.template.edit"
         />
         <div className="rounded-md border border-red-200 bg-red-50 p-4">
-          <p className="mb-3 text-sm text-red-700">{subscriptionsPage.deleteHint}</p>
+          <p className="mb-3 text-sm text-red-700">
+            {t('Deleting this template will unassign it from teams using it.')}
+          </p>
           <TemplateBuildForm
             definition={deleteTemplateForm}
             area="admin"
@@ -223,7 +195,7 @@ export default async function AdminEditSubscriptionTemplatePage({
       themeId={themeSelection.themeKey}
       id="page.admin.subscriptions.edit"
       data={{
-        title: subscriptionsPage.editTitle
+        title: t('Edit Subscription Template')
       }}
       fallback={fallbackPage}
     >

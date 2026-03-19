@@ -1,16 +1,27 @@
-import type { ModuleManifest } from './manifest';
-import mod_mod_example_admin from '@/modules/mod.example.admin/src/manifest';
-import mod_mod_example_api from '@/modules/mod.example.api/src/manifest';
-import mod_mod_example_dashboard from '@/modules/mod.example.dashboard/src/manifest';
-import mod_mod_example_package from '@/modules/mod.example.package/dist/manifest';
-import mod_mod_example_portal from '@/modules/mod.example.portal/src/manifest';
-import mod_mod_example_suite from '@/modules/mod.example.suite/src/manifest';
+export type ExternalModuleMetaEntry = {
+  moduleId: string;
+  mode: 'prebuilt' | 'source-host' | 'source-package';
+  entry: string;
+  sdkRange: string | null;
+  sdkCompatible: boolean | null;
+  additionalLocales: string[];
+  languagePack: {
+    scopes: string[];
+  } | null;
+  templatePack: {
+    defaultEntryPath?: string;
+    overrideEntryPath?: string;
+    contractRange?: string;
+  } | null;
+  db: {
+    schemaVersion: number;
+    migrationsDir?: string;
+    schemaEntry?: string;
+    seedEntry?: string;
+  } | null;
+};
 
-export const EXTERNAL_MODULES: ModuleManifest[] = [
-  mod_mod_example_admin, mod_mod_example_api, mod_mod_example_dashboard, mod_mod_example_package, mod_mod_example_portal, mod_mod_example_suite
-];
-
-export const EXTERNAL_MODULE_META = [
+export const EXTERNAL_MODULE_META: ExternalModuleMetaEntry[] = [
   { moduleId: "mod.example.admin", mode: "source-host", entry: "@/modules/mod.example.admin/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },
   { moduleId: "mod.example.api", mode: "source-host", entry: "@/modules/mod.example.api/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },
   { moduleId: "mod.example.dashboard", mode: "source-host", entry: "@/modules/mod.example.dashboard/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },

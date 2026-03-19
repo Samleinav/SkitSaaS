@@ -15,7 +15,7 @@ import {
   getUserSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../../../guards';
 import { resolveAdminUserDisplayStatus } from '../../../../users/status';
@@ -26,7 +26,7 @@ type PageProps = {
 };
 
 export default async function AdminEditUserSubscriptionPage({ params }: PageProps) {
-  const messages = await getServerMessages('admin');
+  const t = await getServerTranslator({ area: 'admin' });
   const { userId } = await params;
   const parsedUserId = Number(userId);
 
@@ -50,14 +50,13 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
     accountStatus: user.accountStatus
   });
   const isDeleted = status === 'deleted';
-  const saveLabel = messages.subscriptionsTable.save;
   const themeSelection = await getThemeSelectionForArea('admin');
   const userSubscriptionForm = composeRegisteredBuildFormDefinition(
     'admin-update-user-subscription-form',
     createAdminUpdateUserSubscriptionBuildFormBase({
       copy: {
-        templateLabel: messages.userDetailPage.profileSubscriptionLabel,
-        noTemplate: messages.subscriptionsTable.noTemplate
+        templateLabel: t('User subscription template'),
+        noTemplate: t('Free (no template)')
       },
       templateOptions: templates.map((template) => ({
         id: template.id,
@@ -71,8 +70,8 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
       submit: isDeleted
         ? null
         : {
-            idleLabel: saveLabel,
-            pendingLabel: `${saveLabel}...`,
+            idleLabel: t('Save'),
+            pendingLabel: `${t('Save')}...`,
             align: 'start'
           },
       values: {
@@ -87,12 +86,14 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>{messages.userDetailPage.profileSubscriptionLabel}</CardTitle>
-          <CardDescription>{messages.userDetailPage.profileDescription}</CardDescription>
+          <CardTitle>{t('User subscription template')}</CardTitle>
+          <CardDescription>
+            {t('Update identity and user-level subscription assignment.')}
+          </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/admin/subscriptions?scope=user">
-            {messages.userDetailPage.backToUsers}
+            {t('Back to users')}
           </Link>
         </Button>
       </CardHeader>
@@ -100,10 +101,10 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <p className="text-sm font-medium text-foreground">
-              {messages.userDetailPage.userLabel}
+              {t('User')}
             </p>
             <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-sm">
-              <p className="font-medium">{user.name || messages.usersTable.unnamedUser}</p>
+              <p className="font-medium">{user.name || t('Unnamed user')}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
           </div>
@@ -119,7 +120,7 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
 
           {isDeleted ? (
             <p className="text-xs text-muted-foreground md:col-span-2">
-              {messages.userDetailPage.profileDisabledForDeleted}
+              {t('Deleted accounts cannot be edited.')}
             </p>
           ) : null}
         </div>
@@ -136,8 +137,8 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
       themeId={themeSelection.themeKey}
       id="page.admin.suscriptions.user.edit"
       data={{
-        title: messages.userDetailPage.profileSubscriptionLabel,
-        description: messages.userDetailPage.profileDescription,
+        title: t('User subscription template'),
+        description: t('Update identity and user-level subscription assignment.'),
         userId: user.id
       }}
       fallback={fallbackPage}

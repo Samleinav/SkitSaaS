@@ -6,7 +6,7 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { ThemeCodeRuntimeProvider } from '@/components/theme/theme-code-runtime-context';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { ThemeRuntimeProvider } from '@/components/theme/theme-runtime-provider';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import {
   ADMIN_LAYOUT_STYLE,
   PRIVATE_LAYOUT_MODE
@@ -105,8 +105,8 @@ export default async function AdminLayout({
       notFound();
     }
 
-    const messages = await getServerMessages('admin');
-    perfTrace.step('getServerMessages');
+    const t = await getServerTranslator({ area: 'admin' });
+    perfTrace.step('getServerTranslator');
     const moduleItems = await getEnabledModuleNavItems('admin');
     const navPayload = { items: [...moduleItems] };
     perfTrace.step('getEnabledModuleNavItems', {
@@ -132,12 +132,12 @@ export default async function AdminLayout({
       scriptHrefs: areaAssets.scriptHrefs.length
     });
     const navLabels: AdminNavLabels = {
-      users: messages.nav.users,
-      subscriptions: messages.nav.subscriptions,
-      payments: messages.nav.payments,
-      orders: messages.nav.orders,
-      logs: messages.nav.logs,
-      appConfig: messages.nav.appConfig
+      users: t('Users'),
+      subscriptions: t('Subscriptions'),
+      payments: t('Payments'),
+      orders: t('Orders'),
+      logs: t('Logs'),
+      appConfig: t('App Config')
     };
     const navVariant = ADMIN_LAYOUT_STYLE === 'layout_basic' ? 'basic' : 'pro';
     const isAdjusted = PRIVATE_LAYOUT_MODE === 'adjusted';
@@ -145,44 +145,44 @@ export default async function AdminLayout({
       {
         href: '/admin',
         icon: 'layout-dashboard',
-        label: messages.layout.title,
+        label: t('Admin'),
         exact: true
       },
       {
         href: '/admin/users',
         icon: 'users',
-        label: messages.nav.users
+        label: t('Users')
       },
       {
         href: '/admin/subscriptions',
         icon: 'layout-template',
-        label: messages.nav.subscriptions,
+        label: t('Subscriptions'),
         matchPrefixes: ['/admin/subscriptions', '/admin/suscriptions'],
         children: [
           {
             href: '/admin/subscriptions',
-            label: messages.subscriptionsPage.subscriptionsTitle
+            label: t('Subscriptions')
           },
           {
             href: '/admin/subscriptions/templates',
-            label: messages.subscriptionsPage.templatesTitle
+            label: t('Subscription Templates')
           }
         ]
       },
       {
         href: '/admin/payments',
         icon: 'receipt-text',
-        label: messages.nav.payments
+        label: t('Payments')
       },
       {
         href: '/admin/orders',
         icon: 'shopping-cart',
-        label: messages.nav.orders
+        label: t('Orders')
       },
       {
         href: '/admin/logs',
         icon: 'file-text',
-        label: messages.nav.logs
+        label: t('Logs')
       }
     ];
     const moduleNavItemsForTemplate: AdminNavTemplateItem[] = navPayload.items.map(
@@ -196,12 +196,12 @@ export default async function AdminLayout({
     const appConfigNavItemForTemplate: AdminNavTemplateItem = {
       href: '/admin/app-config',
       icon: 'settings-2',
-      label: messages.nav.appConfig
+      label: t('App Config')
     };
     const accountNavItemForTemplate: AdminNavTemplateItem = {
       href: '/admin/account',
       icon: 'user-round',
-      label: 'Account'
+      label: t('Account')
     };
     const navItemsForTemplate: AdminNavTemplateItem[] = [
       ...coreNavItemsForTemplate,
@@ -236,9 +236,9 @@ export default async function AdminLayout({
     );
     const breadcrumbFallback = (
       <AdminBreadcrumb
-        title={messages.layout.title}
+        title={t('Admin')}
         labels={navLabels}
-        backToAppConfigLabel={messages.appConfig.backToAppConfig}
+        backToAppConfigLabel={t('Back App Config')}
       />
     );
     const breadcrumbSlot = themeSelection?.themeKey ? (
@@ -246,8 +246,8 @@ export default async function AdminLayout({
         themeId={themeSelection.themeKey}
         id="section.admin.breadcrumb"
         data={{
-          title: messages.layout.title,
-          backToAppConfigLabel: messages.appConfig.backToAppConfig
+          title: t('Admin'),
+          backToAppConfigLabel: t('Back App Config')
         }}
         fallback={breadcrumbFallback}
       >
@@ -389,7 +389,7 @@ export default async function AdminLayout({
         themeId={themeSelection.themeKey}
         id="layout.admin.shell"
         data={{
-          heading: messages.layout.title,
+          heading: t('Admin'),
           variant: navVariant,
           mode: PRIVATE_LAYOUT_MODE,
           projectName: resolvedAppConfig.projectName,

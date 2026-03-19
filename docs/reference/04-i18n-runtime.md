@@ -6,12 +6,20 @@ description: How the shared i18n runtime exposes typed host trees and the flat n
 
 # I18n Runtime
 
-The runtime now has one locale source with two access styles:
+The runtime currently exposes one locale source with two access styles:
 
 - typed area messages for stable structured UI trees
 - flat natural-key translation for ad-hoc copy, modules, and themes
 
 Both are generated from the same locale sources through `pnpm i18n:prepare`.
+
+## Official status
+
+- `useI18n()` is the default runtime API for new host, theme, and module code.
+- Official themes and module-facing UI should use `useI18n()`.
+- `useAreaMessages()` / `getServerMessages()` remain as a deprecated
+  compatibility surface for older typed host trees while the host finishes its
+  gradual migration.
 
 ## Typed area messages
 
@@ -87,6 +95,33 @@ not depend on `connection()`:
 const t = await getActionTranslator();
 ```
 
+## Current published `useI18n()` contract
+
+Today the published runtime contract is:
+
+```ts
+const t = useI18n({
+  area: 'admin',
+  themeId: 'theme.nexus',
+  moduleId: 'mod.analytics',
+  translationsByLocale: {
+    fr: {
+      Cancel: 'Annuler'
+    }
+  }
+});
+```
+
+Supported options:
+
+- `area`
+- `themeId`
+- `moduleId`
+- `translationsByLocale`
+
+There is no published `packId`, `namespace`, or first-class language-pack
+selector in the runtime contract yet.
+
 ## Decision rule
 
 Use typed messages when:
@@ -101,9 +136,26 @@ Use the flat translator when:
 - the copy is not worth expanding the public typed contract
 - the path is already driven by a plain string, such as `notify(...)`
 
-Do not mass-migrate existing typed trees to flat keys. The typed host trees
-still exist for stable layouts, but themes and modules should default to the
-flat translator.
+Do not mass-migrate existing typed trees to flat keys blindly. The typed host
+trees still exist for stable layouts, but themes, modules, and new host copy
+should default to the flat translator.
+
+## Current runtime priority
+
+The current winning priority for `useI18n()` is:
+
+1. explicit `translationsByLocale` passed to the hook or translator
+2. active theme override for the requested `area`
+3. active theme `global` override
+4. module-scoped flat translations for `moduleId`
+5. shared/core flat translations
+6. the same order in `defaultLocale`
+7. raw key
+
+This is the published runtime behavior today. Modules can now declare
+`ModuleManifest.languagePack.scopes` as explicit provider metadata, but the
+host-side `host-*` scopes are still future loader work and are not part of the
+current resolver contract.
 
 ## Source of truth
 
@@ -118,6 +170,13 @@ locale folders. `pnpm i18n:prepare` now publishes the union of:
 - theme `additionalLocales` declared in `themes/<themeId>/config.ts`
 - module `additionalLocales` declared in `ModuleManifest`
 - module flat translation locale filenames under `i18n/translations/*.json`
+
+When available, `i18n:prepare` now reads theme/module locale publication
+metadata from generated build artifacts instead of re-importing source
+`config.ts` or module manifests directly:
+
+- `lib/themes/external.generated.ts`
+- `lib/modules/external-meta.generated.ts`
 
 If a supported locale does not have a typed core bundle, `useAreaMessages(...)`
 falls back to the default locale (`en`) while flat translators still resolve
@@ -138,6 +197,10 @@ Theme translations are merged on top of the core flat registry for the active
 Module flat translations are also generated into a module-scoped registry, so
 `useI18n({ moduleId })` can resolve that module's locale bucket before it falls
 back to the shared flat registry.
+
+Themes and modules can therefore publish locales and flat overrides today. For
+modules, `languagePack.scopes` now makes provider intent explicit in generated
+metadata, while host/core `host-*` pack loading remains future work.
 
 If two sources define the same `locale + key` with different values,
 `pnpm i18n:prepare` fails.

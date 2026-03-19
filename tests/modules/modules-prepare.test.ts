@@ -330,6 +330,121 @@ test('modules:prepare resolves module templatePack entries when paths exist', ()
   });
 });
 
+test('modules:prepare publishes additionalLocales metadata without importing the runtime registry', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-prepare-locales-'));
+  const modulesDir = path.join(tempRoot, 'modules');
+
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'module.json'),
+    JSON.stringify({
+      moduleId: 'mod.alpha',
+      moduleMode: 'source-host',
+      version: '1.0.0',
+      sourceEntry: 'src/manifest.ts',
+      sdkRange: '^0.1.0'
+    })
+  );
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'src', 'manifest.ts'),
+    "import { defineModule } from '@skitsaas/sdk';\nexport default defineModule({ moduleId: 'mod.alpha', version: '1.0.0', displayName: 'Alpha', additionalLocales: ['fr', 'pt-BR'] });\n"
+  );
+
+  const result = runModulesPrepare({
+    rootDir: tempRoot,
+    modulesDir,
+    hostSdkVersion: '0.1.0',
+    strictCompatibility: false,
+    logWarnings: false
+  });
+
+  assert.deepEqual(result.resolvedModules[0]?.additionalLocales, ['fr', 'pt-br']);
+
+  const metaOutputPath = path.join(
+    tempRoot,
+    'lib',
+    'modules',
+    'external-meta.generated.ts'
+  );
+  const metaOutput = fs.readFileSync(metaOutputPath, 'utf8');
+  assert.match(metaOutput, /additionalLocales: \["fr","pt-br"\]/);
+});
+
+test('modules:prepare publishes languagePack metadata without importing the runtime registry', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-prepare-pack-'));
+  const modulesDir = path.join(tempRoot, 'modules');
+
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'module.json'),
+    JSON.stringify({
+      moduleId: 'mod.alpha',
+      moduleMode: 'source-host',
+      version: '1.0.0',
+      sourceEntry: 'src/manifest.ts',
+      sdkRange: '^0.1.0'
+    })
+  );
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'src', 'manifest.ts'),
+    "import { defineModule } from '@skitsaas/sdk';\nexport default defineModule({ moduleId: 'mod.alpha', version: '1.0.0', displayName: 'Alpha', languagePack: { scopes: ['shared-flat', 'module-flat', 'host-admin'] } });\n"
+  );
+
+  const result = runModulesPrepare({
+    rootDir: tempRoot,
+    modulesDir,
+    hostSdkVersion: '0.1.0',
+    strictCompatibility: false,
+    logWarnings: false
+  });
+
+  assert.deepEqual(result.resolvedModules[0]?.languagePack, {
+    scopes: ['shared-flat', 'module-flat', 'host-admin']
+  });
+
+  const metaOutputPath = path.join(
+    tempRoot,
+    'lib',
+    'modules',
+    'external-meta.generated.ts'
+  );
+  const metaOutput = fs.readFileSync(metaOutputPath, 'utf8');
+  assert.match(
+    metaOutput,
+    /languagePack: \{"scopes":\["shared-flat","module-flat","host-admin"\]\}/
+  );
+});
+
+test('modules:prepare rejects non-static languagePack declarations', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-prepare-pack-invalid-'));
+  const modulesDir = path.join(tempRoot, 'modules');
+
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'module.json'),
+    JSON.stringify({
+      moduleId: 'mod.alpha',
+      moduleMode: 'source-host',
+      version: '1.0.0',
+      sourceEntry: 'src/manifest.ts',
+      sdkRange: '^0.1.0'
+    })
+  );
+  writeFile(
+    path.join(modulesDir, 'mod.alpha', 'src', 'manifest.ts'),
+    "import { defineModule } from '@skitsaas/sdk';\nconst scopes = ['shared-flat'];\nexport default defineModule({ moduleId: 'mod.alpha', version: '1.0.0', displayName: 'Alpha', languagePack: { scopes } });\n"
+  );
+
+  assert.throws(
+    () =>
+      runModulesPrepare({
+        rootDir: tempRoot,
+        modulesDir,
+        hostSdkVersion: '0.1.0',
+        strictCompatibility: false,
+        logWarnings: false
+      }),
+    /languagePack.*static scopes array/
+  );
+});
+
 test('modules:prepare rejects templatePack entries that do not exist', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-prepare-'));
   const modulesDir = path.join(tempRoot, 'modules');

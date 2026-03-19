@@ -1,15 +1,16 @@
 import { ThemeNotFoundFallback } from '@/components/theme/theme-not-found-fallback';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 
 export default async function NotFound() {
-  const messages = await getServerMessages('global');
-  const notFound = messages.notFound;
+  const t = await getServerTranslator({ area: 'global' });
 
   return (
     <ThemeNotFoundFallback
-      title={notFound.title}
-      description={notFound.description}
-      backLabel={notFound.backHome}
+      title={t('Page Not Found')}
+      description={t(
+        'The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.'
+      )}
+      backLabel={t('Back to Home')}
       backHref="/"
       switcherArea="global"
     />

@@ -114,3 +114,54 @@ test('validateModuleManifest rejects invalid and duplicate additionalLocales ent
   assert.ok(errors.includes('module_additional_locales_invalid:2'));
   assert.ok(errors.includes('module_additional_locales_invalid:3'));
 });
+
+test('validateModuleManifest accepts a static languagePack declaration', () => {
+  const manifest = defineModule({
+    moduleId: 'mod.pack.valid',
+    version: '1.0.0',
+    displayName: 'Pack Valid',
+    languagePack: {
+      scopes: ['shared-flat', 'module-flat', 'host-admin']
+    }
+  });
+
+  assert.deepEqual(validateModuleManifest(manifest), []);
+});
+
+test('validateModuleManifest rejects invalid and duplicate languagePack scopes', () => {
+  const manifest = defineModule({
+    moduleId: 'mod.pack.invalid',
+    version: '1.0.0',
+    displayName: 'Pack Invalid',
+    languagePack: {
+      scopes: [
+        'shared-flat',
+        'shared-flat',
+        'HOST-ADMIN' as unknown as never,
+        'unknown-scope' as unknown as never
+      ]
+    }
+  });
+
+  const errors = validateModuleManifest(manifest);
+  assert.ok(errors.includes('module_language_pack_scope_duplicate:shared-flat'));
+  assert.ok(errors.includes('module_language_pack_scope_invalid:2'));
+  assert.ok(errors.includes('module_language_pack_scope_invalid:3'));
+});
+
+test('validateModuleManifest rejects languagePack declarations without scopes', () => {
+  const manifest = defineModule({
+    moduleId: 'mod.pack.missing',
+    version: '1.0.0',
+    displayName: 'Pack Missing',
+    languagePack: {
+      scopes: []
+    }
+  });
+
+  assert.ok(
+    validateModuleManifest(manifest).includes(
+      'module_language_pack_scopes_missing'
+    )
+  );
+});

@@ -258,6 +258,60 @@ test('themes:prepare generates deterministic registry sorted by themeId', async 
   );
 });
 
+test('themes:prepare publishes additionalLocales metadata in generated theme registry', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-locales-'));
+  const themesDir = path.join(tempRoot, 'themes');
+
+  writeThemePack({
+    themesDir,
+    folder: 'pilot',
+    themeId: 'theme.pilot.admin',
+    areas: ['admin']
+  });
+  writeFile(
+    path.join(themesDir, 'pilot', 'config.ts'),
+    "import { defineThemeConfig } from '@skitsaas/sdk';\nexport default defineThemeConfig({ additionalLocales: ['fr', 'pt-BR'] });\n"
+  );
+  writeThemePack({
+    themesDir,
+    folder: 'baseline',
+    themeId: BACKOFFICE_BASELINE_THEME_ID,
+    areas: ['admin', 'dashboard']
+  });
+  writeThemePack({
+    themesDir,
+    folder: 'front',
+    themeId: 'theme.first.frontend',
+    areas: ['frontend']
+  });
+
+  await withThemeEnv(
+    {
+      THEME_ADMIN: 'theme.pilot.admin',
+      THEME_DASHBOARD: BACKOFFICE_BASELINE_THEME_ID,
+      THEME_FRONTEND: 'theme.first.frontend'
+    },
+    async () => {
+      const result = await runThemesPrepare({
+        rootDir: tempRoot,
+        themesDir,
+        hostThemeVersion: '1.0.0',
+        strictCompatibility: true,
+        logWarnings: false
+      });
+
+      assert.deepEqual(
+        result.resolvedThemePacks.find((pack) => pack.themeId === 'theme.pilot.admin')
+          ?.additionalLocales,
+        ['fr', 'pt-br']
+      );
+
+      const output = fs.readFileSync(result.outputPath, 'utf8');
+      assert.match(output, /"additionalLocales": \[\s*"fr",\s*"pt-br"\s*\]/);
+    }
+  );
+});
+
 test('themes:prepare rejects invalid manifests', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'themes-prepare-'));
   const themesDir = path.join(tempRoot, 'themes');

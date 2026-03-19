@@ -6,14 +6,14 @@ import {
   defineBuildTable,
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import type { AdminAppConfigModuleItem } from './config';
+import type { AdminAppConfigModulesCopy } from './i18n';
 
 function getDbStatusLabel(
   module: AdminAppConfigModuleItem,
-  messages: AdminMessages
+  copy: AdminAppConfigModulesCopy
 ) {
-  const labels = messages.appConfig.modules;
+  const labels = copy;
 
   if (module.dbStatus === 'enabled') {
     return labels.enabled;
@@ -32,9 +32,9 @@ function getDbStatusLabel(
 
 function getRuntimeFieldsLabel(
   module: AdminAppConfigModuleItem,
-  messages: AdminMessages
+  copy: AdminAppConfigModulesCopy
 ) {
-  const labels = messages.appConfig.modules;
+  const labels = copy;
 
   if (module.configFieldCount <= 0) {
     return labels.noRuntimeFields;
@@ -75,13 +75,13 @@ function renderStatusPill({
 
 export function getModulesTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminAppConfigModuleItem[];
-  messages: AdminMessages;
+  copy: AdminAppConfigModulesCopy;
 }): BuildTableDefinition<AdminAppConfigModuleItem> {
-  const table = messages.appConfig.modules.table;
-  const labels = messages.appConfig.modules;
+  const table = copy.table;
+  const labels = copy;
 
   const definition: BuildTableDefinition<AdminAppConfigModuleItem> = {
     data,
@@ -109,7 +109,7 @@ export function getModulesTableDefinition({
         sortable: true,
         cell: (row) =>
           renderStatusPill({
-            label: getDbStatusLabel(row, messages),
+            label: getDbStatusLabel(row, copy),
             tone:
               row.dbStatus === 'enabled'
                 ? 'success'
@@ -157,7 +157,7 @@ export function getModulesTableDefinition({
         sortable: true,
         cell: (row) => (
           <span className="text-sm text-muted-foreground">
-            {getRuntimeFieldsLabel(row, messages)}
+            {getRuntimeFieldsLabel(row, copy)}
           </span>
         )
       }),

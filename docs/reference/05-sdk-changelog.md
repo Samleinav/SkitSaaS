@@ -39,6 +39,35 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
+## 2026-03-18 - i18n-resolver-contract-and-legacy-policy
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: The docs now lock the current flat i18n resolver contract, mark `useI18n()` as the preferred API for new host/theme/module code, and treat `useAreaMessages()` as a deprecated compatibility surface while migration continues.
+- `sdk_surface`: `@skitsaas/sdk`, `@skitsaas/sdk/server`
+- `files`:
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/themes/01-theme-runtime.md`
+  - `docs/sdk/00-overview.md`
+  - `plans/i18n-unified-runtime-language-packs.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    Docs-only change; no SDK version bump.
+
+    The published contract now explicitly documents the runtime behavior already
+    present in code:
+
+    - `useI18n({ area, themeId, moduleId, translationsByLocale })`
+    - winning order: explicit -> theme area -> theme global -> module bucket ->
+      shared/core flat -> default locale -> raw key
+    - no published `packId`, `namespace`, or formal host language-pack layer yet
+
+    This closes the architecture-lock step for the current runtime without
+    pretending that language packs are already implemented.
+
 ---
 
 ## 2026-03-18 - sdk-source-package-migration-checklist
@@ -65,6 +94,81 @@ Nota:
     It also adds a concrete audit-and-replace checklist so maintainers can
     migrate existing modules without re-discovering which surfaces already have
     SDK replacements and which cases are still genuine gaps.
+
+## 2026-03-19 - i18n-build-metadata-discovery
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: `i18n:prepare` now consumes generated theme/module locale metadata first, instead of re-importing source configs and manifests whenever build metadata is already available.
+- `sdk_surface`: `@skitsaas/sdk`, host build pipeline
+- `files`:
+  - `scripts/static-additional-locales.ts`
+  - `scripts/themes-prepare.ts`
+  - `scripts/modules-prepare.ts`
+  - `scripts/i18n-prepare.ts`
+  - `tests/theme/themes-prepare.test.ts`
+  - `tests/modules/modules-prepare.test.ts`
+  - `tests/i18n/i18n-prepare.test.ts`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/themes/01-theme-runtime.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    Themes now publish normalized `additionalLocales` metadata in
+    `lib/themes/external.generated.ts`.
+
+    Modules now publish normalized `additionalLocales` metadata in the new
+    `lib/modules/external-meta.generated.ts`, generated without importing the
+    runtime registry.
+
+    `i18n:prepare` prefers those build artifacts and only falls back to direct
+    source discovery when the generated metadata does not exist yet. This keeps
+    locale publication more deterministic and reduces accidental coupling
+    between i18n discovery and module/theme source code.
+
+## 2026-03-19 - module-language-pack-provider-contract
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: `ModuleManifest` now exposes an explicit `languagePack.scopes` contract so modules can declare provider intent separately from `additionalLocales`, and `modules:prepare` publishes that metadata without importing the runtime registry.
+- `sdk_surface`: `@skitsaas/sdk`, host build pipeline
+- `files`:
+  - `app/sdk/src/modules/manifest.ts`
+  - `app/sdk/package.json`
+  - `lib/modules/manifest.ts`
+  - `scripts/static-additional-locales.ts`
+  - `scripts/modules-prepare.ts`
+  - `tests/modules/module-runtime-config-manifest.test.ts`
+  - `tests/modules/modules-prepare.test.ts`
+  - `docs/modules/01-manifest-registry.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/sdk/00-overview.md`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/extensions/module-development-index.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.12.0 -> v1.13.0 (MINOR).
+
+    The new public contract is intentionally small:
+
+    - `shared-flat`
+    - `module-flat`
+    - `host-global`
+    - `host-admin`
+    - `host-dashboard`
+    - `host-login`
+
+    Today, only `shared-flat` and `module-flat` map to existing runtime lookup
+    behavior. The `host-*` scopes are declarative provider metadata for the
+    future explicit host language-pack layer.
+
+    This keeps locale publication (`additionalLocales`) separate from provider
+    intent (`languagePack`) and lets `modules:prepare` validate/publish the
+    metadata without eagerly importing module runtime code.
 
 ## 2026-03-18 - sdk-db-customtype-and-host-fk-pattern
 

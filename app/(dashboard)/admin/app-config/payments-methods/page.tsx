@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { composeBuildFormDefinition } from '@skitsaas/sdk';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { upsertProviderConfigBatchAction } from '../actions';
 import { getAdminAppConfigData, PROVIDER_ORDER, type ProviderId } from '../config';
@@ -30,9 +30,8 @@ function resolveProviderFilter(
 export default async function AdminAppConfigPaymentMethodsPage({
   searchParams
 }: PageProps) {
-  const messages = await getServerMessages('admin');
-  const appConfig = messages.appConfig;
-  const savingLabel = `${appConfig.save}...`;
+  const t = await getServerTranslator({ area: 'admin' });
+  const savingLabel = `${t('Save')}...`;
   const resolvedSearchParams = await searchParams;
   const { paymentRowsByProvider } = await getAdminAppConfigData();
   const selectedProvider = resolveProviderFilter(resolvedSearchParams.provider);
@@ -46,10 +45,10 @@ export default async function AdminAppConfigPaymentMethodsPage({
       provider: selectedProvider,
       rows: providerRows,
       copy: {
-        envPrefix: appConfig.envPrefix,
-        sourcePrefix: appConfig.sourcePrefix,
-        overriddenByEnv: appConfig.overriddenByEnv,
-        dbFallbackValue: appConfig.dbFallbackValue
+        envPrefix: t('ENV'),
+        sourcePrefix: t('Value source'),
+        overriddenByEnv: t('Overridden by env'),
+        dbFallbackValue: t('DB fallback value')
       }
     }),
     {
@@ -58,7 +57,7 @@ export default async function AdminAppConfigPaymentMethodsPage({
         method: 'post'
       },
       submit: {
-        idleLabel: appConfig.save,
+        idleLabel: t('Save'),
         pendingLabel: savingLabel,
         align: 'end',
         size: 'sm',
@@ -71,17 +70,25 @@ export default async function AdminAppConfigPaymentMethodsPage({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{appConfig.sections.paymentMethods}</CardTitle>
-          <CardDescription>{appConfig.description}</CardDescription>
+          <CardTitle>{t('Payment methods')}</CardTitle>
+          <CardDescription>
+            {t('Global runtime configuration shared between public pages and dashboard.')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-muted-foreground">{appConfig.envPriority}</p>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'Environment values have priority. DB values are used only when env is empty.'
+            )}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="space-y-4">
-          <CardTitle>{appConfig.providers[selectedProvider]}</CardTitle>
+          <CardTitle>
+            {selectedProvider === 'stripe' ? t('Stripe') : t('PayPal')}
+          </CardTitle>
           <div className="inline-flex w-fit items-center rounded-xl border border-border/80 bg-background/70 p-1">
             {PROVIDER_ORDER.map((provider) => (
               <Button
@@ -98,7 +105,7 @@ export default async function AdminAppConfigPaymentMethodsPage({
                       : `/admin/app-config/payments-methods?provider=${provider}`
                   }
                 >
-                  {appConfig.providers[provider]}
+                  {provider === 'stripe' ? t('Stripe') : t('PayPal')}
                 </Link>
               </Button>
             ))}
@@ -125,8 +132,10 @@ export default async function AdminAppConfigPaymentMethodsPage({
       themeId={themeSelection.themeKey}
       id="page.admin.app-config.payment-methods"
       data={{
-        title: appConfig.sections.paymentMethods,
-        description: appConfig.description,
+        title: t('Payment methods'),
+        description: t(
+          'Global runtime configuration shared between public pages and dashboard.'
+        ),
         provider: selectedProvider
       }}
       fallback={fallbackPage}

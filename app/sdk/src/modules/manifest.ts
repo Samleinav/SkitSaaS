@@ -160,6 +160,18 @@ export type ModulePaymentMethod = {
   metadata?: Record<string, unknown>;
 };
 
+export type ModuleLanguagePackScope =
+  | 'host-global'
+  | 'host-admin'
+  | 'host-dashboard'
+  | 'host-login'
+  | 'shared-flat'
+  | 'module-flat';
+
+export type ModuleLanguagePack = {
+  scopes: ModuleLanguagePackScope[];
+};
+
 export type ModuleUserRole = {
   roleId: string;
   displayName: string;
@@ -173,6 +185,7 @@ export type ModuleManifest = {
   displayName: string;
   description?: string;
   additionalLocales?: string[];
+  languagePack?: ModuleLanguagePack;
   i18n?: ModuleMessagesByArea;
   adminNavItems?: ModuleNavItem[];
   dashboardNavItems?: ModuleNavItem[];
@@ -226,6 +239,14 @@ export function validateModuleManifest(manifest: ModuleManifest) {
   const runtimeConfigKeyPattern =
     /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
   const runtimeConfigEnvKeyPattern = /^[A-Z][A-Z0-9_]*$/;
+  const languagePackScopes = new Set<ModuleLanguagePackScope>([
+    'host-global',
+    'host-admin',
+    'host-dashboard',
+    'host-login',
+    'shared-flat',
+    'module-flat'
+  ]);
 
   if (!manifest.moduleId || !manifest.moduleId.trim()) {
     errors.push('module_id_missing');
@@ -260,6 +281,44 @@ export function validateModuleManifest(manifest: ModuleManifest) {
         }
 
         seenAdditionalLocales.add(normalizedLocale);
+      }
+    }
+  }
+
+  if (manifest.languagePack !== undefined) {
+    const languagePack = manifest.languagePack;
+    if (
+      !languagePack ||
+      typeof languagePack !== 'object' ||
+      Array.isArray(languagePack)
+    ) {
+      errors.push('module_language_pack_invalid');
+    } else if (
+      !Array.isArray(languagePack.scopes) ||
+      languagePack.scopes.length === 0
+    ) {
+      errors.push('module_language_pack_scopes_missing');
+    } else {
+      const seenLanguagePackScopes = new Set<string>();
+      for (let index = 0; index < languagePack.scopes.length; index += 1) {
+        const rawScope = String(languagePack.scopes[index] ?? '').trim();
+        const normalizedScope = rawScope.toLowerCase();
+
+        if (
+          !rawScope ||
+          rawScope !== normalizedScope ||
+          !languagePackScopes.has(normalizedScope as ModuleLanguagePackScope)
+        ) {
+          errors.push(`module_language_pack_scope_invalid:${index}`);
+          continue;
+        }
+
+        if (seenLanguagePackScopes.has(normalizedScope)) {
+          errors.push(`module_language_pack_scope_duplicate:${normalizedScope}`);
+          continue;
+        }
+
+        seenLanguagePackScopes.add(normalizedScope);
       }
     }
   }

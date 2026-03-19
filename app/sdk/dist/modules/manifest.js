@@ -11,6 +11,14 @@ export function validateModuleManifest(manifest) {
     const runtimeConfigNamespacePattern = /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
     const runtimeConfigKeyPattern = /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
     const runtimeConfigEnvKeyPattern = /^[A-Z][A-Z0-9_]*$/;
+    const languagePackScopes = new Set([
+        'host-global',
+        'host-admin',
+        'host-dashboard',
+        'host-login',
+        'shared-flat',
+        'module-flat'
+    ]);
     if (!manifest.moduleId || !manifest.moduleId.trim()) {
         errors.push('module_id_missing');
     }
@@ -38,6 +46,36 @@ export function validateModuleManifest(manifest) {
                     continue;
                 }
                 seenAdditionalLocales.add(normalizedLocale);
+            }
+        }
+    }
+    if (manifest.languagePack !== undefined) {
+        const languagePack = manifest.languagePack;
+        if (!languagePack ||
+            typeof languagePack !== 'object' ||
+            Array.isArray(languagePack)) {
+            errors.push('module_language_pack_invalid');
+        }
+        else if (!Array.isArray(languagePack.scopes) ||
+            languagePack.scopes.length === 0) {
+            errors.push('module_language_pack_scopes_missing');
+        }
+        else {
+            const seenLanguagePackScopes = new Set();
+            for (let index = 0; index < languagePack.scopes.length; index += 1) {
+                const rawScope = String(languagePack.scopes[index] ?? '').trim();
+                const normalizedScope = rawScope.toLowerCase();
+                if (!rawScope ||
+                    rawScope !== normalizedScope ||
+                    !languagePackScopes.has(normalizedScope)) {
+                    errors.push(`module_language_pack_scope_invalid:${index}`);
+                    continue;
+                }
+                if (seenLanguagePackScopes.has(normalizedScope)) {
+                    errors.push(`module_language_pack_scope_duplicate:${normalizedScope}`);
+                    continue;
+                }
+                seenLanguagePackScopes.add(normalizedScope);
             }
         }
     }

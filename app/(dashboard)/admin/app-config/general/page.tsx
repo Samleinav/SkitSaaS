@@ -8,15 +8,14 @@ import {
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { getAdminAppConfigData } from '../config';
 import { createAdminOrganizationControlsBuildFormBase } from '../forms';
 
 export default async function AdminAppConfigGeneralPage() {
-  const messages = await getServerMessages('admin');
-  const appConfig = messages.appConfig;
-  const savingLabel = `${appConfig.save}...`;
+  const t = await getServerTranslator({ area: 'admin' });
+  const savingLabel = `${t('Save')}...`;
 
   const {
     organizationAllowMultiConfig,
@@ -29,17 +28,19 @@ export default async function AdminAppConfigGeneralPage() {
     'admin-app-config-general-form',
     createAdminOrganizationControlsBuildFormBase({
       copy: {
-        allowMultiOrganizationsLabel:
-          appConfig.organization.allowMultiOrganizationsLabel,
-        allowMultiOrganizationsHint:
-          appConfig.organization.allowMultiOrganizationsHint,
-        maxOrganizationsPerUserLabel:
-          appConfig.organization.maxOrganizationsPerUserLabel,
-        maxOrganizationsPerUserHint:
-          appConfig.organization.maxOrganizationsPerUserHint,
-        unlimitedPlaceholder: appConfig.organization.unlimitedPlaceholder,
-        envPrefix: appConfig.envPrefix,
-        sourcePrefix: appConfig.sourcePrefix
+        allowMultiOrganizationsLabel: t('Allow multi organizations per user'),
+        allowMultiOrganizationsHint: t(
+          'If disabled, each user can only belong to one organization.'
+        ),
+        maxOrganizationsPerUserLabel: t(
+          'Max organizations per user (optional)'
+        ),
+        maxOrganizationsPerUserHint: t(
+          'Leave empty for unlimited when multi organizations are enabled.'
+        ),
+        unlimitedPlaceholder: t('Unlimited'),
+        envPrefix: t('ENV'),
+        sourcePrefix: t('Value source')
       },
       allowMultiOrganizationsEnvKey: organizationAllowMultiConfig.envKey,
       allowMultiOrganizationsSource: organizationAllowMultiConfig.source,
@@ -48,7 +49,7 @@ export default async function AdminAppConfigGeneralPage() {
     }),
     {
       submit: {
-        idleLabel: appConfig.save,
+        idleLabel: t('Save'),
         pendingLabel: savingLabel,
         align: 'end',
         size: 'sm',
@@ -65,18 +66,26 @@ export default async function AdminAppConfigGeneralPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{appConfig.sections.general}</CardTitle>
-          <CardDescription>{appConfig.description}</CardDescription>
+          <CardTitle>{t('General')}</CardTitle>
+          <CardDescription>
+            {t('Global runtime configuration shared between public pages and dashboard.')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-muted-foreground">{appConfig.envPriority}</p>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'Environment values have priority. DB values are used only when env is empty.'
+            )}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>{appConfig.organization.title}</CardTitle>
-          <CardDescription>{appConfig.organization.description}</CardDescription>
+          <CardTitle>{t('Organizations')}</CardTitle>
+          <CardDescription>
+            {t('Control multi-organization limits per user.')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <TemplateBuildForm
@@ -99,8 +108,10 @@ export default async function AdminAppConfigGeneralPage() {
       themeId={themeSelection.themeKey}
       id="page.admin.app-config.general"
       data={{
-        title: appConfig.sections.general,
-        description: appConfig.description
+        title: t('General'),
+        description: t(
+          'Global runtime configuration shared between public pages and dashboard.'
+        )
       }}
       fallback={fallbackPage}
     >

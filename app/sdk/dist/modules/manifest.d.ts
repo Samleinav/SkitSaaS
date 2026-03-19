@@ -117,6 +117,10 @@ export type ModulePaymentMethod = {
     routes: ModulePaymentMethodRoutes;
     metadata?: Record<string, unknown>;
 };
+export type ModuleLanguagePackScope = 'host-global' | 'host-admin' | 'host-dashboard' | 'host-login' | 'shared-flat' | 'module-flat';
+export type ModuleLanguagePack = {
+    scopes: ModuleLanguagePackScope[];
+};
 export type ModuleUserRole = {
     roleId: string;
     displayName: string;
@@ -129,6 +133,7 @@ export type ModuleManifest = {
     displayName: string;
     description?: string;
     additionalLocales?: string[];
+    languagePack?: ModuleLanguagePack;
     i18n?: ModuleMessagesByArea;
     adminNavItems?: ModuleNavItem[];
     dashboardNavItems?: ModuleNavItem[];

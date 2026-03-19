@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  extractStaticAdditionalLocalesFromFile,
+  extractStaticModuleLanguagePackFromFile,
+  type StaticModuleLanguagePack
+} from './static-additional-locales';
 
 type ModuleJson = {
   moduleId?: string;
@@ -49,6 +54,8 @@ type ResolvedModuleTemplatePack = {
   contractRange?: string;
 };
 
+type ResolvedModuleLanguagePack = StaticModuleLanguagePack;
+
 type ModuleCodeTemplateEntry = {
   componentId: string;
   importPath: string;
@@ -63,6 +70,8 @@ export type ResolvedModule = {
   mode: ModuleMode;
   sdkRange: string | null;
   sdkCompatible: boolean | null;
+  additionalLocales: string[];
+  languagePack: ResolvedModuleLanguagePack | null;
   db: ResolvedModuleDb | null;
   templatePack: ResolvedModuleTemplatePack | null;
   routesImportPath: string | null;
@@ -78,7 +87,8 @@ export type ModulePrepareConfigErrorCode =
   | 'module_source_entry_not_found'
   | 'module_build_command_missing'
   | 'module_template_pack_invalid'
-  | 'module_template_pack_entry_not_found';
+  | 'module_template_pack_entry_not_found'
+  | 'module_language_pack_invalid';
 
 export type ModulePrepareConfigError = {
   code: ModulePrepareConfigErrorCode;
@@ -1143,6 +1153,25 @@ export function runModulesPrepare(
         warnings,
         compatibilityErrors
       });
+      const additionalLocalesFromManifest = extractStaticAdditionalLocalesFromFile(
+        resolved.entryPath,
+        `Module ${moduleJson.moduleId}`
+      );
+      warnings.push(...additionalLocalesFromManifest.warnings);
+      const languagePackFromManifest = extractStaticModuleLanguagePackFromFile(
+        resolved.entryPath,
+        `Module ${moduleJson.moduleId}`
+      );
+      warnings.push(...languagePackFromManifest.warnings);
+
+      for (const error of languagePackFromManifest.errors) {
+        configErrors.push({
+          code: 'module_language_pack_invalid',
+          moduleId: moduleJson.moduleId,
+          moduleDir,
+          message: error
+        });
+      }
 
       resolvedModules.push({
         moduleId: moduleJson.moduleId,
@@ -1157,6 +1186,8 @@ export function runModulesPrepare(
         mode: resolved.mode,
         sdkRange: compatibility.sdkRange,
         sdkCompatible: compatibility.sdkCompatible,
+        additionalLocales: additionalLocalesFromManifest.locales,
+        languagePack: languagePackFromManifest.languagePack,
         templatePack: resolveModuleTemplatePackConfig({
           rootDir,
           moduleDir,
@@ -1211,6 +1242,12 @@ export function runModulesPrepare(
     'modules',
     'external.generated.ts'
   );
+  const metaOutputPath = path.join(
+    rootDir,
+    'lib',
+    'modules',
+    'external-meta.generated.ts'
+  );
   const importLines = resolvedModules.map(
     (mod) => `import ${mod.importName} from '${mod.importPath}';`
   );
@@ -1218,7 +1255,7 @@ export function runModulesPrepare(
   const metaList = resolvedModules
     .map(
       (mod) =>
-        `{ moduleId: ${JSON.stringify(mod.moduleId)}, mode: ${JSON.stringify(mod.mode)}, entry: ${JSON.stringify(mod.importPath)}, sdkRange: ${JSON.stringify(mod.sdkRange)}, sdkCompatible: ${JSON.stringify(mod.sdkCompatible)}, templatePack: ${JSON.stringify(mod.templatePack)}, db: ${JSON.stringify(mod.db)} }`
+        `{ moduleId: ${JSON.stringify(mod.moduleId)}, mode: ${JSON.stringify(mod.mode)}, entry: ${JSON.stringify(mod.importPath)}, sdkRange: ${JSON.stringify(mod.sdkRange)}, sdkCompatible: ${JSON.stringify(mod.sdkCompatible)}, additionalLocales: ${JSON.stringify(mod.additionalLocales)}, languagePack: ${JSON.stringify(mod.languagePack)}, templatePack: ${JSON.stringify(mod.templatePack)}, db: ${JSON.stringify(mod.db)} }`
     )
     .join(',\n  ');
 
@@ -1230,8 +1267,37 @@ export function runModulesPrepare(
     metaList ? `\n  ${metaList}\n` : ''
   }];\n`;
 
+  const metaFileBody =
+    'export type ExternalModuleMetaEntry = {\n' +
+    '  moduleId: string;\n' +
+    "  mode: 'prebuilt' | 'source-host' | 'source-package';\n" +
+    '  entry: string;\n' +
+    '  sdkRange: string | null;\n' +
+    '  sdkCompatible: boolean | null;\n' +
+    '  additionalLocales: string[];\n' +
+    '  languagePack: {\n' +
+    '    scopes: string[];\n' +
+    '  } | null;\n' +
+    '  templatePack: {\n' +
+    '    defaultEntryPath?: string;\n' +
+    '    overrideEntryPath?: string;\n' +
+    '    contractRange?: string;\n' +
+    '  } | null;\n' +
+    '  db: {\n' +
+    '    schemaVersion: number;\n' +
+    '    migrationsDir?: string;\n' +
+    '    schemaEntry?: string;\n' +
+    '    seedEntry?: string;\n' +
+    '  } | null;\n' +
+    '};\n\n' +
+    `export const EXTERNAL_MODULE_META: ExternalModuleMetaEntry[] = [${
+      metaList ? `\n  ${metaList}\n` : ''
+    }];\n`;
+
   ensureOutputDir(outputPath);
   fs.writeFileSync(outputPath, fileBody, 'utf8');
+  ensureOutputDir(metaOutputPath);
+  fs.writeFileSync(metaOutputPath, metaFileBody, 'utf8');
 
   const moduleCodeRegistryOutputPath = path.join(
     rootDir,

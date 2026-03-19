@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { getUser } from '@/lib/db/queries';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { createDashboardUpdateAccountBuildFormBase } from './forms';
 
 export default async function GeneralPage() {
-  const [messages, currentUser, themeSelection] = await Promise.all([
-    getServerMessages('dashboard'),
+  const [t, currentUser, themeSelection] = await Promise.all([
+    getServerTranslator({ area: 'dashboard' }),
     getUser(),
     getThemeSelectionForArea('dashboard')
   ]);
@@ -19,21 +19,20 @@ export default async function GeneralPage() {
     redirect('/login');
   }
 
-  const general = messages.general;
   const accountForm = composeRegisteredBuildFormDefinition(
     'dashboard-update-account-form',
     createDashboardUpdateAccountBuildFormBase({
       copy: {
-        nameLabel: general.name,
-        namePlaceholder: general.namePlaceholder,
-        emailLabel: general.email,
-        emailPlaceholder: general.emailPlaceholder
+        nameLabel: t('Name'),
+        namePlaceholder: t('Enter your name'),
+        emailLabel: t('Email'),
+        emailPlaceholder: t('Enter your email')
       }
     }),
     {
       submit: {
-        idleLabel: general.saveChanges,
-        pendingLabel: general.saving,
+        idleLabel: t('Save Changes'),
+        pendingLabel: t('Saving...'),
         align: 'start'
       },
       values: {
@@ -46,12 +45,12 @@ export default async function GeneralPage() {
   const fallbackPage = (
     <section className="flex-1 space-y-6 p-4 lg:p-8">
       <h1 className="text-lg font-medium text-foreground lg:text-2xl">
-        {general.title}
+        {t('General Settings')}
       </h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>{general.accountInformation}</CardTitle>
+          <CardTitle>{t('Account Information')}</CardTitle>
         </CardHeader>
         <CardContent>
           <TemplateBuildForm
@@ -74,8 +73,8 @@ export default async function GeneralPage() {
       themeId={themeSelection.themeKey}
       id="page.dashboard.general"
       data={{
-        title: general.title,
-        description: general.accountInformation
+        title: t('General Settings'),
+        description: t('Account Information')
       }}
       fallback={fallbackPage}
     >

@@ -149,6 +149,9 @@ Theme translations are area-scoped overrides on top of the core flat registry.
 That means theme code can use one API and still inherit core translations for
 keys the theme does not redefine.
 
+Official theme components should use `useI18n({ themeId, area })`. Themes
+should not introduce new `useAreaMessages()` dependencies.
+
 ### File structure
 
 Add flat translation files in your theme directory:
@@ -196,6 +199,19 @@ Rules:
   the core does not ship `lib/i18n/locales/<locale>/*`, declare it in
   `config.ts` with `additionalLocales`
 
+Effective winning order for theme-aware translation lookup is:
+
+1. explicit `translationsByLocale`
+2. active theme `area`
+3. active theme `global`
+4. module bucket when `moduleId` exists
+5. shared/core flat registry
+6. default locale fallback
+7. raw key
+
+`additionalLocales` only publishes locale availability. It does not create a
+formal host language-pack provider layer, which is still future work.
+
 Example:
 
 ```ts
@@ -216,10 +232,15 @@ pnpm themes:prepare
 
 This generates:
 
+- `lib/themes/external.generated.ts`
 - `lib/i18n/theme-translations.generated.ts`
 
 The host injects this registry together with the core flat registry through the
 SDK `I18nProvider`.
+
+`i18n:prepare` also consumes `lib/themes/external.generated.ts` as the
+generated source of truth for theme-published `additionalLocales`, so locale
+discovery no longer has to import each theme `config.ts` again.
 
 ### Usage in theme components
 

@@ -32,7 +32,7 @@ Recommended reading order:
 9. `docs/themes/01-theme-runtime.md`
 10. `docs/modules/09-testing.md`
 11. `docs/modules/10-ops-runbook.md`
-12. `docs/modules/12-i18n.md`
+12. `docs/modules/12-i18n.md` (flat translator contract, locale publication, and `languagePack` provider metadata)
 13. `docs/modules/13-source-package-template.md` (advanced / secondary)
 14. `docs/themes/03-template-controller.md`
 15. `docs/themes/02-theme-authoring-guide.md`

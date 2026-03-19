@@ -23,6 +23,9 @@ Exports:
 - `defineModule`
 - `ModuleManifest`
 - `ModuleManifest.additionalLocales` (extend supported locales without adding a core typed locale bundle)
+- `ModuleManifest.languagePack` (`scopes` declare explicit translation-provider intent for a module)
+- `ModuleLanguagePack`
+- `ModuleLanguagePackScope`
 - `ModuleRouteContext`
 - `ModulePageHandler`
 - `ModuleApiHandler`
@@ -610,10 +613,15 @@ Useful options:
 
 ## Module I18n
 
-Modules can provide translations through two parallel contracts:
+`useI18n()` is the preferred runtime API for module UI, theme UI, and new
+host-side flat copy. Modules can provide translations through two parallel
+contracts:
 
 - nested area messages for `messages.mod['mod.<moduleId>']`
-- flat natural-key translations for `createTranslator(...)`
+- flat natural-key translations for `useI18n()` / `createTranslator(...)`
+
+The nested tree remains available for typed host access, but it is no longer
+the preferred direction for new module-facing UI.
 
 Nested area JSON:
 
@@ -637,10 +645,30 @@ Example flat JSON:
 Rules:
 
 - flat files must be a single-level object of `English key -> translated value`
+- official themes and modules should prefer `useI18n()` over typed host trees
 - `useI18n({ moduleId: 'mod.analytics' })` resolves that module bucket before
   the shared flat registry
 - if `dist/i18n/translations` exists, the host reads `dist` for that module
 - conflicting `locale + key` values fail `pnpm i18n:prepare`
+
+Current runtime priority:
+
+1. explicit `translationsByLocale`
+2. active theme area override
+3. active theme `global` override
+4. module bucket
+5. shared/core flat registry
+6. default locale fallback
+7. raw key
+
+Published provider contract:
+
+- `ModuleManifest.languagePack.scopes=['shared-flat', 'module-flat']` maps to
+  runtime behavior that already exists today
+- `host-global`, `host-admin`, `host-dashboard`, and `host-login` are
+  published provider metadata for the future explicit host language-pack layer
+- `additionalLocales` still only controls locale publication, not provider
+  intent
 
 Build commands:
 

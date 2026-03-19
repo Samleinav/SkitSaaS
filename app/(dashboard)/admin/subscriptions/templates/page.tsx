@@ -10,7 +10,7 @@ import {
   getAllSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
 import { requireAdminAccess } from '../../guards';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { TemplateTable } from '@/components/ui/template-table';
 import {
@@ -20,13 +20,18 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import {
+  getAdminSubscriptionIntervalLabels,
+  getAdminSubscriptionScopeLabels
+} from '../i18n';
 
 export default async function AdminSubscriptionTemplatesPage() {
-  const messages = await getServerMessages('admin');
-  const subscriptionsPage = messages.subscriptionsPage;
+  const t = await getServerTranslator({ area: 'admin' });
   await requireAdminAccess();
   const templates = await getAllSubscriptionTemplatesForAdmin();
   const themeSelection = await getThemeSelectionForArea('admin');
+  const scopeLabels = getAdminSubscriptionScopeLabels(t);
+  const intervalLabels = getAdminSubscriptionIntervalLabels(t);
   const resolveTableCellSlot = ({
     slot,
     data,
@@ -69,19 +74,19 @@ export default async function AdminSubscriptionTemplatesPage() {
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <AdminMetricCard
-        label={subscriptionsPage.templatesTitle}
+        label={t('Subscription Templates')}
         value={templates.length}
       />
       <AdminMetricCard
-        label={messages.templateForm.scopes.organization}
+        label={scopeLabels.organization}
         value={organizationTemplates}
       />
       <AdminMetricCard
-        label={messages.templateForm.scopes.user}
+        label={scopeLabels.user}
         value={userTemplates}
       />
       <AdminMetricCard
-        label={subscriptionsPage.columns.publicFeatures}
+        label={t('Public features')}
         value={publicFeaturesCount}
       />
     </div>
@@ -104,18 +109,22 @@ export default async function AdminSubscriptionTemplatesPage() {
 
   const fallbackPage = (
     <AdminPageShell
-      title={subscriptionsPage.templatesTitle}
-      description={subscriptionsPage.templatesDescription}
+      title={t('Subscription Templates')}
+      description={t(
+        'Create and manage reusable templates for pricing and billing operations.'
+      )}
       actions={
         <Button asChild size="sm" className="rounded-lg">
-          <Link href="/admin/subscriptions/templates/create">{subscriptionsPage.create}</Link>
+          <Link href="/admin/subscriptions/templates/create">
+            {t('Create template')}
+          </Link>
         </Button>
       }
       metrics={metricsSlot}
     >
       {templates.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {subscriptionsPage.noTemplates}
+          {t('No templates created yet.')}
         </p>
       ) : (
         <TemplateTable area="admin" route="/admin/subscriptions/templates">
@@ -124,49 +133,49 @@ export default async function AdminSubscriptionTemplatesPage() {
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.name',
-                  fallback: <>{subscriptionsPage.columns.name}</>
+                  fallback: <>{t('Name')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.scope',
-                  fallback: <>{subscriptionsPage.columns.scope}</>
+                  fallback: <>{t('Scope')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.category',
-                  fallback: <>{messages.templateForm.categoryKeyLabel}</>
+                  fallback: <>{t('Category key')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.rank',
-                  fallback: <>{messages.templateForm.hierarchyRankLabel}</>
+                  fallback: <>{t('Hierarchy rank')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.interval',
-                  fallback: <>{subscriptionsPage.columns.interval}</>
+                  fallback: <>{t('Interval')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.price',
-                  fallback: <>{subscriptionsPage.columns.price}</>
+                  fallback: <>{t('Price')}</>
                 })}
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
                   slot: 'header.public-features',
-                  fallback: <>{subscriptionsPage.columns.publicFeatures}</>
+                  fallback: <>{t('Public features')}</>
                 })}
               </TableHead>
               <TableHead className="text-right">
                 {resolveTableCellSlot({
                   slot: 'header.actions',
-                  fallback: <>{subscriptionsPage.columns.actions}</>
+                  fallback: <>{t('Actions')}</>
                 })}
               </TableHead>
             </TableRow>
@@ -174,13 +183,12 @@ export default async function AdminSubscriptionTemplatesPage() {
           <TableBody>
             {templates.map((template) => {
               const intervalLabel =
-                messages.templateForm.intervals[
-                  template.billingInterval as keyof typeof messages.templateForm.intervals
+                intervalLabels[
+                  template.billingInterval as keyof typeof intervalLabels
                 ] || template.billingInterval;
               const scopeLabel =
-                messages.templateForm.scopes[
-                  template.targetScope as keyof typeof messages.templateForm.scopes
-                ] || template.targetScope;
+                scopeLabels[template.targetScope as keyof typeof scopeLabels] ||
+                template.targetScope;
               const templatePublicFeaturesCount = template.features.filter(
                 (feature) => feature.isPublic
               ).length;
@@ -270,7 +278,7 @@ export default async function AdminSubscriptionTemplatesPage() {
                       fallback: (
                         <Button asChild variant="ghost" size="sm">
                           <Link href={`/admin/subscriptions/templates/${template.id}/edit`}>
-                            {subscriptionsPage.edit}
+                            {t('Edit')}
                           </Link>
                         </Button>
                       )
@@ -294,8 +302,10 @@ export default async function AdminSubscriptionTemplatesPage() {
       themeId={themeSelection.themeKey}
       id="page.admin.subscriptions.templates"
       data={{
-        title: subscriptionsPage.templatesTitle,
-        description: subscriptionsPage.templatesDescription
+        title: t('Subscription Templates'),
+        description: t(
+          'Create and manage reusable templates for pricing and billing operations.'
+        )
       }}
       fallback={fallbackPage}
     >

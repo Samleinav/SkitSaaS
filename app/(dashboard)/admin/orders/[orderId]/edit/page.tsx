@@ -15,7 +15,7 @@ import {
   getPaymentOrderForAdminById,
   getPaymentOrderFormOptionsForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../../../guards';
 import { toTemplateAmountLabel } from '../../form-utils';
@@ -26,8 +26,7 @@ export default async function AdminEditOrderPage({
 }: {
   params: Promise<{ orderId: string }>;
 }) {
-  const messages = await getServerMessages('admin');
-  const ordersPage = messages.ordersPage;
+  const t = await getServerTranslator({ area: 'admin' });
   await requireAdminAccess();
 
   const { orderId } = await params;
@@ -47,42 +46,53 @@ export default async function AdminEditOrderPage({
 
   const isLegacyEvent = order.eventType.startsWith('subscription.template.');
   const themeSelection = await getThemeSelectionForArea('admin');
-  const intervalLabels = messages.templateForm.intervals;
+  const intervalLabels = {
+    daily: t('Daily'),
+    weekly: t('Weekly'),
+    monthly: t('Monthly'),
+    quarterly: t('Quarterly'),
+    semiannual: t('Semi-annual'),
+    yearly: t('Yearly')
+  } as const;
 
   const editOrderForm = composeRegisteredBuildFormDefinition(
     'admin-edit-order-form',
     createAdminEditOrderBuildFormBase({
       copy: {
-        providerLabel: ordersPage.form.providerLabel,
-        statusLabel: ordersPage.form.statusLabel,
-        eventTypeLabel: ordersPage.form.eventTypeLabel,
-        teamIdLabel: ordersPage.form.teamIdLabel,
-        teamIdHint: ordersPage.form.teamIdHint,
-        templateIdLabel: ordersPage.form.templateIdLabel,
-        templateIdHint: ordersPage.form.templateIdHint,
-        paymentMethodLabel: ordersPage.form.paymentMethodLabel,
-        planNameLabel: ordersPage.form.planNameLabel,
-        amountMajorLabel: ordersPage.form.amountMajorLabel,
-        amountMajorHint: ordersPage.form.amountMajorHint,
-        currencyLabel: ordersPage.form.currencyLabel,
-        messageLabel: ordersPage.form.messageLabel,
-        messagePlaceholder: ordersPage.form.messagePlaceholder,
-        providerPlanIdLabel: ordersPage.form.providerPlanIdLabel,
-        externalPaymentIdLabel: ordersPage.form.externalPaymentIdLabel,
-        externalOrderIdLabel: ordersPage.form.externalOrderIdLabel,
+        providerLabel: t('Provider'),
+        statusLabel: t('Order status'),
+        eventTypeLabel: t('Event type'),
+        teamIdLabel: t('Team (for organization subscription)'),
+        teamIdHint: t(
+          'Choose the team that receives the organization-scope subscription.'
+        ),
+        templateIdLabel: t('Subscription template'),
+        templateIdHint: t(
+          'Required. Templates are filtered by selected target scope.'
+        ),
+        paymentMethodLabel: t('Payment method'),
+        planNameLabel: t('Plan name'),
+        amountMajorLabel: t('Amount'),
+        amountMajorHint: t('Use decimal format (for example, 10.50).'),
+        currencyLabel: t('Currency'),
+        messageLabel: t('Message'),
+        messagePlaceholder: t('Optional context for event execution'),
+        providerPlanIdLabel: t('Provider plan ID'),
+        externalPaymentIdLabel: t('External payment ID'),
+        externalOrderIdLabel: t('External order ID'),
         statusLabels: {
-          pending: ordersPage.table.pending,
-          received: ordersPage.table.received,
-          canceled: ordersPage.table.canceled,
-          failed: ordersPage.table.failed
+          pending: t('pending'),
+          received: t('received'),
+          canceled: t('canceled'),
+          failed: t('failed')
         }
       }
     }),
     {
       submit: {
-        idleLabel: ordersPage.saveOrder,
-        pendingLabel: ordersPage.savingOrder,
-        successLabel: ordersPage.savedOrder,
+        idleLabel: t('Save order'),
+        pendingLabel: t('Saving order...'),
+        successLabel: t('Order saved'),
         align: 'start'
       },
       values: {
@@ -102,17 +112,18 @@ export default async function AdminEditOrderPage({
         externalOrderId: order.externalOrderId ?? ''
       },
       dynamicOptions: {
-        teamOptions: formOptions.teams.map((t) => ({
-          value: t.id,
-          label: `${t.name} (#${t.id})`
+        teamOptions: formOptions.teams.map((team) => ({
+          value: team.id,
+          label: `${team.name} (#${team.id})`
         })),
-        templateOptions: formOptions.templates.map((t) => {
+        templateOptions: formOptions.templates.map((template) => {
           const intervalLabel =
-            intervalLabels[t.billingInterval as keyof typeof intervalLabels] ||
-            t.billingInterval;
+            intervalLabels[
+              template.billingInterval as keyof typeof intervalLabels
+            ] || template.billingInterval;
           return {
-            value: t.id,
-            label: `${t.name} (#${t.id}) — ${intervalLabel} — ${toTemplateAmountLabel(t.priceCents, t.currency)}`
+            value: template.id,
+            label: `${template.name} (#${template.id}) — ${intervalLabel} — ${toTemplateAmountLabel(template.priceCents, template.currency)}`
           };
         })
       }
@@ -123,17 +134,23 @@ export default async function AdminEditOrderPage({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>{ordersPage.editTitle}</CardTitle>
-          <CardDescription>{ordersPage.editDescription}</CardDescription>
+          <CardTitle>{t('Edit Order')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Update order data and trigger related payment/order events after saving.'
+            )}
+          </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/admin/orders">{ordersPage.backToOrders}</Link>
+          <Link href="/admin/orders">{t('Back to orders')}</Link>
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLegacyEvent && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-            {ordersPage.legacySystemEventWarning}
+            {t(
+              'This record belongs to a template maintenance event. It is not a real checkout order.'
+            )}
           </div>
         )}
         {(order.providerPlanId ||
@@ -150,7 +167,7 @@ export default async function AdminEditOrderPage({
               {order.providerPlanId && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {ordersPage.form.providerPlanIdLabel}
+                    {t('Provider plan ID')}
                   </p>
                   <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
                     {order.providerPlanId}
@@ -160,7 +177,7 @@ export default async function AdminEditOrderPage({
               {order.externalPaymentId && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {ordersPage.form.externalPaymentIdLabel}
+                    {t('External payment ID')}
                   </p>
                   <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
                     {order.externalPaymentId}
@@ -170,7 +187,7 @@ export default async function AdminEditOrderPage({
               {order.externalOrderId && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {ordersPage.form.externalOrderIdLabel}
+                    {t('External order ID')}
                   </p>
                   <p className="truncate rounded-md border border-border/50 bg-muted/30 px-3 py-2 font-mono text-xs">
                     {order.externalOrderId}
@@ -199,8 +216,10 @@ export default async function AdminEditOrderPage({
       themeId={themeSelection.themeKey}
       id="page.admin.orders.edit"
       data={{
-        title: ordersPage.editTitle,
-        description: ordersPage.editDescription,
+        title: t('Edit Order'),
+        description: t(
+          'Update order data and trigger related payment/order events after saving.'
+        ),
         orderId: order.id
       }}
       fallback={fallbackPage}

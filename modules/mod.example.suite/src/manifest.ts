@@ -87,6 +87,9 @@ export default defineModule({
   displayName: 'Example Suite',
   description:
     'Complete module example with DB tables, admin/dashboard pages, actions and API.',
+  languagePack: {
+    scopes: ['shared-flat', 'module-flat']
+  },
   adminRouteAliases: [String(ExampleRoutes.admin.home)],
   dashboardRouteAliases: [String(ExampleRoutes.dashboard.home)],
   adminNavItems: [

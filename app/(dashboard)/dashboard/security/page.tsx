@@ -9,7 +9,7 @@ import {
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { getUser } from '@/lib/db/queries';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
   createDashboardDeleteAccountBuildFormBase,
@@ -17,8 +17,8 @@ import {
 } from './forms';
 
 export default async function SecurityPage() {
-  const [messages, currentUser, themeSelection] = await Promise.all([
-    getServerMessages('dashboard'),
+  const [t, currentUser, themeSelection] = await Promise.all([
+    getServerTranslator({ area: 'dashboard' }),
     getUser(),
     getThemeSelectionForArea('dashboard')
   ]);
@@ -27,20 +27,19 @@ export default async function SecurityPage() {
     redirect('/login');
   }
 
-  const security = messages.security;
   const updatePasswordForm = composeRegisteredBuildFormDefinition(
     'dashboard-update-password-form',
     createDashboardUpdatePasswordBuildFormBase({
       copy: {
-        currentPasswordLabel: security.currentPassword,
-        newPasswordLabel: security.newPassword,
-        confirmPasswordLabel: security.confirmNewPassword
+        currentPasswordLabel: t('Current Password'),
+        newPasswordLabel: t('New Password'),
+        confirmPasswordLabel: t('Confirm New Password')
       }
     }),
     {
       submit: {
-        idleLabel: security.updatePassword,
-        pendingLabel: security.updating,
+        idleLabel: t('Update Password'),
+        pendingLabel: t('Updating...'),
         align: 'start'
       }
     }
@@ -49,20 +48,22 @@ export default async function SecurityPage() {
     'dashboard-delete-account-form',
     createDashboardDeleteAccountBuildFormBase({
       copy: {
-        passwordLabel: security.confirmPassword
+        passwordLabel: t('Confirm Password')
       }
     }),
     {
       submit: {
-        idleLabel: security.deleteAccount,
-        pendingLabel: security.deleting,
+        idleLabel: t('Delete Account'),
+        pendingLabel: t('Deleting...'),
         align: 'start',
         variant: 'destructive',
         confirm: {
-          title: security.confirmDeleteTitle,
-          description: security.confirmDeleteDescription,
-          confirmLabel: security.confirm,
-          cancelLabel: security.cancel,
+          title: t('Delete your account?'),
+          description: t(
+            'This action is permanent and removes your account data.'
+          ),
+          confirmLabel: t('Delete account'),
+          cancelLabel: t('Cancel'),
           triggerVariant: 'destructive',
           confirmVariant: 'destructive'
         }
@@ -72,12 +73,12 @@ export default async function SecurityPage() {
   const fallbackPage = (
     <section className="flex-1 space-y-8 p-4 lg:p-8">
       <h1 className="text-lg font-medium text-foreground lg:text-2xl">
-        {security.title}
+        {t('Security Settings')}
       </h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>{security.passwordTitle}</CardTitle>
+          <CardTitle>{t('Password')}</CardTitle>
         </CardHeader>
         <CardContent>
           <TemplateBuildForm
@@ -91,11 +92,13 @@ export default async function SecurityPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{security.deleteAccountTitle}</CardTitle>
+          <CardTitle>{t('Delete Account')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {security.deleteWarning}
+            {t(
+              'Account deletion is non-reversable. Please proceed with caution.'
+            )}
           </p>
           <TemplateBuildForm
             definition={deleteAccountForm}
@@ -117,8 +120,8 @@ export default async function SecurityPage() {
       themeId={themeSelection.themeKey}
       id="page.dashboard.security"
       data={{
-        title: security.title,
-        description: security.passwordTitle
+        title: t('Security Settings'),
+        description: t('Password')
       }}
       fallback={fallbackPage}
     >

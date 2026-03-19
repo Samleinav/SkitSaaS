@@ -4,26 +4,26 @@ import {
   DataTable,
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import type { AdminAppConfigModuleItem } from './config';
 import { getModulesTableDefinition } from './columns';
+import type { AdminAppConfigModulesCopy } from './i18n';
 
 export function AdminAppConfigModulesDataTable({
   data,
-  messages,
+  copy,
   tableTemplate
 }: {
   data: AdminAppConfigModuleItem[];
-  messages: AdminMessages;
+  copy: AdminAppConfigModulesCopy;
   tableTemplate?: DataTableThemeTemplate;
 }) {
   return (
     <DataTable
       definition={getModulesTableDefinition({
         data,
-        messages
+        copy
       })}
-      labels={messages.dataTable}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[980px]"
     />

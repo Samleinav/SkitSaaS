@@ -9,7 +9,7 @@ import {
   createSubscriptionTemplateAction,
   updateSubscriptionTemplateAction
 } from '../actions';
-import { useAreaMessages } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 import { SUBSCRIPTION_BILLING_INTERVALS } from '@/lib/payments/subscription-intervals';
 import { SUBSCRIPTION_TARGET_SCOPES } from '@/lib/payments/subscription-scopes';
 import {
@@ -102,16 +102,39 @@ export function SubscriptionTemplateForm({
   mode = 'create',
   template
 }: SubscriptionTemplateFormProps) {
-  const messages = useAreaMessages('admin');
-  const templateForm = messages.templateForm;
+  const t = useI18n({ area: 'admin' });
   const [rows, setRows] = useState<FeatureRow[]>(() => toFeatureRows(template));
   const action =
     mode === 'update'
       ? updateSubscriptionTemplateAction
       : createSubscriptionTemplateAction;
   const submitLabel =
-    mode === 'update' ? templateForm.updateTemplate : templateForm.createTemplate;
+    mode === 'update' ? t('Update template') : t('Create template');
   const pendingSubmitLabel = `${submitLabel}...`;
+  const scopeLabels: Record<(typeof SUBSCRIPTION_TARGET_SCOPES)[number], string> = {
+    user: t('User'),
+    organization: t('Organization')
+  };
+  const intervalLabels: Record<
+    (typeof SUBSCRIPTION_BILLING_INTERVALS)[number],
+    string
+  > = {
+    daily: t('Daily'),
+    weekly: t('Weekly'),
+    monthly: t('Monthly'),
+    quarterly: t('Quarterly'),
+    semiannual: t('Semi-annual'),
+    yearly: t('Yearly')
+  };
+  const valueTypeLabels: Record<
+    (typeof SUBSCRIPTION_FEATURE_VALUE_TYPES)[number],
+    string
+  > = {
+    text: t('Text'),
+    number: t('Number'),
+    boolean: t('Boolean'),
+    null: t('No value')
+  };
 
   return (
     <form action={action} className="space-y-6">
@@ -121,23 +144,25 @@ export function SubscriptionTemplateForm({
 
       <div className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4">
         <h3 className="text-sm font-medium text-foreground">
-          {templateForm.planSectionTitle}
+          {t('Plan settings')}
         </h3>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div className="space-y-2">
-            <Label htmlFor="template-name">{templateForm.templateNameLabel}</Label>
+            <Label htmlFor="template-name">{t('Template name')}</Label>
             <Input
               id="template-name"
               name="name"
               required
-              placeholder={templateForm.templateNamePlaceholder}
+              placeholder={t('Template name')}
               defaultValue={template?.name || ''}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-target-scope">{templateForm.targetScopeLabel}</Label>
+            <Label htmlFor="template-target-scope">
+              {t('Subscription scope')}
+            </Label>
             <select
               id="template-target-scope"
               name="targetScope"
@@ -146,38 +171,38 @@ export function SubscriptionTemplateForm({
             >
               {SUBSCRIPTION_TARGET_SCOPES.map((scope) => (
                 <option key={scope} value={scope}>
-                  {templateForm.scopes[scope]}
+                  {scopeLabels[scope]}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-category-key">{templateForm.categoryKeyLabel}</Label>
+            <Label htmlFor="template-category-key">{t('Category key')}</Label>
             <Input
               id="template-category-key"
               name="categoryKey"
               required
-              placeholder={templateForm.categoryKeyPlaceholder}
+              placeholder={t('Category key (e.g. team.pro)')}
               defaultValue={template?.categoryKey || ''}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-hierarchy-rank">{templateForm.hierarchyRankLabel}</Label>
+            <Label htmlFor="template-hierarchy-rank">{t('Hierarchy rank')}</Label>
             <Input
               id="template-hierarchy-rank"
               name="hierarchyRank"
               type="number"
               step={1}
-              placeholder={templateForm.hierarchyRankPlaceholder}
+              placeholder={t('Hierarchy rank (higher means bigger plan)')}
               defaultValue={template?.hierarchyRank ?? 0}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="template-billing-interval">
-              {templateForm.billingIntervalLabel}
+              {t('Billing interval')}
             </Label>
             <select
               id="template-billing-interval"
@@ -187,14 +212,14 @@ export function SubscriptionTemplateForm({
             >
               {SUBSCRIPTION_BILLING_INTERVALS.map((interval) => (
                 <option key={interval} value={interval}>
-                  {templateForm.intervals[interval]}
+                  {intervalLabels[interval]}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-price">{templateForm.priceLabel}</Label>
+            <Label htmlFor="template-price">{t('Price')}</Label>
             <Input
               id="template-price"
               name="price"
@@ -203,13 +228,15 @@ export function SubscriptionTemplateForm({
               min="0"
               step="0.01"
               inputMode="decimal"
-              placeholder={templateForm.pricePlaceholder}
+              placeholder={t('Price (e.g. 19.99)')}
               defaultValue={toMoneyInput(template?.priceCents)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-compare-at-price">{templateForm.compareAtPriceLabel}</Label>
+            <Label htmlFor="template-compare-at-price">
+              {t('Compare at price')}
+            </Label>
             <Input
               id="template-compare-at-price"
               name="compareAtPrice"
@@ -217,30 +244,30 @@ export function SubscriptionTemplateForm({
               min="0"
               step="0.01"
               inputMode="decimal"
-              placeholder={templateForm.compareAtPricePlaceholder}
+              placeholder={t('Compare at price (optional)')}
               defaultValue={toMoneyInput(template?.compareAtPriceCents)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-currency">{templateForm.currencyLabel}</Label>
+            <Label htmlFor="template-currency">{t('Currency')}</Label>
             <Input
               id="template-currency"
               name="currency"
-              placeholder={templateForm.currencyPlaceholder}
+              placeholder={t('Currency (USD)')}
               defaultValue={template?.currency || 'USD'}
               className="uppercase"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-trial-days">{templateForm.trialDaysLabel}</Label>
+            <Label htmlFor="template-trial-days">{t('Trial days')}</Label>
             <Input
               id="template-trial-days"
               name="trialPeriodDays"
               type="number"
               min={0}
-              placeholder={templateForm.trialDaysPlaceholder}
+              placeholder={t('Trial days')}
               defaultValue={template?.trialPeriodDays ?? 0}
             />
           </div>
@@ -250,7 +277,7 @@ export function SubscriptionTemplateForm({
       <div className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-foreground">
-            {templateForm.featuresSectionTitle}
+            {t('Template features')}
           </h3>
           <Button
             type="button"
@@ -258,22 +285,24 @@ export function SubscriptionTemplateForm({
             variant="outline"
             onClick={() => setRows((prev) => [...prev, createEmptyFeatureRow()])}
           >
-            {templateForm.addFeature}
+            {t('Add feature')}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{templateForm.featuresSectionHint}</p>
+        <p className="text-xs text-muted-foreground">
+          {t('Only rows marked as public are shown on the pricing page.')}
+        </p>
 
         <div className="overflow-x-auto rounded-md border border-border/70">
           <table className="w-full min-w-[920px] text-sm">
             <thead className="bg-muted/50 text-xs tracking-wide text-muted-foreground uppercase">
               <tr>
-                <th className="px-3 py-2 text-left">{templateForm.featureKeyLabel}</th>
-                <th className="px-3 py-2 text-left">{templateForm.featureLabelLabel}</th>
-                <th className="px-3 py-2 text-left">{templateForm.featureTypeLabel}</th>
-                <th className="px-3 py-2 text-left">{templateForm.featureValueLabel}</th>
-                <th className="px-3 py-2 text-left">{templateForm.featureValueLabelLabel}</th>
-                <th className="px-3 py-2 text-center">{templateForm.featurePublicLabel}</th>
-                <th className="px-3 py-2 text-right">{templateForm.actionsLabel}</th>
+                <th className="px-3 py-2 text-left">{t('Key')}</th>
+                <th className="px-3 py-2 text-left">{t('Label')}</th>
+                <th className="px-3 py-2 text-left">{t('Value type')}</th>
+                <th className="px-3 py-2 text-left">{t('Value')}</th>
+                <th className="px-3 py-2 text-left">{t('Public value label')}</th>
+                <th className="px-3 py-2 text-center">{t('Public')}</th>
+                <th className="px-3 py-2 text-right">{t('Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -287,7 +316,7 @@ export function SubscriptionTemplateForm({
                       <Input
                         name={`featureKey_${row.id}`}
                         value={row.key}
-                        placeholder={templateForm.featureKeyPlaceholder}
+                        placeholder={t('feature key')}
                         onChange={(event) =>
                           setRows((prev) =>
                             prev.map((item) =>
@@ -303,7 +332,7 @@ export function SubscriptionTemplateForm({
                       <Input
                         name={`featureLabel_${row.id}`}
                         value={row.label}
-                        placeholder={templateForm.featureLabelPlaceholder}
+                        placeholder={t('Feature label')}
                         onChange={(event) =>
                           setRows((prev) =>
                             prev.map((item) =>
@@ -339,7 +368,7 @@ export function SubscriptionTemplateForm({
                       >
                         {SUBSCRIPTION_FEATURE_VALUE_TYPES.map((valueType) => (
                           <option key={valueType} value={valueType}>
-                            {templateForm.valueTypes[valueType]}
+                            {valueTypeLabels[valueType]}
                           </option>
                         ))}
                       </select>
@@ -348,7 +377,7 @@ export function SubscriptionTemplateForm({
                       <Input
                         name={`featureValue_${row.id}`}
                         value={row.value}
-                        placeholder={templateForm.featureValuePlaceholder}
+                        placeholder={t('feature value')}
                         disabled={isNullType}
                         onChange={(event) =>
                           setRows((prev) =>
@@ -365,7 +394,7 @@ export function SubscriptionTemplateForm({
                       <Input
                         name={`featureValueLabel_${row.id}`}
                         value={row.valueLabel}
-                        placeholder={templateForm.featureValueLabelPlaceholder}
+                        placeholder={t('Shown value label')}
                         disabled={isNullType}
                         onChange={(event) =>
                           setRows((prev) =>
@@ -408,7 +437,7 @@ export function SubscriptionTemplateForm({
                           )
                         }
                       >
-                        {templateForm.remove}
+                        {t('Remove')}
                       </Button>
                     </td>
                   </tr>

@@ -24,7 +24,7 @@ import {
   inviteTeamMember,
   removeTeamMember
 } from './actions';
-import { useAreaMessages, useI18n } from '@/lib/i18n/client';
+import { useI18n } from '@/lib/i18n/client';
 
 type ActionState = {
   error?: string;
@@ -34,43 +34,42 @@ type ActionState = {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function SubscriptionSkeleton() {
-  const messages = useAreaMessages('dashboard');
+  const t = useI18n({ area: 'dashboard' });
 
   return (
     <Card className="mb-8 h-[140px]">
       <CardHeader>
-        <CardTitle>{messages.team.subscription.title}</CardTitle>
+        <CardTitle>{t('Team Subscription')}</CardTitle>
       </CardHeader>
     </Card>
   );
 }
 
 function ManageSubscription() {
-  const messages = useAreaMessages('dashboard');
-  const subscription = messages.team.subscription;
+  const t = useI18n({ area: 'dashboard' });
   const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
 
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>{subscription.title}</CardTitle>
+        <CardTitle>{t('Team Subscription')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div className="mb-4 sm:mb-0">
               <p className="font-medium">
-                {subscription.currentPlan}:{' '}
+                {t('Current Plan')}:{' '}
                 {teamData?.paymentProvider
-                  ? teamData?.planName || subscription.unknown
-                  : subscription.free}
+                  ? teamData?.planName || t('Unknown')
+                  : t('Subscription Free')}
               </p>
               <p className="text-sm text-muted-foreground">
                 {teamData?.subscriptionStatus === 'active'
-                  ? subscription.billedMonthly
+                  ? t('Billed monthly')
                   : teamData?.subscriptionStatus === 'trialing'
-                  ? subscription.trialPeriod
-                  : subscription.noActiveSubscription}
+                    ? t('Trial period')
+                    : t('No active subscription')}
               </p>
             </div>
             <form action={customerPortalAction}>
@@ -78,8 +77,8 @@ function ManageSubscription() {
                 variant="outline"
                 idleLabel={
                   teamData?.paymentProvider === 'paypal'
-                    ? subscription.cancel
-                    : subscription.manage
+                    ? t('Cancel Subscription')
+                    : t('Manage Subscription')
                 }
                 slot="dashboard.home.subscription.manage"
               />
@@ -92,12 +91,12 @@ function ManageSubscription() {
 }
 
 function TeamMembersSkeleton() {
-  const messages = useAreaMessages('dashboard');
+  const t = useI18n({ area: 'dashboard' });
 
   return (
     <Card className="mb-8 h-[140px]">
       <CardHeader>
-        <CardTitle>{messages.team.members.title}</CardTitle>
+        <CardTitle>{t('Team Members')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="animate-pulse space-y-4 mt-1">
@@ -115,8 +114,7 @@ function TeamMembersSkeleton() {
 }
 
 function TeamMembers() {
-  const messages = useAreaMessages('dashboard');
-  const teamMembers = messages.team.members;
+  const t = useI18n({ area: 'dashboard' });
   const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
   const [removeState, removeAction, isRemovePending] = useActionState<
     ActionState,
@@ -124,17 +122,17 @@ function TeamMembers() {
   >(removeTeamMember, {});
 
   const getUserDisplayName = (user: Pick<User, 'id' | 'name' | 'email'>) => {
-    return user.name || user.email || teamMembers.unknownUser;
+    return user.name || user.email || t('Unknown User');
   };
 
   if (!teamData?.teamMembers?.length) {
     return (
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>{teamMembers.title}</CardTitle>
+          <CardTitle>{t('Team Members')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{teamMembers.noMembers}</p>
+          <p className="text-muted-foreground">{t('No team members yet.')}</p>
         </CardContent>
       </Card>
     );
@@ -143,7 +141,7 @@ function TeamMembers() {
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>{teamMembers.title}</CardTitle>
+        <CardTitle>{t('Team Members')}</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-4">
@@ -184,11 +182,13 @@ function TeamMembers() {
                     <input type="hidden" name="memberId" value={member.id} />
                     <ThemedConfirmSubmitButton
                       formId={formId}
-                      title={teamMembers.confirmRemoveTitle}
-                      description={teamMembers.confirmRemoveDescription}
-                      triggerLabel={teamMembers.remove}
-                      confirmLabel={teamMembers.confirm}
-                      cancelLabel={teamMembers.cancel}
+                      title={t('Remove this team member?')}
+                      description={t(
+                        'This person will lose access to the team immediately.'
+                      )}
+                      triggerLabel={t('Remove')}
+                      confirmLabel={t('Remove member')}
+                      cancelLabel={t('Cancel')}
                       triggerVariant="outline"
                       triggerSize="sm"
                       disabled={isRemovePending}
@@ -209,21 +209,19 @@ function TeamMembers() {
 }
 
 function InviteTeamMemberSkeleton() {
-  const messages = useAreaMessages('dashboard');
+  const t = useI18n({ area: 'dashboard' });
 
   return (
     <Card className="h-[260px]">
       <CardHeader>
-        <CardTitle>{messages.team.invite.title}</CardTitle>
+        <CardTitle>{t('Invite Team Member')}</CardTitle>
       </CardHeader>
     </Card>
   );
 }
 
 function InviteTeamMember() {
-  const messages = useAreaMessages('dashboard');
-  const invite = messages.team.invite;
-  const t = useI18n();
+  const t = useI18n({ area: 'dashboard' });
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const isOwner = user?.role === 'owner';
   const notify = useNotify();
@@ -244,25 +242,25 @@ function InviteTeamMember() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{invite.title}</CardTitle>
+        <CardTitle>{t('Invite Team Member')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={inviteAction} className="space-y-4" onSubmit={handleInviteSubmit}>
           <div>
             <Label htmlFor="email" className="mb-2">
-              {invite.emailLabel}
+              {t('Email')}
             </Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder={invite.emailPlaceholder}
+              placeholder={t('Enter email')}
               required
               disabled={!isOwner}
             />
           </div>
           <div>
-            <Label>{invite.roleLabel}</Label>
+            <Label>{t('Role')}</Label>
             <RadioGroup
               defaultValue="member"
               name="role"
@@ -271,11 +269,11 @@ function InviteTeamMember() {
             >
               <div className="flex items-center space-x-2 mt-2">
                 <RadioGroupItem value="member" id="member" />
-                <Label htmlFor="member">{invite.member}</Label>
+                <Label htmlFor="member">{t('Member')}</Label>
               </div>
               <div className="flex items-center space-x-2 mt-2">
                 <RadioGroupItem value="owner" id="owner" />
-                <Label htmlFor="owner">{invite.owner}</Label>
+                <Label htmlFor="owner">{t('Owner')}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -286,8 +284,8 @@ function InviteTeamMember() {
             <p className="text-green-500">{inviteState.success}</p>
           )}
           <ThemedAsyncSubmitButton
-            idleLabel={invite.inviteMember}
-            pendingLabel={invite.inviting}
+            idleLabel={t('Invite Member')}
+            pendingLabel={t('Inviting...')}
             idleIcon={<PlusCircle className="mr-2 h-4 w-4" />}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={!user}
@@ -298,7 +296,7 @@ function InviteTeamMember() {
       {!isOwner && (
         <CardFooter>
           <p className="text-sm text-muted-foreground">
-            {invite.ownerRequired}
+            {t('You must be a team owner to invite new members.')}
           </p>
         </CardFooter>
       )}
@@ -307,12 +305,12 @@ function InviteTeamMember() {
 }
 
 export default function DashboardHomeCore() {
-  const messages = useAreaMessages('dashboard');
+  const t = useI18n({ area: 'dashboard' });
 
   return (
     <section className="flex-1 p-4 lg:p-8">
       <h1 className="text-lg lg:text-2xl font-medium mb-6">
-        {messages.team.title}
+        {t('Team Settings')}
       </h1>
       <Suspense fallback={<SubscriptionSkeleton />}>
         <ManageSubscription />

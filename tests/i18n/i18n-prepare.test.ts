@@ -75,7 +75,7 @@ test('i18n:prepare fails when a locale is missing a required area file', async (
   );
 });
 
-test('i18n:prepare extends supported locales from theme config and module manifest registrations', async () => {
+test('i18n:prepare extends supported locales from generated theme/module metadata without reimporting source files', async () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-prepare-extended-'));
 
   for (const area of AREAS) {
@@ -96,20 +96,49 @@ test('i18n:prepare extends supported locales from theme config and module manife
   writeFile(path.join(tempRoot, 'themes', 'pilot', 'tokens.css'), ':root{}');
   writeFile(
     path.join(tempRoot, 'themes', 'pilot', 'config.ts'),
-    'export default { additionalLocales: ["fr"] };\n'
+    "import { defineThemeConfig } from '@skitsaas/sdk';\nexport default defineThemeConfig({ additionalLocales: ['fr'] });\n"
   );
-
   writeFile(
     path.join(tempRoot, 'modules', 'mod.alpha', 'module.json'),
     JSON.stringify({
       moduleId: 'mod.alpha',
+      moduleMode: 'source-host',
       version: '1.0.0',
-      sourceEntry: 'src/manifest.ts'
+      sourceEntry: 'src/manifest.ts',
+      sdkRange: '^1.0.0'
     })
   );
   writeFile(
     path.join(tempRoot, 'modules', 'mod.alpha', 'src', 'manifest.ts'),
-    'export default { additionalLocales: ["pt-BR", "fr"] };\n'
+    "import { defineModule } from '@skitsaas/sdk';\nexport default defineModule({ moduleId: 'mod.alpha', version: '1.0.0', displayName: 'Alpha', additionalLocales: ['pt-BR', 'fr'] });\n"
+  );
+
+  writeFile(
+    path.join(tempRoot, 'lib', 'themes', 'external.generated.ts'),
+    [
+      "export const EXTERNAL_THEME_PACKS = [",
+      "  { themeId: 'theme.pilot.admin', additionalLocales: ['fr'] }",
+      '];',
+      ''
+    ].join('\n')
+  );
+  writeFile(
+    path.join(tempRoot, 'lib', 'modules', 'external-meta.generated.ts'),
+    [
+      'export const EXTERNAL_MODULE_META = [',
+      "  { moduleId: 'mod.alpha', additionalLocales: ['pt-br', 'fr'] }",
+      '];',
+      ''
+    ].join('\n')
+  );
+
+  writeFile(
+    path.join(tempRoot, 'themes', 'pilot', 'config.ts'),
+    "throw new Error('theme config should not be imported by i18n:prepare');\n"
+  );
+  writeFile(
+    path.join(tempRoot, 'modules', 'mod.alpha', 'src', 'manifest.ts'),
+    "throw new Error('module manifest should not be imported by i18n:prepare');\n"
   );
 
   const result = await runI18nPrepare({ rootDir: tempRoot, logWarnings: false });

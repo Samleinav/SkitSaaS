@@ -10,17 +10,15 @@ import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { composeBuildFormDefinition } from '@skitsaas/sdk';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { upsertProviderConfigBatchAction } from '../actions';
 import { getAdminAppConfigData } from '../config';
 import { createAdminProviderConfigBuildFormBase } from '../forms';
 
 export default async function AdminAppConfigEmailPage() {
-  const messages = await getServerMessages('admin');
-  const appConfig = messages.appConfig;
-  const emailMessages = appConfig.email;
-  const savingLabel = `${appConfig.save}...`;
+  const t = await getServerTranslator({ area: 'admin' });
+  const savingLabel = `${t('Save')}...`;
 
   const { emailRows } = await getAdminAppConfigData();
   const emailProvider = emailRows[0]?.provider || 'smtp';
@@ -31,10 +29,10 @@ export default async function AdminAppConfigEmailPage() {
       provider: emailProvider,
       rows: emailRows,
       copy: {
-        envPrefix: appConfig.envPrefix,
-        sourcePrefix: appConfig.sourcePrefix,
-        overriddenByEnv: appConfig.overriddenByEnv,
-        dbFallbackValue: appConfig.dbFallbackValue
+        envPrefix: t('ENV'),
+        sourcePrefix: t('Value source'),
+        overriddenByEnv: t('Overridden by env'),
+        dbFallbackValue: t('DB fallback value')
       }
     }),
     {
@@ -43,7 +41,7 @@ export default async function AdminAppConfigEmailPage() {
         method: 'post'
       },
       submit: {
-        idleLabel: appConfig.save,
+        idleLabel: t('Save'),
         pendingLabel: savingLabel,
         align: 'end',
         size: 'sm',
@@ -56,18 +54,28 @@ export default async function AdminAppConfigEmailPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{appConfig.sections.email}</CardTitle>
-          <CardDescription>{emailMessages.description}</CardDescription>
+          <CardTitle>{t('Email')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Configure external SMTP delivery and review outgoing notification logs.'
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-muted-foreground">{appConfig.envPriority}</p>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'Environment values have priority. DB values are used only when env is empty.'
+            )}
+          </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>{emailMessages.smtpConfigTitle}</CardTitle>
-          <CardDescription>{emailMessages.smtpConfigDescription}</CardDescription>
+          <CardTitle>{t('SMTP Configuration')}</CardTitle>
+          <CardDescription>
+            {t('Use an external SMTP provider. Local SMTP hosts are blocked.')}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <TemplateBuildForm
@@ -81,12 +89,16 @@ export default async function AdminAppConfigEmailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{emailMessages.logsTitle}</CardTitle>
-          <CardDescription>{emailMessages.logsDescription}</CardDescription>
+          <CardTitle>{t('Email Delivery Logs')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Track each outgoing notification, recipient, trigger event, and delivery status.'
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild size="sm" variant="outline">
-            <Link href="/admin/logs?tab=email">{messages.logsPage.tabs.email}</Link>
+            <Link href="/admin/logs?tab=email">{t('Email')}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -102,8 +114,10 @@ export default async function AdminAppConfigEmailPage() {
       themeId={themeSelection.themeKey}
       id="page.admin.app-config.email"
       data={{
-        title: appConfig.sections.email,
-        description: emailMessages.description,
+        title: t('Email'),
+        description: t(
+          'Configure external SMTP delivery and review outgoing notification logs.'
+        ),
         provider: emailProvider
       }}
       fallback={fallbackPage}

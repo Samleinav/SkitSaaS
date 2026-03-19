@@ -8,7 +8,7 @@ import { LanguageSwitcher } from '@/components/i18n/language-switcher';
 import { UserMenu } from '@/components/layout/user-menu';
 import { ThemeAreaAssets } from '@/components/theme/theme-area-assets';
 import { ThemeFrontendRoute } from '@/components/theme/theme-frontend-route';
-import { getServerMessages } from '@/lib/i18n/server';
+import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
   getExternalThemeFaviconDataUrlBySelectionFromConfig,
@@ -53,8 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 async function PublicHeader() {
-  const messages = await getServerMessages('global');
-  const header = messages.header;
+  const t = await getServerTranslator({ area: 'global' });
 
   return (
     <header className="relative z-20 border-b border-amber-200/10 bg-[#050505]/75 backdrop-blur-xl">
@@ -79,19 +78,19 @@ async function PublicHeader() {
             href="/"
             className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
           >
-            {header.home}
+            {t('Home')}
           </Link>
           <Link
             href="/#features"
             className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
           >
-            {header.features}
+            {t('Features')}
           </Link>
           <Link
             href="/pricing"
             className="text-[11px] font-medium tracking-[0.2em] text-zinc-500 uppercase transition-colors hover:text-amber-100"
           >
-            {header.pricing}
+            {t('Pricing')}
           </Link>
           <Link
             href="/docs"
@@ -127,14 +126,13 @@ function PublicBackground() {
 }
 
 async function PublicFooter() {
-  const messages = await getServerMessages('global');
-  const home = messages.home;
+  const t = await getServerTranslator({ area: 'global' });
 
   return (
     <footer className="relative z-10 border-t border-amber-200/10 px-4 py-6 text-center text-[10px] tracking-[0.2em] text-zinc-500 uppercase sm:px-6 lg:px-8">
       <span className="inline-flex items-center gap-2">
         <Sparkles className="h-3.5 w-3.5 text-amber-200/70" />
-        {home.cta.title}
+        {t('Ready to launch your SaaS?')}
       </span>
     </footer>
   );

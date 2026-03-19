@@ -81,7 +81,7 @@ Validation scripts:
 Escalation path on failure:
 
 1. Fix docs in the same PR when possible.
-2. If blocked by pending runtime change, add a temporary PR note and track follow-up in `plans/checkdocs.md`.
+2. If blocked by pending runtime change, add a temporary PR note and track follow-up in an appropriate file under `plans/`.
 3. Do not merge with unresolved docs check failures.
 
 `docs:check:module-readmes` is advisory and should be treated as quality guidance, not a release blocker.
@@ -90,4 +90,3 @@ Escalation path on failure:
 
 - [Baseline Snapshots (2026-02-05)](./baseline-snapshots/2026-02-05/README.md)
 - [Canary Evidence Notes (2026-02-05)](./canary-reports/2026-02-05/notes.md)
-
