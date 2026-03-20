@@ -10,14 +10,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { setLocaleAction } from '@/app/actions/locale';
-import { SUPPORTED_LOCALES, type AppLocale } from '@/lib/i18n/config';
+import {
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_COOKIE_NAME,
+  SUPPORTED_LOCALES,
+  resolveLocale,
+  type AppLocale
+} from '@/lib/i18n/config';
 import { getLocaleDisplayName } from '@/lib/i18n/formatting';
 import { useI18n } from '@/lib/i18n/client';
 import { type I18nArea } from '@/lib/i18n/messages';
 import { useLocale } from './language-provider';
 
 const LOCALE_OPTIONS = SUPPORTED_LOCALES;
+
+function persistLocaleCookie(nextLocale: AppLocale) {
+  const locale = resolveLocale(nextLocale);
+  const cookieParts = [
+    `${LOCALE_COOKIE_NAME}=${encodeURIComponent(locale)}`,
+    'Path=/',
+    `Max-Age=${LOCALE_COOKIE_MAX_AGE}`,
+    'SameSite=Lax'
+  ];
+
+  if (window.location.protocol === 'https:') {
+    cookieParts.push('Secure');
+  }
+
+  document.cookie = cookieParts.join('; ');
+}
 
 export function LanguageSwitcher({
   area,
@@ -39,8 +60,8 @@ export function LanguageSwitcher({
       return;
     }
 
-    startTransition(async () => {
-      await setLocaleAction(nextLocale);
+    startTransition(() => {
+      persistLocaleCookie(nextLocale);
       router.refresh();
     });
   }
