@@ -12,7 +12,7 @@ import {
   listCheckoutOrderLineItems,
   markCheckoutOrderCanceled
 } from '@/lib/payments/checkout-orders';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { isStripeConfigured } from '@/lib/payments/stripe';
 import {
@@ -27,6 +27,7 @@ import {
   getCheckoutPaymentMethodRegistry,
   supportsCheckoutPaymentMethodOrderType
 } from '@/lib/payments/payment-methods';
+import { createMarketingPricingCopy } from '../../pricing/i18n';
 
 function interpolate(template: string, vars: Record<string, string | number>) {
   return Object.entries(vars).reduce(
@@ -104,8 +105,11 @@ export default async function CheckoutPage({
   params: Promise<{ checkoutToken: string }>;
   searchParams?: Promise<{ status?: string | string[]; provider?: string | string[] }>;
 }) {
-  const { locale, messages } = await getServerLocaleAndMessages('global');
-  const { pricing } = messages;
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'global' })
+  ]);
+  const { pricing } = createMarketingPricingCopy(t);
   const dateLocale = getDateLocale(locale);
 
   const user = await getUser();
@@ -223,7 +227,7 @@ export default async function CheckoutPage({
     ? new Date(subscriptionMetadata.scheduledStartTime)
     : null;
   const checkoutTitle =
-    template?.name || checkoutOrder.planName || 'Checkout order';
+    template?.name || checkoutOrder.planName || t('Checkout order');
   const checkoutSubtitle = template
     ? interpolate(
         template.targetScope === 'organization'
@@ -236,8 +240,8 @@ export default async function CheckoutPage({
             ] || template.billingInterval
         }
       )
-    : 'One-time payment';
-  const summaryLabel = template ? 'Plan summary' : 'Order summary';
+    : t('One-time payment');
+  const summaryLabel = template ? t('Plan summary') : t('Order summary');
   const summaryAmount = formatMoney(
     template?.priceCents ?? checkoutOrder.amount ?? 0,
     template?.currency ?? checkoutOrder.currency ?? 'USD',
@@ -291,7 +295,7 @@ export default async function CheckoutPage({
           snapshotName ||
           checkoutOrder.planName ||
           fallbackProductKey ||
-          'One-time product';
+          t('One-time product');
         const fallbackCurrency = checkoutOrder.currency ?? 'USD';
 
         return [
@@ -388,7 +392,7 @@ export default async function CheckoutPage({
     <main className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-14 sm:px-6 lg:px-8">
       <section className="mb-10 space-y-3">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-400">
-          Checkout
+          {t('Checkout')}
         </p>
         <h1 className="font-[family-name:var(--font-marketing-serif)] text-4xl font-medium text-zinc-100 sm:text-5xl">
           {checkoutTitle}
@@ -443,7 +447,7 @@ export default async function CheckoutPage({
           ) : (
             <div className="mt-6 space-y-3">
               <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-400">
-                Items
+                {t('Items')}
               </p>
               {oneTimeSummaryItems.length > 0 ? (
                 <ul className="space-y-2 text-sm text-zinc-300">
@@ -463,8 +467,8 @@ export default async function CheckoutPage({
                             </p>
                           ) : null}
                           <p className="mt-1 text-xs text-zinc-500">
-                            Qty {item.quantity} |{' '}
-                            {formatMoney(item.unitAmount, item.currency, dateLocale)} each
+                            {t('Qty')} {item.quantity} |{' '}
+                            {formatMoney(item.unitAmount, item.currency, dateLocale)} {t('each')}
                           </p>
                         </div>
                         <p className="text-sm font-medium text-zinc-100">
@@ -476,7 +480,7 @@ export default async function CheckoutPage({
                 </ul>
               ) : (
                 <p className="text-sm text-zinc-400">
-                  No line items were found for this order.
+                  {t('No line items were found for this order.')}
                 </p>
               )}
             </div>
@@ -503,15 +507,17 @@ export default async function CheckoutPage({
               )
             ) : !isPayable ? (
               <div className="space-y-2 rounded-xl border border-amber-200/20 bg-amber-200/10 p-4 text-sm text-amber-100">
-                <p className="font-medium capitalize">Checkout {statusLabel}.</p>
+                <p className="font-medium capitalize">
+                  {interpolate(t('Checkout {status}.'), { status: statusLabel })}
+                </p>
                 <p className="text-xs text-amber-200/80">
-                  Start a new checkout from pricing.
+                  {t('Start a new checkout from pricing.')}
                 </p>
                 <Link
                   href={restartHref}
                   className="inline-flex items-center text-xs font-medium uppercase tracking-[0.16em] text-amber-100 underline"
                 >
-                  Restart checkout
+                  {t('Restart checkout')}
                 </Link>
               </div>
             ) : (

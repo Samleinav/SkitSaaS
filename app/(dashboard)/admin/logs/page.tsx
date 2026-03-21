@@ -12,14 +12,14 @@ import {
   getEmailLogsForAdmin,
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
 import { AdminLogsDataTable } from './logs-data-table';
 import type { AdminSystemLogRow } from './log-columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import { createAdminLogsCopy, type AdminLogsCopy } from './i18n';
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -42,10 +42,10 @@ function formatActorLabel(
     actorUserId: number | null;
     actorRole: string | null;
   },
-  messages: AdminMessages['logsPage']['table']
+  copy: AdminLogsCopy['table']
 ) {
   const actorBase =
-    actorEmail || (actorUserId ? `user:${actorUserId}` : messages.noActor);
+    actorEmail || (actorUserId ? `user:${actorUserId}` : copy.noActor);
 
   if (!actorRole) {
     return actorBase;
@@ -62,14 +62,14 @@ function formatEntityLabel(
     entityType: string | null;
     entityId: string | null;
   },
-  messages: AdminMessages['logsPage']['table']
+  copy: AdminLogsCopy['table']
 ) {
   if (!entityType && !entityId) {
-    return messages.noEntity;
+    return copy.noEntity;
   }
 
   if (!entityType) {
-    return entityId || messages.noEntity;
+    return entityId || copy.noEntity;
   }
 
   if (!entityId) {
@@ -118,9 +118,13 @@ function truncateText(value: string | null, maxLength: number) {
 }
 
 export default async function AdminLogsPage({ searchParams }: PageProps) {
-  const { locale, messages } = await getServerLocaleAndMessages('admin');
-  const logsPage = messages.logsPage;
-  const emailMessages = messages.appConfig.email;
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'admin' })
+  ]);
+  const copy = createAdminLogsCopy(t);
+  const logsPage = copy;
+  const emailMessages = copy.email;
   const dateLocale = getDateLocale(locale);
   const resolvedSearchParams = await searchParams;
   const selectedTab = resolveLogTab(resolvedSearchParams.tab);
@@ -192,7 +196,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
         {selectedTab === 'system' ? (
           <AdminLogsDataTable
             data={rows}
-            messages={messages}
+            copy={copy}
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin',
@@ -291,4 +295,3 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
     </ThemeCodeTemplate>
   );
 }
-

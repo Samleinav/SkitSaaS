@@ -5,23 +5,23 @@ import {
   type DataTableThemeTemplate
 } from '@/components/ui/data-table';
 import { getOrderTableDefinition, type AdminOrderRow } from './order-columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminOrdersCopy } from './i18n';
 
 type AdminOrdersDataTableProps = {
   data: AdminOrderRow[];
-  messages: AdminMessages;
+  copy: AdminOrdersCopy;
   tableTemplate?: DataTableThemeTemplate;
 };
 
 export function AdminOrdersDataTable({
   data,
-  messages,
+  copy,
   tableTemplate
 }: AdminOrdersDataTableProps) {
   return (
     <DataTable
-      definition={getOrderTableDefinition({ data, messages })}
-      labels={messages.dataTable}
+      definition={getOrderTableDefinition({ data, copy })}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[1940px]"
     />

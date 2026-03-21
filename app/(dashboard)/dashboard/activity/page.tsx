@@ -14,11 +14,10 @@ import {
 import { ActivityType } from '@/lib/db/schema';
 import { getActivityLogs } from '@/lib/db/queries';
 import {
-  getServerLocaleAndMessages,
+  getRequestLocale,
   getServerTranslator
 } from '@/lib/i18n/server';
 import { formatRelativeTimeLabel } from '@/lib/i18n/formatting';
-import type { DashboardMessages } from '@/lib/i18n/messages/dashboard';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 
@@ -36,54 +35,102 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.RESET_PASSWORD]: Lock,
 };
 
+type DashboardActivityCopy = {
+  title: string;
+  recentActivity: string;
+  fromIp: string;
+  noActivityTitle: string;
+  noActivityDescription: string;
+  actions: {
+    signUp: string;
+    signIn: string;
+    signOut: string;
+    updatePassword: string;
+    deleteAccount: string;
+    updateAccount: string;
+    createTeam: string;
+    removeTeamMember: string;
+    inviteTeamMember: string;
+    acceptInvitation: string;
+    resetPassword: string;
+    unknown: string;
+  };
+};
+
+function createDashboardActivityCopy(t: Awaited<ReturnType<typeof getServerTranslator>>): DashboardActivityCopy {
+  return {
+    title: t('Activity Log'),
+    recentActivity: t('Recent Activity'),
+    fromIp: t('from IP'),
+    noActivityTitle: t('No activity yet'),
+    noActivityDescription: t(
+      "When you perform actions like signing in or updating your account, they'll appear here."
+    ),
+    actions: {
+      signUp: t('You signed up'),
+      signIn: t('You signed in'),
+      signOut: t('You signed out'),
+      updatePassword: t('You changed your password'),
+      deleteAccount: t('You deleted your account'),
+      updateAccount: t('You updated your account'),
+      createTeam: t('You created a new team'),
+      removeTeamMember: t('You removed a team member'),
+      inviteTeamMember: t('You invited a team member'),
+      acceptInvitation: t('You accepted an invitation'),
+      resetPassword: t('You reset your password'),
+      unknown: t('Unknown action occurred')
+    }
+  };
+}
+
 function formatAction(
   action: ActivityType,
-  messages: DashboardMessages['activity']['actions']
+  actions: DashboardActivityCopy['actions']
 ): string {
   switch (action) {
     case ActivityType.SIGN_UP:
-      return messages.signUp;
+      return actions.signUp;
     case ActivityType.SIGN_IN:
-      return messages.signIn;
+      return actions.signIn;
     case ActivityType.SIGN_OUT:
-      return messages.signOut;
+      return actions.signOut;
     case ActivityType.UPDATE_PASSWORD:
-      return messages.updatePassword;
+      return actions.updatePassword;
     case ActivityType.DELETE_ACCOUNT:
-      return messages.deleteAccount;
+      return actions.deleteAccount;
     case ActivityType.UPDATE_ACCOUNT:
-      return messages.updateAccount;
+      return actions.updateAccount;
     case ActivityType.CREATE_TEAM:
-      return messages.createTeam;
+      return actions.createTeam;
     case ActivityType.REMOVE_TEAM_MEMBER:
-      return messages.removeTeamMember;
+      return actions.removeTeamMember;
     case ActivityType.INVITE_TEAM_MEMBER:
-      return messages.inviteTeamMember;
+      return actions.inviteTeamMember;
     case ActivityType.ACCEPT_INVITATION:
-      return messages.acceptInvitation;
+      return actions.acceptInvitation;
     case ActivityType.RESET_PASSWORD:
-      return messages.resetPassword;
+      return actions.resetPassword;
     default:
-      return messages.unknown;
+      return actions.unknown;
   }
 }
 
 export default async function ActivityPage() {
-  const [{ locale, messages }, logs, themeSelection, t] = await Promise.all([
-    getServerLocaleAndMessages('dashboard'),
+  const [locale, logs, themeSelection, t] = await Promise.all([
+    getRequestLocale(),
     getActivityLogs(),
     getThemeSelectionForArea('dashboard'),
-    getServerTranslator()
+    getServerTranslator({ area: 'dashboard' })
   ]);
-  const activity = messages.activity;
+  const copy = createDashboardActivityCopy(t);
   const fallbackPage = (
     <section className="flex-1 p-4 lg:p-8">
       <h1 className="mb-6 text-lg font-medium text-foreground lg:text-2xl">
-        {activity.title}
+        {copy.title}
       </h1>
       <Card>
         <CardHeader>
-          <CardTitle>{activity.recentActivity}</CardTitle>
+          <CardTitle>{copy.recentActivity}</CardTitle>
         </CardHeader>
         <CardContent>
           {logs.length > 0 ? (
@@ -92,7 +139,7 @@ export default async function ActivityPage() {
                 const Icon = iconMap[log.action as ActivityType] || Settings;
                 const formattedAction = formatAction(
                   log.action as ActivityType,
-                  activity.actions
+                  copy.actions
                 );
 
                 return (
@@ -103,7 +150,7 @@ export default async function ActivityPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">
                         {formattedAction}
-                        {log.ipAddress && ` ${activity.fromIp} ${log.ipAddress}`}
+                        {log.ipAddress && ` ${copy.fromIp} ${log.ipAddress}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatRelativeTimeLabel({
@@ -121,10 +168,10 @@ export default async function ActivityPage() {
             <div className="flex flex-col items-center justify-center text-center py-12">
               <AlertCircle className="mb-4 h-12 w-12 text-primary" />
               <h3 className="mb-2 text-lg font-semibold text-foreground">
-                {activity.noActivityTitle}
+                {copy.noActivityTitle}
               </h3>
               <p className="max-w-sm text-sm text-muted-foreground">
-                {activity.noActivityDescription}
+                {copy.noActivityDescription}
               </p>
             </div>
           )}
@@ -142,8 +189,8 @@ export default async function ActivityPage() {
       themeId={themeSelection.themeKey}
       id="page.dashboard.activity"
       data={{
-        title: activity.title,
-        description: activity.recentActivity
+        title: copy.title,
+        description: copy.recentActivity
       }}
       fallback={fallbackPage}
     >

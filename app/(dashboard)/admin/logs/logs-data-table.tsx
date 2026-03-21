@@ -8,26 +8,26 @@ import {
   getLogTableDefinition,
   type AdminSystemLogRow
 } from './log-columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminLogsCopy } from './i18n';
 
 type AdminLogsDataTableProps = {
   data: AdminSystemLogRow[];
-  messages: AdminMessages;
+  copy: AdminLogsCopy;
   tableTemplate?: DataTableThemeTemplate;
 };
 
 export function AdminLogsDataTable({
   data,
-  messages,
+  copy,
   tableTemplate
 }: AdminLogsDataTableProps) {
   return (
     <DataTable
       definition={getLogTableDefinition({
         data,
-        messages
+        copy
       })}
-      labels={messages.dataTable}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[1650px]"
     />

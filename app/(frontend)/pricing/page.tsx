@@ -6,7 +6,7 @@ import { isStripeConfigured } from '@/lib/payments/stripe';
 import { isPayPalConfigured } from '@/lib/payments/paypal';
 import { cacheLife } from 'next/cache';
 import { SubmitButton } from './submit-button';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,10 @@ import {
 } from '@/lib/payments/subscription-policy';
 import { supportsSelfServiceSubscriptionTemplateScope } from '@/lib/payments/subscription-scope';
 import { areTeamsEnabled } from '@/lib/organizations/config';
+import {
+  createMarketingPricingCopy,
+  type MarketingPricingMessages
+} from './i18n';
 
 type PricingTemplate = {
   id: number;
@@ -44,24 +48,6 @@ type PricingTemplate = {
     valueLabel: string | null;
     isPublic: boolean;
   }>;
-};
-
-type PricingMessages = {
-  trialLabel: string;
-  perUserLabel: string;
-  perOrganizationLabel: string;
-  noPaymentConfigured: string;
-  noFeatures: string;
-  discountLabel: string;
-  currentPlanLabel: string;
-  upgradePlanLabel: string;
-  downgradePlanLabel: string;
-  lateralPlanLabel: string;
-  selfServiceUnavailableLabel: string;
-  paymentMethodLabel: string;
-  paymentMethodStripe: string;
-  paymentMethodPayPal: string;
-  intervals: Record<string, string>;
 };
 
 const BILLING_INTERVAL_DISPLAY_ORDER: Record<string, number> = {
@@ -150,7 +136,7 @@ function resolvePlanRelationLabel({
 }: {
   relation: SubscriptionPlanRelation;
   pricing: Pick<
-    PricingMessages,
+    MarketingPricingMessages,
     'currentPlanLabel' | 'upgradePlanLabel' | 'downgradePlanLabel' | 'lateralPlanLabel'
   >;
 }) {
@@ -203,7 +189,7 @@ function sortTemplatesForDisplay(templates: PricingTemplate[]) {
 
 function getDisplayIntervalLabels(
   templates: PricingTemplate[],
-  pricing: Pick<PricingMessages, 'intervals'>
+  pricing: Pick<MarketingPricingMessages, 'intervals'>
 ) {
   return Array.from(
     new Set(
@@ -223,7 +209,10 @@ function getEnabledPaymentMethods({
 }: {
   stripeEnabled: boolean;
   payPalEnabled: boolean;
-  pricing: Pick<PricingMessages, 'paymentMethodStripe' | 'paymentMethodPayPal'>;
+  pricing: Pick<
+    MarketingPricingMessages,
+    'paymentMethodStripe' | 'paymentMethodPayPal'
+  >;
 }) {
   const methods: string[] = [];
 
@@ -247,8 +236,11 @@ export default async function PricingPage({
 }: {
   searchParams?: Promise<{ changeMode?: string | string[] }>;
 }) {
-  const { locale, messages } = await getServerLocaleAndMessages('global');
-  const { header, pricing } = messages;
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'global' })
+  ]);
+  const { headerPricing, pricing } = createMarketingPricingCopy(t);
   const dateLocale = getDateLocale(locale);
   const teamsEnabled = areTeamsEnabled();
 
@@ -466,7 +458,7 @@ export default async function PricingPage({
     <main className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-14 sm:px-6 lg:px-8">
       <section className="mb-10 space-y-4 animate-[marketing-rise_650ms_ease-out]">
         <span className="inline-flex items-center rounded-full border border-amber-200/20 bg-amber-200/10 px-4 py-1 text-[11px] font-medium tracking-[0.2em] text-amber-100 uppercase">
-          {header.pricing}
+          {headerPricing}
         </span>
         <h1 className="font-[family-name:var(--font-marketing-serif)] text-5xl font-medium leading-tight text-zinc-100 sm:text-6xl">
           {pricing.headline}
@@ -536,7 +528,7 @@ function PricingSection({
   description: string;
   emptyLabel: string;
   templates: PricingTemplate[];
-  pricing: PricingMessages;
+  pricing: MarketingPricingMessages;
   enabledPaymentMethods: string[];
   dateLocale: string;
   changeMode: 'immediate' | 'period_end' | null;

@@ -150,7 +150,8 @@ That means theme code can use one API and still inherit core translations for
 keys the theme does not redefine.
 
 Official theme components should use `useI18n({ themeId, area })`. Themes
-should not introduce new `useAreaMessages()` dependencies.
+should not introduce new `useAreaMessages()` or `getServerMessages()`
+dependencies.
 
 ### File structure
 

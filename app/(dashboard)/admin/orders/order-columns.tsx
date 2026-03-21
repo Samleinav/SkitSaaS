@@ -11,8 +11,8 @@ import {
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
 import { cn } from '@/lib/utils';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { AdminTableSlotTemplate } from '../table-slot-template';
+import type { AdminOrdersCopy } from './i18n';
 
 type OrderStatus = 'pending' | 'received' | 'canceled' | 'failed';
 
@@ -50,9 +50,9 @@ function getStatusClassName(status: OrderStatus) {
 }
 
 export function getOrderColumns(
-  messages: AdminMessages
+  copy: AdminOrdersCopy
 ): ColumnDef<AdminOrderRow>[] {
-  const table = messages.ordersPage.table;
+  const table = copy.table;
   const statusLabels: Record<OrderStatus, string> = {
     pending: table.pending,
     received: table.received,
@@ -250,12 +250,12 @@ export function getOrderColumns(
 
 export function getOrderTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminOrderRow[];
-  messages: AdminMessages;
+  copy: AdminOrdersCopy;
 }): BuildTableDefinition<AdminOrderRow> {
-  const table = messages.ordersPage.table;
+  const table = copy.table;
   const statusLabels: Record<OrderStatus, string> = {
     pending: table.pending,
     received: table.received,
@@ -420,7 +420,7 @@ export function getOrderTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.ordersPage.filterPlaceholder,
+        placeholder: copy.filterPlaceholder,
         columns: ['teamName']
       },
       filters: [

@@ -19,12 +19,16 @@ Both are generated from the same locale sources through `pnpm i18n:prepare`.
 - Official themes and module-facing UI should use `useI18n()`.
 - `useAreaMessages()` / `getServerMessages()` remain as a deprecated
   compatibility surface for older typed host trees while the host finishes its
-  gradual migration.
+  gradual migration. That compatibility layer now starts from the default typed
+  tree and translates its string leaves through the flat runtime for the
+  requested area.
+- Active host runtime call sites now use `useI18n()` / `getServerTranslator()`;
+  the deprecated helpers remain exported only for typed compatibility.
 
-## Typed area messages
+## Deprecated typed compatibility helpers
 
-Use typed area messages when the UI already has a stable shape and you want
-compile-time access to nested keys.
+Use typed area messages only when a legacy surface still needs the existing
+structured tree and a full local migration would be noisy.
 
 Examples:
 
@@ -33,17 +37,39 @@ Examples:
 - table labels and section copy
 - reusable layout/navigation copy
 
-API:
+Client compatibility helper:
 
 ```ts
 const messages = useAreaMessages('dashboard');
 const title = messages.team.subscription.title;
 ```
 
-On the server:
+Server compatibility helper:
 
 ```ts
 const messages = await getServerMessages('admin');
+```
+
+Preferred replacements:
+
+```ts
+const t = useI18n({ area: 'dashboard' });
+const title = t('Team Subscription');
+```
+
+```ts
+const [locale, t] = await Promise.all([
+  getRequestLocale(),
+  getServerTranslator({ area: 'admin' })
+]);
+```
+
+If a typed tree is still unavoidable, build it from the translator instead of
+using the legacy server helper directly:
+
+```ts
+const t = await getServerTranslator({ area: 'admin' });
+const messages = getAreaMessagesFromTranslator('admin', t);
 ```
 
 ## Flat natural-key translator
@@ -138,7 +164,8 @@ Use the flat translator when:
 
 Do not mass-migrate existing typed trees to flat keys blindly. The typed host
 trees still exist for stable layouts, but themes, modules, and new host copy
-should default to the flat translator.
+should default to the flat translator, and no new runtime code should add fresh
+`useAreaMessages()` / `getServerMessages()` dependencies.
 
 ## Current runtime priority
 
@@ -179,8 +206,10 @@ metadata from generated build artifacts instead of re-importing source
 - `lib/modules/external-meta.generated.ts`
 
 If a supported locale does not have a typed core bundle, `useAreaMessages(...)`
-falls back to the default locale (`en`) while flat translators still resolve
-any available theme/module overrides for that locale.
+and `getServerMessages(...)` keep the default typed shape from `en`, but the
+actual leaf strings are now translated through the current area translator.
+That lets legacy typed consumers benefit from the same flat fallback behavior
+used by `useI18n()`.
 
 For modules, flat keys come from:
 

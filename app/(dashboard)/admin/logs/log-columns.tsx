@@ -10,8 +10,8 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { AdminTableSlotTemplate } from '../table-slot-template';
+import type { AdminLogsCopy } from './i18n';
 
 export type AdminSystemLogRow = {
   id: number;
@@ -47,9 +47,9 @@ function getStatusClassName(status: string) {
 }
 
 export function getLogColumns(
-  messages: AdminMessages
+  copy: AdminLogsCopy
 ): ColumnDef<AdminSystemLogRow>[] {
-  const table = messages.logsPage.table;
+  const table = copy.table;
   const statusLabels: Record<string, string> = {
     info: table.info,
     success: table.success,
@@ -195,12 +195,12 @@ export function getLogColumns(
 
 export function getLogTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminSystemLogRow[];
-  messages: AdminMessages;
+  copy: AdminLogsCopy;
 }): BuildTableDefinition<AdminSystemLogRow> {
-  const table = messages.logsPage.table;
+  const table = copy.table;
   const statusLabels: Record<string, string> = {
     info: table.info,
     success: table.success,
@@ -340,7 +340,7 @@ export function getLogTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.logsPage.filterPlaceholder,
+        placeholder: copy.filterPlaceholder,
         columns: ['eventType']
       },
       filters: [

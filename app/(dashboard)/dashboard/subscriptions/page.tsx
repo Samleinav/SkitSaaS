@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { cn } from '@/lib/utils';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getCurrentUserSubscriptionManagementData } from '@/lib/db/queries';
 import { getOrganizationLimits } from '@/lib/organizations/config';
@@ -41,6 +41,7 @@ import {
   DashboardSubscriptionInvoicesDataTable,
   type DashboardSubscriptionInvoiceRow
 } from './invoices-data-table';
+import { createDashboardSubscriptionsCopy } from './i18n';
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -218,9 +219,9 @@ export default async function DashboardSubscriptionsPage({
   searchParams
 }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const [{ locale, messages }, subscriptionData, organizationLimits, subscriptionOrgLimit] =
+  const [[locale, t], subscriptionData, organizationLimits, subscriptionOrgLimit] =
     await Promise.all([
-      getServerLocaleAndMessages('dashboard'),
+      Promise.all([getRequestLocale(), getServerTranslator({ area: 'dashboard' })]),
       getCurrentUserSubscriptionManagementData(),
       getOrganizationLimits(),
       getCurrentUserOrganizationLimitBySubscription()
@@ -230,7 +231,7 @@ export default async function DashboardSubscriptionsPage({
     redirect('/login');
   }
 
-  const subscriptions = messages.subscriptions;
+  const subscriptions = createDashboardSubscriptionsCopy(t);
   const dateLocale = getDateLocale(locale);
   const themeSelection = await getThemeSelectionForArea('dashboard');
   const requestedTeamId = parsePositiveInt(

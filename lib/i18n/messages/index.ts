@@ -83,6 +83,40 @@ export function getAreaMessages<TArea extends I18nArea>(
   };
 }
 
+function translateMessageTree<T>(
+  value: T,
+  translate: (message: string) => string
+): T {
+  if (typeof value === 'string') {
+    return translate(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => translateMessageTree(item, translate)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
+        key,
+        translateMessageTree(nestedValue, translate)
+      ])
+    ) as T;
+  }
+
+  return value;
+}
+
+export function getAreaMessagesFromTranslator<TArea extends I18nArea>(
+  area: TArea,
+  translate: (message: string) => string
+): AreaMessagesMap[TArea] {
+  return translateMessageTree(
+    getAreaMessages(area, DEFAULT_LOCALE),
+    translate
+  ) as AreaMessagesMap[TArea];
+}
+
 export const messagesByArea: {
   [K in I18nArea]: Record<string, AreaMessagesMap[K]>;
 } = {

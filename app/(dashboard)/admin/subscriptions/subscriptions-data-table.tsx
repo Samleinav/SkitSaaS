@@ -6,27 +6,25 @@ import {
 } from '@/components/ui/data-table';
 import {
   getSubscriptionsTableDefinition,
-  type AdminSubscriptionRow,
-  type AdminSubscriptionTemplateOption
+  type AdminSubscriptionRow
 } from './columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminSubscriptionsCopy } from './i18n';
 
 type AdminSubscriptionsDataTableProps = {
   data: AdminSubscriptionRow[];
-  templateOptions: AdminSubscriptionTemplateOption[];
-  messages: AdminMessages;
+  copy: AdminSubscriptionsCopy;
   tableTemplate?: DataTableThemeTemplate;
 };
 
 export function AdminSubscriptionsDataTable({
   data,
-  messages,
+  copy,
   tableTemplate
 }: AdminSubscriptionsDataTableProps) {
   return (
     <DataTable
-      definition={getSubscriptionsTableDefinition({ data, messages })}
-      labels={messages.dataTable}
+      definition={getSubscriptionsTableDefinition({ data, copy })}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[860px]"
     />

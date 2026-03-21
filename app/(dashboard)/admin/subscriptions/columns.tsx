@@ -10,9 +10,9 @@ import {
   defineBuildTable,
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { cn } from '@/lib/utils';
 import { AdminTableSlotTemplate } from '../table-slot-template';
+import type { AdminSubscriptionsCopy } from './i18n';
 
 type SubscriptionStatus =
   | 'free'
@@ -20,13 +20,6 @@ type SubscriptionStatus =
   | 'active'
   | 'unpaid'
   | 'canceled';
-
-export type AdminSubscriptionTemplateOption = {
-  id: number;
-  name: string;
-  displayLabel: string;
-  featureSummary: string;
-};
 
 export type AdminSubscriptionRow = {
   id: number;
@@ -79,10 +72,9 @@ function getProviderClassName(provider: string | null) {
 }
 
 export function getColumns(
-  _templates: AdminSubscriptionTemplateOption[],
-  messages: AdminMessages
+  copy: AdminSubscriptionsCopy
 ): ColumnDef<AdminSubscriptionRow>[] {
-  const table = messages.subscriptionsTable;
+  const table = copy.organizationTable;
   const statusLabels: Record<SubscriptionStatus, string> = {
     free: table.free,
     trialing: table.trialing,
@@ -254,7 +246,7 @@ export function getColumns(
         const fallbackCell = (
           <Button asChild size="sm" variant="outline">
             <Link href={`/admin/subscriptions/organization/${row.original.id}/edit`}>
-              {messages.subscriptionsPage.edit}
+              {table.edit}
             </Link>
           </Button>
         );
@@ -277,12 +269,12 @@ export function getColumns(
 
 export function getSubscriptionsTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminSubscriptionRow[];
-  messages: AdminMessages;
+  copy: AdminSubscriptionsCopy;
 }): BuildTableDefinition<AdminSubscriptionRow> {
-  const table = messages.subscriptionsTable;
+  const table = copy.organizationTable;
   const statusLabels: Record<SubscriptionStatus, string> = {
     free: table.free,
     trialing: table.trialing,
@@ -421,7 +413,7 @@ export function getSubscriptionsTableDefinition({
           >
             <Button asChild size="sm" variant="outline">
               <Link href={`/admin/subscriptions/organization/${row.id}/edit`}>
-                {messages.subscriptionsPage.edit}
+                {table.edit}
               </Link>
             </Button>
           </AdminTableSlotTemplate>
@@ -431,7 +423,7 @@ export function getSubscriptionsTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.subscriptionsPage.filterPlaceholder,
+        placeholder: table.filterPlaceholder,
         columns: ['name']
       },
       filters: [

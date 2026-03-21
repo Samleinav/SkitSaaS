@@ -1,7 +1,7 @@
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { BuildModal } from '@/components/ui/build-modal';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { AdminCreateUserForm } from './create-user-form';
+import type { AdminUsersCopy } from './i18n';
 
 type UserTemplateOption = {
   id: number;
@@ -12,14 +12,14 @@ type UserTemplateOption = {
 };
 
 type AdminCreateUserDialogProps = {
-  messages: AdminMessages;
+  copy: AdminUsersCopy;
   userTemplateOptions: UserTemplateOption[];
   locale: string;
   themeId: string | null;
 };
 
 export function AdminCreateUserDialog({
-  messages,
+  copy,
   userTemplateOptions,
   locale,
   themeId
@@ -28,17 +28,17 @@ export function AdminCreateUserDialog({
     <BuildModal
       definition={{
         kind: 'dialog',
-        triggerLabel: messages.usersPage.newUser,
+        triggerLabel: copy.newUser,
         triggerSize: 'sm',
-        title: messages.usersPage.createTitle,
-        description: messages.usersPage.createDescription
+        title: copy.createTitle,
+        description: copy.createDescription
       }}
       themeId={themeId}
       area="admin"
       slot="admin.users.create-user-dialog"
     >
       <AdminCreateUserForm
-        messages={messages}
+        copy={copy.usersCreateForm}
         userTemplateOptions={userTemplateOptions}
         locale={locale}
       />

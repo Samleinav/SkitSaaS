@@ -4,8 +4,9 @@ import {
   getAdminDashboardSummary,
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
+import { getAreaMessagesFromTranslator } from '@/lib/i18n/messages';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { createPerfTrace } from '@/lib/observability/perf-trace';
 import { getEnabledAdminDashboardModules } from './admin-dashboard/modules';
@@ -36,8 +37,12 @@ export default async function AdminPage() {
     await requireAdminAccess();
     perfTrace.step('requireAdminAccess');
 
-    const { locale, messages } = await getServerLocaleAndMessages('admin');
-    perfTrace.step('getServerLocaleAndMessages', {
+    const [locale, t] = await Promise.all([
+      getRequestLocale(),
+      getServerTranslator({ area: 'admin' })
+    ]);
+    const messages = getAreaMessagesFromTranslator('admin', t);
+    perfTrace.step('loadAdminI18n', {
       locale
     });
     const dateLocale = getDateLocale(locale);

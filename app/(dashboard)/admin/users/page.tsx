@@ -11,19 +11,24 @@ import { requireAdminAccess } from '../guards';
 import { formatDate } from '../utils';
 import type { AdminUserRow } from './columns';
 import { AdminUsersDataTable } from './users-data-table';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { AdminCreateUserDialog } from './create-user-dialog';
 import { resolveAdminUserDisplayStatus } from './status';
+import { createAdminUsersCopy } from './i18n';
 
 export default async function AdminUsersPage() {
   return <AdminUsersTable />;
 }
 
 async function AdminUsersTable() {
-  const { locale, messages } = await getServerLocaleAndMessages('admin');
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'admin' })
+  ]);
   const dateLocale = getDateLocale(locale);
+  const copy = createAdminUsersCopy(t);
   await requireAdminAccess();
 
   const [allUsers, userTemplateOptions] = await Promise.all([
@@ -57,15 +62,15 @@ async function AdminUsersTable() {
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <AdminMetricCard
-        label={messages.usersTable.statusActive}
+        label={copy.usersTable.statusActive}
         value={activeUsersCount}
       />
       <AdminMetricCard
-        label={messages.usersTable.statusSuspended}
+        label={copy.usersTable.statusSuspended}
         value={suspendedUsersCount}
       />
       <AdminMetricCard
-        label={messages.usersTable.statusBanned}
+        label={copy.usersTable.statusBanned}
         value={bannedUsersCount}
       />
     </div>
@@ -88,11 +93,11 @@ async function AdminUsersTable() {
 
   const fallbackPage = (
     <AdminPageShell
-      title={messages.usersPage.title}
-      description={messages.usersPage.description}
+      title={copy.title}
+      description={copy.description}
       actions={
         <AdminCreateUserDialog
-          messages={messages}
+          copy={copy}
           userTemplateOptions={userTemplateOptions}
           locale={dateLocale}
           themeId={themeSelection.themeKey}
@@ -102,7 +107,7 @@ async function AdminUsersTable() {
     >
       <AdminUsersDataTable
         data={data}
-        messages={messages}
+        copy={copy}
         tableTemplate={{
           componentId: 'ui.table',
           area: 'admin',
@@ -120,8 +125,8 @@ async function AdminUsersTable() {
       themeId={themeSelection.themeKey}
       id="page.admin.users"
       data={{
-        title: messages.usersPage.title,
-        description: messages.usersPage.description
+        title: copy.title,
+        description: copy.description
       }}
       fallback={fallbackPage}
     >
@@ -129,4 +134,3 @@ async function AdminUsersTable() {
     </ThemeCodeTemplate>
   );
 }
-

@@ -39,6 +39,41 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
+## 2026-03-20 - i18n-legacy-callers-retired
+
+- `status`: published
+- `sprint`: sprint-b
+- `module`: core
+- `type`: change
+- `summary`: Active host runtime call sites no longer use `useAreaMessages()` or `getServerMessages()`, and the remaining helper exports are now explicitly marked as deprecated compatibility APIs.
+- `sdk_surface`: host i18n runtime
+- `files`:
+  - `lib/i18n/client.ts`
+  - `lib/i18n/server.ts`
+  - `app/(dashboard)/admin/page.tsx`
+  - `app/(dashboard)/admin/subscriptions/page.tsx`
+  - `app/(dashboard)/dashboard/activity/page.tsx`
+  - `app/(dashboard)/dashboard/subscriptions/page.tsx`
+  - `app/(frontend)/pricing/page.tsx`
+  - `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+  - `docs/reference/04-i18n-runtime.md`
+  - `docs/modules/12-i18n.md`
+  - `docs/themes/01-theme-runtime.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    No SDK version bump.
+
+    The host runtime now routes all active call sites through:
+
+    - `useI18n({ area })`
+    - `getServerTranslator({ area })`
+    - `getAreaMessagesFromTranslator(area, translator)` only where a typed
+      compatibility tree is still required
+
+    `useAreaMessages()`, `getServerMessages()`, and
+    `getServerLocaleAndMessages()` still exist, but only as explicitly marked
+    compatibility helpers for old typed surfaces.
+
 ## 2026-03-18 - i18n-resolver-contract-and-legacy-policy
 
 - `status`: published

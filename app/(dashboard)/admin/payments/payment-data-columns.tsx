@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminPaymentsCopy } from './i18n';
 
 type PaymentSource = 'checkout' | 'webhook' | 'dashboard' | 'system';
 
@@ -58,14 +58,14 @@ function normalizeSource(
 
 type PaymentPreviewDialogProps = {
   row: AdminPaymentDataRow;
-  messages: AdminMessages;
+  copy: AdminPaymentsCopy;
 };
 
 function PaymentPreviewDialog({
   row,
-  messages
+  copy
 }: PaymentPreviewDialogProps) {
-  const table = messages.paymentsPage.table;
+  const table = copy.table;
   const sourceLabels: Record<PaymentSource, string> = {
     checkout: table.checkout,
     webhook: table.webhook,
@@ -158,9 +158,9 @@ function PaymentPreviewDialog({
 }
 
 export function getPaymentDataColumns(
-  messages: AdminMessages
+  copy: AdminPaymentsCopy
 ): ColumnDef<AdminPaymentDataRow>[] {
-  const table = messages.paymentsPage.table;
+  const table = copy.table;
   const sourceLabels: Record<PaymentSource, string> = {
     checkout: table.checkout,
     webhook: table.webhook,
@@ -378,7 +378,7 @@ export function getPaymentDataColumns(
         const fallbackCell = (
           <PaymentPreviewDialog
             row={row.original}
-            messages={messages}
+            copy={copy}
           />
         );
 
@@ -400,12 +400,12 @@ export function getPaymentDataColumns(
 
 export function getPaymentTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminPaymentDataRow[];
-  messages: AdminMessages;
+  copy: AdminPaymentsCopy;
 }): BuildTableDefinition<AdminPaymentDataRow> {
-  const table = messages.paymentsPage.table;
+  const table = copy.table;
   const sourceLabels: Record<PaymentSource, string> = {
     checkout: table.checkout,
     webhook: table.webhook,
@@ -566,7 +566,7 @@ export function getPaymentTableDefinition({
               paymentId: row.id
             }}
           >
-            <PaymentPreviewDialog row={row} messages={messages} />
+            <PaymentPreviewDialog row={row} copy={copy} />
           </AdminTableSlotTemplate>
         )
       })
@@ -574,7 +574,7 @@ export function getPaymentTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.paymentsPage.filterPlaceholder,
+        placeholder: copy.filterPlaceholder,
         columns: ['payer']
       }
     },

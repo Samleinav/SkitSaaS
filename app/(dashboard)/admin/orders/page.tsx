@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import {
   getPaymentOrdersForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
 import { AdminOrdersDataTable } from './orders-data-table';
 import type { AdminOrderRow } from './order-columns';
+import { createAdminOrdersCopy } from './i18n';
 
 function formatAmount(
   amount: number | null,
@@ -56,10 +57,13 @@ function isTemplateMaintenanceOrderEvent(eventType: string) {
 }
 
 export default async function AdminOrdersPage() {
-  const { locale, messages } = await getServerLocaleAndMessages('admin');
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'admin' })
+  ]);
   const dateLocale = getDateLocale(locale);
-  const ordersPage = messages.ordersPage;
-  const ordersTable = ordersPage.table;
+  const copy = createAdminOrdersCopy(t);
+  const ordersTable = copy.table;
 
   await requireAdminAccess();
 
@@ -95,15 +99,15 @@ export default async function AdminOrdersPage() {
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <AdminMetricCard
-        label={ordersPage.metrics.receivedOrders}
+        label={copy.metrics.receivedOrders}
         value={receivedOrders}
       />
-      <AdminMetricCard label={ordersPage.metrics.pendingOrders} value={pendingOrders} />
+      <AdminMetricCard label={copy.metrics.pendingOrders} value={pendingOrders} />
       <AdminMetricCard
-        label={ordersPage.metrics.canceledOrders}
+        label={copy.metrics.canceledOrders}
         value={canceledOrders}
       />
-      <AdminMetricCard label={ordersPage.metrics.failedOrders} value={failedOrders} />
+      <AdminMetricCard label={copy.metrics.failedOrders} value={failedOrders} />
     </div>
   );
   const metricsSlot = themeSelection?.themeKey ? (
@@ -124,18 +128,18 @@ export default async function AdminOrdersPage() {
 
   const fallbackPage = (
     <AdminPageShell
-      title={ordersPage.title}
-      description={ordersPage.description}
+      title={copy.title}
+      description={copy.description}
       actions={
         <Button asChild size="sm" className="rounded-lg">
-          <Link href="/admin/orders/create">{ordersPage.newOrder}</Link>
+          <Link href="/admin/orders/create">{copy.newOrder}</Link>
         </Button>
       }
       metrics={metricsSlot}
     >
       <AdminOrdersDataTable
         data={rows}
-        messages={messages}
+        copy={copy}
         tableTemplate={{
           componentId: 'ui.table',
           area: 'admin',
@@ -153,9 +157,9 @@ export default async function AdminOrdersPage() {
       themeId={themeSelection.themeKey}
       id="page.admin.orders"
       data={{
-        title: ordersPage.title,
-        description: ordersPage.description,
-        createLabel: ordersPage.newOrder
+        title: copy.title,
+        description: copy.description,
+        createLabel: copy.newOrder
       }}
       fallback={fallbackPage}
     >
@@ -163,4 +167,3 @@ export default async function AdminOrdersPage() {
     </ThemeCodeTemplate>
   );
 }
-

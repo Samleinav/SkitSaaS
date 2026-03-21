@@ -8,26 +8,26 @@ import {
   getPaymentTableDefinition,
   type AdminPaymentDataRow
 } from './payment-data-columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminPaymentsCopy } from './i18n';
 
 type AdminPaymentsDataTableProps = {
   data: AdminPaymentDataRow[];
-  messages: AdminMessages;
+  copy: AdminPaymentsCopy;
   tableTemplate?: DataTableThemeTemplate;
 };
 
 export function AdminPaymentsDataTable({
   data,
-  messages,
+  copy,
   tableTemplate
 }: AdminPaymentsDataTableProps) {
   return (
     <DataTable
       definition={getPaymentTableDefinition({
         data,
-        messages
+        copy
       })}
-      labels={messages.dataTable}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[1560px]"
     />

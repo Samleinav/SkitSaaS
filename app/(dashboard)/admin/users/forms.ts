@@ -27,6 +27,8 @@ export type AdminCreateUserFormCopy = {
   roleLabel: string;
   subscriptionLabel: string;
   noSubscription: string;
+  create: string;
+  creating: string;
   roles: {
     member: string;
     owner: string;
@@ -75,6 +77,8 @@ const DEFAULT_ADMIN_CREATE_USER_FORM_COPY: AdminCreateUserFormCopy = {
   roleLabel: 'Role',
   subscriptionLabel: 'User subscription',
   noSubscription: 'No subscription',
+  create: 'Create user',
+  creating: 'Creating user...',
   roles: {
     member: 'Member',
     owner: 'Owner',

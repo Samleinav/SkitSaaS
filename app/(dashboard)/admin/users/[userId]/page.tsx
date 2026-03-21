@@ -16,7 +16,7 @@ import {
   getAdminUserOrganizations,
   getUserSubscriptionTemplatesForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
@@ -31,6 +31,7 @@ import {
   getAdminUserStatusClassName,
   resolveAdminUserDisplayStatus
 } from '../status';
+import { createAdminUserDetailCopy } from '../i18n';
 
 function formatTemplatePrice({
   priceCents,
@@ -53,8 +54,11 @@ export default async function AdminUserDetailsPage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  const { locale, messages } = await getServerLocaleAndMessages('admin');
-  const usersDetail = messages.userDetailPage;
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'admin' })
+  ]);
+  const usersDetail = createAdminUserDetailCopy(t);
   const dateLocale = getDateLocale(locale);
   const currentUser = await requireAdminAccess();
 

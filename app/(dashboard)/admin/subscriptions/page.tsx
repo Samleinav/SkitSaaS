@@ -18,26 +18,25 @@ import {
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { Button } from '@/components/ui/button';
 import {
-  getAllSubscriptionTemplatesForAdmin,
   getAllTeamsForAdmin,
   getAllUsersForAdmin,
   getAdminSubscriptionTargetIdsWithOrders
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
 import { requireAdminAccess } from '../guards';
 import { formatDate, normalizeSubscriptionStatus } from '../utils';
-import {
-  type AdminSubscriptionRow,
-  type AdminSubscriptionTemplateOption
-} from './columns';
+import { type AdminSubscriptionRow } from './columns';
 import { AdminSubscriptionsDataTable } from './subscriptions-data-table';
 import { resolveAdminUserDisplayStatus } from '../users/status';
 import { AdminUserSubscriptionsDataTable } from '../suscriptions/user-subscriptions-data-table';
 import type { AdminUserSubscriptionRow } from '../suscriptions/user-subscriptions-columns';
+import {
+  createAdminSubscriptionsCopy,
+  type AdminSubscriptionsCopy
+} from './i18n';
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -54,14 +53,14 @@ function resolveScopeFilter(
 
 type ScopeHeaderProps = {
   scope: ScopeFilter;
-  messages: AdminMessages;
+  copy: AdminSubscriptionsCopy;
   description: string;
   createSubscriptionHref: string;
 };
 
 function ScopeHeader({
   scope,
-  messages,
+  copy,
   description,
   createSubscriptionHref
 }: ScopeHeaderProps) {
@@ -71,12 +70,12 @@ function ScopeHeader({
       <div className="pointer-events-none absolute -bottom-24 -left-14 h-40 w-40 rounded-full bg-sky-500/10 blur-3xl" />
       <CardHeader className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
-          <CardTitle className="text-2xl">{messages.subscriptionsPage.subscriptionsTitle}</CardTitle>
+          <CardTitle className="text-2xl">{copy.title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild size="sm" className="rounded-lg">
-            <Link href={createSubscriptionHref}>{messages.ordersPage.newOrder}</Link>
+            <Link href={createSubscriptionHref}>{copy.newOrder}</Link>
           </Button>
           <div className="flex items-center rounded-xl border border-border/80 bg-background/70 p-1">
             <Button
@@ -85,7 +84,7 @@ function ScopeHeader({
               variant={scope === 'organization' ? 'default' : 'ghost'}
               className="rounded-lg"
             >
-              <Link href="/admin/subscriptions">{messages.templateForm.scopes.organization}</Link>
+              <Link href="/admin/subscriptions">{copy.scopes.organization}</Link>
             </Button>
             <Button
               asChild
@@ -93,13 +92,13 @@ function ScopeHeader({
               variant={scope === 'user' ? 'default' : 'ghost'}
               className="rounded-lg"
             >
-              <Link href="/admin/subscriptions?scope=user">{messages.templateForm.scopes.user}</Link>
+              <Link href="/admin/subscriptions?scope=user">{copy.scopes.user}</Link>
             </Button>
           </div>
           <Button asChild variant="outline" size="sm" className="rounded-lg">
             <Link href="/admin/subscriptions/templates">
               <LayoutTemplate className="h-4 w-4" />
-              {messages.subscriptionsPage.templatesTitle}
+              {copy.templatesTitle}
             </Link>
           </Button>
         </div>
@@ -153,17 +152,14 @@ function MetricCard({
 }
 
 export default async function AdminSubscriptionsPage({ searchParams }: PageProps) {
-  const [{ locale, messages }, resolvedSearchParams] = await Promise.all([
-    getServerLocaleAndMessages('admin'),
+  const [[locale, t], resolvedSearchParams] = await Promise.all([
+    Promise.all([getRequestLocale(), getServerTranslator({ area: 'admin' })]),
     searchParams
   ]);
 
   const scope = resolveScopeFilter(resolvedSearchParams.scope);
   const dateLocale = getDateLocale(locale);
-  const subscriptionsPage = messages.subscriptionsPage;
-  const subscriptionsTable = messages.subscriptionsTable;
-  const billingPage = messages.billingPage;
-  const usersTable = messages.usersTable;
+  const copy = createAdminSubscriptionsCopy(t);
   const createSubscriptionHref =
     scope === 'user'
       ? '/admin/orders/create?targetType=user'
@@ -200,20 +196,24 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
     ).length;
     const metricsFallback = (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label={messages.usersPage.title} value={rows.length} icon={Users} />
         <MetricCard
-          label={usersTable.subscriptionHeader}
+          label={copy.userMetrics.totalUsers}
+          value={rows.length}
+          icon={Users}
+        />
+        <MetricCard
+          label={copy.userMetrics.usersWithSubscription}
           value={usersWithSubscription}
           icon={CreditCard}
         />
         <MetricCard
-          label={usersTable.statusHeader}
+          label={copy.userMetrics.activeUsers}
           value={activeUsers}
           icon={CircleCheck}
           tone="success"
         />
         <MetricCard
-          label={usersTable.noSubscription}
+          label={copy.userMetrics.withoutSubscription}
           value={Math.max(0, rows.length - usersWithSubscription)}
           icon={AlertTriangle}
           tone="warning"
@@ -240,8 +240,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
       <div className="space-y-6">
         <ScopeHeader
           scope={scope}
-          messages={messages}
-          description={messages.userDetailPage.relationshipsDescription}
+          copy={copy}
+          description={copy.userDescription}
           createSubscriptionHref={createSubscriptionHref}
         />
 
@@ -249,13 +249,13 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
 
         <Card className="border-border/70">
           <CardHeader>
-            <CardTitle>{messages.templateForm.scopes.user}</CardTitle>
-            <CardDescription>{messages.usersPage.filterPlaceholder}</CardDescription>
+            <CardTitle>{copy.scopes.user}</CardTitle>
+            <CardDescription>{copy.userSectionDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <AdminUserSubscriptionsDataTable
               data={rows}
-              messages={messages}
+              copy={copy}
               tableTemplate={{
                 componentId: 'ui.table',
                 area: 'admin'
@@ -275,8 +275,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
         themeId={themeSelection.themeKey}
         id="page.admin.suscriptions"
         data={{
-          title: subscriptionsPage.subscriptionsTitle,
-          description: messages.userDetailPage.relationshipsDescription,
+          title: copy.title,
+          description: copy.userDescription,
           scope
         }}
         fallback={fallbackPage}
@@ -286,42 +286,12 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
     );
   }
 
-  const [allTeams, templates, subscriptionTargets] = await Promise.all([
+  const [allTeams, subscriptionTargets] = await Promise.all([
     getAllTeamsForAdmin(),
-    getAllSubscriptionTemplatesForAdmin(),
     getAdminSubscriptionTargetIdsWithOrders()
   ]);
   const teamIdSet = new Set(subscriptionTargets.teamIds);
   const teamsWithOrders = allTeams.filter((team) => teamIdSet.has(team.id));
-
-  const templateOptions: AdminSubscriptionTemplateOption[] = templates
-    .filter((template) => template.targetScope === 'organization')
-    .map((template) => {
-      const intervalLabel =
-        messages.templateForm.intervals[
-          template.billingInterval as keyof typeof messages.templateForm.intervals
-        ] || template.billingInterval;
-
-      return {
-        id: template.id,
-        name: template.name,
-        displayLabel: `${template.name} | ${intervalLabel} | ${template.currency} ${(
-          template.priceCents / 100
-        ).toFixed(2)}`,
-        featureSummary:
-          template.features.length > 0
-            ? template.features
-                .map((feature) => {
-                  if (feature.valueType === 'null') {
-                    return feature.label;
-                  }
-
-                  return `${feature.label}:${feature.valueLabel || feature.value || ''}`;
-                })
-                .join(', ')
-            : subscriptionsPage.noCustomFeatures
-      };
-    });
 
   const data: AdminSubscriptionRow[] = teamsWithOrders.map((team) => {
     const providerReferenceId = team.providerReferenceId ?? null;
@@ -336,7 +306,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
         normalizeSubscriptionStatus(
           team.subscriptionStatus
         ) as AdminSubscriptionRow['subscriptionStatus'],
-      planName: team.planName || subscriptionsTable.free,
+      planName: team.planName || copy.organizationTable.free,
       subscriptionTemplateId: team.subscriptionTemplateId,
       stripeSubscriptionId:
         team.paymentProvider === 'stripe' ? providerReferenceId : null,
@@ -359,25 +329,25 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard
-        label={billingPage.metrics.payingTeams}
+        label={copy.organizationMetrics.payingTeams}
         value={payingTeams}
-        hint={billingPage.metrics.payingTeamsHint}
+        hint={copy.organizationMetrics.payingTeamsHint}
         icon={CreditCard}
       />
       <MetricCard
-        label={billingPage.metrics.activeSubscriptions}
+        label={copy.organizationMetrics.activeSubscriptions}
         value={activeSubscriptions}
         icon={CircleCheck}
         tone="success"
       />
       <MetricCard
-        label={billingPage.metrics.trialingSubscriptions}
+        label={copy.organizationMetrics.trialingSubscriptions}
         value={trialingSubscriptions}
         icon={Clock3}
         tone="warning"
       />
       <MetricCard
-        label={billingPage.metrics.issueSubscriptions}
+        label={copy.organizationMetrics.issueSubscriptions}
         value={issueSubscriptions}
         icon={AlertTriangle}
         tone="danger"
@@ -404,8 +374,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
     <div className="space-y-6">
       <ScopeHeader
         scope={scope}
-        messages={messages}
-        description={billingPage.description}
+        copy={copy}
+        description={copy.organizationDescription}
         createSubscriptionHref={createSubscriptionHref}
       />
 
@@ -413,14 +383,13 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
 
       <Card className="border-border/70">
         <CardHeader>
-          <CardTitle>{messages.templateForm.scopes.organization}</CardTitle>
-          <CardDescription>{billingPage.description}</CardDescription>
+          <CardTitle>{copy.scopes.organization}</CardTitle>
+          <CardDescription>{copy.organizationDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <AdminSubscriptionsDataTable
             data={data}
-            templateOptions={templateOptions}
-            messages={messages}
+            copy={copy}
             tableTemplate={{
               componentId: 'ui.table',
               area: 'admin'
@@ -440,8 +409,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
       themeId={themeSelection.themeKey}
       id="page.admin.suscriptions"
       data={{
-        title: subscriptionsPage.subscriptionsTitle,
-        description: billingPage.description,
+        title: copy.title,
+        description: copy.organizationDescription,
         scope
       }}
       fallback={fallbackPage}

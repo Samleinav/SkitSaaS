@@ -9,18 +9,18 @@ import {
   getUserTableDefinition,
   type AdminUserRow
 } from './columns';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
+import type { AdminUsersCopy } from './i18n';
 
 type AdminUsersDataTableProps = {
   data: AdminUserRow[];
-  messages: AdminMessages;
+  copy: AdminUsersCopy;
   tableTemplate?: DataTableThemeTemplate;
   toolbarActions?: ReactNode;
 };
 
 export function AdminUsersDataTable({
   data,
-  messages,
+  copy,
   tableTemplate,
   toolbarActions
 }: AdminUsersDataTableProps) {
@@ -28,9 +28,9 @@ export function AdminUsersDataTable({
     <DataTable
       definition={getUserTableDefinition({
         data,
-        messages
+        copy
       })}
-      labels={messages.dataTable}
+      labels={copy.dataTable}
       template={tableTemplate}
       tableClassName="min-w-[1020px]"
       toolbarActions={toolbarActions}

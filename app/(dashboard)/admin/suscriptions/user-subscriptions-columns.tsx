@@ -10,10 +10,13 @@ import {
   defineBuildTable,
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { cn } from '@/lib/utils';
 import type { AdminUserDisplayStatus } from '../users/status';
 import { AdminTableSlotTemplate } from '../table-slot-template';
+import type {
+  AdminSubscriptionsCopy,
+  AdminUserSubscriptionsTableCopy
+} from '../subscriptions/i18n';
 
 export type AdminUserSubscriptionRow = {
   id: number;
@@ -42,27 +45,29 @@ function getStatusClassName(status: AdminUserDisplayStatus) {
   return 'border-border bg-muted text-muted-foreground';
 }
 
-function getStatusLabel(status: AdminUserDisplayStatus, messages: AdminMessages) {
+function getStatusLabel(
+  status: AdminUserDisplayStatus,
+  usersTable: AdminUserSubscriptionsTableCopy
+) {
   if (status === 'suspended') {
-    return messages.userDetailPage.status.suspended;
+    return usersTable.statusSuspended;
   }
 
   if (status === 'banned') {
-    return messages.userDetailPage.status.banned;
+    return usersTable.statusBanned;
   }
 
   if (status === 'deleted') {
-    return messages.userDetailPage.status.deleted;
+    return usersTable.statusDeleted;
   }
 
-  return messages.userDetailPage.status.active;
+  return usersTable.statusActive;
 }
 
 export function getUserSubscriptionsColumns(
-  messages: AdminMessages
+  copy: AdminSubscriptionsCopy
 ): ColumnDef<AdminUserSubscriptionRow>[] {
-  const usersTable = messages.usersTable;
-  const subscriptionsPage = messages.subscriptionsPage;
+  const usersTable = copy.userTable;
 
   return [
     {
@@ -132,7 +137,7 @@ export function getUserSubscriptionsColumns(
               getStatusClassName(row.original.status)
             )}
           >
-            {getStatusLabel(row.original.status, messages)}
+            {getStatusLabel(row.original.status, usersTable)}
           </span>
         );
 
@@ -178,7 +183,7 @@ export function getUserSubscriptionsColumns(
         const fallbackCell = (
           <Button asChild size="sm" variant="outline">
             <Link href={`/admin/subscriptions/user/${row.original.id}/edit`}>
-              {subscriptionsPage.edit}
+              {usersTable.edit}
             </Link>
           </Button>
         );
@@ -201,13 +206,12 @@ export function getUserSubscriptionsColumns(
 
 export function getUserSubscriptionsTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminUserSubscriptionRow[];
-  messages: AdminMessages;
+  copy: AdminSubscriptionsCopy;
 }): BuildTableDefinition<AdminUserSubscriptionRow> {
-  const usersTable = messages.usersTable;
-  const subscriptionsPage = messages.subscriptionsPage;
+  const usersTable = copy.userTable;
 
   const definition: BuildTableDefinition<AdminUserSubscriptionRow> = {
     data,
@@ -263,7 +267,7 @@ export function getUserSubscriptionsTableDefinition({
                 getStatusClassName(row.status)
               )}
             >
-              {getStatusLabel(row.status, messages)}
+              {getStatusLabel(row.status, usersTable)}
             </span>
           </AdminTableSlotTemplate>
         )
@@ -299,7 +303,7 @@ export function getUserSubscriptionsTableDefinition({
           >
             <Button asChild size="sm" variant="outline">
               <Link href={`/admin/subscriptions/user/${row.id}/edit`}>
-                {subscriptionsPage.edit}
+                {usersTable.edit}
               </Link>
             </Button>
           </AdminTableSlotTemplate>
@@ -309,7 +313,7 @@ export function getUserSubscriptionsTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.usersPage.filterPlaceholder,
+        placeholder: usersTable.filterPlaceholder,
         columns: ['email']
       },
       filters: [
@@ -319,9 +323,9 @@ export function getUserSubscriptionsTableDefinition({
           column: 'status',
           placeholder: usersTable.statusHeader,
           options: [
-            { value: 'active', label: messages.userDetailPage.status.active },
-            { value: 'suspended', label: messages.userDetailPage.status.suspended },
-            { value: 'banned', label: messages.userDetailPage.status.banned }
+            { value: 'active', label: usersTable.statusActive },
+            { value: 'suspended', label: usersTable.statusSuspended },
+            { value: 'banned', label: usersTable.statusBanned }
           ]
         })
       ]

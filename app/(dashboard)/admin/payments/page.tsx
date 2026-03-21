@@ -6,13 +6,14 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getPaymentTransactionsForAdmin
 } from '@/lib/db/queries.admin';
-import { getServerLocaleAndMessages } from '@/lib/i18n/server';
+import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
 import { AdminPaymentsDataTable } from './payments-data-table';
 import type { AdminPaymentDataRow } from './payment-data-columns';
+import { createAdminPaymentsCopy } from './i18n';
 
 function formatAmount(
   amount: number | null,
@@ -50,9 +51,12 @@ function normalizeOrderSource(
 }
 
 export default async function AdminPaymentsPage() {
-  const { locale, messages } = await getServerLocaleAndMessages('admin');
+  const [locale, t] = await Promise.all([
+    getRequestLocale(),
+    getServerTranslator({ area: 'admin' })
+  ]);
   const dateLocale = getDateLocale(locale);
-  const paymentsPage = messages.paymentsPage;
+  const copy = createAdminPaymentsCopy(t);
 
   await requireAdminAccess();
 
@@ -71,7 +75,7 @@ export default async function AdminPaymentsPage() {
       transaction.teamName ||
       (transaction.orderTeamId
         ? `team:${transaction.orderTeamId}`
-        : paymentsPage.table.noTeam),
+        : copy.table.noTeam),
     reason:
       transaction.planName ||
       transaction.templateName ||
@@ -99,21 +103,21 @@ export default async function AdminPaymentsPage() {
   const metricsFallback = (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <AdminMetricCard
-        label={paymentsPage.metrics.completedPayments}
+        label={copy.metrics.completedPayments}
         value={totalPayments}
       />
       <AdminMetricCard
-        label={paymentsPage.metrics.stripePayments}
+        label={copy.metrics.stripePayments}
         value={stripePayments}
       />
       <AdminMetricCard
-        label={paymentsPage.metrics.paypalPayments}
+        label={copy.metrics.paypalPayments}
         value={paypalPayments}
       />
       <AdminMetricCard
-        label={paymentsPage.metrics.missingReferencePayments}
+        label={copy.metrics.missingReferencePayments}
         value={missingPaymentReference}
-        hint={paymentsPage.metrics.missingReferenceHint}
+        hint={copy.metrics.missingReferenceHint}
       />
     </div>
   );
@@ -135,13 +139,13 @@ export default async function AdminPaymentsPage() {
 
   const fallbackPage = (
     <AdminPageShell
-      title={paymentsPage.title}
-      description={paymentsPage.description}
+      title={copy.title}
+      description={copy.description}
       metrics={metricsSlot}
     >
       <AdminPaymentsDataTable
         data={rows}
-        messages={messages}
+        copy={copy}
         tableTemplate={{
           componentId: 'ui.table',
           area: 'admin',
@@ -159,8 +163,8 @@ export default async function AdminPaymentsPage() {
       themeId={themeSelection.themeKey}
       id="page.admin.payments"
       data={{
-        title: paymentsPage.title,
-        description: paymentsPage.description
+        title: copy.title,
+        description: copy.description
       }}
       fallback={fallbackPage}
     >
@@ -168,4 +172,3 @@ export default async function AdminPaymentsPage() {
     </ThemeCodeTemplate>
   );
 }
-

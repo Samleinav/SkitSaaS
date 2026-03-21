@@ -1,35 +1,34 @@
 import { TemplateBuildForm } from '@/components/ui/template-build-form';
 import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import {
   createAdminCreateUserBuildFormBase,
   type AdminUserTemplateOption
 } from './forms';
+import type { AdminUsersCopy } from './i18n';
 
 type AdminCreateUserFormProps = {
-  messages: AdminMessages;
+  copy: AdminUsersCopy['usersCreateForm'];
   userTemplateOptions: AdminUserTemplateOption[];
   locale: string;
 };
 
 export function AdminCreateUserForm({
-  messages,
+  copy,
   userTemplateOptions,
   locale
 }: AdminCreateUserFormProps) {
-  const usersCreateForm = messages.usersCreateForm;
   const definition = composeRegisteredBuildFormDefinition(
     'admin-create-user-form',
     createAdminCreateUserBuildFormBase({
-      copy: usersCreateForm,
+      copy,
       locale,
       userTemplateOptions
     }
     ),
     {
       submit: {
-        idleLabel: usersCreateForm.create,
-        pendingLabel: usersCreateForm.creating,
+        idleLabel: copy.create,
+        pendingLabel: copy.creating,
         align: 'start'
       }
     }

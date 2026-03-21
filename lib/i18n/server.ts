@@ -4,7 +4,7 @@ import { type AppLocale, LOCALE_COOKIE_NAME, resolveLocale } from './config';
 import {
   type AreaMessagesMap,
   type I18nArea,
-  getAreaMessages
+  getAreaMessagesFromTranslator
 } from './messages';
 import { type HostUseI18nOptions, resolveHostI18nTranslationsByLocale } from './runtime';
 import { createTranslator, type Translator } from './translator';
@@ -23,20 +23,33 @@ export async function getActionLocale(): Promise<AppLocale> {
   return readLocaleFromCookies();
 }
 
+/**
+ * @deprecated Prefer `getServerTranslator({ area })` for new code. Use
+ * `getAreaMessagesFromTranslator(area, translator)` only when a typed tree is
+ * still required for a legacy surface.
+ */
 export async function getServerMessages<TArea extends I18nArea>(
   area: TArea
 ): Promise<AreaMessagesMap[TArea]> {
-  const locale = await getRequestLocale();
-  return getAreaMessages(area, locale);
+  const translator = await getServerTranslator({ area });
+  return getAreaMessagesFromTranslator(area, translator);
 }
 
+/**
+ * @deprecated Prefer `getRequestLocale()` plus `getServerTranslator({ area })`
+ * for new code. Keep this only for compatibility with legacy typed consumers.
+ */
 export async function getServerLocaleAndMessages<TArea extends I18nArea>(
   area: TArea
 ): Promise<{ locale: AppLocale; messages: AreaMessagesMap[TArea] }> {
   const locale = await getRequestLocale();
+  const translator = createTranslator(
+    locale,
+    resolveHostI18nTranslationsByLocale({ area })
+  );
   return {
     locale,
-    messages: getAreaMessages(area, locale)
+    messages: getAreaMessagesFromTranslator(area, translator)
   };
 }
 

@@ -9,12 +9,12 @@ import {
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { AdminMessages } from '@/lib/i18n/messages/admin';
 import { AdminTableSlotTemplate } from '../table-slot-template';
 import {
   getAdminUserStatusClassName,
   type AdminUserDisplayStatus
 } from './status';
+import type { AdminUsersCopy, AdminUsersTableCopy } from './i18n';
 
 export type AdminUserRow = {
   id: number;
@@ -32,7 +32,7 @@ export type AdminUserRow = {
 
 function getStatusLabel(
   status: AdminUserDisplayStatus,
-  usersTable: AdminMessages['usersTable']
+  usersTable: AdminUsersTableCopy
 ) {
   if (status === 'suspended') {
     return usersTable.statusSuspended;
@@ -50,9 +50,9 @@ function getStatusLabel(
 }
 
 export function getColumns(
-  messages: AdminMessages
+  copy: AdminUsersCopy
 ): ColumnDef<AdminUserRow>[] {
-  const usersTable = messages.usersTable;
+  const usersTable = copy.usersTable;
 
   return [
     {
@@ -236,12 +236,12 @@ export function getColumns(
 
 export function getUserTableDefinition({
   data,
-  messages
+  copy
 }: {
   data: AdminUserRow[];
-  messages: AdminMessages;
+  copy: AdminUsersCopy;
 }): BuildTableDefinition<AdminUserRow> {
-  const usersTable = messages.usersTable;
+  const usersTable = copy.usersTable;
   const definition: BuildTableDefinition<AdminUserRow> = {
     data,
     columns: [
@@ -374,7 +374,7 @@ export function getUserTableDefinition({
     toolbar: {
       search: {
         enabled: true,
-        placeholder: messages.usersPage.filterPlaceholder,
+        placeholder: copy.filterPlaceholder,
         columns: ['email']
       }
     },
@@ -387,4 +387,3 @@ export function getUserTableDefinition({
     definition
   );
 }
-
