@@ -61,7 +61,7 @@ export default async function HomePage() {
 
           <div className="flex flex-wrap items-center gap-4">
             <a
-              href="https://github.com/Samleinav/s-kit-saas"
+              href="https://github.com/Samleinav/SkitSaaS"
               target="_blank"
               rel="noreferrer"
             >
@@ -208,7 +208,7 @@ export default async function HomePage() {
       path="/"
       themeId={themeSelection.themeKey}
       data={{
-        viewCodeHref: 'https://github.com/Samleinav/s-kit-saas'
+        viewCodeHref: 'https://github.com/Samleinav/SkitSaaS'
       }}
       fallback={fallbackPage}
     >

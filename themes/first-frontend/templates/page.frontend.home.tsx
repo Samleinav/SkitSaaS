@@ -75,7 +75,7 @@ export default function PageFrontendHomeTemplate({
   const t = useI18n({ themeId, area: 'frontend' });
   const viewCodeHref = asNonEmptyString(
     data?.viewCodeHref,
-    'https://github.com/Samleinav/s-kit-saas'
+    'https://github.com/Samleinav/SkitSaaS'
   );
 
   return (

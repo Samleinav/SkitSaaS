@@ -2,7 +2,7 @@
 
 This is a starter template for building a SaaS application using **Next.js** with support for authentication, Stripe + PayPal integrations for payments, and a dashboard for logged-in users.
 
-**Demo: [https://saas-starter-topaz-nine.vercel.app/](https://saas-starter-topaz-nine.vercel.app/)**
+**Demo: [https://www.skitsaas.com/](https://www.skitsaas.com/)**
 
 ## Features
 
@@ -31,8 +31,8 @@ This is a starter template for building a SaaS application using **Next.js** wit
 ## Getting Started
 
 ```bash
-git clone https://github.com/Samleinav/s-kit-saas.git
-cd s-kit-saas
+git clone https://github.com/Samleinav/SkitSaaS.git
+cd SkitSaaS
 pnpm install
 ```
 
@@ -79,7 +79,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ## Canary Evidence (Ops)
 
-![Canary Evidence](https://github.com/Samleinav/s-kit-saas/actions/workflows/canary-evidence.yml/badge.svg)
+![Canary Evidence](https://github.com/Samleinav/SkitSaaS/actions/workflows/canary-evidence.yml/badge.svg)
 
 - Scheduled canary evidence pack runs via GitHub Actions.
 - Latest artifacts live under the `Canary Evidence` workflow.
@@ -190,4 +190,3 @@ You can run separate environments with different route surfaces:
 - `APP_SURFACE_MODE=admin-only`: admin enabled, dashboard/frontend disabled.
 
 For stronger isolation, pair this with separate DB roles/credentials and DB-level RLS policies per environment.
-

@@ -9,7 +9,7 @@ export function Terminal({ themeId = null }: { themeId?: string | null }) {
   const [terminalStep, setTerminalStep] = useState(0);
   const [copied, setCopied] = useState(false);
   const terminalSteps = [
-    'git clone https://github.com/Samleinav/s-kit-saas',
+    'git clone https://github.com/Samleinav/SkitSaaS',
     'pnpm install',
     'pnpm db:setup',
     'pnpm db:migrate',
