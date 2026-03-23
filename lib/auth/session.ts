@@ -3,6 +3,11 @@ import { and, eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NewUser, authSessions } from '@/lib/db/schema';
+import {
+  type SessionData,
+  isSessionExpired
+} from '@/lib/auth/session-state';
+import * as sessionStore from '@/lib/auth/session-store';
 
 const SALT_ROUNDS = 10;
 
@@ -26,19 +31,8 @@ export async function comparePasswords(
   return compare(plainTextPassword, hashedPassword);
 }
 
-export type SessionData = {
-  user: { id: number };
-  expires: string;
-  sessionId?: string;
-  jti?: string;
-};
-
-export type PersistedAuthSessionState = {
-  status: string | null | undefined;
-  revokedAt: Date | null;
-  expiresAt: Date | null;
-  tokenJti?: string | null;
-};
+export type { SessionData, PersistedAuthSessionState } from '@/lib/auth/session-state';
+export { isPersistedSessionActive, isSessionExpired, shouldExpirePersistedSession } from '@/lib/auth/session-state';
 
 export async function signToken(payload: SessionData) {
   const tokenJti = payload.jti?.trim() || payload.sessionId?.trim() || crypto.randomUUID();
@@ -71,14 +65,45 @@ export async function tryVerifyToken(input: string) {
 
 export async function refreshSignedSessionToken(
   input: string,
-  now = Date.now()
+  now = Date.now(),
+  {
+    syncPersistedSession = false,
+    ipAddress,
+    userAgent
+  }: {
+    syncPersistedSession?: boolean;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  } = {}
 ): Promise<{ token: string; expiresAt: Date } | null> {
   const sessionData = await tryVerifyToken(input);
   if (!sessionData || isSessionExpired(sessionData)) {
     return null;
   }
 
+  const nowDate = new Date(now);
   const expiresAt = new Date(now + 24 * 60 * 60 * 1000);
+  let persistedSession =
+    syncPersistedSession && sessionData.jti
+      ? await sessionStore.getActivePersistedAuthSessionByTokenJti(sessionData.jti, {
+          now: nowDate
+        })
+      : null;
+
+  if (syncPersistedSession && sessionData.jti && !persistedSession) {
+    return null;
+  }
+
+  if (persistedSession?.sessionId) {
+    await sessionStore.refreshPersistedAuthSession({
+      sessionId: persistedSession.sessionId,
+      expiresAt,
+      now: nowDate,
+      ipAddress,
+      userAgent
+    });
+  }
+
   const token = await signToken({
     user: sessionData.user,
     expires: expiresAt.toISOString(),
@@ -88,63 +113,6 @@ export async function refreshSignedSessionToken(
 
   return { token, expiresAt };
 }
-
-export function isSessionExpired(sessionData: Pick<SessionData, 'expires'> | null) {
-  if (!sessionData?.expires) {
-    return true;
-  }
-
-  const expiresAt = new Date(sessionData.expires);
-  if (Number.isNaN(expiresAt.getTime())) {
-    return true;
-  }
-
-  return expiresAt <= new Date();
-}
-
-export function isPersistedSessionActive(
-  persistedSession: PersistedAuthSessionState | null,
-  {
-    tokenJti,
-    now = new Date()
-  }: {
-    tokenJti?: string | null;
-    now?: Date;
-  } = {}
-) {
-  if (!persistedSession) {
-    return false;
-  }
-
-  if (persistedSession.status !== 'active') {
-    return false;
-  }
-
-  if (persistedSession.revokedAt) {
-    return false;
-  }
-
-  const expiresAt = persistedSession.expiresAt;
-  if (!(expiresAt instanceof Date) || Number.isNaN(expiresAt.getTime())) {
-    return false;
-  }
-
-  if (expiresAt <= now) {
-    return false;
-  }
-
-  const normalizedTokenJti = tokenJti?.trim();
-  if (
-    normalizedTokenJti &&
-    persistedSession.tokenJti &&
-    persistedSession.tokenJti !== normalizedTokenJti
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
 export async function getSession() {
   const session = (await cookies()).get('session')?.value;
   if (!session) return null;

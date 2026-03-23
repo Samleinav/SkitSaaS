@@ -67,9 +67,13 @@ export const GET = withApiRouteEntries(usersGet)
 `withApiProxy([proxyApiAdmin | proxyApiAuth], handler)` remains available for
 small standalone handlers.
 
-## JTI revocation
+## JTI revocation and persisted session expiry
 
-Session tokens contain a `jti` (JWT ID) field. The `authSessions` table tracks every active session with its `tokenJti`, `status`, and `revokedAt`. **All four built-in proxies** query this table — if no active session row is found for the token's JTI, the request is rejected even if the JWT signature is valid.
+Session tokens contain a `jti` (JWT ID) field. The `authSessions` table tracks
+every persisted session with its `tokenJti`, `status`, `revokedAt`, and
+`expiresAt`. **All four built-in proxies** query this table — if no active
+persisted session row is found for the token's JTI, the request is rejected
+even if the JWT signature is valid.
 
 | Proxy | JTI check |
 |-------|-----------|
@@ -83,6 +87,12 @@ This ensures that:
 - Logout immediately invalidates access (not just at JWT expiry).
 - Stolen tokens that are explicitly revoked are blocked within one request.
 - Deactivated users lose API access immediately, not at next JWT expiry.
+- A stale `auth_sessions` row cannot outlive the cookie refresh path.
+
+If a persisted session row is still marked `active` but its `expiresAt` is now
+in the past, the runtime treats it as invalid and marks it `expired` when the
+session is checked. This closes the gap where JWT validation and DB lifecycle
+could drift apart.
 
 The DB lookups are parallelised with `Promise.all`, so they add only one round-trip of latency.
 
@@ -125,17 +135,23 @@ await enrichUser(user).getContext() // → UserContext (server-side only)
 
 ## Session refresh
 
-On GET requests through `proxyAdmin` and `proxyAuth`, the session cookie is refreshed if it is close to expiry. The refreshed cookie is collected by `executeProxyChain` and merged into the final `NextResponse.next()` — this ensures the cookie is actually sent to the browser even when multiple proxy functions run in a chain.
+On GET requests through `proxyAdmin` and `proxyAuth`, the session cookie is
+refreshed if it is close to expiry. The refreshed cookie is collected by
+`executeProxyChain` and merged into the final `NextResponse.next()` — this
+ensures the cookie is actually sent to the browser even when multiple proxy
+functions run in a chain.
 
 The refreshed token must keep these values aligned:
 
 - JWT `jti`
 - payload `sessionId`
 - payload `expires`
+- persisted `auth_sessions.expiresAt`
 
 If only the JWT `exp` changes but the custom payload `expires` stays stale, the
 host will still treat the session as expired. The current runtime now refreshes
-both together.
+both together, and the persisted session row updates `expiresAt`/`lastSeenAt`
+at the same time.
 
 ## Security headers
 

@@ -13,11 +13,11 @@ type AllowlistedRoute = {
 const ALLOWLIST: Record<string, AllowlistedRoute> = {
   'app/api/auth/providers/[providerId]/callback/route.ts': {
     reason: 'public auth provider callback is dispatched through the module auth runtime',
-    requiredSnippets: ['resolveModuleApiHandler', 'checkAuthRateLimit']
+    requiredSnippets: ['resolveModuleApiHandler', 'applyAuthProviderRateLimit']
   },
   'app/api/auth/providers/[providerId]/start/route.ts': {
     reason: 'public auth provider handoff is dispatched through the module auth runtime with auth rate limiting',
-    requiredSnippets: ['resolveModuleApiHandler', 'checkAuthRateLimit']
+    requiredSnippets: ['resolveModuleApiHandler', 'applyAuthProviderRateLimit']
   },
   'app/api/modules/[moduleId]/[[...slug]]/route.ts': {
     reason: 'module API dispatcher delegates auth/rate-limit/proxy enforcement to module route contracts',

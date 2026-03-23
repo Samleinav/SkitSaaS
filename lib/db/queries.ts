@@ -23,10 +23,10 @@ import {
 } from './schema';
 import { cookies } from 'next/headers';
 import {
-  isPersistedSessionActive,
   isSessionExpired,
   tryVerifyToken
 } from '@/lib/auth/session';
+import { ensurePersistedAuthSessionActive } from '@/lib/auth/session-store';
 import { mapLegacyProviderToNamespace } from '@/lib/config/app-config';
 import {
   SUBSCRIPTION_BILLING_INTERVAL_SORT_WEIGHT,
@@ -61,6 +61,7 @@ export async function getUser() {
     const [activeSession] = await db
       .select({
         id: authSessions.id,
+        sessionId: authSessions.sessionId,
         tokenJti: authSessions.tokenJti,
         status: authSessions.status,
         expiresAt: authSessions.expiresAt,
@@ -76,9 +77,10 @@ export async function getUser() {
       .limit(1);
 
     if (
-      !isPersistedSessionActive(activeSession ?? null, {
-        tokenJti: sessionData.jti
-      })
+      !(await ensurePersistedAuthSessionActive(activeSession ?? null, {
+        tokenJti: sessionData.jti,
+        sessionId: sessionData.sessionId
+      }))
     ) {
       return null;
     }

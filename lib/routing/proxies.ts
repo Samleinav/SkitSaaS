@@ -48,11 +48,17 @@ async function verifySessionCookie(
 
 async function refreshSessionCookie(
   cookieValue: string,
+  request: Request,
   response: NextResponse
 ): Promise<void> {
   try {
     const { refreshSignedSessionToken } = await import('@/lib/auth/session');
-    const refreshed = await refreshSignedSessionToken(cookieValue);
+    const { resolveClientIp } = await import('@/lib/auth/rate-limit');
+    const refreshed = await refreshSignedSessionToken(cookieValue, Date.now(), {
+      syncPersistedSession: true,
+      ipAddress: resolveClientIp(request),
+      userAgent: request.headers.get('user-agent')
+    });
     if (!refreshed) {
       return;
     }
@@ -94,20 +100,10 @@ async function lookupUser(userId: number) {
  * A null/missing jti is treated as invalid.
  */
 async function lookupSession(tokenJti: string) {
-  const { db } = await import('@/lib/db/drizzle');
-  const { authSessions } = await import('@/lib/db/schema');
-  const { and, eq } = await import('drizzle-orm');
-
-  return db
-    .select({ status: authSessions.status, revokedAt: authSessions.revokedAt })
-    .from(authSessions)
-    .where(
-      and(
-        eq(authSessions.tokenJti, tokenJti),
-        eq(authSessions.status, 'active')
-      )
-    )
-    .limit(1);
+  const { getActivePersistedAuthSessionByTokenJti } = await import(
+    '@/lib/auth/session-store'
+  );
+  return getActivePersistedAuthSessionByTokenJti(tokenJti);
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +143,7 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
       return res;
     }
 
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       // Session was revoked (logout or admin invalidation)
       const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
@@ -163,7 +159,7 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
   // Return next() so executeProxyChain can merge the refreshed cookie.
   if (request.method === 'GET') {
     const res = NextResponse.next();
-    await refreshSessionCookie(cookieValue, res);
+    await refreshSessionCookie(cookieValue, request, res);
     return res;
   }
 
@@ -201,7 +197,7 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
       return res;
     }
 
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       // Session was revoked (logout or admin invalidation)
       const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
       res.cookies.delete(SESSION_COOKIE);
@@ -217,7 +213,7 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
   // Return next() so executeProxyChain can merge the refreshed cookie.
   if (request.method === 'GET') {
     const res = NextResponse.next();
-    await refreshSessionCookie(cookieValue, res);
+    await refreshSessionCookie(cookieValue, request, res);
     return res;
   }
 
@@ -254,7 +250,7 @@ export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -297,7 +293,7 @@ export const proxyApiAuth: RouteProxyFn = async (request: NextRequest) => {
       return res;
     }
 
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -365,7 +361,7 @@ export const proxyBuildFormValidateAccess: ApiRouteProxyFn = async (request: Req
       lookupSession(session.jti)
     ]);
 
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -375,7 +371,7 @@ export const proxyBuildFormValidateAccess: ApiRouteProxyFn = async (request: Req
   } else {
     // user scope — verify the session has not been revoked
     const sessionRow = await lookupSession(session.jti);
-    if (sessionRow.length === 0) {
+    if (!sessionRow) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
