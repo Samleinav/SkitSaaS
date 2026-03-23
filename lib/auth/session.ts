@@ -69,6 +69,26 @@ export async function tryVerifyToken(input: string) {
   }
 }
 
+export async function refreshSignedSessionToken(
+  input: string,
+  now = Date.now()
+): Promise<{ token: string; expiresAt: Date } | null> {
+  const sessionData = await tryVerifyToken(input);
+  if (!sessionData || isSessionExpired(sessionData)) {
+    return null;
+  }
+
+  const expiresAt = new Date(now + 24 * 60 * 60 * 1000);
+  const token = await signToken({
+    user: sessionData.user,
+    expires: expiresAt.toISOString(),
+    sessionId: sessionData.sessionId,
+    jti: sessionData.jti
+  });
+
+  return { token, expiresAt };
+}
+
 export function isSessionExpired(sessionData: Pick<SessionData, 'expires'> | null) {
   if (!sessionData?.expires) {
     return true;

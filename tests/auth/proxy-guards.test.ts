@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { NextRequest } from 'next/server';
 import { getRegisteredRoute, matchRouteProxyChain } from '@skitsaas/sdk';
 import { Routes } from '../../core/routes';
 
@@ -67,3 +68,14 @@ test(
     assert.equal(resolveUnauthenticatedRedirect('/administrator'), null);
   }
 );
+
+test('proxy blocks direct access to portal-internal routes', async () => {
+  const { proxy } = await loadProxyGuards();
+
+  const response = await proxy(
+    new NextRequest('http://localhost/portal-internal/example')
+  );
+
+  assert.ok(response);
+  assert.equal(response.status, 404);
+});

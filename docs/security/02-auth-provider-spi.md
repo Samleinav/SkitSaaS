@@ -60,6 +60,19 @@ Core exposes provider-centric entrypoints:
 
 These routes resolve enabled provider metadata and forward to the module API handler route configured in `authProviders.routes`.
 
+Current host-side guarantees on these handoff routes:
+
+- provider registry conflict handling is fail-closed
+- start and callback are both auth-rate-limited before module dispatch
+- session issuance still belongs to core or SDK server adapters, not to the
+  route bridge itself
+
+Current limitation:
+
+- OAuth/OIDC `state` validation and replay protection still live in the provider
+  module implementation today; they are not yet enforced by a shared core
+  handoff layer
+
 ## Diagnostics API
 
 Admin diagnostics endpoint:

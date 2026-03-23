@@ -51,27 +51,19 @@ async function refreshSessionCookie(
   response: NextResponse
 ): Promise<void> {
   try {
-    const authSecret = process.env.AUTH_SECRET?.trim();
-    if (!authSecret) return;
-
-    const { jwtVerify, SignJWT } = await import('jose');
-    const key = new TextEncoder().encode(authSecret);
-    const { payload } = await jwtVerify(cookieValue, key, { algorithms: ['HS256'] });
-    const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    const refreshed = await new SignJWT(payload as Record<string, unknown>)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime(expiresInOneDay)
-      .sign(key);
+    const { refreshSignedSessionToken } = await import('@/lib/auth/session');
+    const refreshed = await refreshSignedSessionToken(cookieValue);
+    if (!refreshed) {
+      return;
+    }
 
     response.cookies.set({
       name: SESSION_COOKIE,
-      value: refreshed,
+      value: refreshed.token,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      expires: expiresInOneDay
+      expires: refreshed.expiresAt
     });
   } catch {
     // Ignore refresh errors — the existing session is still valid.

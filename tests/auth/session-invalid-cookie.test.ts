@@ -74,6 +74,28 @@ test('signToken preserves session identifiers for revocation-aware flows', async
   assert.equal(session?.jti, 'session_abc_123');
 });
 
+test('refreshSignedSessionToken extends expires and preserves revocation identifiers', async () => {
+  const { refreshSignedSessionToken, signToken, tryVerifyToken } =
+    await loadSessionModule();
+  const originalExpiry = new Date(Date.now() + 60_000).toISOString();
+  const originalToken = await signToken({
+    user: { id: 77 },
+    expires: originalExpiry,
+    sessionId: 'session_refresh_77',
+    jti: 'session_refresh_77'
+  });
+
+  const refreshed = await refreshSignedSessionToken(originalToken, Date.now());
+  assert.ok(refreshed);
+
+  const refreshedSession = await tryVerifyToken(refreshed!.token);
+  assert.ok(refreshedSession);
+  assert.equal(refreshedSession?.user.id, 77);
+  assert.equal(refreshedSession?.sessionId, 'session_refresh_77');
+  assert.equal(refreshedSession?.jti, 'session_refresh_77');
+  assert.ok(Date.parse(refreshedSession?.expires ?? '') > Date.parse(originalExpiry));
+});
+
 test('isSessionExpired handles valid and invalid values defensively', async () => {
   const { isSessionExpired } = await loadSessionModule();
   assert.equal(

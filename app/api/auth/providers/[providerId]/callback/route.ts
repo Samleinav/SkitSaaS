@@ -4,6 +4,10 @@ import {
   resolveAuthProviderActionSlug,
   resolveModuleApiHandler
 } from '@/lib/modules/runtime';
+import {
+  checkAuthRateLimit,
+  resolveClientIp
+} from '@/lib/auth/rate-limit';
 
 type RouteContext = {
   params: { providerId: string } | Promise<{ providerId: string }>;
@@ -13,6 +17,20 @@ async function handleProviderCallback(
   request: Request,
   { params }: RouteContext
 ) {
+  const ip = resolveClientIp(request);
+  const rateLimit = await checkAuthRateLimit({ ip, action: 'callback' });
+  if (rateLimit.limited) {
+    return Response.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds ?? 60)
+        }
+      }
+    );
+  }
+
   const resolvedParams = await Promise.resolve(params);
   const resolvedProvider = await getEnabledAuthProviderById(
     resolvedParams.providerId

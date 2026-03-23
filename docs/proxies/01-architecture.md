@@ -137,6 +137,11 @@ contract.
 These routes are expected to be reachable without a logged-in browser session,
 but only because a different control model applies.
 
+The allowlist is now enforced by test coverage in:
+
+- `tests/routing/api-route-coverage.test.ts`
+- `tests/auth/proxy-guards.test.ts`
+
 ### Public sessionless endpoints
 
 - `/api/auth/providers/[providerId]/start`
@@ -217,6 +222,7 @@ These surfaces should never rely on “security by not being linked”:
 ```bash
 find app/api -name 'route.ts' | sort
 rg -n "withApiRouteEntries|withApiProxy|dispatchApiRoutes|matchRouteProxyChain|configureAreaDefaults" app lib core
+npx tsx --test tests/routing/api-route-coverage.test.ts tests/auth/proxy-guards.test.ts
 pnpm docs:check:paths
 pnpm docs:check:links
 ```

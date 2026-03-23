@@ -7,7 +7,7 @@ description: Proxy chain authentication, JTI revocation, security headers, and r
 # Security Architecture
 
 Status: Production-ready
-Last review: 2026-03-10
+Last review: 2026-03-23
 
 Read [Proxy Architecture](./01-architecture.md) first for the route surface map,
 trust boundaries, and the explicit list of public-intentional endpoints.
@@ -127,6 +127,16 @@ await enrichUser(user).getContext() // → UserContext (server-side only)
 
 On GET requests through `proxyAdmin` and `proxyAuth`, the session cookie is refreshed if it is close to expiry. The refreshed cookie is collected by `executeProxyChain` and merged into the final `NextResponse.next()` — this ensures the cookie is actually sent to the browser even when multiple proxy functions run in a chain.
 
+The refreshed token must keep these values aligned:
+
+- JWT `jti`
+- payload `sessionId`
+- payload `expires`
+
+If only the JWT `exp` changes but the custom payload `expires` stays stale, the
+host will still treat the session as expired. The current runtime now refreshes
+both together.
+
 ## Security headers
 
 Security headers are set globally in `next.config.mjs` for all routes (`source: '/(.*)'`):
@@ -174,6 +184,11 @@ import { withRateLimit, checkRateLimit } from '@/lib/routing/rate-limit'
 // Auth endpoints specifically
 import { checkAuthRateLimit } from '@/lib/auth/rate-limit'
 ```
+
+Auth provider handoff routes use this auth-specific limiter for both:
+
+- `/api/auth/providers/[providerId]/start`
+- `/api/auth/providers/[providerId]/callback`
 
 ### Available context fields
 
