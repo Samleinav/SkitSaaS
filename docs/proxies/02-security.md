@@ -9,6 +9,9 @@ description: Proxy chain authentication, JTI revocation, security headers, and r
 Status: Production-ready
 Last review: 2026-03-10
 
+Read [Proxy Architecture](./01-architecture.md) first for the route surface map,
+trust boundaries, and the explicit list of public-intentional endpoints.
+
 This document covers the layered security model: proxy chain authentication, session revocation, HTTP security headers, and composable rate limiting.
 
 ## Proxy chain authentication

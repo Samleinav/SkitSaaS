@@ -26,6 +26,7 @@ Read the routing system first. Use the route map page only as a high-level summa
 
 Laravel-inspired proxy chains - define auth rules, role guards, and rate limits per route.
 
+- [Proxy Architecture (request flow and trust boundaries)](./proxies/01-architecture.md)
 - [Security Architecture (Proxies, JTI Revocation, Rate Limiting)](./proxies/02-security.md)
 
 ## Forms

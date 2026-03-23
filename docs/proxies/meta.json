@@ -1,4 +1,4 @@
 {
   "title": "Proxies",
-  "pages": ["02-security"]
+  "pages": ["01-architecture", "02-security"]
 }
