@@ -30,6 +30,19 @@ To add a new admin dashboard widget:
 - `quickLinks`: shortcut cards to core admin routes.
 - `recentActivity`: compact latest system events with CTA to `/admin/logs`.
 
+`recentActivity` should be treated as a governance summary, not a replacement
+for `/admin/logs`. The detailed review surface now relies on canonical
+`eventCategory`, `eventType`, and `requestId` fields from `sys_activity_logs`.
+
+Current ownership model:
+
+- the initial governance console still lives in core admin (`/admin`, `/admin/logs`)
+- modules may build additional read-only governance views through
+  `listSystemActivityLogs()` from `@skitsaas/sdk/server`
+- enforcement, audit writes, and admin DB ownership stay in core
+- if a future governance module is added, it should extend review/reporting UX,
+  not replace the core log console or the host-owned evidence pipeline
+
 ## Choose which modules are shown
 
 Two options:
@@ -51,5 +64,3 @@ If `ADMIN_DASHBOARD_ENABLED_MODULES` is set, it overrides default visibility fla
 For periodic production/staging evidence packs and artifacts, see:
 
 - `docs/operations/ops-canary-pack.md`
-
-

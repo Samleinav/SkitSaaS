@@ -118,6 +118,8 @@ Exports:
 - `getAuthProviderStartState`
 - `getVerifiedAuthProviderCallbackState`
 - `validateAuthProviderCallbackState`
+- `configureGovernance`
+- `listSystemActivityLogs`
 - `configureI18n`
 - `getServerTranslator`
 - `getActionTranslator`
@@ -194,6 +196,59 @@ const actionT = await getActionTranslator({ moduleId: 'mod.analytics' });
 
 Both resolve the active locale through the host bootstrap and use the same flat
 translation runtime as `useI18n({ moduleId })`.
+
+## Governance Reads
+
+Read-only governance evidence is available to modules through
+`@skitsaas/sdk/server`, while enforcement and writes stay in core.
+
+Current baseline surface:
+
+- `listSystemActivityLogs({ limit, eventCategory, status, requestId, actorUserId, entityType, entityId, search })`
+
+Rules:
+
+- admin-only: the SDK helper calls `requireAdmin()` before reading
+- read-only: no write/update/delete governance helper is exposed through SDK
+- portable: `source-package` modules can consume this without importing
+  `@/lib/db/queries.admin`
+
+Extension model:
+
+- use SDK governance reads for dashboards, evidence explorers, exports, and
+  non-blocking analytics
+- do not expect SDK governance modules to change proxy chains, auth decisions,
+  or privileged audit writes
+- treat core as the canonical owner of enforcement and evidence production;
+  modules are consumers of that evidence, not replacements for the sink
+- if a future governance module needs more read surfaces, extend
+  `@skitsaas/sdk/server` instead of importing `@/lib/*`
+
+Example:
+
+```ts
+import { listSystemActivityLogs } from '@skitsaas/sdk/server';
+
+const rows = await listSystemActivityLogs({
+  eventCategory: 'module_runtime',
+  requestId: 'req-123',
+  limit: 25
+});
+```
+
+Future governance-module baseline:
+
+- allowed:
+  - read-only evidence queries
+  - dashboards and correlation views
+  - exports and review workflows
+  - anomaly scoring or advisory rules that do not bypass core
+- forbidden:
+  - mutating proxy defaults
+  - replacing auth/session enforcement
+  - writing privileged audit rows without a core adapter
+  - direct imports from `@/lib/db/queries.admin`, `@/lib/routing/*`, or other
+    host internals in `source-package` mode
 
 ## Sfiles
 

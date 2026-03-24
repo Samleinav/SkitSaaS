@@ -9,6 +9,9 @@ import {
   normalizeSystemActivityEventCategory
 } from '../../lib/system/activity-log-taxonomy';
 import {
+  isHighValueSystemActivityEventType
+} from '../../lib/system/activity-event-types';
+import {
   getOrCreateRequestId,
   setResponseRequestIdHeader
 } from '../../lib/observability/request-id';
@@ -97,6 +100,17 @@ test('system activity categories normalize to the canonical taxonomy', async () 
     normalizeSystemActivityEventCategory('something-custom'),
     'system'
   );
+});
+
+test('high-value system activity event patterns cover the core enforcement families', () => {
+  assert.equal(isHighValueSystemActivityEventType('auth.session.revoked'), true);
+  assert.equal(isHighValueSystemActivityEventType('auth.api.invalid_cookie'), true);
+  assert.equal(isHighValueSystemActivityEventType('module.dispatch.failed'), true);
+  assert.equal(
+    isHighValueSystemActivityEventType('dashboard.subscriptions.user.cancel'),
+    true
+  );
+  assert.equal(isHighValueSystemActivityEventType('random.custom.event'), false);
 });
 
 test('createSysActivityLog fails open and leaves console evidence when the sink throws', async () => {

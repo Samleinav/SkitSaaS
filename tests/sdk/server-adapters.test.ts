@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   configureNotifications,
+  configureGovernance,
   createModuleApiRouter,
   createModulePageRouter,
   createNotification,
@@ -23,6 +24,7 @@ import {
   getVerifiedAuthProviderCallbackState,
   hasOwn,
   findTable,
+  listSystemActivityLogs,
   listTables,
   notifyGlobal,
   notifyTeam,
@@ -68,6 +70,10 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await assert.rejects(
     () => createNotification({ message: 'System notice' }),
     /Module SDK notification adapter not configured/
+  );
+  await assert.rejects(
+    () => listSystemActivityLogs(),
+    /Module SDK auth adapter not configured/
   );
   await assert.rejects(
     () => getServerTranslator(),
@@ -186,6 +192,10 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
   await assert.rejects(
     () => setSessionForUser(0),
     /positive integer userId/
+  );
+  await assert.rejects(
+    () => listSystemActivityLogs(),
+    /Module SDK governance adapter not configured/
   );
 
   const emittedHooks: string[] = [];
@@ -389,6 +399,51 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
       userIds: [],
       teamId: 21,
       teamRecipients: 'owner'
+    }
+  ]);
+
+  const governanceCalls: Array<Record<string, unknown>> = [];
+  configureGovernance({
+    listSystemActivityLogs: async (query = {}) => {
+      governanceCalls.push(query as Record<string, unknown>);
+      return [
+        {
+          id: 1,
+          eventType: 'auth.session.revoked',
+          eventCategory: 'auth',
+          action: 'session_revoked',
+          status: 'warning',
+          actorUserId: 7,
+          actorEmail: 'admin@example.com',
+          actorRole: 'admin',
+          targetUserId: null,
+          teamId: null,
+          teamName: null,
+          entityType: 'auth_session',
+          entityId: 'sess_1',
+          source: '/admin/security',
+          ipAddress: '127.0.0.1',
+          requestId: 'req-governance-1',
+          message: 'Session revoked',
+          metadata: null,
+          createdAt: new Date('2026-03-23T00:00:00.000Z')
+        }
+      ];
+    }
+  });
+
+  const governanceLogs = await listSystemActivityLogs({
+    eventCategory: 'auth',
+    requestId: 'req-governance-1',
+    search: 'revoked'
+  });
+  assert.equal(governanceLogs.length, 1);
+  assert.equal(governanceLogs[0]?.requestId, 'req-governance-1');
+  assert.deepEqual(governanceCalls, [
+    {
+      eventCategory: 'auth',
+      requestId: 'req-governance-1',
+      search: 'revoked'
     }
   ]);
 

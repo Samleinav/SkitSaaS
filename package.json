@@ -48,6 +48,7 @@
     "restructure:drift": "npx tsx scripts/restructure-drift-check.ts",
     "restructure:failure-injection": "npx tsx scripts/restructure-failure-injection.ts",
     "restructure:admin-smoke": "npx tsx scripts/restructure-admin-smoke.ts",
+    "restructure:governance-pack": "npx tsx --test tests/auth/proxy-guards.test.ts tests/routing/api-route-coverage.test.ts tests/auth/api-proxy-audit.test.ts tests/operations/system-activity-logs.test.ts tests/operations/module-dispatch-failure.test.ts",
     "restructure:module-runtime": "npx tsx scripts/restructure-module-runtime-check.ts",
     "restructure:canary": "npx tsx scripts/restructure-canary-report.ts",
     "restructure:evidence": "npx tsx scripts/restructure-evidence-pack.ts",

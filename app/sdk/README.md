@@ -71,6 +71,7 @@ export default defineModule({
 - `@skitsaas/sdk/server`
   - auth/session helpers (`getUser`, `requireUser`, `requireAdmin`, `setSessionForUser`)
   - auth provider handoff/state helpers (`getAuthProviderStartState`, `getVerifiedAuthProviderCallbackState`, `validateAuthProviderCallbackState`)
+  - governance read helpers (`listSystemActivityLogs`)
   - event emit helpers (`emitEvent`, `emitEventAsync`)
   - persisted notification helpers (`createNotification`, `notifyGlobal`, `notifyUser`, `notifyUsers`, `notifyTeam`, `notifyTeamMembers`, `notifyTeamOwner`)
   - module config helpers (`getModuleConfigValue`, `setModuleConfigValue`)
@@ -169,6 +170,18 @@ export async function callback(request: Request) {
 
   return Response.json({ ok: true });
 }
+```
+
+Governance reads stay read-only and admin-scoped through the host adapter:
+
+```ts
+import { listSystemActivityLogs } from '@skitsaas/sdk/server';
+
+const recentAuthEvents = await listSystemActivityLogs({
+  eventCategory: 'auth',
+  limit: 50,
+  requestId: 'req-123'
+});
 ```
 
 ## Persisted Notifications

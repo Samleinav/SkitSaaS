@@ -31,13 +31,39 @@ Run locally or in staging with DB access:
    - `npx tsx --test tests/modules/module-runtime.test.ts`
 3. Theme runtime determinism tests:
    - `npx tsx --test tests/theme/theme-runtime.test.ts`
+4. Security/navigation governance pack:
+   - `pnpm restructure:governance-pack`
 
 Legacy note:
 
 - `pnpm restructure:parity` is retired after the contract cleanup.
 - Use `pnpm restructure:canary` for ongoing drift/health detection instead.
 
-## 4) UI route checklist (manual)
+## 4) Security and navigation governance checklist
+
+Run these focused checks before release when auth, routing, proxy, provider
+handoff, or governance logging changed:
+
+1. Proxy/API/governance regression pack:
+   - `pnpm restructure:governance-pack`
+2. Typecheck:
+   - `pnpm exec tsc --noEmit`
+3. Anonymous smoke of protected routes:
+   - `SMOKE_BASE_URL=https://staging.example.com SMOKE_ALLOW_UNAUTH=true pnpm restructure:admin-smoke`
+4. Authenticated smoke of protected routes:
+   - `SMOKE_BASE_URL=https://staging.example.com SMOKE_AUTH_COOKIE="session=..." pnpm restructure:admin-smoke`
+
+Minimum evidence expectations:
+
+- `/admin*` redirects to `/admin/login` when anonymous
+- `/dashboard*` redirects to `/sign-in` when anonymous
+- `/admin*` renders for an admin session
+- `/dashboard*` renders for an authenticated non-admin user
+- public allowlisted endpoints remain explicitly allowlisted by test
+- governance sink tests still pass for `requestId`, deny events, and
+  module-dispatch evidence
+
+## 5) UI route checklist (manual)
 
 Compare against baseline snapshots in `docs/audit/baseline-snapshots/2026-02-05`.
 
@@ -53,7 +79,7 @@ Validate routes (authenticated admin user):
 
 Capture new snapshots and record date/location if behavior changed.
 
-## 5) Module enable/disable validation (staging)
+## 6) Module enable/disable validation (staging)
 
 This repo ships the built-in `ops.diagnostics` module in the core registry for
 admin runtime smoke checks. It exposes `/admin/modules/ops.diagnostics` when the
@@ -113,7 +139,7 @@ where module_id = 'ops.diagnostics';
 5. If you also need dashboard dispatcher coverage, repeat the same flow with a
    real registered module that exposes `/dashboard/modules/<real-module-id>`.
 
-## 6) Theme policy and override validation
+## 7) Theme policy and override validation
 
 1. Ensure selected themes are set by ENV (`THEME_ADMIN`, `THEME_DASHBOARD`, `THEME_FRONTEND`) and rebuilt (`pnpm themes:prepare`).
 2. Set `THEME_ALLOW_USER_OVERRIDE=true` and verify users can toggle mode in `/admin` and `/dashboard`.
@@ -124,7 +150,27 @@ Evidence command:
 
 - `npx tsx --test tests/theme/theme-runtime.test.ts`
 
-## 7) Optional admin smoke pack
+## 8) Post-incident mini pack
+
+After a security/navigation incident or suspicious regression, collect this
+minimum pack before deeper analysis:
+
+1. `pnpm restructure:governance-pack`
+2. `pnpm restructure:canary`
+3. Re-run the relevant HTTP smoke command(s) with and without an auth cookie.
+4. Export `/admin/logs` evidence filtered by:
+   - `requestId`
+   - `eventCategory`
+   - affected entity or actor
+
+Attach:
+
+- failing route/path
+- redirect or deny behavior observed
+- related `requestId`
+- matching `sys_activity_logs` rows
+
+## 9) Optional admin smoke pack
 
 For lightweight route health checks:
 
@@ -141,3 +187,9 @@ Related env vars:
 - `SMOKE_ALLOW_UNAUTH` (default `true`)
 - `SMOKE_MODULE_ID` (optional)
 
+Behavior note:
+
+- anonymous `/admin*` redirects to `/admin/login`
+- anonymous `/dashboard*` redirects to `/sign-in`
+- authenticated smoke still expects `2xx` responses unless a route is
+  intentionally inaccessible for that session

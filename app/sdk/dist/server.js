@@ -208,6 +208,21 @@ export async function getCurrentSfilesActor() {
 export async function getCurrentSfiles() {
     return bindSfilesActor(await getCurrentSfilesActor());
 }
+let governanceAdapter = null;
+export function configureGovernance(adapter) {
+    governanceAdapter = adapter;
+}
+function readGovernanceAdapter() {
+    if (!governanceAdapter) {
+        throw new Error('Module SDK governance adapter not configured.');
+    }
+    return governanceAdapter;
+}
+export async function listSystemActivityLogs(query = {}) {
+    await requireAdmin();
+    const adapter = readGovernanceAdapter();
+    return adapter.listSystemActivityLogs(query);
+}
 let i18nAdapter = null;
 export function configureI18n(adapter) {
     i18nAdapter = adapter;

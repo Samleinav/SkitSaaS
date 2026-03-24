@@ -39,6 +39,45 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
+## 2026-03-23 - sdk-governance-read-surface
+
+- `status`: published
+- `sprint`: sprint-c
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk/server` now exposes a read-only governance surface so modules can inspect system activity evidence without importing admin-only host query internals.
+- `sdk_surface`: `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/package.json`
+  - `app/sdk/README.md`
+  - `lib/db/queries.admin.ts`
+  - `lib/modules/sdk-server-bootstrap.ts`
+  - `tests/sdk/server-adapters.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `docs/modules/00-overview.md`
+  - `docs/operations/admin-dashboard.md`
+  - `docs/operations/system-activity-logs.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.14.0 -> v1.15.0 (MINOR).
+
+    New host-bootstrapped SDK surface:
+
+    - `configureGovernance(...)`
+    - `listSystemActivityLogs({ limit, eventCategory, status, requestId, actorUserId, entityType, entityId, search })`
+
+    Guardrails:
+
+    - admin-only: `listSystemActivityLogs(...)` calls `requireAdmin()` first
+    - read-only: no governance write/update/delete API is exposed through SDK
+    - core-owned enforcement: event writes, auth/proxy decisions, and admin DB
+      ownership remain in the host
+
+    This closes the first safe governance-read gap for `source-package`
+    modules: they can now build operational dashboards or evidence views
+    without importing `@/lib/db/queries.admin`.
+
 ## 2026-03-20 - i18n-legacy-callers-retired
 
 - `status`: published

@@ -126,3 +126,29 @@ Host runtime additionally enforces alias collisions against core routes and othe
 - host re-export: `lib/modules/manifest.ts`
 - static host registry: `lib/modules/registry.ts`
 - generated external registry: `lib/modules/external.generated.ts`
+
+## Governance-oriented modules
+
+Governance UX can live in a module, but only on top of safe host-owned
+surfaces.
+
+Recommended pattern:
+
+- keep enforcement, proxy rules, auth/session validation, and audit writes in core
+- let modules consume read-only governance evidence through
+  `@skitsaas/sdk/server`
+- prefer `source-package` boundaries for governance modules whenever possible
+
+Allowed module capabilities:
+
+- admin/dashboard evidence views
+- request/event correlation explorers
+- exports, reports, and advisory analytics
+- non-blocking anomaly detection or alert suggestions
+
+Forbidden module capabilities:
+
+- changing core proxy chains or route defaults
+- bypassing `requireAdmin()` / `requireUser()` enforcement
+- direct privileged writes into `sys_activity_logs` or other governance sinks
+- replacing host-owned audit generation with module-side free-text logs

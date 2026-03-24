@@ -74,6 +74,22 @@ function isRedirectToSignIn(location: string | null) {
   return location?.includes('/sign-in') ?? false;
 }
 
+function isRedirectToAdminLogin(location: string | null) {
+  return location?.includes('/admin/login') ?? false;
+}
+
+function isAcceptedUnauthenticatedRedirect(path: string, location: string | null) {
+  if (path.startsWith('/admin')) {
+    return isRedirectToAdminLogin(location);
+  }
+
+  if (path.startsWith('/dashboard')) {
+    return isRedirectToSignIn(location);
+  }
+
+  return false;
+}
+
 async function checkRoute(path: string): Promise<SmokeResult> {
   const headers: HeadersInit = {};
   if (cookie) {
@@ -95,13 +111,13 @@ async function checkRoute(path: string): Promise<SmokeResult> {
     return { path, status, location, ok: true };
   }
 
-  if (isRedirect && isRedirectToSignIn(location)) {
+  if (allowUnauth && isRedirect && isAcceptedUnauthenticatedRedirect(path, location)) {
     return {
       path,
       status,
       location,
       ok: true,
-      note: 'redirected_to_sign_in',
+      note: 'redirected_to_public_login',
     };
   }
 

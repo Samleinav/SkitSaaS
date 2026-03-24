@@ -16,6 +16,14 @@ Current authoring reality in this repository:
 - shared capabilities should still be consumed from `@skitsaas/sdk` first
 - any direct host import in module code should be treated as migration debt
 
+Governance note:
+
+- read-only operational evidence should prefer SDK helpers such as
+  `listSystemActivityLogs()` from `@skitsaas/sdk/server`
+- modules must not import `@/lib/db/queries.admin` directly for governance
+  reads if an SDK surface exists
+- enforcement and evidence writes remain core-owned
+
 Target architecture:
 
 - move modules toward `source-package` portability over time

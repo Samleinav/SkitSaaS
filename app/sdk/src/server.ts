@@ -412,6 +412,68 @@ export async function getCurrentSfiles(): Promise<ActorBoundSfilesManager> {
   return bindSfilesActor(await getCurrentSfilesActor());
 }
 
+export type GovernanceActivityLogQuery = {
+  limit?: number;
+  eventCategory?: string | null;
+  status?: string | null;
+  requestId?: string | null;
+  actorUserId?: number | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  search?: string | null;
+};
+
+export type GovernanceActivityLogRecord = {
+  id: number;
+  eventType: string;
+  eventCategory: string;
+  action: string;
+  status: string;
+  actorUserId: number | null;
+  actorEmail: string | null;
+  actorRole: string | null;
+  targetUserId: number | null;
+  teamId: number | null;
+  teamName: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  source: string | null;
+  ipAddress: string | null;
+  requestId: string | null;
+  message: string | null;
+  metadata: string | null;
+  createdAt: Date;
+};
+
+export type GovernanceAdapter = {
+  listSystemActivityLogs: (
+    query?: GovernanceActivityLogQuery
+  ) => Promise<GovernanceActivityLogRecord[]>;
+};
+
+let governanceAdapter: GovernanceAdapter | null = null;
+
+export function configureGovernance(adapter: GovernanceAdapter) {
+  governanceAdapter = adapter;
+}
+
+function readGovernanceAdapter() {
+  if (!governanceAdapter) {
+    throw new Error('Module SDK governance adapter not configured.');
+  }
+
+  return governanceAdapter;
+}
+
+export async function listSystemActivityLogs(
+  query: GovernanceActivityLogQuery = {}
+): Promise<GovernanceActivityLogRecord[]> {
+  await requireAdmin();
+
+  const adapter = readGovernanceAdapter();
+  return adapter.listSystemActivityLogs(query);
+}
+
 export type I18nAdapter = {
   getServerTranslator: (options?: UseI18nOptions) => Promise<Translator>;
   getActionTranslator?: (options?: UseI18nOptions) => Promise<Translator>;

@@ -9,6 +9,7 @@ import {
   configureBuildFormUiTemplateResolver,
   configureDatabase,
   configureEventEmitter,
+  configureGovernance,
   configureI18n,
   configureModuleConfig,
   configureNotifications,
@@ -32,6 +33,7 @@ import {
   upsertAppConfigEntry
 } from '@/lib/config/app-config-writes';
 import { adminDb, db } from '@/lib/db/drizzle';
+import { getSystemActivityLogsForAdmin } from '@/lib/db/queries.admin';
 import { resolveBuildFormDbLookup } from '@/lib/forms/db-registry';
 import {
   configureBuildFormValidationObservability,
@@ -230,6 +232,10 @@ export function bootstrapModuleSdkServer() {
 
   configureNotifications({
     createNotification: createSystemNotification
+  });
+
+  configureGovernance({
+    listSystemActivityLogs: getSystemActivityLogsForAdmin
   });
 
   configureI18n({

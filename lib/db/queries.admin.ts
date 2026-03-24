@@ -13,6 +13,7 @@ import {
   and,
   eq,
   gte,
+  ilike,
   isNotNull,
   isNull,
   ne,
@@ -83,6 +84,77 @@ type ActiveTeamSubscriptionAssignment = {
   cancelAtPeriodEnd: boolean | null;
   canceledAt: Date | null;
 };
+
+export type AdminSystemActivityLogQuery = {
+  limit?: number;
+  eventCategory?: string | null;
+  status?: string | null;
+  requestId?: string | null;
+  actorUserId?: number | null;
+  entityType?: string | null;
+  entityId?: string | null;
+  search?: string | null;
+};
+
+export type AdminSystemActivityLogRecord = {
+  id: number;
+  eventType: string;
+  eventCategory: string;
+  action: string;
+  status: string;
+  actorUserId: number | null;
+  actorEmail: string | null;
+  actorRole: string | null;
+  targetUserId: number | null;
+  teamId: number | null;
+  teamName: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  source: string | null;
+  ipAddress: string | null;
+  requestId: string | null;
+  message: string | null;
+  metadata: string | null;
+  createdAt: Date;
+};
+
+function normalizeAdminSystemActivityLogQuery(
+  optionsOrLimit: number | AdminSystemActivityLogQuery | undefined
+) {
+  if (typeof optionsOrLimit === 'number') {
+    return {
+      limit: Math.max(1, Math.min(optionsOrLimit, 1000))
+    } satisfies Required<Pick<AdminSystemActivityLogQuery, 'limit'>> &
+      Omit<AdminSystemActivityLogQuery, 'limit'>;
+  }
+
+  const options = optionsOrLimit ?? {};
+  const limit =
+    typeof options.limit === 'number'
+      ? Math.max(1, Math.min(options.limit, 1000))
+      : 200;
+
+  const normalizeText = (value: string | null | undefined) => {
+    const normalized = value?.trim();
+    return normalized ? normalized : null;
+  };
+
+  return {
+    limit,
+    eventCategory: normalizeText(options.eventCategory),
+    status: normalizeText(options.status),
+    requestId: normalizeText(options.requestId),
+    actorUserId:
+      typeof options.actorUserId === 'number' &&
+      Number.isInteger(options.actorUserId) &&
+      options.actorUserId > 0
+        ? options.actorUserId
+        : null,
+    entityType: normalizeText(options.entityType),
+    entityId: normalizeText(options.entityId),
+    search: normalizeText(options.search)
+  };
+}
 
 // ─── Internal helpers (use adminDb) ────────────────────────────────────────────
 
@@ -773,7 +845,35 @@ export async function getPaymentOrderFormOptionsForAdmin() {
   return { teams: teamOptions, templates: templateOptions, users: userOptions };
 }
 
-export async function getSystemActivityLogsForAdmin(limit = 200) {
+export async function getSystemActivityLogsForAdmin(
+  optionsOrLimit: number | AdminSystemActivityLogQuery = 200
+): Promise<AdminSystemActivityLogRecord[]> {
+  const options = normalizeAdminSystemActivityLogQuery(optionsOrLimit);
+  const filters = [
+    options.eventCategory
+      ? eq(sysActivityLogs.eventCategory, options.eventCategory)
+      : undefined,
+    options.status ? eq(sysActivityLogs.status, options.status) : undefined,
+    options.requestId
+      ? eq(sysActivityLogs.requestId, options.requestId)
+      : undefined,
+    options.actorUserId
+      ? eq(sysActivityLogs.actorUserId, options.actorUserId)
+      : undefined,
+    options.entityType
+      ? eq(sysActivityLogs.entityType, options.entityType)
+      : undefined,
+    options.entityId ? eq(sysActivityLogs.entityId, options.entityId) : undefined,
+    options.search
+      ? or(
+          ilike(sysActivityLogs.eventType, `%${options.search}%`),
+          ilike(sysActivityLogs.source, `%${options.search}%`),
+          ilike(sysActivityLogs.requestId, `%${options.search}%`),
+          ilike(sysActivityLogs.message, `%${options.search}%`)
+        )
+      : undefined
+  ].filter(Boolean);
+
   return adminDb
     .select({
       id: sysActivityLogs.id,
@@ -798,8 +898,9 @@ export async function getSystemActivityLogsForAdmin(limit = 200) {
     })
     .from(sysActivityLogs)
     .leftJoin(teams, eq(sysActivityLogs.teamId, teams.id))
+    .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(sysActivityLogs.createdAt))
-    .limit(Math.max(1, Math.min(limit, 1000)));
+    .limit(options.limit);
 }
 
 // ─── Dashboard analytics ───────────────────────────────────────────────────────

@@ -68,6 +68,42 @@ export type AuthProviderCallbackStateValidationResult = {
 export declare function validateAuthProviderCallbackState(request: Request, state: string | null | undefined): AuthProviderCallbackStateValidationResult;
 export declare function getCurrentSfilesActor(): Promise<SFilesActorContext>;
 export declare function getCurrentSfiles(): Promise<ActorBoundSfilesManager>;
+export type GovernanceActivityLogQuery = {
+    limit?: number;
+    eventCategory?: string | null;
+    status?: string | null;
+    requestId?: string | null;
+    actorUserId?: number | null;
+    entityType?: string | null;
+    entityId?: string | null;
+    search?: string | null;
+};
+export type GovernanceActivityLogRecord = {
+    id: number;
+    eventType: string;
+    eventCategory: string;
+    action: string;
+    status: string;
+    actorUserId: number | null;
+    actorEmail: string | null;
+    actorRole: string | null;
+    targetUserId: number | null;
+    teamId: number | null;
+    teamName: string | null;
+    entityType: string | null;
+    entityId: string | null;
+    source: string | null;
+    ipAddress: string | null;
+    requestId: string | null;
+    message: string | null;
+    metadata: string | null;
+    createdAt: Date;
+};
+export type GovernanceAdapter = {
+    listSystemActivityLogs: (query?: GovernanceActivityLogQuery) => Promise<GovernanceActivityLogRecord[]>;
+};
+export declare function configureGovernance(adapter: GovernanceAdapter): void;
+export declare function listSystemActivityLogs(query?: GovernanceActivityLogQuery): Promise<GovernanceActivityLogRecord[]>;
 export type I18nAdapter = {
     getServerTranslator: (options?: UseI18nOptions) => Promise<Translator>;
     getActionTranslator?: (options?: UseI18nOptions) => Promise<Translator>;

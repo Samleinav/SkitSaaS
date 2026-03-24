@@ -62,6 +62,22 @@ pnpm restructure:admin-smoke \
 > docs/audit/canary-reports/2026-02-05/staging-admin-smoke.json
 ```
 
+Anonymous protected-navigation check:
+
+```
+SMOKE_BASE_URL=https://staging.example.com \
+SMOKE_ALLOW_UNAUTH=true \
+pnpm restructure:admin-smoke \
+> docs/audit/canary-reports/2026-02-05/staging-admin-smoke-anon.json
+```
+
+Focused governance regression pack:
+
+```
+pnpm restructure:governance-pack \
+> docs/audit/canary-reports/2026-02-05/governance-pack.tap
+```
+
 ## 5) Module runtime check (DB + manifest parity)
 
 ```
@@ -81,6 +97,8 @@ Store:
 
 - `canary.json`
 - `admin-smoke.json`
+- `admin-smoke-anon.json` (when auth/navigation changed)
+- `governance-pack.tap` (when proxy/auth/governance changed)
 - `module-runtime.json`
 - Notes (optional): `notes.md` (incident IDs, action taken)
 
@@ -143,4 +161,3 @@ Notes:
 
 - If no `SMOKE_BASE_URL` or `SMOKE_AUTH_COOKIE` is provided, the workflow runs `canary,module` by default.
 - Artifacts are uploaded as `canary-evidence-YYYY-MM-DD` (retention 30 days).
-
