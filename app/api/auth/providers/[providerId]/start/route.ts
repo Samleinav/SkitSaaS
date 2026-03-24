@@ -4,21 +4,29 @@ import {
   resolveAuthProviderActionSlug,
   resolveModuleApiHandler
 } from '@/lib/modules/runtime';
-import { applyAuthProviderRateLimit } from '@/lib/auth/provider-handoff';
+import {
+  applyAuthProviderRateLimit,
+  attachPreparedAuthProviderHandoff,
+  prepareAuthProviderHandoff,
+  withAuthProviderStartState
+} from '@/lib/auth/provider-handoff';
 
 type RouteContext = {
   params: { providerId: string } | Promise<{ providerId: string }>;
 };
 
 async function handleProviderStart(request: Request, { params }: RouteContext) {
-  const rateLimitedResponse = await applyAuthProviderRateLimit(request, 'start');
+  const resolvedParams = await Promise.resolve(params);
+  const providerId = resolvedParams.providerId;
+  const rateLimitedResponse = await applyAuthProviderRateLimit(request, 'start', {
+    providerId
+  });
   if (rateLimitedResponse) {
     return rateLimitedResponse;
   }
 
-  const resolvedParams = await Promise.resolve(params);
   const resolvedProvider = await getEnabledAuthProviderById(
-    resolvedParams.providerId
+    providerId
   );
 
   if (!resolvedProvider.provider) {
@@ -43,10 +51,12 @@ async function handleProviderStart(request: Request, { params }: RouteContext) {
     );
   }
 
+  const handoff = await prepareAuthProviderHandoff({ providerId });
+
   const response = await resolveModuleApiHandler({
     moduleId: resolvedProvider.provider.moduleId,
     slug,
-    request
+    request: withAuthProviderStartState(request, handoff.nonce)
   });
 
   if (!response) {
@@ -56,7 +66,14 @@ async function handleProviderStart(request: Request, { params }: RouteContext) {
     );
   }
 
-  return response;
+  if (response.status >= 400) {
+    return response;
+  }
+
+  return attachPreparedAuthProviderHandoff(response, {
+    request,
+    handoff
+  });
 }
 
 export const GET = handleProviderStart;

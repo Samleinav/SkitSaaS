@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NewUser, authSessions } from '@/lib/db/schema';
+import { createAuthAuditLog } from '@/lib/auth/audit';
 import {
   type SessionData,
   isSessionExpired
@@ -230,6 +231,22 @@ export async function setSession(user: NewUser, options: SetSessionOptions = {})
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   });
+
+  await createAuthAuditLog({
+    eventType: 'auth.session.created',
+    action: 'session_created',
+    status: 'success',
+    actorUserId: user.id,
+    actorEmail: user.email ?? null,
+    actorRole: user.role ?? null,
+    source: 'auth.session',
+    ipAddress: options.ipAddress ?? null,
+    message: 'Session issued successfully.',
+    metadata: {
+      sessionId,
+      authArea: options.metadata?.authArea ?? null
+    }
+  });
 }
 
 export async function clearSession({
@@ -251,9 +268,32 @@ export async function clearSession({
         sessionId: sessionData.sessionId,
         reason
       });
+      await createAuthAuditLog({
+        eventType: 'auth.session.revoked',
+        action: 'session_revoked',
+        status: 'success',
+        actorUserId: sessionData.user.id,
+        source: 'auth.session',
+        message: 'Session revoked successfully.',
+        metadata: {
+          reason,
+          sessionId: sessionData.sessionId
+        }
+      });
     } catch {
       // Keep logout path resilient even when session storage is unavailable.
     }
+  } else {
+    await createAuthAuditLog({
+      eventType: 'auth.session.invalid_cookie',
+      action: 'invalid_cookie',
+      status: 'warning',
+      source: 'auth.session',
+      message: 'Session cookie could not be verified during logout.',
+      metadata: {
+        reason
+      }
+    });
   }
 
   cookieStore.delete('session');

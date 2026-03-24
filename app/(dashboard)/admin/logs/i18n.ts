@@ -9,6 +9,7 @@ export type AdminLogsCopy = {
     email: string;
   };
   filterPlaceholder: string;
+  categoryFilterPlaceholder: string;
   table: {
     createdHeader: string;
     eventHeader: string;
@@ -20,6 +21,7 @@ export type AdminLogsCopy = {
     teamHeader: string;
     entityHeader: string;
     sourceHeader: string;
+    requestIdHeader: string;
     ipHeader: string;
     messageHeader: string;
     noActor: string;
@@ -64,7 +66,8 @@ export function createAdminLogsCopy(t: Translator): AdminLogsCopy {
       system: t('System logs'),
       email: t('Email logs')
     },
-    filterPlaceholder: t('Filter by event...'),
+    filterPlaceholder: t('Filter by event, request, source, or message...'),
+    categoryFilterPlaceholder: t('Category'),
     table: {
       createdHeader: t('Created'),
       eventHeader: t('Event'),
@@ -76,6 +79,7 @@ export function createAdminLogsCopy(t: Translator): AdminLogsCopy {
       teamHeader: t('Team'),
       entityHeader: t('Entity'),
       sourceHeader: t('Source'),
+      requestIdHeader: t('Request ID'),
       ipHeader: t('IP'),
       messageHeader: t('Message'),
       noActor: t('System'),

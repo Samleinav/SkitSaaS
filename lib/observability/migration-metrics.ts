@@ -21,6 +21,39 @@ type MigrationMetricEvent = {
   tags: Record<string, string | number | boolean | null>;
 };
 
+function queueModuleDispatchAuditLog(
+  moduleId: string,
+  reason: string,
+  tags: Record<string, string | number | boolean | null>
+) {
+  void import('@/lib/system/activity-logs')
+    .then(({ createSysActivityLog }) =>
+      createSysActivityLog({
+        eventType: 'module.dispatch.failed',
+        eventCategory: 'module_runtime',
+        action: 'dispatch',
+        status: 'warning',
+        entityType: 'module',
+        entityId: moduleId,
+        source: typeof tags.source === 'string' ? tags.source : null,
+        requestId: typeof tags.requestId === 'string' ? tags.requestId : null,
+        message: `Module dispatch failed: ${reason}`,
+        metadata: {
+          moduleId,
+          reason,
+          ...tags
+        }
+      })
+    )
+    .catch((error) => {
+      console.error('[migration-metric] failed to persist module dispatch log', {
+        moduleId,
+        reason,
+        error
+      });
+    });
+}
+
 function sanitizeTags(tags: MetricTags = {}) {
   const entries = Object.entries(tags).filter(
     ([, value]) => value !== undefined
@@ -115,11 +148,15 @@ export function recordModuleDispatchFailure(
   reason: string,
   tags: MetricTags = {}
 ) {
-  return emitMigrationMetric('migration.module_dispatch.failed', {
+  const sanitizedTags = sanitizeTags(tags);
+  const event = emitMigrationMetric('migration.module_dispatch.failed', {
     moduleId,
     reason,
-    ...tags,
+    ...sanitizedTags,
   });
+
+  queueModuleDispatchAuditLog(moduleId, reason, sanitizedTags);
+  return event;
 }
 
 export function recordThemeResolutionSource(

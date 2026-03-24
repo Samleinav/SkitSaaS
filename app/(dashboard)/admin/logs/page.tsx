@@ -153,6 +153,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
         (log.teamId ? `team:${log.teamId}` : logsPage.table.noTeam),
       entityLabel: formatEntityLabel(log, logsPage.table),
       sourceLabel: log.source || logsPage.table.noSource,
+      requestId: log.requestId || '-',
       ipAddress: log.ipAddress || '-',
       message: formatMessage(log)
     }));

@@ -141,6 +141,54 @@ export async function setSessionForUser(userId, options) {
     }
     await adapter.setSessionForUser(userId, options);
 }
+const AUTH_PROVIDER_START_STATE_HEADER = 'x-skitsaas-auth-provider-state';
+const AUTH_PROVIDER_VERIFIED_HEADER = 'x-skitsaas-auth-provider-handoff-verified';
+const AUTH_PROVIDER_NONCE_HEADER = 'x-skitsaas-auth-provider-handoff-nonce';
+function readAuthProviderHeader(request, name) {
+    const value = request.headers.get(name);
+    return value ? value.trim() || null : null;
+}
+export function getAuthProviderStartState(request) {
+    return readAuthProviderHeader(request, AUTH_PROVIDER_START_STATE_HEADER);
+}
+export function getVerifiedAuthProviderCallbackState(request) {
+    if (readAuthProviderHeader(request, AUTH_PROVIDER_VERIFIED_HEADER) !== '1') {
+        return null;
+    }
+    return readAuthProviderHeader(request, AUTH_PROVIDER_NONCE_HEADER);
+}
+export function validateAuthProviderCallbackState(request, state) {
+    const expectedState = getVerifiedAuthProviderCallbackState(request);
+    const receivedState = toTrimmedString(state) || null;
+    if (!expectedState) {
+        return {
+            ok: false,
+            reason: 'unverified_handoff',
+            expectedState: null,
+            receivedState
+        };
+    }
+    if (!receivedState) {
+        return {
+            ok: false,
+            reason: 'missing_state',
+            expectedState,
+            receivedState: null
+        };
+    }
+    if (receivedState !== expectedState) {
+        return {
+            ok: false,
+            reason: 'state_mismatch',
+            expectedState,
+            receivedState
+        };
+    }
+    return {
+        ok: true,
+        state: expectedState
+    };
+}
 export async function getCurrentSfilesActor() {
     const user = await getUser();
     if (!user || !Number.isInteger(user.id) || user.id <= 0) {

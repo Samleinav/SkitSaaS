@@ -115,6 +115,9 @@ Exports:
 - `getUser`
 - `requireUser`
 - `requireAdmin`
+- `getAuthProviderStartState`
+- `getVerifiedAuthProviderCallbackState`
+- `validateAuthProviderCallbackState`
 - `configureI18n`
 - `getServerTranslator`
 - `getActionTranslator`
@@ -158,6 +161,18 @@ Exports:
 - `getCurrentSfiles`
 - `configureSubscriptionFeatures`
 - `getPlanFeatureValue`
+
+Auth provider modules can reuse the core handoff nonce as the shared OAuth/OIDC
+`state` contract:
+
+- `getAuthProviderStartState(request)` reads the nonce injected by the core
+  `/api/auth/providers/[providerId]/start` bridge
+- `validateAuthProviderCallbackState(request, state)` checks the returned
+  provider `state` against the verified nonce forwarded by the core callback
+  bridge
+
+That keeps `state` validation SDK-first for `source-package` modules while
+still letting a provider add its own richer signed payload on top if needed.
 - `getPlanFeatureNumber`
 - `checkFeature`
 - `getQuotaStatus`

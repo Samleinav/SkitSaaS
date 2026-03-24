@@ -13,12 +13,14 @@ import {
   configureRevalidation,
   createFormReader,
   emitEvent,
+  getAuthProviderStartState,
   getActionTranslator,
   getDb,
   getTable,
   getModuleConfigValue,
   getServerTranslator,
   getUser,
+  getVerifiedAuthProviderCallbackState,
   hasOwn,
   findTable,
   listTables,
@@ -33,7 +35,8 @@ import {
   requireUser,
   setSessionForUser,
   revalidatePaths,
-  setModuleConfigValue
+  setModuleConfigValue,
+  validateAuthProviderCallbackState
 } from '../../app/sdk/src/server';
 import { and, eq, pgTable, serial, varchar } from '../../app/sdk/src/db';
 
@@ -92,6 +95,67 @@ test('SDK server adapters expose clear errors and reusable helpers', async () =>
 
   await revalidatePaths(['/dashboard', '/dashboard', ' /admin ']);
   assert.deepEqual(revalidatedPaths, ['/dashboard', '/admin']);
+
+  assert.equal(
+    getAuthProviderStartState(
+      new Request('http://localhost/api/auth/providers/google/start', {
+        headers: {
+          'x-skitsaas-auth-provider-state': 'nonce_start_1'
+        }
+      })
+    ),
+    'nonce_start_1'
+  );
+  assert.equal(
+    getVerifiedAuthProviderCallbackState(
+      new Request('http://localhost/api/auth/providers/google/callback')
+    ),
+    null
+  );
+  assert.deepEqual(
+    validateAuthProviderCallbackState(
+      new Request('http://localhost/api/auth/providers/google/callback'),
+      'nonce_start_1'
+    ),
+    {
+      ok: false,
+      reason: 'unverified_handoff',
+      expectedState: null,
+      receivedState: 'nonce_start_1'
+    }
+  );
+  assert.deepEqual(
+    validateAuthProviderCallbackState(
+      new Request('http://localhost/api/auth/providers/google/callback', {
+        headers: {
+          'x-skitsaas-auth-provider-handoff-verified': '1',
+          'x-skitsaas-auth-provider-handoff-nonce': 'nonce_start_1'
+        }
+      }),
+      'nonce_start_2'
+    ),
+    {
+      ok: false,
+      reason: 'state_mismatch',
+      expectedState: 'nonce_start_1',
+      receivedState: 'nonce_start_2'
+    }
+  );
+  assert.deepEqual(
+    validateAuthProviderCallbackState(
+      new Request('http://localhost/api/auth/providers/google/callback', {
+        headers: {
+          'x-skitsaas-auth-provider-handoff-verified': '1',
+          'x-skitsaas-auth-provider-handoff-nonce': 'nonce_start_1'
+        }
+      }),
+      'nonce_start_1'
+    ),
+    {
+      ok: true,
+      state: 'nonce_start_1'
+    }
+  );
 
   type TestUser = {
     id: number;

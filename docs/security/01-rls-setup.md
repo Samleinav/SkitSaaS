@@ -156,6 +156,10 @@ This is intentional and safe — sign-in/sign-up do not expose other users' data
 All `ForAdmin` query functions in `lib/db/queries.admin.ts` already use `adminDb`.
 No `withUserContext` call is needed in admin server actions because `saas_admin` bypasses RLS.
 
+The same rule applies to cross-domain governance sinks such as
+`sys_activity_logs`: write helpers must use `adminDb` / `saas_admin`, not the
+user-scoped `db` client.
+
 ```ts
 // Admin page — no withUserContext needed
 import { getAllUsersForAdmin } from '@/lib/db/queries.admin';

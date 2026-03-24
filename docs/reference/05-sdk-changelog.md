@@ -74,6 +74,43 @@ Nota:
     `getServerLocaleAndMessages()` still exist, but only as explicitly marked
     compatibility helpers for old typed surfaces.
 
+## 2026-03-23 - sdk-auth-provider-state-helpers
+
+- `status`: published
+- `sprint`: sprint-c
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk/server` now exposes auth provider state helpers so modules can reuse the core handoff nonce as the shared OAuth/OIDC `state` contract without importing host internals.
+- `sdk_surface`: `@skitsaas/sdk/server`
+- `files`:
+  - `app/sdk/src/server.ts`
+  - `app/sdk/package.json`
+  - `app/sdk/README.md`
+  - `app/api/auth/providers/[providerId]/start/route.ts`
+  - `lib/auth/provider-handoff.ts`
+  - `tests/sdk/server-adapters.test.ts`
+  - `tests/auth/auth-provider-handoff.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `docs/security/02-auth-provider-spi.md`
+  - `docs/proxies/02-security.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.13.0 -> v1.14.0 (MINOR).
+
+    New helpers:
+
+    - `getAuthProviderStartState(request)`
+    - `getVerifiedAuthProviderCallbackState(request)`
+    - `validateAuthProviderCallbackState(request, state)`
+
+    The host `/api/auth/providers/[providerId]/start` bridge now prepares the
+    handoff before module dispatch, injects the nonce into the module request,
+    and still sets the browser-bound handoff cookie on the final response.
+
+    Modules can now bind provider `state` to the same nonce that the core
+    callback bridge verifies, which closes the main SDK portability gap around
+    provider-side anti-CSRF / replay wiring.
+
 ## 2026-03-18 - i18n-resolver-contract-and-legacy-policy
 
 - `status`: published

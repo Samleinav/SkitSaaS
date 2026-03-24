@@ -19,6 +19,66 @@ For SMTP delivery/audit details, use `email_logs` instead.
 - Read helper: `lib/db/queries.ts` (`getSystemActivityLogsForAdmin`)
 - Admin UI: `/admin/logs`
 
+## Write path expectations
+
+`sys_activity_logs` is an admin/governance sink.
+
+- writes should go through `createSysActivityLog(...)`
+- the helper persists through `adminDb` / `saas_admin`
+- the helper is best-effort: write failures must not break the caller's critical
+  path
+- when the sink fails, the helper still leaves local console evidence with
+  `eventType`, `source`, and `requestId`
+
+This matters in split-role deployments because `saas_app` does not have access
+to `sys_activity_logs` under the RLS/grants model.
+
+## Request correlation
+
+Sensitive request flows should include a stable `requestId` when they emit
+multiple operational or security events.
+
+Current baseline:
+
+- proxy-chain responses now return `x-request-id`
+- auth/session audit logging generates a stable request id per `Request` object
+  when the inbound request did not already provide one
+- `createSysActivityLog(...)` stores the normalized `requestId` field without
+  changing the existing admin read queries
+- module dispatch failures now emit both migration metrics and
+  `sys_activity_logs` entries (`eventCategory = 'module_runtime'`)
+
+## Canonical categories
+
+The current canonical category set is:
+
+- `admin`
+- `api`
+- `auth`
+- `checkout`
+- `dashboard`
+- `email`
+- `event_bus`
+- `forms`
+- `module_runtime`
+- `navigation`
+- `payments`
+- `proxy`
+- `system`
+
+Writers should use these categories for new events. The helper normalizes
+spacing/hyphen variants (for example `module-runtime` -> `module_runtime`) and
+falls back to `system` for unknown values.
+
+## Admin log surface
+
+`/admin/logs` now treats `eventCategory` and `requestId` as first-class
+governance fields:
+
+- category filter in the system logs table
+- free-text search across event type, source, request id, and message
+- explicit request-id column for incident correlation
+
 Payment orders reference:
 
 - Table schema: `lib/db/schema.ts` (`payment_orders`)
@@ -41,4 +101,3 @@ Email logs reference:
 For payment/subscription event architecture (adapters, metadata envelope, lifecycle executor, and extension examples), see:
 
 - [`Payment Events and Subscription Lifecycle`](../subscriptions/payment-events-lifecycle.md)
-

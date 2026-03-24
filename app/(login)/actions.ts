@@ -27,6 +27,7 @@ import {
   hashPassword,
   setSession
 } from '@/lib/auth/session';
+import { createAuthAuditLog } from '@/lib/auth/audit';
 import {
   evaluateBreakGlassPasswordPolicy,
   registerBreakGlassPasswordFailure,
@@ -107,6 +108,41 @@ async function auditBreakGlassSignInEvent({
   });
 }
 
+async function auditPasswordSignInEvent({
+  action,
+  status,
+  reason,
+  email,
+  source,
+  ipAddress,
+  actorUserId = null,
+  actorRole = null,
+  metadata
+}: {
+  action: string;
+  status: 'info' | 'success' | 'warning' | 'failed';
+  reason: string;
+  email: string;
+  source: string;
+  ipAddress: string | null;
+  actorUserId?: number | null;
+  actorRole?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  await createAuthAuditLog({
+    eventType: 'auth.password_sign_in',
+    action,
+    status,
+    actorUserId,
+    actorEmail: email,
+    actorRole,
+    source,
+    ipAddress,
+    message: reason,
+    metadata
+  });
+}
+
 const signInSchema = z.object({
   email: z.string().email().min(3).max(255),
   password: z.string().min(8).max(100)
@@ -120,6 +156,12 @@ async function signInByArea(
   const { email, password } = data;
   const signInSource = resolveSignInSource(authArea);
   const t = await getActionTranslator();
+  const requestHeaders = await headers();
+  const ipAddress = resolveClientIpAddress({
+    xForwardedFor: requestHeaders.get('x-forwarded-for'),
+    xRealIp: requestHeaders.get('x-real-ip')
+  });
+  const userAgent = requestHeaders.get('user-agent');
 
   if (!isPasswordLoginAllowedForArea(authArea)) {
     await emitEventAsync(
@@ -127,19 +169,23 @@ async function signInByArea(
       { email, reason: 'password_method_disabled' },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: 'blocked',
+      status: 'warning',
+      reason: 'password_method_disabled',
+      email,
+      source: signInSource,
+      ipAddress,
+      metadata: {
+        authArea
+      }
+    });
     return {
       error: t('Password sign-in is disabled for this area. Use an enabled provider.'),
       email,
       password
     };
   }
-
-  const requestHeaders = await headers();
-  const ipAddress = resolveClientIpAddress({
-    xForwardedFor: requestHeaders.get('x-forwarded-for'),
-    xRealIp: requestHeaders.get('x-real-ip')
-  });
-  const userAgent = requestHeaders.get('user-agent');
   const isAdminArea = authArea === 'admin';
   const breakGlassDecision = isAdminArea
     ? evaluateBreakGlassPasswordPolicy({
@@ -255,6 +301,20 @@ async function signInByArea(
       },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: failureState?.isLocked ? 'lockout' : 'failed',
+      status: failureState?.isLocked ? 'failed' : 'warning',
+      reason:
+        failureState?.isLocked === true
+          ? 'break_glass_locked_out'
+          : 'user_not_found',
+      email,
+      source: signInSource,
+      ipAddress,
+      metadata: {
+        authArea
+      }
+    });
 
     if (failureState?.isLocked) {
       return {
@@ -325,6 +385,20 @@ async function signInByArea(
       },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: failureState?.isLocked ? 'lockout' : 'failed',
+      status: failureState?.isLocked ? 'failed' : 'warning',
+      reason:
+        failureState?.isLocked === true
+          ? 'break_glass_locked_out'
+          : 'invalid_password',
+      email,
+      source: signInSource,
+      ipAddress,
+      metadata: {
+        authArea
+      }
+    });
 
     if (failureState?.isLocked) {
       return {
@@ -347,6 +421,17 @@ async function signInByArea(
       { email, reason: 'account_deleted' },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: 'failed',
+      status: 'warning',
+      reason: 'account_deleted',
+      email,
+      source: signInSource,
+      ipAddress,
+      metadata: {
+        authArea
+      }
+    });
     return {
       error: t('This account has been deleted. Contact support for assistance.'),
       email,
@@ -360,6 +445,19 @@ async function signInByArea(
       { email, reason: 'account_banned' },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: 'failed',
+      status: 'warning',
+      reason: 'account_banned',
+      email,
+      source: signInSource,
+      ipAddress,
+      actorUserId: foundUser.id,
+      actorRole: foundUser.role,
+      metadata: {
+        authArea
+      }
+    });
     return {
       error: t('This account is banned. Contact support for assistance.'),
       email,
@@ -373,6 +471,19 @@ async function signInByArea(
       { email, reason: 'account_suspended' },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: 'failed',
+      status: 'warning',
+      reason: 'account_suspended',
+      email,
+      source: signInSource,
+      ipAddress,
+      actorUserId: foundUser.id,
+      actorRole: foundUser.role,
+      metadata: {
+        authArea
+      }
+    });
     return {
       error: t('This account is suspended. Contact support for assistance.'),
       email,
@@ -391,6 +502,19 @@ async function signInByArea(
       { email, reason: 'admin_access_required' },
       { source: signInSource }
     );
+    await auditPasswordSignInEvent({
+      action: 'blocked',
+      status: 'warning',
+      reason: 'admin_access_required',
+      email,
+      source: signInSource,
+      ipAddress,
+      actorUserId: foundUser.id,
+      actorRole: foundUser.role,
+      metadata: {
+        authArea
+      }
+    });
     return {
       error: t('This account does not have admin access. Sign in from /login instead.'),
       email,
@@ -439,6 +563,20 @@ async function signInByArea(
       source: signInSource
     }
   );
+  await auditPasswordSignInEvent({
+    action: 'success',
+    status: 'success',
+    reason: 'password_sign_in_allowed',
+    email: foundUser.email,
+    source: signInSource,
+    ipAddress,
+    actorUserId: foundUser.id,
+    actorRole: foundUser.role,
+    metadata: {
+      authArea,
+      teamId: foundTeam?.id ?? null
+    }
+  });
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {

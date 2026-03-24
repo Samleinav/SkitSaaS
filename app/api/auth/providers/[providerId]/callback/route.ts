@@ -4,7 +4,11 @@ import {
   resolveAuthProviderActionSlug,
   resolveModuleApiHandler
 } from '@/lib/modules/runtime';
-import { applyAuthProviderRateLimit } from '@/lib/auth/provider-handoff';
+import {
+  applyAuthProviderRateLimit,
+  clearAuthProviderHandoff,
+  validateAuthProviderHandoff
+} from '@/lib/auth/provider-handoff';
 
 type RouteContext = {
   params: { providerId: string } | Promise<{ providerId: string }>;
@@ -14,14 +18,22 @@ async function handleProviderCallback(
   request: Request,
   { params }: RouteContext
 ) {
-  const rateLimitedResponse = await applyAuthProviderRateLimit(request, 'callback');
+  const resolvedParams = await Promise.resolve(params);
+  const providerId = resolvedParams.providerId;
+  const rateLimitedResponse = await applyAuthProviderRateLimit(request, 'callback', {
+    providerId
+  });
   if (rateLimitedResponse) {
     return rateLimitedResponse;
   }
 
-  const resolvedParams = await Promise.resolve(params);
+  const handoff = await validateAuthProviderHandoff(request, { providerId });
+  if (!handoff.ok) {
+    return handoff.response;
+  }
+
   const resolvedProvider = await getEnabledAuthProviderById(
-    resolvedParams.providerId
+    providerId
   );
 
   if (!resolvedProvider.provider) {
@@ -52,17 +64,20 @@ async function handleProviderCallback(
   const response = await resolveModuleApiHandler({
     moduleId: resolvedProvider.provider.moduleId,
     slug,
-    request
+    request: handoff.request
   });
 
   if (!response) {
-    return Response.json(
-      { error: 'Auth provider callback route is unavailable.' },
-      { status: 404 }
+    return clearAuthProviderHandoff(
+      Response.json(
+        { error: 'Auth provider callback route is unavailable.' },
+        { status: 404 }
+      ),
+      providerId
     );
   }
 
-  return response;
+  return clearAuthProviderHandoff(response, providerId);
 }
 
 export const GET = handleProviderCallback;

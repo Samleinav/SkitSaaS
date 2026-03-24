@@ -10,6 +10,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { ApiRouteProxyFn, RateLimitConfig, RouteProxyFn } from '@skitsaas/sdk';
 import { enrichUser } from '@skitsaas/sdk';
+import { createAuthAuditLog } from '@/lib/auth/audit';
+import {
+  getOrCreateRequestId,
+  setResponseRequestIdHeader
+} from '@/lib/observability/request-id';
 
 const SESSION_COOKIE = 'session';
 const ADMIN_LOGIN = '/admin/login';
@@ -106,6 +111,34 @@ async function lookupSession(tokenJti: string) {
   return getActivePersistedAuthSessionByTokenJti(tokenJti);
 }
 
+async function auditProxySessionFailure({
+  channel = 'proxy',
+  request,
+  action,
+  status,
+  message,
+  actorUserId,
+  metadata
+}: {
+  channel?: 'proxy' | 'api';
+  request: Request;
+  action: string;
+  status: 'warning' | 'failed';
+  message: string;
+  actorUserId?: number | null;
+  metadata?: Record<string, unknown>;
+}) {
+  await createAuthAuditLog({
+    eventType: `auth.${channel}.${action}`,
+    action,
+    status,
+    request,
+    actorUserId: actorUserId ?? null,
+    message,
+    metadata
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Proxy implementations
 // ---------------------------------------------------------------------------
@@ -126,6 +159,12 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
 
   const session = await verifySessionCookie(cookieValue);
   if (!session || !session.jti) {
+    await auditProxySessionFailure({
+      request,
+      action: 'invalid_cookie',
+      status: 'warning',
+      message: 'Admin proxy rejected an invalid or unverifiable session cookie.'
+    });
     const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
     res.cookies.delete(SESSION_COOKIE);
     return res;
@@ -138,6 +177,13 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
     ]);
 
     if (account.length === 0 || !enrichUser({ id: 0, role: account[0]!.role }).isAdmin()) {
+      await auditProxySessionFailure({
+        request,
+        action: 'admin_denied',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Admin proxy rejected a session without admin access.'
+      });
       const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -145,6 +191,13 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
 
     if (!sessionRow) {
       // Session was revoked (logout or admin invalidation)
+      await auditProxySessionFailure({
+        request,
+        action: 'session_revoked',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Admin proxy rejected a revoked or expired persisted session.'
+      });
       const res = NextResponse.redirect(new URL(ADMIN_LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -180,6 +233,12 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
 
   const session = await verifySessionCookie(cookieValue);
   if (!session || !session.jti) {
+    await auditProxySessionFailure({
+      request,
+      action: 'invalid_cookie',
+      status: 'warning',
+      message: 'Dashboard proxy rejected an invalid or unverifiable session cookie.'
+    });
     const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
     res.cookies.delete(SESSION_COOKIE);
     return res;
@@ -192,6 +251,13 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
     ]);
 
     if (account.length === 0) {
+      await auditProxySessionFailure({
+        request,
+        action: 'unknown_subject',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Dashboard proxy rejected a session whose user account is unavailable.'
+      });
       const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -199,6 +265,13 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
 
     if (!sessionRow) {
       // Session was revoked (logout or admin invalidation)
+      await auditProxySessionFailure({
+        request,
+        action: 'session_revoked',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Dashboard proxy rejected a revoked or expired persisted session.'
+      });
       const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -230,11 +303,25 @@ export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
   const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!cookieValue) {
+    await auditProxySessionFailure({
+      channel: 'api',
+      request,
+      action: 'missing_cookie',
+      status: 'warning',
+      message: 'Admin API proxy rejected a request without a session cookie.'
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const session = await verifySessionCookie(cookieValue);
   if (!session || !session.jti) {
+    await auditProxySessionFailure({
+      channel: 'api',
+      request,
+      action: 'invalid_cookie',
+      status: 'warning',
+      message: 'Admin API proxy rejected an invalid or unverifiable session cookie.'
+    });
     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     res.cookies.delete(SESSION_COOKIE);
     return res;
@@ -247,10 +334,26 @@ export const proxyApiAdmin: RouteProxyFn = async (request: NextRequest) => {
     ]);
 
     if (account.length === 0 || !enrichUser({ id: 0, role: account[0]!.role }).isAdmin()) {
+      await auditProxySessionFailure({
+        channel: 'api',
+        request,
+        action: 'admin_denied',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Admin API proxy rejected a session without admin access.'
+      });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (!sessionRow) {
+      await auditProxySessionFailure({
+        channel: 'api',
+        request,
+        action: 'session_revoked',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Admin API proxy rejected a revoked or expired persisted session.'
+      });
       const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -271,11 +374,25 @@ export const proxyApiAuth: RouteProxyFn = async (request: NextRequest) => {
   const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!cookieValue) {
+    await auditProxySessionFailure({
+      channel: 'api',
+      request,
+      action: 'missing_cookie',
+      status: 'warning',
+      message: 'Dashboard API proxy rejected a request without a session cookie.'
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const session = await verifySessionCookie(cookieValue);
   if (!session || !session.jti) {
+    await auditProxySessionFailure({
+      channel: 'api',
+      request,
+      action: 'invalid_cookie',
+      status: 'warning',
+      message: 'Dashboard API proxy rejected an invalid or unverifiable session cookie.'
+    });
     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     res.cookies.delete(SESSION_COOKIE);
     return res;
@@ -288,12 +405,28 @@ export const proxyApiAuth: RouteProxyFn = async (request: NextRequest) => {
     ]);
 
     if (account.length === 0) {
+      await auditProxySessionFailure({
+        channel: 'api',
+        request,
+        action: 'unknown_subject',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Dashboard API proxy rejected a session whose user account is unavailable.'
+      });
       const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       res.cookies.delete(SESSION_COOKIE);
       return res;
     }
 
     if (!sessionRow) {
+      await auditProxySessionFailure({
+        channel: 'api',
+        request,
+        action: 'session_revoked',
+        status: 'warning',
+        actorUserId: session.userId,
+        message: 'Dashboard API proxy rejected a revoked or expired persisted session.'
+      });
       const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       res.cookies.delete(SESSION_COOKIE);
       return res;
@@ -522,6 +655,7 @@ export async function executeProxyChain(
 ): Promise<NextResponse> {
   type ResponseCookie = ReturnType<NextResponse['cookies']['getAll']>[number];
   const mergedCookies: ResponseCookie[] = [];
+  const requestId = getOrCreateRequestId(request);
 
   for (const fn of fns) {
     const result = await fn(request);
@@ -534,10 +668,10 @@ export async function executeProxyChain(
     }
 
     // Blocking response (redirect, 401, 403, etc.) — short-circuit.
-    return result;
+    return setResponseRequestIdHeader(result, requestId);
   }
 
   const finalResponse = NextResponse.next();
   mergedCookies.forEach(c => finalResponse.cookies.set(c));
-  return finalResponse;
+  return setResponseRequestIdHeader(finalResponse, requestId);
 }

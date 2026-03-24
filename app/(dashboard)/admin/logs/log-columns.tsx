@@ -9,6 +9,7 @@ import {
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SYSTEM_ACTIVITY_EVENT_CATEGORIES } from '@/lib/system/activity-log-taxonomy';
 import { cn } from '@/lib/utils';
 import { AdminTableSlotTemplate } from '../table-slot-template';
 import type { AdminLogsCopy } from './i18n';
@@ -26,6 +27,7 @@ export type AdminSystemLogRow = {
   teamLabel: string;
   entityLabel: string;
   sourceLabel: string;
+  requestId: string;
   ipAddress: string;
   message: string;
 };
@@ -175,6 +177,15 @@ export function getLogColumns(
       header: table.sourceHeader
     },
     {
+      accessorKey: 'requestId',
+      header: table.requestIdHeader,
+      cell: ({ row }) => (
+        <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+          {row.original.requestId}
+        </span>
+      )
+    },
+    {
       accessorKey: 'ipAddress',
       header: table.ipHeader,
       cell: ({ row }) => (
@@ -321,6 +332,15 @@ export function getLogTableDefinition({
         )
       }),
       buildTableColumn.text<AdminSystemLogRow>({
+        key: 'requestId',
+        header: table.requestIdHeader,
+        cell: (row) => (
+          <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+            {row.requestId}
+          </span>
+        )
+      }),
+      buildTableColumn.text<AdminSystemLogRow>({
         key: 'ipAddress',
         header: table.ipHeader,
         cell: (row) => (
@@ -341,9 +361,19 @@ export function getLogTableDefinition({
       search: {
         enabled: true,
         placeholder: copy.filterPlaceholder,
-        columns: ['eventType']
+        columns: ['eventType', 'sourceLabel', 'requestId', 'message']
       },
       filters: [
+        buildTableFilter.select<AdminSystemLogRow>({
+          id: 'eventCategory',
+          label: table.categoryHeader,
+          column: 'eventCategory',
+          placeholder: copy.categoryFilterPlaceholder,
+          options: SYSTEM_ACTIVITY_EVENT_CATEGORIES.map((category) => ({
+            value: category,
+            label: category
+          }))
+        }),
         buildTableFilter.select<AdminSystemLogRow>({
           id: 'status',
           label: table.statusHeader,

@@ -153,6 +153,38 @@ host will still treat the session as expired. The current runtime now refreshes
 both together, and the persisted session row updates `expiresAt`/`lastSeenAt`
 at the same time.
 
+## Request correlation
+
+`executeProxyChain(...)` now guarantees an `x-request-id` header on pass-through
+and blocking responses. When the inbound request did not already provide one,
+the host generates a stable id for that request object and reuses it for auth
+audit events emitted during the same proxy execution.
+
+## Auth and session audit events
+
+The current auth lifecycle emits best-effort `sys_activity_logs` records for
+high-value security events, including:
+
+- password sign-in success/failure decisions
+- session creation and explicit revocation
+- invalid or revoked session cookies rejected by page proxies
+- API proxy deny decisions (`missing_cookie`, `invalid_cookie`,
+  `admin_denied`, `unknown_subject`, `session_revoked`)
+- auth provider handoff rate-limit, deny, issue, and verify events
+
+For module auth providers, the core bridge now also promotes the handoff nonce
+to the shared `state` contract:
+
+- the `start` bridge injects the nonce into the module request
+- the `callback` bridge forwards the verified nonce after the browser-bound
+  handoff cookie is checked
+- modules can consume both ends through
+  `@skitsaas/sdk/server` (`getAuthProviderStartState(...)` and
+  `validateAuthProviderCallbackState(...)`)
+
+This telemetry is intentionally best-effort at this layer: request handling does
+not fail if the activity-log sink is unavailable.
+
 ## Security headers
 
 Security headers are set globally in `next.config.mjs` for all routes (`source: '/(.*)'`):
@@ -205,6 +237,11 @@ Auth provider handoff routes use this auth-specific limiter for both:
 
 - `/api/auth/providers/[providerId]/start`
 - `/api/auth/providers/[providerId]/callback`
+
+In addition to rate limiting, the core auth handoff now issues a short-lived
+HTTP-only cookie on `start` and requires that cookie on `callback`. This
+browser-bound gate is enforced before module callback dispatch and the cookie is
+cleared after callback handling.
 
 ### Available context fields
 

@@ -54,6 +54,18 @@ export declare function setSessionForUser(userId: number, options?: {
     userAgent?: string | null;
     metadata?: Record<string, unknown> | null;
 }): Promise<void>;
+export declare function getAuthProviderStartState(request: Request): string | null;
+export declare function getVerifiedAuthProviderCallbackState(request: Request): string | null;
+export type AuthProviderCallbackStateValidationResult = {
+    ok: true;
+    state: string;
+} | {
+    ok: false;
+    reason: 'unverified_handoff' | 'missing_state' | 'state_mismatch';
+    expectedState: string | null;
+    receivedState: string | null;
+};
+export declare function validateAuthProviderCallbackState(request: Request, state: string | null | undefined): AuthProviderCallbackStateValidationResult;
 export declare function getCurrentSfilesActor(): Promise<SFilesActorContext>;
 export declare function getCurrentSfiles(): Promise<ActorBoundSfilesManager>;
 export type I18nAdapter = {

@@ -5,6 +5,7 @@ import type {
 } from '@/lib/forms/security';
 import { resolveClientIpAddress } from '@/lib/auth/break-glass';
 import type { CreateSysActivityLogInput } from '@/lib/system/activity-logs';
+import { getOrCreateRequestId } from '@/lib/observability/request-id';
 
 type BuildFormActor = {
   id?: unknown;
@@ -72,20 +73,7 @@ function resolveActorIdentity(actor: BuildFormActor) {
 }
 
 function readRequestId(request: Request) {
-  const candidates = [
-    request.headers.get('x-request-id'),
-    request.headers.get('x-vercel-id'),
-    request.headers.get('cf-ray')
-  ];
-
-  for (const candidate of candidates) {
-    const normalized = normalizeText(candidate);
-    if (normalized) {
-      return normalized;
-    }
-  }
-
-  return null;
+  return getOrCreateRequestId(request);
 }
 
 function readIpAddress(request: Request) {

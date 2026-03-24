@@ -17,6 +17,7 @@ import {
 } from '@/lib/config/runtime-surface';
 import { matchRouteProxyChain, portalPrefixSet, dashboardPortalSet } from '@skitsaas/sdk';
 import { executeProxyChain } from '@/lib/routing/proxies';
+import { setResponseRequestIdHeader } from '@/lib/observability/request-id';
 
 const PORTAL_INTERNAL_PREFIX = '/portal-internal';
 
@@ -131,7 +132,10 @@ export async function proxy(request: NextRequest) {
     const rewriteResponse = NextResponse.rewrite(url);
     // Forward any cookies set by the proxy chain (e.g., refreshed session)
     proxyResult.cookies.getAll().forEach(c => rewriteResponse.cookies.set(c));
-    return rewriteResponse;
+    return setResponseRequestIdHeader(
+      rewriteResponse,
+      proxyResult.headers.get('x-request-id')
+    );
   }
 
   return executeProxyChain(chain, request);

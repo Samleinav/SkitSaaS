@@ -64,14 +64,28 @@ Current host-side guarantees on these handoff routes:
 
 - provider registry conflict handling is fail-closed
 - start and callback are both auth-rate-limited before module dispatch
+- core issues a short-lived browser-bound handoff cookie on `start` and
+  requires it on `callback` before the module handler runs
+- core injects the handoff nonce into the module `start` request as the shared
+  `state` seed (`getAuthProviderStartState(request)` in `@skitsaas/sdk/server`)
+- callback dispatch forwards verification headers
+  (`x-skitsaas-auth-provider-handoff-verified`,
+  `x-skitsaas-auth-provider-handoff-nonce`) to the module request
+- modules can validate the returned provider `state` with
+  `validateAuthProviderCallbackState(request, state)` from
+  `@skitsaas/sdk/server`
+- rate-limited, denied, issued, and verified handoff decisions are logged
+  through the core auth audit layer on a best-effort basis
 - session issuance still belongs to core or SDK server adapters, not to the
   route bridge itself
 
-Current limitation:
+Guidance:
 
-- OAuth/OIDC `state` validation and replay protection still live in the provider
-  module implementation today; they are not yet enforced by a shared core
-  handoff layer
+- Prefer the SDK helper path above for normal OAuth/OIDC `state`.
+- If a provider needs a richer signed payload, wrap or derive it from the
+  shared core nonce instead of inventing an unrelated callback token.
+- The browser-bound handoff cookie plus callback-side state validation gives the
+  shared baseline for anti-CSRF and replay resistance across providers.
 
 ## Diagnostics API
 

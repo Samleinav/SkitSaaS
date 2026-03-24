@@ -70,6 +70,7 @@ export default defineModule({
   - template utility helpers (`mergeClassNames`, value parsers)
 - `@skitsaas/sdk/server`
   - auth/session helpers (`getUser`, `requireUser`, `requireAdmin`, `setSessionForUser`)
+  - auth provider handoff/state helpers (`getAuthProviderStartState`, `getVerifiedAuthProviderCallbackState`, `validateAuthProviderCallbackState`)
   - event emit helpers (`emitEvent`, `emitEventAsync`)
   - persisted notification helpers (`createNotification`, `notifyGlobal`, `notifyUser`, `notifyUsers`, `notifyTeam`, `notifyTeamMembers`, `notifyTeamOwner`)
   - module config helpers (`getModuleConfigValue`, `setModuleConfigValue`)
@@ -133,6 +134,40 @@ export async function listItems() {
   const db = getDb<any>();
   const items = getTable<any>('items');
   return db.select().from(items).where(eq(items.userId, user.id));
+}
+```
+
+Auth provider modules can also reuse the core handoff nonce as OAuth/OIDC
+`state` without importing host internals:
+
+```ts
+import {
+  getAuthProviderStartState,
+  validateAuthProviderCallbackState
+} from '@skitsaas/sdk/server';
+
+export async function start(request: Request) {
+  const state = getAuthProviderStartState(request);
+  const redirectUrl = new URL('https://accounts.example.com/authorize');
+  if (state) {
+    redirectUrl.searchParams.set('state', state);
+  }
+
+  return Response.redirect(redirectUrl);
+}
+
+export async function callback(request: Request) {
+  const url = new URL(request.url);
+  const stateCheck = validateAuthProviderCallbackState(
+    request,
+    url.searchParams.get('state')
+  );
+
+  if (!stateCheck.ok) {
+    return Response.json({ error: 'invalid_state' }, { status: 409 });
+  }
+
+  return Response.json({ ok: true });
 }
 ```
 

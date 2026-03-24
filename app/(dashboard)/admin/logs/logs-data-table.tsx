@@ -29,7 +29,7 @@ export function AdminLogsDataTable({
       })}
       labels={copy.dataTable}
       template={tableTemplate}
-      tableClassName="min-w-[1650px]"
+      tableClassName="min-w-[1800px]"
     />
   );
 }
