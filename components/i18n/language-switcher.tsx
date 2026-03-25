@@ -24,6 +24,17 @@ import { useLocale } from './language-provider';
 
 const LOCALE_OPTIONS = SUPPORTED_LOCALES;
 
+function toNativeLocaleLabel(locale: AppLocale) {
+  const label = getLocaleDisplayName(locale);
+  const [firstChar, ...restChars] = Array.from(label);
+
+  if (!firstChar) {
+    return label;
+  }
+
+  return `${firstChar.toLocaleUpperCase(locale)}${restChars.join('')}`;
+}
+
 function persistLocaleCookie(nextLocale: AppLocale) {
   const locale = resolveLocale(nextLocale);
   const cookieParts = [
@@ -53,7 +64,7 @@ export function LanguageSwitcher({
   const router = useRouter();
   const locale = useLocale();
   const t = useI18n({ area, themeId });
-  const currentLabel = getLocaleDisplayName(locale, locale);
+  const currentLabel = toNativeLocaleLabel(locale);
 
   function handleChange(nextLocale: AppLocale) {
     if (nextLocale === locale) {
@@ -84,7 +95,7 @@ export function LanguageSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {LOCALE_OPTIONS.map((option) => {
-          const optionLabel = getLocaleDisplayName(option, locale);
+          const optionLabel = toNativeLocaleLabel(option);
 
           return (
             <DropdownMenuItem
