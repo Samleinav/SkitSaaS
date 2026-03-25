@@ -1,4 +1,11 @@
-export type { SdkDataTableColumn, SdkDataTableLabels } from './data-table.js';
+export type {
+  DataTableUiAdapter,
+  SdkDataTableColumn,
+  SdkDataTableLabels,
+  SdkDataTableProps,
+} from './data-table-contract.js';
+export { resolveSdkDataTableDefinition } from './data-table-contract.js';
+export { DataTableUiAdapterProvider } from './data-table-adapter.js';
 export { DataTable } from './data-table.js';
 export type {
   BuildFormUiAdapter,

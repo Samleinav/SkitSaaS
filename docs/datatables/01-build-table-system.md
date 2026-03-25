@@ -14,8 +14,9 @@ This document explains the current `BuildTable` architecture and rollout status 
 Current strategy in this repository:
 
 - define table semantics in the SDK (`defineBuildTable`, columns, actions, filters, query helpers)
-- use the SDK `DataTable` renderer as the default datatable renderer; it already covers the standard table feature set well
-- use the host datatable adapter optionally in source-host modules when you want host theme/CTC integration
+- use the SDK `DataTable` renderer as the default module-facing datatable entrypoint
+- inside SkitSaaS, let the host register the SDK datatable bridge so `DataTable` automatically upgrades to the host/theme renderer
+- keep direct host `components/ui/data-table.tsx` usage only for legacy `ColumnDef[]` mode or intentionally host-only routes
 
 Current implementation lives in:
 
@@ -128,7 +129,7 @@ Responsibilities:
 
 That means module authors and host routes do not need to invent a separate query contract for table search/sort/filter/page.
 
-## 3. Portable SDK renderer
+## 3. Portable SDK renderer + host bridge
 
 The portable renderer is `DataTable` from `@skitsaas/sdk`.
 
@@ -149,11 +150,17 @@ For most module use cases, this is the main entrypoint:
 import { DataTable, defineBuildTable } from '@skitsaas/sdk';
 ```
 
+When the host registers `DataTableUiAdapterProvider`, that same SDK import
+delegates to the richer host renderer automatically. Outside the host, the
+portable renderer still works on its own.
+
 ## 4. Host adapter and theme integration
 
 The host-side datatable adapter is `components/ui/data-table.tsx`.
 
-Source-host modules can import this adapter directly when they want the same visual/runtime behavior used by core admin/dashboard tables.
+It is now wired behind the SDK bridge in `components/ui/sdk-data-table-provider.tsx`,
+so SDK-first modules running inside SkitSaaS automatically reuse the same
+visual/runtime behavior as core admin/dashboard tables.
 
 It now supports two modes:
 
@@ -169,12 +176,16 @@ When `definition` mode is used, the host adapter keeps:
 
 This keeps the theme and CTC integration in the host, while the semantic table contract stays in the SDK.
 
-Optional source-host pattern:
+Optional direct source-host pattern:
 
 ```tsx
 import { buildTableColumn, defineBuildTable } from '@skitsaas/sdk';
 import { DataTable } from '@/components/ui/data-table';
 ```
+
+Use that direct host import only when you truly need legacy host-only behavior
+such as `ColumnDef[]` mode. For normal module tables, prefer staying on
+`@skitsaas/sdk`.
 
 ## Current feature set
 
@@ -219,6 +230,7 @@ Core routes now use `BuildTableDefinition` in multiple admin/dashboard tables th
 - remote list loading
 - row action rendering
 - confirm-backed delete actions
+- host/theme table rendering through the SDK bridge
 
 This is the important boundary change:
 

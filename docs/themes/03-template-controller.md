@@ -412,6 +412,9 @@ Current host wiring:
   - `pagination.previous`
   - `pagination.next`
 - when `template.themeId` is omitted, `DataTable` resolves theme/area from `ThemeRuntimeProvider` context.
+- `app/layout.tsx` now registers `SdkDataTableProvider`, so module datatables
+  rendered from `@skitsaas/sdk` also flow through this same host/theme table
+  bridge inside SkitSaaS.
 
 Theme defaults:
 

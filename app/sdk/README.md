@@ -63,7 +63,7 @@ export default defineModule({
   - flat i18n types/helpers (`createTranslator`, `I18nProvider`, `useI18n`)
   - persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
   - theme config helper (`defineThemeConfig`)
-  - datatable contracts/helpers
+  - datatable contracts/helpers + host bridge (`DataTableUiAdapterProvider`)
   - structured form contract/helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
   - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
   - reusable validation helpers (`normalizeEmail`, `parseOptionalPositiveInt`, `buildFormValidationMessage`, `createBuildFormValidationResultFromFieldMessages`)
@@ -338,6 +338,10 @@ This is the first structured datatable layer in the SDK. It already supports:
 - remote list loading for query-driven tables (`source.url`)
 - query parse/serialize helpers for URL-driven tables
 - portable rendering without host imports
+
+Inside SkitSaaS, the host can also register `DataTableUiAdapterProvider` so
+that this same SDK `DataTable` renders through the richer host/theme table UI
+without changing module imports.
 
 ## Structured Form Builder
 

@@ -4,6 +4,8 @@ import * as React from 'react';
 import { createBuildTableRequestDescriptor, resolveBuildTableRemoteListResult, resolveBuildTableRemoteListUrl } from '../datatables/remote.js';
 import { createBuildTableQuerySearchParams, } from '../datatables/query.js';
 import { formatBuildTablePaginationSummary, normalizeBuildTableQueryState, resolveBuildTableView } from '../datatables/state.js';
+import { resolveSdkDataTableDefinition } from './data-table-contract.js';
+import { useDataTableUiAdapter } from './data-table-adapter.js';
 import { notify } from './notify.js';
 function joinClassNames(...values) {
     return values
@@ -107,58 +109,8 @@ function resolveSortingIndicator(direction) {
     }
     return '↕';
 }
-function buildResolvedDefinition({ definition, data, columns, labels, className, tableClassName, emptyState, header, toolbar, pagination, query }) {
-    if (definition) {
-        return {
-            ...definition,
-            ...(data ? { data } : {}),
-            ...(columns ? { columns } : {}),
-            ...(labels ? { labels: { ...(definition.labels ?? {}), ...labels } } : {}),
-            ...(className ? { className } : {}),
-            ...(tableClassName ? { tableClassName } : {}),
-            ...(emptyState ? { emptyState } : {}),
-            ...(header ? { header: { ...(definition.header ?? {}), ...header } } : {}),
-            ...(toolbar
-                ? {
-                    toolbar: {
-                        ...(definition.toolbar ?? {}),
-                        ...toolbar
-                    }
-                }
-                : {}),
-            ...(pagination
-                ? {
-                    pagination: {
-                        ...(definition.pagination ?? {}),
-                        ...pagination
-                    }
-                }
-                : {}),
-            ...(query
-                ? {
-                    query: {
-                        ...(definition.query ?? {}),
-                        ...query
-                    }
-                }
-                : {})
-        };
-    }
-    return {
-        data: Array.isArray(data) ? data : [],
-        columns: Array.isArray(columns) ? columns : [],
-        labels,
-        className,
-        tableClassName,
-        emptyState,
-        header,
-        toolbar,
-        pagination,
-        query
-    };
-}
-export function DataTable({ definition, data, columns, labels, className, tableClassName, emptyState, header, toolbar, pagination, query, onQueryChange }) {
-    const resolvedDefinition = buildResolvedDefinition({
+function PortableDataTable({ definition, data, columns, labels, className, tableClassName, emptyState, header, toolbar, pagination, query, onQueryChange }) {
+    const resolvedDefinition = resolveSdkDataTableDefinition({
         definition,
         data,
         columns,
@@ -425,4 +377,12 @@ export function DataTable({ definition, data, columns, labels, className, tableC
                                     : column.cell
                                         ? column.cell(item)
                                         : String(readCellValue(item, column.key) ?? '') }, `${String(column.key)}-${columnIndex}`))) }, rowIndex))) })] }), paginationNode] }));
+}
+export function DataTable(props) {
+    const adapter = useDataTableUiAdapter();
+    const adaptedTable = adapter?.renderDataTable?.(props);
+    if (adaptedTable !== undefined && adaptedTable !== null) {
+        return adaptedTable;
+    }
+    return _jsx(PortableDataTable, { ...props });
 }

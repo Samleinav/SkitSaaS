@@ -4,16 +4,12 @@ import * as React from 'react';
 import type {
   BuildTableActionDefinition,
   BuildTableButtonActionDefinition,
-  BuildTableColumn,
   BuildTableConfirmDefinition,
   BuildTableDefinition,
-  BuildTableHeaderDefinition,
-  BuildTableLabels,
   BuildTablePaginationDefinition,
   BuildTableQueryState,
   BuildTableRequestActionDefinition,
-  BuildTableSortDirection,
-  BuildTableToolbarDefinition
+  BuildTableSortDirection
 } from '../datatables/definition.js';
 import {
   createBuildTableRequestDescriptor,
@@ -28,26 +24,12 @@ import {
   normalizeBuildTableQueryState,
   resolveBuildTableView
 } from '../datatables/state.js';
+import {
+  type SdkDataTableProps,
+  resolveSdkDataTableDefinition
+} from './data-table-contract.js';
+import { useDataTableUiAdapter } from './data-table-adapter.js';
 import { notify } from './notify.js';
-
-export type SdkDataTableLabels = BuildTableLabels;
-export type SdkDataTableColumn<TItem extends Record<string, unknown>> =
-  BuildTableColumn<TItem>;
-
-export type DataTableProps<TItem extends Record<string, unknown>> = {
-  definition?: BuildTableDefinition<TItem>;
-  data?: TItem[];
-  columns?: SdkDataTableColumn<TItem>[];
-  labels?: SdkDataTableLabels;
-  className?: string;
-  tableClassName?: string;
-  emptyState?: React.ReactNode;
-  header?: BuildTableHeaderDefinition;
-  toolbar?: BuildTableToolbarDefinition<TItem>;
-  pagination?: BuildTablePaginationDefinition;
-  query?: BuildTableQueryState;
-  onQueryChange?: (query: BuildTableQueryState) => void;
-};
 
 function joinClassNames(...values: Array<string | undefined>) {
   return values
@@ -365,71 +347,7 @@ function resolveSortingIndicator(direction: BuildTableSortDirection | null) {
   return '↕';
 }
 
-function buildResolvedDefinition<TItem extends Record<string, unknown>>({
-  definition,
-  data,
-  columns,
-  labels,
-  className,
-  tableClassName,
-  emptyState,
-  header,
-  toolbar,
-  pagination,
-  query
-}: Omit<DataTableProps<TItem>, 'onQueryChange'>): BuildTableDefinition<TItem> {
-  if (definition) {
-    return {
-      ...definition,
-      ...(data ? { data } : {}),
-      ...(columns ? { columns } : {}),
-      ...(labels ? { labels: { ...(definition.labels ?? {}), ...labels } } : {}),
-      ...(className ? { className } : {}),
-      ...(tableClassName ? { tableClassName } : {}),
-      ...(emptyState ? { emptyState } : {}),
-      ...(header ? { header: { ...(definition.header ?? {}), ...header } } : {}),
-      ...(toolbar
-        ? {
-            toolbar: {
-              ...(definition.toolbar ?? {}),
-              ...toolbar
-            }
-          }
-        : {}),
-      ...(pagination
-        ? {
-            pagination: {
-              ...(definition.pagination ?? {}),
-              ...pagination
-            }
-          }
-        : {}),
-      ...(query
-        ? {
-            query: {
-              ...(definition.query ?? {}),
-              ...query
-            }
-          }
-        : {})
-    };
-  }
-
-  return {
-    data: Array.isArray(data) ? data : [],
-    columns: Array.isArray(columns) ? columns : [],
-    labels,
-    className,
-    tableClassName,
-    emptyState,
-    header,
-    toolbar,
-    pagination,
-    query
-  };
-}
-
-export function DataTable<TItem extends Record<string, unknown>>({
+function PortableDataTable<TItem extends Record<string, unknown>>({
   definition,
   data,
   columns,
@@ -442,8 +360,8 @@ export function DataTable<TItem extends Record<string, unknown>>({
   pagination,
   query,
   onQueryChange
-}: DataTableProps<TItem>) {
-  const resolvedDefinition = buildResolvedDefinition({
+}: SdkDataTableProps<TItem>) {
+  const resolvedDefinition = resolveSdkDataTableDefinition({
     definition,
     data,
     columns,
@@ -1033,4 +951,17 @@ export function DataTable<TItem extends Record<string, unknown>>({
       {paginationNode}
     </div>
   );
+}
+
+export function DataTable<TItem extends Record<string, unknown>>(
+  props: SdkDataTableProps<TItem>
+) {
+  const adapter = useDataTableUiAdapter();
+  const adaptedTable = adapter?.renderDataTable?.(props);
+
+  if (adaptedTable !== undefined && adaptedTable !== null) {
+    return adaptedTable;
+  }
+
+  return <PortableDataTable {...props} />;
 }

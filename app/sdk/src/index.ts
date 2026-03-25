@@ -173,12 +173,14 @@ export type {
 } from './datatables/crud.js';
 
 export type {
+  DataTableUiAdapter,
   BuildFormUiAdapter,
   BuildFormUiTemplateResolution,
   BuildFormUiTemplateResolverContext,
   SdkBuildFormProps,
   SdkBuildFormTemplatePayload,
   SdkTemplateBuildFormProps,
+  SdkDataTableProps,
   SdkDataTableColumn,
   SdkDataTableLabels,
   SdkNotifyInput,
@@ -201,9 +203,11 @@ export {
   BuildForm,
   BuildFormUiAdapterProvider,
   DataTable,
+  DataTableUiAdapterProvider,
   SDK_NOTIFY_EVENT,
   TemplateBuildForm,
   buildSdkNotificationsUrl,
+  resolveSdkDataTableDefinition,
   normalizeSdkNotificationIds,
   notify,
   resolveSdkNotificationAreaFromPath,

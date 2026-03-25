@@ -39,8 +39,54 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
-## 2026-03-23 - sdk-governance-read-surface
+## 2026-03-25 - sdk-datatable-host-bridge
 
+- `status`: published
+- `sprint`: sprint-c
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk` `DataTable` now supports a host UI bridge so SDK-first module tables automatically reuse the active host/theme renderer inside SkitSaaS.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/ui/data-table.tsx`
+  - `app/sdk/src/ui/data-table-contract.ts`
+  - `app/sdk/src/ui/data-table-adapter.tsx`
+  - `app/sdk/src/ui/index.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/package.json`
+  - `components/ui/data-table.tsx`
+  - `components/ui/sdk-data-table-provider.tsx`
+  - `app/layout.tsx`
+  - `tests/sdk/data-table-ui-bridge.test.tsx`
+  - `tests/ui/data-table.test.tsx`
+  - `docs/sdk/00-overview.md`
+  - `docs/datatables/01-build-table-system.md`
+  - `docs/datatables/02-sdk-datatables-crud.md`
+  - `docs/themes/03-template-controller.md`
+  - `app/sdk/README.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.15.0 -> v1.16.0 (MINOR).
+
+    New SDK exports:
+
+    - `DataTableUiAdapterProvider`
+    - `resolveSdkDataTableDefinition(...)`
+
+    Runtime behavior:
+
+    - SDK `DataTable` remains portable by default
+    - when the host registers `DataTableUiAdapterProvider`, the same SDK
+      definition renders through the richer host datatable
+    - host rendering now keeps `sdk-data-table__...` semantic classes so
+      existing module CSS customizations continue working while themes apply
+      `ui.table` and `ui.table.control`
+
+    This closes the main datatable presentation gap for SDK-first modules in
+    admin/dashboard areas: modules can keep importing `DataTable` from
+    `@skitsaas/sdk` and still inherit the active theme table UI.
+
+## 2026-03-23 - sdk-governance-read-surface
 - `status`: published
 - `sprint`: sprint-c
 - `module`: core

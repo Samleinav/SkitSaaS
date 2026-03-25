@@ -1,3 +1,5 @@
+export { resolveSdkDataTableDefinition } from './data-table-contract.js';
+export { DataTableUiAdapterProvider } from './data-table-adapter.js';
 export { DataTable } from './data-table.js';
 export { BuildFormUiAdapterProvider } from './build-form-adapter.js';
 export { BuildForm } from './build-form.js';

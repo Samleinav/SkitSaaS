@@ -54,6 +54,7 @@ Exports:
 - API route dispatch (`dispatchApiRoutes`, `matchApiPath`, `configureApiAuthProxies`)
 - structured datatable helpers (`defineBuildTable`, `buildTableColumn`, `buildTableAction`, `buildTableFilter`, `withBuildTableData`, `parseBuildTableQueryState`, `resolveBuildTableView`)
 - datatable portable renderer (`DataTable`)
+- datatable host bridge (`DataTableUiAdapterProvider`) — lets the host delegate SDK `DataTable` rendering to the richer host/theme table runtime without module-side `@/` imports
 - rate limiting (`withRateLimit`, `checkRateLimit`, `configureRateLimitBackend`, `resolveClientIp`)
 - role checks (`enrichUser`, `RichUser`, `UserContext`, `RichUserMethods`) — client+server safe
 - storage helpers from `@skitsaas/sdk/sfiles` (`sfiles`, `bindSfilesActor`) for SDK-first file workflows
@@ -101,9 +102,12 @@ SDK-only and still upgrade to host submit/modal/CTC behavior when it runs
 inside SkitSaaS. Outside the host, the SDK renderer remains self-contained.
 
 The datatable story is stronger today: keep `BuildTableDefinition` and helpers
-in the SDK, and use SDK `DataTable` as the normal default. Source-host modules
-can still render through `@/components/ui/data-table` when they want host theme
-slots, notifications, and alert-dialog integration.
+in the SDK, and use SDK `DataTable` as the normal default. Inside SkitSaaS,
+the host can now register `DataTableUiAdapterProvider` so the same SDK table
+definition renders through the richer host/theme datatable automatically.
+Direct `@/components/ui/data-table` imports are still useful for legacy
+TanStack `ColumnDef[]` mode or intentionally host-only routes, but they are no
+longer the preferred path for normal module datatables.
 
 ### `@skitsaas/sdk/server`
 

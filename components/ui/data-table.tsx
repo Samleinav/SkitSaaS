@@ -111,6 +111,7 @@ interface DataTableProps<TData extends Record<string, unknown>, TValue> {
   columns?: ColumnDef<TData, TValue>[];
   data?: TData[];
   definition?: BuildTableDefinition<TData>;
+  className?: string;
   query?: BuildTableQueryState;
   onQueryChange?: (query: BuildTableQueryState) => void;
   labels?: Partial<DataTableLabels>;
@@ -254,16 +255,18 @@ function HostBuildTableActionButton({
             {content}
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
+        <AlertDialogContent className="sdk-data-table__confirm-dialog">
+          <AlertDialogHeader className="sdk-data-table__confirm-header">
+            <AlertDialogTitle className="sdk-data-table__confirm-title">
+              {confirm.title}
+            </AlertDialogTitle>
             {confirm.description ? (
-              <AlertDialogDescription>
+              <AlertDialogDescription className="sdk-data-table__confirm-description">
                 {confirm.description}
               </AlertDialogDescription>
             ) : null}
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="sdk-data-table__confirm-actions">
             <AlertDialogCancel asChild>
               <Button type="button" variant="outline">
                 {confirm.cancelLabel}
@@ -303,16 +306,18 @@ function HostBuildTableActionButton({
               {content}
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{confirm.title}</AlertDialogTitle>
+          <AlertDialogContent className="sdk-data-table__confirm-dialog">
+            <AlertDialogHeader className="sdk-data-table__confirm-header">
+              <AlertDialogTitle className="sdk-data-table__confirm-title">
+                {confirm.title}
+              </AlertDialogTitle>
               {confirm.description ? (
-                <AlertDialogDescription>
+                <AlertDialogDescription className="sdk-data-table__confirm-description">
                   {confirm.description}
                 </AlertDialogDescription>
               ) : null}
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="sdk-data-table__confirm-actions">
               <AlertDialogCancel asChild>
                 <Button type="button" variant="outline" disabled={pending}>
                   {confirm.cancelLabel}
@@ -512,6 +517,7 @@ function formatDefinitionSummary({
 
 function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   definition,
+  className,
   query,
   onQueryChange,
   labels,
@@ -521,6 +527,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   shared
 }: {
   definition: BuildTableDefinition<TData>;
+  className?: string;
   query?: BuildTableQueryState;
   onQueryChange?: (query: BuildTableQueryState) => void;
   labels: DataTableLabels;
@@ -720,17 +727,20 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
       definition.header.actions?.length) ? (
       <div
         className={joinClassNames(
-          'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between',
+          'sdk-data-table__header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between',
           definition.header.className
         )}
       >
         <div
-          className={joinClassNames('space-y-1', definition.header.contentClassName)}
+          className={joinClassNames(
+            'sdk-data-table__header-content space-y-1',
+            definition.header.contentClassName
+          )}
         >
           {definition.header.title ? (
             <h3
               className={joinClassNames(
-                'text-base font-semibold',
+                'sdk-data-table__header-title text-base font-semibold',
                 definition.header.titleClassName
               )}
             >
@@ -740,7 +750,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
           {definition.header.description ? (
             <p
               className={joinClassNames(
-                'text-sm text-muted-foreground',
+                'sdk-data-table__header-description text-sm text-muted-foreground',
                 definition.header.descriptionClassName
               )}
             >
@@ -752,7 +762,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
         {renderBuildTableActionGroup({
           actions: definition.header.actions,
           className: joinClassNames(
-            'flex items-center gap-2',
+            'sdk-data-table__header-actions flex items-center gap-2',
             definition.header.actionsClassName
           ),
           onActionSuccess: refreshRemoteData
@@ -782,7 +792,10 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
             setPage(1);
           });
         }}
-        className={cn('sm:max-w-sm', definition.toolbar.search.className)}
+        className={cn(
+          'sdk-data-table__toolbar-search sm:max-w-sm',
+          definition.toolbar.search.className
+        )}
       />
     ) : null;
   const searchInput = searchInputFallback
@@ -795,7 +808,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
     definition.toolbar?.filters && definition.toolbar.filters.length > 0 ? (
       <div
         className={joinClassNames(
-          'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center',
+          'sdk-data-table__toolbar-filters flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center',
           definition.toolbar.filtersClassName
         )}
       >
@@ -806,10 +819,13 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
             filter.kind === 'select' ? (
               <label
                 key={filter.id}
-                className={joinClassNames('flex items-center gap-2', filter.className)}
+                className={joinClassNames(
+                  'sdk-data-table__filter flex items-center gap-2',
+                  filter.className
+                )}
               >
                 {filter.label ? (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="sdk-data-table__filter-label text-sm text-muted-foreground">
                     {filter.label}
                   </span>
                 ) : null}
@@ -838,10 +854,13 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
             ) : (
               <label
                 key={filter.id}
-                className={joinClassNames('flex items-center gap-2', filter.className)}
+                className={joinClassNames(
+                  'sdk-data-table__filter flex items-center gap-2',
+                  filter.className
+                )}
               >
                 {filter.label ? (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="sdk-data-table__filter-label text-sm text-muted-foreground">
                     {filter.label}
                   </span>
                 ) : null}
@@ -882,7 +901,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
     : null;
   const toolbarActionsFallback =
     definition.toolbar?.actions?.length || toolbarActions ? (
-      <div className="flex items-center gap-2 sm:ml-auto">
+      <div className="sdk-data-table__toolbar-actions flex items-center gap-2 sm:ml-auto">
         {renderBuildTableActionGroup({
           actions: definition.toolbar?.actions,
           content: toolbarActions,
@@ -902,8 +921,8 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
     : null;
   const toolbarFallback =
     searchInput || filtersGroup || definition.toolbar?.content || toolbarActionsSlot ? (
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex flex-1 flex-col gap-2">
+      <div className="sdk-data-table__toolbar flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="sdk-data-table__toolbar-content flex flex-1 flex-col gap-2">
           {searchInput}
           {filtersGroup}
           {definition.toolbar?.content}
@@ -918,11 +937,13 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
       })
     : null;
   const emptyStateFallback = remoteState.loading ? (
-    <span>Loading...</span>
+    <span className="sdk-data-table__empty">Loading...</span>
   ) : remoteState.error ? (
-    <span>{remoteState.error}</span>
+    <span className="sdk-data-table__empty">{remoteState.error}</span>
   ) : (
-    <span>{emptyMessage || definition.labels?.empty || labels.noResults}</span>
+    <span className="sdk-data-table__empty">
+      {emptyMessage || definition.labels?.empty || labels.noResults}
+    </span>
   );
   const emptyState = shared.renderControlSlot({
     slot: 'body.empty',
@@ -930,7 +951,11 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   });
   const tableMarkup = (
     <Table
-      className={cn(shared.template?.payload?.tableClassName, shared.tableClassName)}
+      className={cn(
+        'sdk-data-table__table',
+        shared.template?.payload?.tableClassName,
+        shared.tableClassName
+      )}
       containerClassName={shared.template?.payload?.containerClassName}
       templateComponentId={shared.resolvedTemplateComponentId}
       templateId={shared.resolvedTemplateId}
@@ -946,7 +971,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
               <Button
                 variant="ghost"
                 size="sm"
-                className="-ml-3"
+                className="sdk-data-table__sort-button -ml-3"
                 onClick={() => {
                   React.startTransition(() => {
                     setSorting((current) => {
@@ -971,7 +996,9 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
                 }}
               >
                 {column.header}
-                <span className="ml-2">{resolveSortingIndicator(sortDirection)}</span>
+                <span className="sdk-data-table__sort-indicator ml-2">
+                  {resolveSortingIndicator(sortDirection)}
+                </span>
               </Button>
             ) : (
               column.header
@@ -998,7 +1025,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
                             ? column.actions(row)
                             : column.actions,
                         className: joinClassNames(
-                          'flex flex-wrap items-center gap-2',
+                          'sdk-data-table__cell-actions flex flex-wrap items-center gap-2',
                           column.actionsClassName
                         ),
                         onActionSuccess: refreshRemoteData
@@ -1030,7 +1057,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   const summaryLabel =
     definition.pagination?.summaryLabel ?? labels.showingRows;
   const paginationSummaryFallback = (
-    <p className="text-muted-foreground text-xs sm:text-sm">
+    <p className="sdk-data-table__pagination-summary text-muted-foreground text-xs sm:text-sm">
       {formatDefinitionSummary({
         label: summaryLabel,
         shownRows: view.items.length,
@@ -1093,7 +1120,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   const pageSizeOptions =
     definition.pagination?.pageSizeOptions &&
     definition.pagination.pageSizeOptions.length > 0 ? (
-      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+      <label className="sdk-data-table__pagination-page-size flex items-center gap-2 text-xs text-muted-foreground">
         <span>Rows</span>
         <select
           value={String(pageSize)}
@@ -1117,7 +1144,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   const paginationActionsFallback = (
     <div
       className={joinClassNames(
-        'ml-auto flex items-center gap-2',
+        'sdk-data-table__pagination-actions ml-auto flex items-center gap-2',
         definition.pagination?.actionsClassName
       )}
     >
@@ -1136,7 +1163,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   const paginationFallback = (
     <div
       className={joinClassNames(
-        'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+        'sdk-data-table__pagination flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
         definition.pagination?.className
       )}
     >
@@ -1150,7 +1177,7 @@ function BuildTableDefinitionRenderer<TData extends Record<string, unknown>>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className={cn('sdk-data-table space-y-4', definition.className, className)}>
       {headerSection}
       {toolbar}
       {tableSurface}
@@ -1163,6 +1190,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
   columns,
   data,
   definition,
+  className,
   query,
   onQueryChange,
   labels,
@@ -1254,6 +1282,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
               }
             : {})
         }}
+        className={className}
         query={query}
         onQueryChange={onQueryChange}
         labels={dataTable}
@@ -1302,7 +1331,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
       placeholder={filterPlaceholder || dataTable.filterPlaceholder}
       value={(filterableColumn.getFilterValue() as string) ?? ''}
       onChange={(event) => filterableColumn.setFilterValue(event.target.value)}
-      className="sm:max-w-sm"
+      className="sdk-data-table__toolbar-search sm:max-w-sm"
     />
   ) : null;
   const filterInput = filterInputFallback
@@ -1367,7 +1396,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
       })
     : null;
   const toolbarActionsFallback = hasToolbarControls ? (
-    <div className="flex items-center gap-2 sm:ml-auto">
+    <div className="sdk-data-table__toolbar-actions flex items-center gap-2 sm:ml-auto">
       {toolbarActions}
       {columnsToggle}
     </div>
@@ -1384,7 +1413,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
     : null;
   const toolbarFallback =
     filterInput || toolbarActionsSlot ? (
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="sdk-data-table__toolbar flex flex-col gap-3 sm:flex-row sm:items-center">
         {filterInput}
         {toolbarActionsSlot}
       </div>
@@ -1395,14 +1424,22 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
         fallback: toolbarFallback
       })
     : null;
-  const emptyStateFallback = <span>{emptyMessage || dataTable.noResults}</span>;
+  const emptyStateFallback = (
+    <span className="sdk-data-table__empty">
+      {emptyMessage || dataTable.noResults}
+    </span>
+  );
   const emptyState = renderControlSlot({
     slot: 'body.empty',
     fallback: emptyStateFallback
   });
   const tableMarkup = (
     <Table
-      className={cn(template?.payload?.tableClassName, tableClassName)}
+      className={cn(
+        'sdk-data-table__table',
+        template?.payload?.tableClassName,
+        tableClassName
+      )}
       containerClassName={template?.payload?.containerClassName}
       templateComponentId={resolvedTemplateComponentId}
       templateId={resolvedTemplateId}
@@ -1453,7 +1490,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
     shared: sharedThemeContext
   });
   const paginationSummaryFallback = (
-    <p className="text-muted-foreground text-xs sm:text-sm">
+    <p className="sdk-data-table__pagination-summary text-muted-foreground text-xs sm:text-sm">
       {dataTable.showingRows
         .replace('{shown}', String(shownRows))
         .replace('{filtered}', String(filteredRows))}
@@ -1502,7 +1539,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
     }
   });
   const paginationActionsFallback = (
-    <div className="ml-auto flex items-center gap-2">
+    <div className="sdk-data-table__pagination-actions ml-auto flex items-center gap-2">
       {previousButton}
       {nextButton}
     </div>
@@ -1512,7 +1549,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
     fallback: paginationActionsFallback
   });
   const paginationFallback = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="sdk-data-table__pagination flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       {paginationSummary}
       {paginationActions}
     </div>
@@ -1523,7 +1560,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className={cn('sdk-data-table space-y-4', className)}>
       {toolbar}
       {tableSurface}
       {pagination}

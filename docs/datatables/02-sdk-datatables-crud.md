@@ -11,8 +11,9 @@ Use `BuildTable` when a module needs a datatable whose contract is defined from 
 In this repository, the recommended path is:
 
 - define the table contract in the SDK
-- render with SDK `DataTable` by default; current table features are covered there
-- in `source-host` modules, switch to the host adapter only when you specifically want host theme/CTC wrappers
+- render with SDK `DataTable` by default
+- inside SkitSaaS, that SDK import now upgrades automatically to the host/theme renderer through the registered datatable bridge
+- use the direct host adapter only for legacy `ColumnDef[]` mode or other intentionally host-specific cases
 
 The SDK contract gives you:
 
@@ -47,7 +48,7 @@ Server-side query helpers are also available from the root SDK entry:
 import { parseBuildTableQueryState } from '@skitsaas/sdk';
 ```
 
-For source-host modules that want the same host treatment used by core tables, render the same definition with:
+For legacy source-host cases that truly need the host component directly, render the same definition with:
 
 ```tsx
 import { DataTable } from '@/components/ui/data-table';
@@ -63,7 +64,9 @@ The normal setup is:
 4. if a row needs mutations, use `buildTableAction.request(...)`
 5. if a mutation is destructive, add `confirm`
 
-In the common case, step 2 means the SDK renderer. In source-host modules, you can swap to the host `@/components/ui/data-table` when you want host presentation integration.
+In the common case, step 2 means the SDK renderer. Inside SkitSaaS that same
+component already delegates to the host renderer, so module code usually does
+not need to change imports just to inherit theme presentation.
 
 Use `buildTableColumn.custom(...)` or `buildTableAction.custom(...)` only when the default text/link/request primitives are not enough.
 
