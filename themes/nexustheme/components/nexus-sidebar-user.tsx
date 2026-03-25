@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   CreditCard,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import { useI18n } from '@skitsaas/sdk';
@@ -17,6 +17,7 @@ type User = {
 };
 
 type NexusSidebarUserProps = {
+  area?: 'admin' | 'dashboard';
   themeId?: string;
 };
 
@@ -32,8 +33,11 @@ function getInitials(name?: string | null, email?: string | null): string {
   return '??';
 }
 
-export function NexusSidebarUser({ themeId }: NexusSidebarUserProps) {
-  const t = useI18n({ themeId, area: 'admin' });
+export function NexusSidebarUser({
+  area = 'admin',
+  themeId
+}: NexusSidebarUserProps) {
+  const t = useI18n({ themeId, area });
   const [user, setUser] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,6 +70,7 @@ export function NexusSidebarUser({ themeId }: NexusSidebarUserProps) {
   const displayName = user?.name ?? user?.email ?? 'User';
   const displayEmail = user?.email ?? '';
   const initials = getInitials(user?.name, user?.email);
+  const accountHref = area === 'dashboard' ? '/dashboard/general' : '/admin/account';
 
   return (
     <div ref={containerRef} className="relative mt-auto">
@@ -91,7 +96,7 @@ export function NexusSidebarUser({ themeId }: NexusSidebarUserProps) {
           {/* Menu items */}
           <div className="p-1">
             <Link
-              href="/admin/account"
+              href={accountHref}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
@@ -111,8 +116,8 @@ export function NexusSidebarUser({ themeId }: NexusSidebarUserProps) {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
-              {t('Notifications')}
+              <Shield className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {t('Security')}
             </Link>
           </div>
 

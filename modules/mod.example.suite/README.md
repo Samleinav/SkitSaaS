@@ -11,6 +11,7 @@ This module demonstrates, in a single module:
 - module-owned database tables
 - validated server actions for admin and dashboard forms
 - remote and local SDK `DataTable` examples in the same module
+- governance evidence reads through `@skitsaas/sdk/server`
 - module-owned shell/CSS layered on top of the host area
 - legacy `apiHandler` shape with richer table query handling and delete endpoint
 - module widgets (`adminDashboardWidgets`, `dashboardWidgets`)
@@ -63,6 +64,7 @@ Implemented endpoints:
 
 - Admin home:
   - remote SDK `DataTable` backed by `source.url`
+  - read-only governance evidence panel powered by `listSystemActivityLogs()`
 - Admin create:
   - SDK `TemplateBuildForm`
   - local companion `DataTable`

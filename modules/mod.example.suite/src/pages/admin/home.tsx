@@ -10,22 +10,27 @@ import {
 import { ExampleSuiteAdminItemsDataTable } from '../../example-suite-data-tables';
 import {
   ExampleSuiteActionLink,
+  ExampleSuiteDetailList,
   ExampleSuitePanel,
   ExampleSuiteShell,
   ExampleSuiteSummary
 } from '../../showcase-shell';
 import {
   getExampleSuiteAdminTranslator,
+  listExampleSuiteGovernanceRows,
+  mapExampleSuiteGovernanceRows,
   mapExampleSuiteAdminTableRows
 } from './shared';
 
 export async function renderExampleSuiteAdminHomePage() {
   const t = await getExampleSuiteAdminTranslator();
-  const [settings, items] = await Promise.all([
+  const [settings, items, governanceRows] = await Promise.all([
     getExampleSuiteSettings(),
-    listExampleSuiteItemsForAdmin(120)
+    listExampleSuiteItemsForAdmin(120),
+    listExampleSuiteGovernanceRows()
   ]);
   const tableItems = mapExampleSuiteAdminTableRows(items);
+  const governanceItems = mapExampleSuiteGovernanceRows(governanceRows);
   const activeCount = items.filter(
     (item) => item.status.trim().toLowerCase() === 'active'
   ).length;
@@ -83,6 +88,22 @@ export async function renderExampleSuiteAdminHomePage() {
           </p>
         ) : (
           <ExampleSuiteAdminItemsDataTable items={tableItems} />
+        )}
+      </ExampleSuitePanel>
+
+      <ExampleSuitePanel
+        eyebrow={t('Governance evidence')}
+        title={t('Portable governance read')}
+        description={t(
+          'This panel proves a module can inspect core operational evidence through the SDK without importing host internals.'
+        )}
+      >
+        {governanceItems.length === 0 ? (
+          <p className="example-suite-empty">
+            {t('No recent system activity rows were returned.')}
+          </p>
+        ) : (
+          <ExampleSuiteDetailList items={governanceItems} />
         )}
       </ExampleSuitePanel>
     </ExampleSuiteShell>

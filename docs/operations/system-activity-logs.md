@@ -137,6 +137,20 @@ Current governance policy baseline:
 - keep `metadata` concise and structured enough for filtering, not as a dump of
   arbitrary payloads
 
+## Query/index baseline
+
+The core now keeps a minimal index set aligned with the main governance read
+paths:
+
+- `createdAt`
+- `eventCategory + createdAt`
+- `actorUserId + createdAt`
+- `requestId`
+- `entityType + entityId + createdAt`
+
+This matches the current admin/SDK filters without turning `sys_activity_logs`
+into a dense telemetry table.
+
 ## Admin log surface
 
 `/admin/logs` now treats `eventCategory` and `requestId` as first-class

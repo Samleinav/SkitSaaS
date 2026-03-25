@@ -26,6 +26,11 @@ function readRequiredDatabaseUrl(
   throw new Error(`${envName} environment variable is not set`);
 }
 
+function readOptionalDatabaseUrl(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
 function createLazyProxyHandler<TTarget extends object>(
   resolve: () => TTarget
 ): ProxyHandler<TTarget> {
@@ -106,10 +111,11 @@ function getAdminClient() {
     return rootAdminClient;
   }
 
+  const adminUrl = readOptionalDatabaseUrl(process.env.ADMIN_POSTGRES_URL);
   rootAdminClient = postgres(
     readRequiredDatabaseUrl(
-      process.env.ADMIN_POSTGRES_URL ?? process.env.POSTGRES_URL,
-      process.env.ADMIN_POSTGRES_URL ? 'ADMIN_POSTGRES_URL' : 'POSTGRES_URL'
+      adminUrl ?? process.env.POSTGRES_URL,
+      adminUrl ? 'ADMIN_POSTGRES_URL' : 'POSTGRES_URL'
     )
   );
   return rootAdminClient;

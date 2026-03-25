@@ -280,3 +280,167 @@ html:not(.dark) [data-slot='card'] {
     0 20px 48px -36px rgba(15, 23, 42, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
+
+/* Dashboard shell alignment with Nexus admin */
+[data-nexus-dashboard-shell] {
+  background:
+    radial-gradient(72rem 42rem at 95% -5%, hsl(var(--primary) / 0.14), transparent 62%),
+    radial-gradient(46rem 30rem at 2% 0%, hsl(var(--foreground) / 0.045), transparent 66%),
+    hsl(var(--background));
+}
+
+[data-nexus-dashboard-content] > div {
+  background: transparent !important;
+}
+
+[data-nexus-dashboard-content] > div > div:first-child {
+  display: none;
+}
+
+[data-nexus-dashboard-content] aside,
+[data-nexus-dashboard-brand],
+[data-nexus-dashboard-user-panel] {
+  border-color: hsl(var(--border) / 0.7) !important;
+  background: hsl(var(--sidebar)) !important;
+  color: hsl(var(--sidebar-foreground)) !important;
+}
+
+[data-nexus-dashboard-content] aside {
+  box-shadow:
+    0 24px 56px -42px rgba(15, 23, 42, 0.28),
+    inset -1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-nexus-dashboard-content] aside > div {
+  gap: 0.75rem !important;
+  padding: 4.25rem 0.625rem 5.25rem !important;
+}
+
+[data-nexus-dashboard-content] aside > div > div:first-child,
+[data-nexus-dashboard-content] aside > div > div:last-child {
+  display: none !important;
+}
+
+[data-nexus-dashboard-content] aside nav {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+[data-nexus-dashboard-content] aside nav a {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: hsl(var(--sidebar-foreground) / 0.84) !important;
+}
+
+[data-nexus-dashboard-content] aside nav a:hover {
+  background: hsl(var(--sidebar-accent) / 0.72) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+}
+
+[data-nexus-dashboard-content] aside nav a[aria-current='page'] {
+  border-color: transparent !important;
+  background: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+}
+
+[data-nexus-dashboard-content] aside nav a > span:first-child {
+  border-color: hsl(var(--sidebar-border)) !important;
+  background: transparent !important;
+  color: hsl(var(--sidebar-foreground) / 0.68) !important;
+}
+
+[data-nexus-dashboard-content] aside nav a:hover > span:first-child {
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+}
+
+[data-nexus-dashboard-content] aside nav a[aria-current='page'] > span:first-child {
+  border-color: hsl(var(--sidebar-primary) / 0.3) !important;
+  background: hsl(var(--sidebar-primary)) !important;
+  color: hsl(var(--sidebar-primary-foreground)) !important;
+}
+
+[data-nexus-dashboard-content] aside nav [class*='border-l'] {
+  border-color: hsl(var(--sidebar-border)) !important;
+}
+
+[data-nexus-dashboard-content] main > div > div:first-child {
+  margin-bottom: 0.85rem !important;
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: 1rem;
+  background: hsl(var(--background) / 0.72);
+  padding: 0.5rem 0.75rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px -32px rgba(15, 23, 42, 0.28);
+}
+
+[data-nexus-dashboard-content] main > div > div:first-child > button:first-child {
+  display: none !important;
+}
+
+[data-nexus-dashboard-content] main > div > div:first-child nav,
+[data-nexus-dashboard-content] main > div > div:first-child [data-slot='breadcrumb'] {
+  min-width: 0;
+}
+
+@media (max-width: 1279px) {
+  html[data-sidebar-mobile-open] [data-nexus-dashboard-content] aside {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-nexus-dashboard-content] aside,
+  [data-nexus-dashboard-brand],
+  [data-nexus-dashboard-user-panel] {
+    width: 16rem !important;
+    transition: transform 0.25s ease;
+  }
+
+  [data-nexus-dashboard-content] main {
+    transition: padding-left 0.25s ease;
+    padding-left: calc(16rem + 1.5rem) !important;
+  }
+
+  [data-nexus-dashboard-shell][data-nexus-dashboard-mode='adjusted']
+    [data-nexus-dashboard-content]
+    aside,
+  [data-nexus-dashboard-shell][data-nexus-dashboard-mode='adjusted']
+    [data-nexus-dashboard-brand],
+  [data-nexus-dashboard-shell][data-nexus-dashboard-mode='adjusted']
+    [data-nexus-dashboard-user-panel] {
+    width: 17.25rem !important;
+  }
+
+  [data-nexus-dashboard-shell][data-nexus-dashboard-mode='adjusted']
+    [data-nexus-dashboard-content]
+    main {
+    padding-left: calc(17.25rem + 1.5rem) !important;
+  }
+
+  html[data-sidebar-collapsed] [data-nexus-dashboard-content] aside,
+  html[data-sidebar-collapsed] [data-nexus-dashboard-brand],
+  html[data-sidebar-collapsed] [data-nexus-dashboard-user-panel] {
+    transform: translateX(-100%) !important;
+  }
+
+  html[data-sidebar-collapsed] [data-nexus-dashboard-content] main {
+    padding-left: 1.5rem !important;
+  }
+}
+
+html:not(.dark) [data-nexus-dashboard-content] aside,
+html:not(.dark) [data-nexus-dashboard-brand],
+html:not(.dark) [data-nexus-dashboard-user-panel] {
+  background:
+    linear-gradient(180deg, hsl(var(--sidebar)) 0%, hsl(var(--secondary) / 0.82) 100%) !important;
+  box-shadow:
+    0 24px 56px -42px rgba(15, 23, 42, 0.28),
+    inset -1px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+html:not(.dark) [data-nexus-dashboard-content] main > div > div:first-child {
+  background:
+    linear-gradient(180deg, hsl(var(--background) / 0.96) 0%, hsl(var(--card) / 0.9) 100%);
+}

@@ -114,6 +114,10 @@ ADMIN_POSTGRES_URL=postgresql://saas_admin:...@host:5432/dbname
 `POSTGRES_URL` only when it is not set. Keep `ADMIN_POSTGRES_URL` **only** in the admin
 deployment's environment.
 
+Blank values are treated as unset as well, so `ADMIN_POSTGRES_URL=''` falls
+back to `POSTGRES_URL` instead of trying to open an empty admin connection
+string.
+
 ## Step 5 — Use `withUserContext` in dashboard server actions
 
 All dashboard server actions that write or read user-scoped rows must set the RLS context
@@ -203,6 +207,14 @@ the access boundary itself.
 ## Verification
 
 After deployment, run these checks:
+
+Automated baseline in this repo:
+
+- `tests/db/drizzle-client.test.ts` verifies that `adminClient` / `adminDb`
+  resolve against `ADMIN_POSTGRES_URL` when present and fall back to
+  `POSTGRES_URL` otherwise
+- `tests/operations/system-activity-logs.test.ts` covers the governance sink's
+  normalized payload + fail-open behavior
 
 ### 1 — Confirm roles exist
 

@@ -753,14 +753,21 @@ export const sysActivityLogs = pgTable(
   },
   (table) => ({
     createdAtIndex: index('sys_activity_logs_created_at_idx').on(table.createdAt),
-    eventTypeIndex: index('sys_activity_logs_event_type_idx').on(table.eventType),
-    actorUserIdIndex: index('sys_activity_logs_actor_user_id_idx').on(
-      table.actorUserId
+    categoryCreatedAtIndex: index('sys_activity_logs_category_created_at_idx').on(
+      table.eventCategory,
+      table.createdAt
     ),
+    eventTypeIndex: index('sys_activity_logs_event_type_idx').on(table.eventType),
+    actorUserCreatedAtIndex: index('sys_activity_logs_actor_created_at_idx').on(
+      table.actorUserId,
+      table.createdAt
+    ),
+    requestIdIndex: index('sys_activity_logs_request_id_idx').on(table.requestId),
     teamIdIndex: index('sys_activity_logs_team_id_idx').on(table.teamId),
-    entityIndex: index('sys_activity_logs_entity_idx').on(
+    entityCreatedAtIndex: index('sys_activity_logs_entity_created_at_idx').on(
       table.entityType,
-      table.entityId
+      table.entityId,
+      table.createdAt
     ),
   })
 );

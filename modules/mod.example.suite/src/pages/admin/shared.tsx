@@ -1,4 +1,8 @@
-import { getServerTranslator } from '@skitsaas/sdk/server';
+import {
+  getServerTranslator,
+  listSystemActivityLogs,
+  type GovernanceActivityLogRecord
+} from '@skitsaas/sdk/server';
 import { EXAMPLE_SUITE_MODULE_ID } from '../../constants';
 import { listExampleSuiteItemsForAdmin } from '../../data';
 import { type ExampleSuiteAdminTableRow } from '../../example-suite-data-tables';
@@ -38,4 +42,23 @@ export function mapExampleSuiteAdminTableRows(
 
 export async function getExampleSuiteAdminTranslator() {
   return getServerTranslator({ moduleId: EXAMPLE_SUITE_MODULE_ID });
+}
+
+export async function listExampleSuiteGovernanceRows(limit = 4) {
+  return listSystemActivityLogs({ limit });
+}
+
+export function mapExampleSuiteGovernanceRows(
+  rows: GovernanceActivityLogRecord[]
+) {
+  return rows.map((row) => ({
+    label: `${row.eventCategory} · ${row.eventType}`,
+    value: [
+      row.status,
+      formatExampleSuiteAdminDate(row.createdAt),
+      row.requestId ? `request ${row.requestId}` : null
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }));
 }
