@@ -1,5 +1,5 @@
 import type { TemplateProps } from '../template-types';
-import { DashboardPageFrame } from './page-frame';
+import { DashboardPageFrame } from '../../lib/dashboard-page-frame';
 
 export default function PageDashboardActivityLoadingTemplate({
   data,

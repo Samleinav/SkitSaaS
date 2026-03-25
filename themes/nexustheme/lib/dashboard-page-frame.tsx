@@ -4,7 +4,7 @@ import {
   toStringOrFallback,
   toStringOrNull
 } from '@skitsaas/sdk';
-import type { TemplateData } from '../template-types';
+import type { TemplateData } from '../templates/template-types';
 
 type DashboardPageFrameProps = {
   data?: TemplateData;
