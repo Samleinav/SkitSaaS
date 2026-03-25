@@ -5,17 +5,21 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-shell {
   display: grid;
   gap: 1.2rem;
-  color: #0f172a;
+  color: var(--color-foreground, #0f172a);
 }
 
 .example-suite-hero {
-  border: 1px solid rgba(168, 85, 247, 0.18);
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
   border-radius: 1rem;
   padding: 1.3rem;
   background:
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 38%),
-    linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(245, 243, 255, 0.94));
-  box-shadow: 0 24px 52px rgba(76, 29, 149, 0.08);
+    radial-gradient(circle at top right, color-mix(in srgb, var(--color-primary, #7c3aed) 18%, transparent), transparent 38%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary, #7c3aed) 8%, var(--color-background, #fff)),
+      var(--color-background, #fff)
+    );
+  box-shadow: 0 24px 52px color-mix(in srgb, var(--color-primary, #7c3aed) 14%, transparent);
 }
 
 .example-suite-kicker {
@@ -36,7 +40,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-copy {
   margin: 0.65rem 0 0;
   max-width: 62rem;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
 }
 
 .example-suite-chip-row {
@@ -86,9 +90,9 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 }
 
 .example-suite-action--secondary {
-  border: 1px solid rgba(148, 163, 184, 0.36);
-  background: rgba(255, 255, 255, 0.86);
-  color: #0f172a;
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 78%, transparent);
+  background: color-mix(in srgb, var(--color-background, #fff) 92%, transparent);
+  color: var(--color-foreground, #0f172a);
 }
 
 .example-suite-grid {
@@ -105,10 +109,10 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 
 .example-suite-panel {
   overflow: hidden;
-  border: 1px solid rgba(99, 102, 241, 0.16);
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 40px rgba(99, 102, 241, 0.08);
+  background: color-mix(in srgb, var(--color-background, #fff) 96%, transparent);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
 }
 
 .example-suite-panel__header {
@@ -132,7 +136,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-panel__description {
   margin: 0.34rem 0 0;
   font-size: 0.91rem;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
 }
 
 .example-suite-panel__body {
@@ -153,7 +157,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-summary-item {
   border-radius: 0.9rem;
   padding: 0.85rem 0.95rem;
-  background: rgba(244, 244, 255, 0.86);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 8%, var(--color-background, #fff));
 }
 
 .example-suite-summary-label {
@@ -174,7 +178,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 
 .example-suite-empty {
   margin: 0;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
 }
 
 .example-suite-detail-list {
@@ -185,7 +189,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-detail-item {
   border-radius: 0.9rem;
   padding: 0.9rem 1rem;
-  background: rgba(248, 250, 252, 0.9);
+  background: color-mix(in srgb, var(--color-background, #fff) 92%, transparent);
 }
 
 .example-suite-detail-label {
@@ -193,7 +197,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #64748b;
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 54%, transparent);
   font-weight: 700;
 }
 
@@ -254,7 +258,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-data-table .sdk-data-table__pagination-summary,
 .example-suite-data-table .sdk-data-table__filter-label {
   font-size: 0.84rem;
-  color: rgba(15, 23, 42, 0.7);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 70%, transparent);
 }
 
 .example-suite-data-table .sdk-data-table__toolbar-content,
@@ -281,9 +285,9 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-data-table .sdk-data-table__pagination-page-size select {
   min-height: 2.2rem;
   border-radius: 0.7rem;
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  background: rgba(244, 244, 255, 0.9);
-  color: #0f172a;
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
+  background: color-mix(in srgb, var(--color-background, #fff) 92%, transparent);
+  color: var(--color-foreground, #0f172a);
   padding: 0.42rem 0.7rem;
 }
 
@@ -308,7 +312,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-data-table .sdk-data-table__table td {
   padding: 0.7rem 0.5rem;
   vertical-align: top;
-  border-top: 1px solid rgba(99, 102, 241, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 68%, transparent);
 }
 
 .example-suite-data-table .sdk-data-table__sort-button {
@@ -341,9 +345,9 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
   min-height: 2rem;
   padding: 0 0.75rem;
   border-radius: 999px;
-  border: 1px solid rgba(99, 102, 241, 0.16);
-  background: rgba(244, 244, 255, 0.9);
-  color: #4338ca;
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
+  background: color-mix(in srgb, var(--color-background, #fff) 92%, transparent);
+  color: color-mix(in srgb, var(--color-primary, #4338ca) 82%, var(--color-foreground, #0f172a));
   font-size: 0.84rem;
   font-weight: 600;
   text-decoration: none;
@@ -352,7 +356,7 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 
 .example-suite-data-table .sdk-data-table__cell-actions a:hover,
 .example-suite-data-table .sdk-data-table__cell-actions button:hover {
-  background: rgba(224, 231, 255, 0.96);
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, var(--color-background, #fff));
 }
 
 .example-suite-data-table .sdk-data-table__confirm-backdrop {
@@ -368,12 +372,12 @@ const EXAMPLE_SUITE_SHOWCASE_STYLES = `
 .example-suite-data-table .sdk-data-table__confirm-dialog {
   width: min(100%, 28rem);
   border-radius: 1rem;
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
+  background: color-mix(in srgb, var(--color-background, #fff) 96%, transparent);
   padding: 1rem;
   display: grid;
   gap: 0.85rem;
-  box-shadow: 0 24px 68px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 24px 68px color-mix(in srgb, var(--color-primary, #4f46e5) 18%, transparent);
 }
 
 @media (max-width: 900px) {

@@ -14,17 +14,21 @@ const dashboardShowcaseStyles = `
 .example-dashboard-shell {
   display: grid;
   gap: 1.25rem;
-  color: #0f172a;
+  color: var(--color-foreground, #0f172a);
 }
 
 .example-dashboard-hero,
 .example-dashboard-card,
 .example-dashboard-slot {
-  border: 1px solid rgba(14, 116, 144, 0.18);
+  border: 1px solid color-mix(in srgb, var(--color-border, #d5d7db) 72%, transparent);
   border-radius: 1rem;
   background:
-    linear-gradient(135deg, rgba(236, 254, 255, 0.96), rgba(255, 255, 255, 0.94));
-  box-shadow: 0 20px 48px rgba(14, 116, 144, 0.08);
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-primary, #0f766e) 10%, var(--color-background, #fff)),
+      var(--color-background, #fff)
+    );
+  box-shadow: 0 20px 48px color-mix(in srgb, var(--color-primary, #0f766e) 14%, transparent);
 }
 
 .example-dashboard-hero {
@@ -40,7 +44,7 @@ const dashboardShowcaseStyles = `
 .example-dashboard-copy {
   margin: 0.7rem 0 0;
   max-width: 58rem;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
 }
 
 .example-dashboard-chip-row {
@@ -52,8 +56,8 @@ const dashboardShowcaseStyles = `
 
 .example-dashboard-chip {
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.12);
-  color: #0f766e;
+  background: color-mix(in srgb, var(--color-primary, #0f766e) 14%, transparent);
+  color: color-mix(in srgb, var(--color-primary, #0f766e) 82%, var(--color-foreground, #0f172a));
   padding: 0.42rem 0.76rem;
   font-size: 0.78rem;
   font-weight: 700;
@@ -85,7 +89,7 @@ const dashboardShowcaseStyles = `
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #0f766e;
+  color: color-mix(in srgb, var(--color-primary, #0f766e) 84%, var(--color-foreground, #0f172a));
 }
 
 .example-dashboard-card__title {
@@ -96,7 +100,7 @@ const dashboardShowcaseStyles = `
 .example-dashboard-card__description {
   margin: 0.35rem 0 0;
   font-size: 0.92rem;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
 }
 
 .example-dashboard-card__body {
@@ -139,7 +143,7 @@ const dashboardShowcaseStyles = `
 
 .example-dashboard-slot__copy {
   margin: 0.4rem 0 0;
-  color: rgba(15, 23, 42, 0.72);
+  color: color-mix(in srgb, var(--color-foreground, #0f172a) 72%, transparent);
   font-size: 0.9rem;
 }
 `;
