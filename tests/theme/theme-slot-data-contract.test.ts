@@ -61,6 +61,13 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
+    filePath: 'app/(dashboard)/dashboard/layout.tsx',
+    renderer: 'ThemeCodeTemplate',
+    requiredSnippets: ['id="layout.dashboard.shell"'],
+    requiredDataKeys: ['heading', 'projectName', 'navItems', 'contentSlot'],
+    requiresFallbackProp: true
+  },
+  {
     filePath: 'app/(dashboard)/dashboard/layout-client.tsx',
     renderer: 'ThemeTemplate',
     requiredSnippets: ['id="ui.theme-toggle"', 'id="ui.language-switcher"'],

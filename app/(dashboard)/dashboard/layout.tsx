@@ -24,6 +24,23 @@ import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { isDashboardEnabled } from '@/lib/config/runtime-surface';
 import { resolveDashboardNavItemsForContext } from './nav-context';
 import { getResolvedAppConfig } from '@/lib/runtime-config/load-app-config';
+import { getServerTranslator } from '@/lib/i18n/server';
+
+type DashboardNavTemplateChildItem = {
+  href: string;
+  label: string;
+  exact?: boolean;
+  matchPrefixes?: string[];
+};
+
+type DashboardNavTemplateItem = {
+  href: string;
+  icon: string;
+  label: string;
+  exact?: boolean;
+  matchPrefixes?: string[];
+  children?: DashboardNavTemplateChildItem[];
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   if (!isDashboardEnabled()) {
@@ -88,33 +105,89 @@ export default async function DashboardLayout({
 
   const themeSelection = await getThemeSelectionForArea('dashboard');
   const resolvedAppConfig = getResolvedAppConfig();
+  const t = await getServerTranslator({ area: 'dashboard' });
   const areaAssets = resolveAreaAssetHrefsBySelection({
     themeId: themeSelection.themeKey,
     area: 'dashboard'
   });
 
-  const layoutContent = (
+  const fallbackLayout = (
     <DashboardLayoutClient contextType={context.type} moduleItems={moduleItems}>
       {children}
     </DashboardLayoutClient>
   );
+  const workspaceNavItems: DashboardNavTemplateItem[] = [
+    {
+      href: '/dashboard',
+      icon: 'users',
+      label: t('Team'),
+      exact: true
+    }
+  ];
+  const settingsNavItem: DashboardNavTemplateItem = {
+    href: '/dashboard/general',
+    icon: 'settings',
+    label: t('Settings'),
+    matchPrefixes: [
+      '/dashboard/general',
+      '/dashboard/activity',
+      '/dashboard/security',
+      '/dashboard/subscriptions'
+    ],
+    children: [
+      {
+        href: '/dashboard/general',
+        label: t('General')
+      },
+      {
+        href: '/dashboard/activity',
+        label: t('Activity')
+      },
+      {
+        href: '/dashboard/security',
+        label: t('Security')
+      },
+      {
+        href: '/dashboard/subscriptions',
+        label: t('Subscriptions')
+      }
+    ]
+  };
+  const moduleNavItems: DashboardNavTemplateItem[] = moduleItems.map((item) => ({
+    href: item.href,
+    icon: 'package',
+    label: item.label,
+    exact: item.exact
+  }));
+  const coreNavItems: DashboardNavTemplateItem[] = [
+    ...workspaceNavItems,
+    ...moduleNavItems,
+    settingsNavItem
+  ];
+  const navItemsForTemplate = resolveDashboardNavItemsForContext({
+    contextType: context.type,
+    teamMemberItems: coreNavItems,
+    standaloneItems: moduleNavItems
+  });
+
   const themedLayoutContent = themeSelection?.themeKey ? (
     <ThemeCodeTemplate
       themeId={themeSelection.themeKey}
       id="layout.dashboard.shell"
       data={{
-        heading: 'Dashboard',
+        heading: t('Dashboard'),
         layoutStyle: DASHBOARD_LAYOUT_STYLE,
         mode: PRIVATE_LAYOUT_MODE,
         projectName: resolvedAppConfig.projectName,
-        contentSlot: layoutContent
+        navItems: navItemsForTemplate,
+        contentSlot: children
       }}
-      fallback={layoutContent}
+      fallback={fallbackLayout}
     >
-      {layoutContent}
+      {fallbackLayout}
     </ThemeCodeTemplate>
   ) : (
-    layoutContent
+    fallbackLayout
   );
 
   return (
