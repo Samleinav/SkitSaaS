@@ -170,7 +170,10 @@ export async function renderExamplePackageAdminCreatePage() {
         {recentItems.length === 0 ? (
           <InfoText>No records yet.</InfoText>
         ) : (
-          <ExamplePackageRecentItemsDataTable items={recentItems} />
+          <ExamplePackageRecentItemsDataTable
+            items={recentItems}
+            adminAlias={EXAMPLE_PACKAGE_ADMIN_ALIAS}
+          />
         )}
       </ModuleCard>
     </ModuleLayout>

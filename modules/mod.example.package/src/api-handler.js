@@ -113,16 +113,24 @@ export const examplePackageApiHandler = createModuleApiRouter({
             userId: user.id,
             limit: 200
           });
+          const tableItems = items.map((item) => ({
+            ...item,
+            canOpenDetail: item.ownerUserId === user.id
+          }));
           return Response.json({
             scope: 'user',
-            ...applyItemsTableQuery(items, searchParams)
+            ...applyItemsTableQuery(tableItems, searchParams)
           });
         }
 
         const items = await listExamplePackagePublicItems(200);
+        const tableItems = items.map((item) => ({
+          ...item,
+          canOpenDetail: false
+        }));
         return Response.json({
           scope: 'public',
-          ...applyItemsTableQuery(items, searchParams)
+          ...applyItemsTableQuery(tableItems, searchParams)
         });
       }
     },

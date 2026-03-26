@@ -31,6 +31,7 @@ export type ExampleSuiteDashboardTableRow = {
   status: string;
   priority: number;
   visibilityLabel: string;
+  canOpenDetail?: boolean;
   updatedAt: number;
   updatedAtLabel: string;
 };
@@ -175,7 +176,11 @@ function buildDashboardItemsTableDefinition(items: ExampleSuiteDashboardTableRow
         sortable: true,
         searchable: true,
         cell: (row) => (
-          <a href={`${EXAMPLE_SUITE_DASHBOARD_ALIAS}/items/${row.id}`}>{row.title}</a>
+          row.canOpenDetail ? (
+            <a href={`${EXAMPLE_SUITE_DASHBOARD_ALIAS}/items/${row.id}`}>{row.title}</a>
+          ) : (
+            <strong>{row.title}</strong>
+          )
         ),
       }),
       buildTableColumn.custom<ExampleSuiteDashboardTableRow>({
@@ -197,6 +202,23 @@ function buildDashboardItemsTableDefinition(items: ExampleSuiteDashboardTableRow
         header: 'Updated',
         sortable: true,
         cell: (row) => <code>{row.updatedAtLabel}</code>,
+      }),
+      buildTableColumn.actions<ExampleSuiteDashboardTableRow>({
+        key: 'actions',
+        header: 'Actions',
+        actions: (row) =>
+          row.canOpenDetail
+            ? [
+                buildTableAction.link({
+                  label: 'View',
+                  href: `${EXAMPLE_SUITE_DASHBOARD_ALIAS}/items/${row.id}`,
+                }),
+              ]
+            : [
+                buildTableAction.custom({
+                  render: <span style={{ opacity: 0.72 }}>Shared</span>,
+                }),
+              ],
       }),
     ],
     toolbar: {
@@ -237,6 +259,16 @@ function buildRecentItemsTableDefinition(items: ExampleSuiteAdminTableRow[]) {
         header: 'Updated',
         sortable: true,
         cell: (row) => <code>{row.updatedAtLabel}</code>,
+      }),
+      buildTableColumn.actions<ExampleSuiteAdminTableRow>({
+        key: 'actions',
+        header: 'Actions',
+        actions: (row) => [
+          buildTableAction.link({
+            label: 'Edit',
+            href: `${EXAMPLE_SUITE_ADMIN_ALIAS}/edit/${row.id}`,
+          }),
+        ],
       }),
     ],
     pagination: {

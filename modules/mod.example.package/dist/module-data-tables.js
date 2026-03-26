@@ -100,7 +100,7 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
                 key: 'title',
                 header: 'Title',
                 searchable: true,
-                cell: (item) => (_jsx("a", { href: `${dashboardAlias}/items/${item.id}`, children: item.title }))
+                cell: (item) => (item.canOpenDetail ? (_jsx("a", { href: `${dashboardAlias}/items/${item.id}`, children: item.title })) : (_jsx("strong", { children: item.title })))
             }),
             buildTableColumn.custom({
                 key: 'status',
@@ -120,6 +120,22 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
                 header: 'Updated',
                 sortable: true,
                 cell: (item) => _jsx("code", { children: item.updatedAtLabel })
+            }),
+            buildTableColumn.actions({
+                key: 'actions',
+                header: 'Actions',
+                actions: (item) => item.canOpenDetail
+                    ? [
+                        buildTableAction.link({
+                            label: 'View',
+                            href: `${dashboardAlias}/items/${item.id}`
+                        })
+                    ]
+                    : [
+                        buildTableAction.custom({
+                            render: _jsx("span", { style: { opacity: 0.72 }, children: "Shared" })
+                        })
+                    ]
             })
         ],
         source: {
@@ -138,7 +154,7 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
         }
     });
 }
-function buildRecentItemsTableDefinition({ items }) {
+function buildRecentItemsTableDefinition({ items, adminAlias }) {
     return defineBuildTable({
         data: items,
         header: {
@@ -162,6 +178,16 @@ function buildRecentItemsTableDefinition({ items }) {
                 header: 'Updated',
                 sortable: true,
                 cell: (item) => _jsx("code", { children: item.updatedAtLabel })
+            }),
+            buildTableColumn.actions({
+                key: 'actions',
+                header: 'Actions',
+                actions: (item) => [
+                    buildTableAction.link({
+                        label: 'Edit',
+                        href: `${adminAlias}/edit/${item.id}`
+                    })
+                ]
             })
         ],
         pagination: {
@@ -181,8 +207,9 @@ export function ExamplePackageDashboardItemsDataTable({ items, dashboardAlias })
             dashboardAlias
         }), className: "example-package-data-table", tableClassName: "min-w-[760px]" }));
 }
-export function ExamplePackageRecentItemsDataTable({ items }) {
+export function ExamplePackageRecentItemsDataTable({ items, adminAlias }) {
     return (_jsx(DataTable, { definition: buildRecentItemsTableDefinition({
-            items
+            items,
+            adminAlias
         }), className: "example-package-data-table", tableClassName: "min-w-[620px]" }));
 }

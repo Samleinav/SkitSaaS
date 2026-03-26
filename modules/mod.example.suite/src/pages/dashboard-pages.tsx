@@ -33,7 +33,8 @@ function formatDate(value: Date) {
 }
 
 function mapDashboardTableRows(
-  items: Awaited<ReturnType<typeof listExampleSuiteItemsForUser>>
+  items: Awaited<ReturnType<typeof listExampleSuiteItemsForUser>>,
+  currentUserId: number
 ) {
   return items.map(
     (item) =>
@@ -43,6 +44,7 @@ function mapDashboardTableRows(
         status: item.status,
         priority: item.priority,
         visibilityLabel: item.isPublic ? 'public' : 'private',
+        canOpenDetail: item.ownerUserId === currentUserId,
         updatedAt: item.updatedAt.getTime(),
         updatedAtLabel: formatDate(item.updatedAt)
       }) satisfies ExampleSuiteDashboardTableRow
@@ -63,7 +65,7 @@ export async function renderExampleSuiteDashboardHomePage() {
 
   const ownItemsCount = items.filter((item) => item.ownerUserId === user.id).length;
   const publicItemsCount = items.filter((item) => item.isPublic).length;
-  const tableItems = mapDashboardTableRows(items);
+  const tableItems = mapDashboardTableRows(items, user.id);
 
   return (
     <ExampleSuiteShell

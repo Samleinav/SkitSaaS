@@ -26,6 +26,7 @@ export async function renderExamplePackageDashboardHomePage() {
         status: item.status,
         priority: item.priority,
         visibilityLabel: item.isPublic ? 'public' : 'private',
+        canOpenDetail: item.ownerUserId === user.id,
         updatedAt: item.updatedAt.getTime(),
         updatedAtLabel: formatDate(item.updatedAt)
     }));

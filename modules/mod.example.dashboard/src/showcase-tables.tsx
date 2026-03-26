@@ -2,6 +2,7 @@
 
 import {
   DataTable,
+  buildTableAction,
   buildTableColumn,
   buildTableFilter,
   defineBuildTable,
@@ -12,6 +13,25 @@ import {
   type ExampleDashboardMilestoneRow,
   type ExampleDashboardPlaybookRow,
 } from './data';
+
+const EXAMPLE_DASHBOARD_ALIAS = '/dashboard/custom/example-dashboard';
+const EXAMPLE_DASHBOARD_FRONTEND_ALIAS = '/features/example-dashboard';
+const EXAMPLE_DASHBOARD_PLAYBOOKS_API =
+  '/api/modules/mod.example.dashboard/showcase-playbooks';
+
+function getMilestoneAction(row: ExampleDashboardMilestoneRow) {
+  if (row.area === 'frontend') {
+    return buildTableAction.link({
+      label: 'Open frontend',
+      href: EXAMPLE_DASHBOARD_FRONTEND_ALIAS,
+    });
+  }
+
+  return buildTableAction.link({
+    label: 'Open dashboard',
+    href: EXAMPLE_DASHBOARD_ALIAS,
+  });
+}
 
 const milestonesTable = defineBuildTable<ExampleDashboardMilestoneRow, any>({
   data: listExampleDashboardMilestones(),
@@ -42,6 +62,11 @@ const milestonesTable = defineBuildTable<ExampleDashboardMilestoneRow, any>({
       key: 'owner',
       header: 'Owner',
       searchable: true,
+    }),
+    buildTableColumn.actions<ExampleDashboardMilestoneRow>({
+      key: 'actions',
+      header: 'Actions',
+      actions: (row) => [getMilestoneAction(row)],
     }),
   ],
   toolbar: {
@@ -94,9 +119,21 @@ function createRemotePlaybooksTable() {
         key: 'visibility',
         header: 'Visibility',
       }),
+      buildTableColumn.actions<ExampleDashboardPlaybookRow>({
+        key: 'actions',
+        header: 'Actions',
+        actions: (row) => [
+          buildTableAction.link({
+            label: 'Open API',
+            href: `${EXAMPLE_DASHBOARD_PLAYBOOKS_API}?search=${encodeURIComponent(row.title)}`,
+            target: '_blank',
+            rel: 'noreferrer',
+          }),
+        ],
+      }),
     ],
     source: {
-      url: '/api/modules/mod.example.dashboard/showcase-playbooks',
+      url: EXAMPLE_DASHBOARD_PLAYBOOKS_API,
       debounceMs: 200,
     },
     toolbar: {

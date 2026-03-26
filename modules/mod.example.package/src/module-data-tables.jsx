@@ -108,7 +108,11 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
         header: 'Title',
         searchable: true,
         cell: (item) => (
-          <a href={`${dashboardAlias}/items/${item.id}`}>{item.title}</a>
+          item.canOpenDetail ? (
+            <a href={`${dashboardAlias}/items/${item.id}`}>{item.title}</a>
+          ) : (
+            <strong>{item.title}</strong>
+          )
         )
       }),
       buildTableColumn.custom({
@@ -129,6 +133,23 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
         header: 'Updated',
         sortable: true,
         cell: (item) => <code>{item.updatedAtLabel}</code>
+      }),
+      buildTableColumn.actions({
+        key: 'actions',
+        header: 'Actions',
+        actions: (item) =>
+          item.canOpenDetail
+            ? [
+                buildTableAction.link({
+                  label: 'View',
+                  href: `${dashboardAlias}/items/${item.id}`
+                })
+              ]
+            : [
+                buildTableAction.custom({
+                  render: <span style={{ opacity: 0.72 }}>Shared</span>
+                })
+              ]
       })
     ],
     source: {
@@ -148,7 +169,7 @@ function buildDashboardItemsTableDefinition({ items, dashboardAlias }) {
   });
 }
 
-function buildRecentItemsTableDefinition({ items }) {
+function buildRecentItemsTableDefinition({ items, adminAlias }) {
   return defineBuildTable({
     data: items,
     header: {
@@ -173,6 +194,16 @@ function buildRecentItemsTableDefinition({ items }) {
         header: 'Updated',
         sortable: true,
         cell: (item) => <code>{item.updatedAtLabel}</code>
+      }),
+      buildTableColumn.actions({
+        key: 'actions',
+        header: 'Actions',
+        actions: (item) => [
+          buildTableAction.link({
+            label: 'Edit',
+            href: `${adminAlias}/edit/${item.id}`
+          })
+        ]
       })
     ],
     pagination: {
@@ -213,11 +244,12 @@ export function ExamplePackageDashboardItemsDataTable({
   );
 }
 
-export function ExamplePackageRecentItemsDataTable({ items }) {
+export function ExamplePackageRecentItemsDataTable({ items, adminAlias }) {
   return (
     <DataTable
       definition={buildRecentItemsTableDefinition({
-        items
+        items,
+        adminAlias
       })}
       className="example-package-data-table"
       tableClassName="min-w-[620px]"
