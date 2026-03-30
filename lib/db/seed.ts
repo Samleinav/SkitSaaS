@@ -19,7 +19,7 @@ function isProductionLikeEnvironment() {
 }
 
 function resolveSeedCredentials() {
-  const defaultEmail = 'test@test.com';
+  const defaultEmail = 'test@admin.com';
   const defaultPassword = 'admin123';
   const defaultTeamName = 'Test Team';
 
@@ -138,9 +138,22 @@ async function seed() {
       ])
       .returning();
 
-    console.log('Initial user created.');
+    console.log('Bootstrap admin user created.');
   } else {
-    console.log(`User ${email} already exists. Skipping user creation.`);
+    if (user.role !== 'admin') {
+      [user] = await db
+        .update(users)
+        .set({
+          role: 'admin',
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, user.id))
+        .returning();
+
+      console.log(`User ${email} already existed. Promoted role to admin.`);
+    } else {
+      console.log(`User ${email} already exists with admin role. Skipping user creation.`);
+    }
   }
 
   if (!user) {

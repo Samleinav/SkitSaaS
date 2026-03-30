@@ -76,7 +76,7 @@ Seed defaults (override via `.env` if needed):
 
 | Variable | Default |
 |----------|---------|
-| `SEED_USER_EMAIL` | `test@test.com` |
+| `SEED_USER_EMAIL` | `test@admin.com` |
 | `SEED_USER_PASSWORD` | `admin123` |
 | `SEED_TEAM_NAME` | `Test Team` |
 
@@ -104,7 +104,7 @@ Two separate login surfaces are available:
 
 URL: `/admin/login`
 
-Log in with the seed credentials (`test@test.com` / `admin123`). This area is for platform operators:
+Log in with the seed credentials (`test@admin.com` / `admin123`). This area is for platform operators:
 
 - Manage users, teams, and subscriptions
 - Configure payments, email (SMTP), and feature flags
@@ -115,11 +115,13 @@ Log in with the seed credentials (`test@test.com` / `admin123`). This area is fo
 
 URL: `/login` or `/sign-in`
 
-Same seed credentials work here. This area is for end-users of your SaaS product:
+The same seed credentials also work here for local testing. This area is for end-users of your SaaS product:
 
 - Team and account management
 - Subscription and billing self-service
 - Module-provided features
+
+Note: when `TEAMS_ENABLED=true`, the seeded admin user is also attached to the bootstrap team as membership role `owner`. If the dashboard UI shows `Owner`, that is the team role; access to `/admin` still comes from the global user role `admin`.
 
 ---
 

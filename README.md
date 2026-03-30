@@ -46,19 +46,20 @@ pnpm db:setup
 
 During setup, you can choose whether to configure Stripe and/or PayPal now, or skip either one.
 
-Run the database migrations and seed the database with a default user and team:
+Run the database migrations and seed the database with a default admin user and team:
 
 ```bash
 pnpm db:migrate
 pnpm db:seed
 ```
 
-This will create the following user and team:
+This will create the following bootstrap credentials:
 
-- User: `test@test.com`
+- User: `test@admin.com`
 - Password: `admin123`
 
-The seeded user has role `owner`, so it can access `/admin`.
+The seeded user has global role `admin`, so it can access `/admin`.
+If teams are enabled, the same user is also added to the bootstrap team as `owner`, so some dashboard/team screens may show `Owner` as the membership role.
 
 You can also create new users through the `/sign-up` route.
 

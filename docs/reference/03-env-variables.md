@@ -94,7 +94,7 @@ Notes:
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `ALLOW_PRODUCTION_SEED` | Allow `db:seed` in production-like environments (`true/false`) | `false` |
-| `SEED_USER_EMAIL` | Seed bootstrap user email | `test@test.com` |
+| `SEED_USER_EMAIL` | Seed bootstrap admin email | `test@admin.com` |
 | `SEED_USER_PASSWORD` | Seed bootstrap user password | `admin123` |
 | `SEED_TEAM_NAME` | Seed bootstrap team name | `Test Team` |
 
