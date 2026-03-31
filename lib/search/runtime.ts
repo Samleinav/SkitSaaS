@@ -928,6 +928,23 @@ export async function querySearch(
   options: SearchQueryOptions
 ): Promise<SearchQueryPayload> {
   const context = await resolveSearchContext(options);
+  if (!context.query) {
+    return {
+      query: context.query,
+      context: {
+        area: context.area,
+        pathname: context.pathname,
+        portalName: context.portalName,
+        portalRouteArea: context.portalRouteArea,
+        themeId: context.themeId,
+        audience: context.audience,
+        dashboardContextType: context.dashboardContextType,
+        contextTags: context.contextTags
+      },
+      results: []
+    };
+  }
+
   const { entries: moduleEntries, providers } = await resolveModuleSearchSources(
     context
   );

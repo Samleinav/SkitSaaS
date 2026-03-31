@@ -235,9 +235,19 @@ export function CommandSearch({
   const [results, setResults] = React.useState<SearchResultItem[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const normalizedQuery = query.trim()
+  const shouldRenderResultsPanel =
+    normalizedQuery.length > 0 || loading || Boolean(error)
 
   React.useEffect(() => {
     if (!open) {
+      return
+    }
+
+    if (!normalizedQuery) {
+      setResults([])
+      setLoading(false)
+      setError(null)
       return
     }
 
@@ -247,7 +257,7 @@ export function CommandSearch({
         setLoading(true)
         setError(null)
         const nextResults = await fetchSearchResults({
-          query,
+          query: normalizedQuery,
           pathname: pathname || "/",
           signal: controller.signal,
         })
@@ -270,7 +280,7 @@ export function CommandSearch({
       controller.abort()
       window.clearTimeout(timeout)
     }
-  }, [open, pathname, query])
+  }, [normalizedQuery, open, pathname])
 
   React.useEffect(() => {
     if (open) {
@@ -323,50 +333,48 @@ export function CommandSearch({
               <Loader2 className="mr-4 h-4 w-4 animate-spin text-zinc-500 dark:text-zinc-400" />
             ) : null}
           </div>
-          <CommandList>
-            {error ? (
-              <div className="px-3 py-4 text-sm text-red-500 dark:text-red-400">
-                {error}
-              </div>
-            ) : null}
-            {!loading && !error ? (
-              <CommandEmpty>
-                {query.trim()
-                  ? "No results found for this query."
-                  : "No shortcuts available in this context."}
-              </CommandEmpty>
-            ) : null}
-            {Object.entries(groupedItems).map(([group, items]) => (
-              <CommandGroup key={group} heading={group}>
-                {items.map((item) => {
-                  const Icon = resolveResultIcon(item.icon)
+          {shouldRenderResultsPanel ? (
+            <CommandList>
+              {error ? (
+                <div className="px-3 py-4 text-sm text-red-500 dark:text-red-400">
+                  {error}
+                </div>
+              ) : null}
+              {!loading && !error ? (
+                <CommandEmpty>No results found for this query.</CommandEmpty>
+              ) : null}
+              {Object.entries(groupedItems).map(([group, items]) => (
+                <CommandGroup key={group} heading={group}>
+                  {items.map((item) => {
+                    const Icon = resolveResultIcon(item.icon)
 
-                  return (
-                    <CommandItem
-                      key={item.id}
-                      value={`${item.title} ${item.description ?? ""} ${item.keywords?.join(" ") ?? ""}`}
-                      onSelect={() => handleSelect(item.href)}
-                    >
-                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{item.title}</span>
-                        {item.description ? (
-                          <span className="mt-0.5 block line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
-                            {item.description}
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="hidden shrink-0 rounded-md border border-zinc-200 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 md:inline-flex">
-                        {item.href}
-                      </span>
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            ))}
-          </CommandList>
+                    return (
+                      <CommandItem
+                        key={item.id}
+                        value={`${item.title} ${item.description ?? ""} ${item.keywords?.join(" ") ?? ""}`}
+                        onSelect={() => handleSelect(item.href)}
+                      >
+                        <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{item.title}</span>
+                          {item.description ? (
+                            <span className="mt-0.5 block line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                              {item.description}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="hidden shrink-0 rounded-md border border-zinc-200 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 md:inline-flex">
+                          {item.href}
+                        </span>
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              ))}
+            </CommandList>
+          ) : null}
         </Command>
       </DialogContent>
     </Dialog>
