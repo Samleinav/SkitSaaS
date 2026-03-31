@@ -385,12 +385,6 @@ function matchesPortalNames(
   );
 }
 
-function normalizeTextList(values: string[] | undefined) {
-  return (values ?? [])
-    .map((value) => String(value ?? '').trim().toLowerCase())
-    .filter(Boolean);
-}
-
 function escapeSearchRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -404,13 +398,6 @@ function hasWholeWordMatch(text: string, query: string) {
   return pattern.test(text);
 }
 
-function normalizePathSegments(path: string) {
-  return path
-    .split('/')
-    .map((segment) => segment.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 function scoreSearchResult({
   result,
   context
@@ -420,46 +407,29 @@ function scoreSearchResult({
 }) {
   const query = context.query.trim().toLowerCase();
   const title = result.title.trim().toLowerCase();
-  const description = String(result.description ?? '').trim().toLowerCase();
   const href = result.href.trim().toLowerCase();
-  const keywords = normalizeTextList(result.keywords);
-  const hrefSegments = normalizePathSegments(href);
   let score = 0;
 
   if (!query) {
     score = 1000 - Math.max(0, result.order ?? 0);
   } else {
+    let titleMatchScore = 0;
+
     if (title === query) {
-      score += 3200;
+      titleMatchScore = 3200;
     } else if (title.startsWith(query)) {
-      score += 2200;
+      titleMatchScore = 2200;
     } else if (hasWholeWordMatch(title, query)) {
-      score += 1700;
+      titleMatchScore = 1700;
     } else if (title.includes(query)) {
-      score += 1200;
+      titleMatchScore = 1200;
     }
 
-    if (keywords.some((keyword) => keyword === query)) {
-      score += 320;
-    } else if (keywords.some((keyword) => hasWholeWordMatch(keyword, query))) {
-      score += 220;
-    } else if (keywords.some((keyword) => keyword.startsWith(query))) {
-      score += 180;
-    } else if (keywords.some((keyword) => keyword.includes(query))) {
-      score += 120;
+    if (titleMatchScore <= 0) {
+      return 0;
     }
 
-    if (hasWholeWordMatch(description, query)) {
-      score += 120;
-    } else if (description.includes(query)) {
-      score += 70;
-    }
-
-    if (hrefSegments.includes(query)) {
-      score += 120;
-    } else if (href.includes(query)) {
-      score += 35;
-    }
+    score += titleMatchScore;
 
     if (result.sourceType === 'provider') {
       score += 250;
