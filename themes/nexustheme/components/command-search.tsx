@@ -322,13 +322,17 @@ export function CommandSearch({
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command
           ref={commandRef}
-          value={query}
-          onValueChange={setQuery}
+          shouldFilter={false}
           className="transition-transform duration-100 ease-out"
         >
           <div className="flex items-center border-b border-zinc-200 px-1 dark:border-zinc-800">
             <Search className="ml-3 h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
-            <CommandInput placeholder={placeholder} autoFocus />
+            <CommandInput
+              value={query}
+              onValueChange={setQuery}
+              placeholder={placeholder}
+              autoFocus
+            />
             {loading ? (
               <Loader2 className="mr-4 h-4 w-4 animate-spin text-zinc-500 dark:text-zinc-400" />
             ) : null}
