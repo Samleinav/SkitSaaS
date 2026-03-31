@@ -391,6 +391,26 @@ function normalizeTextList(values: string[] | undefined) {
     .filter(Boolean);
 }
 
+function escapeSearchRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasWholeWordMatch(text: string, query: string) {
+  if (!text || !query) {
+    return false;
+  }
+
+  const pattern = new RegExp(`(^|[^a-z0-9])${escapeSearchRegExp(query)}([^a-z0-9]|$)`);
+  return pattern.test(text);
+}
+
+function normalizePathSegments(path: string) {
+  return path
+    .split('/')
+    .map((segment) => segment.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 function scoreSearchResult({
   result,
   context
@@ -403,38 +423,59 @@ function scoreSearchResult({
   const description = String(result.description ?? '').trim().toLowerCase();
   const href = result.href.trim().toLowerCase();
   const keywords = normalizeTextList(result.keywords);
+  const hrefSegments = normalizePathSegments(href);
   let score = 0;
 
   if (!query) {
     score = 1000 - Math.max(0, result.order ?? 0);
   } else {
     if (title === query) {
-      score += 1000;
+      score += 3200;
     } else if (title.startsWith(query)) {
-      score += 850;
+      score += 2200;
+    } else if (hasWholeWordMatch(title, query)) {
+      score += 1700;
     } else if (title.includes(query)) {
-      score += 700;
+      score += 1200;
     }
 
     if (keywords.some((keyword) => keyword === query)) {
-      score += 650;
-    } else if (keywords.some((keyword) => keyword.startsWith(query))) {
-      score += 560;
-    } else if (keywords.some((keyword) => keyword.includes(query))) {
-      score += 460;
-    }
-
-    if (description.includes(query)) {
       score += 320;
+    } else if (keywords.some((keyword) => hasWholeWordMatch(keyword, query))) {
+      score += 220;
+    } else if (keywords.some((keyword) => keyword.startsWith(query))) {
+      score += 180;
+    } else if (keywords.some((keyword) => keyword.includes(query))) {
+      score += 120;
     }
 
-    if (href.includes(query)) {
-      score += 180;
+    if (hasWholeWordMatch(description, query)) {
+      score += 120;
+    } else if (description.includes(query)) {
+      score += 70;
+    }
+
+    if (hrefSegments.includes(query)) {
+      score += 120;
+    } else if (href.includes(query)) {
+      score += 35;
     }
 
     if (result.sourceType === 'provider') {
       score += 250;
     }
+  }
+
+  if (result.sourceType === 'core') {
+    score += 260;
+  } else if (result.sourceType === 'theme') {
+    score += 80;
+  } else if (result.sourceType === 'module') {
+    score -= 40;
+  }
+
+  if (query === context.area && result.sourceType === 'core') {
+    score += 220;
   }
 
   if (href === context.pathname) {
@@ -516,7 +557,7 @@ function buildModuleAutoSearchEntries({
           icon: 'package',
           areas: ['admin'],
           audience: 'admin',
-          keywords: [manifest.displayName, manifest.moduleId],
+          keywords: [manifest.moduleId],
           order: item.order,
           sourceId: manifest.moduleId,
           sourceType: 'module'
@@ -538,7 +579,7 @@ function buildModuleAutoSearchEntries({
           areas: ['dashboard'],
           audience: 'user',
           contextTags: ['dashboard.team'],
-          keywords: [manifest.displayName, manifest.moduleId],
+          keywords: [manifest.moduleId],
           order: item.order,
           sourceId: manifest.moduleId,
           sourceType: 'module'
@@ -582,7 +623,7 @@ function buildModuleAutoSearchEntries({
               : manifest.frontendRouteAccess === 'user'
                 ? 'user'
                 : 'public',
-          keywords: [manifest.displayName, manifest.moduleId],
+          keywords: [manifest.moduleId],
           order: item.order,
           sourceId: manifest.moduleId,
           sourceType: 'module'
