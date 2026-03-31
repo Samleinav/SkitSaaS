@@ -39,6 +39,63 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
+## 2026-03-30 - sdk-context-aware-search-contract
+
+- `status`: published
+- `sprint`: sprint-d
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk` now exposes context-aware search contracts so core, modules, and themes can register search metadata while the host runtime resolves area, dashboard context, and portal scope safely.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/search/types.ts`
+  - `app/sdk/src/search/builders.ts`
+  - `app/sdk/src/modules/manifest.ts`
+  - `app/sdk/src/theme/config.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/package.json`
+  - `lib/modules/runtime.ts`
+  - `lib/search/context.ts`
+  - `lib/search/runtime.ts`
+  - `app/api/search/route.ts`
+  - `core/api-routes.ts`
+  - `themes/nexustheme/components/command-search.tsx`
+  - `themes/nexustheme/templates/layout.private.header.tsx`
+  - `themes/nexustheme/components/site-header.tsx`
+  - `tests/search/search-context.test.ts`
+  - `tests/routing/core-api-route-dispatch.test.ts`
+  - `docs/sdk/00-overview.md`
+  - `app/sdk/README.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.16.0 -> v1.17.0 (MINOR).
+
+    New public contracts:
+
+    - `defineSearchEntry(...)`
+    - `defineSearchProvider(...)`
+    - `composeSearchEntries(...)`
+    - `composeSearchResults(...)`
+    - `SearchContext`
+    - `SearchStaticEntry`
+    - `SearchProvider`
+    - `SearchResultItem`
+
+    Public manifest/config additions:
+
+    - `ModuleManifest.searchEntries`
+    - `ModuleManifest.searchProviders`
+    - `ThemeConfig.searchEntries`
+
+    Host runtime behavior in this slice:
+
+    - `/api/search` resolves the current area from `path`
+    - dashboard searches distinguish `team_member` vs `standalone`
+    - portal searches distinguish standalone vs dashboard-mounted portals
+    - static shortcuts are served immediately
+    - dynamic providers run only for queries with at least 2 characters
+    - `theme.nexus` command search is now backed by the runtime instead of hardcoded demo items
+
 ## 2026-03-25 - sdk-datatable-host-bridge
 
 - `status`: published

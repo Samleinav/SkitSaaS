@@ -82,6 +82,26 @@ export {
   type ThemeHeadConfig,
   type ThemeProviderProps
 } from './theme/config.js';
+export type {
+  SearchArea,
+  SearchAudience,
+  SearchContextTag,
+  SearchPortalRouteArea,
+  SearchDashboardContextType,
+  SearchResultSourceType,
+  SearchContext,
+  SearchResultItem,
+  SearchStaticEntry,
+  SearchProviderResult,
+  SearchProvider
+} from './search/types.js';
+export {
+  defineSearchEntry,
+  defineSearchProvider,
+  createSearchResult,
+  composeSearchEntries,
+  composeSearchResults
+} from './search/builders.js';
 
 export type {
   BuildTableLabels,

@@ -1,10 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import * as React from 'react';
 import type { ReactNode } from 'react';
-import { LayoutDashboard, PanelLeft, Search } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { mergeClassNames, useI18n } from '@skitsaas/sdk';
 import { NexusThemeToggle } from '../components/nexus-theme-toggle';
+import {
+  HeaderSidebarToggle,
+  PrivateHeaderSearchBlock,
+  useCommandSearchHotkey
+} from '../components/command-search';
 
 type LayoutPrivateHeaderData = {
   area?: string;
@@ -23,10 +29,12 @@ export default function LayoutPrivateHeaderTemplate({
   className,
   themeId
 }: LayoutPrivateHeaderTemplateProps) {
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const area = data?.area === 'dashboard' ? 'dashboard' : 'admin';
   const homeHref = area === 'dashboard' ? '/dashboard' : '/admin';
   const projectName = data?.projectName?.trim() || 'S-Kit-SaaS';
   const t = useI18n({ themeId, area });
+  useCommandSearchHotkey(() => setSearchOpen((open) => !open));
 
   return (
     <header
@@ -50,9 +58,7 @@ export default function LayoutPrivateHeaderTemplate({
       </Link>
 
       {/* Sidebar toggle — all sizes */}
-      <button
-        type="button"
-        aria-label={t('Toggle sidebar')}
+      <HeaderSidebarToggle
         onClick={() => {
           const isDesktop = window.matchMedia('(min-width: 1280px)').matches;
           if (isDesktop) {
@@ -61,33 +67,13 @@ export default function LayoutPrivateHeaderTemplate({
             document.documentElement.toggleAttribute('data-sidebar-mobile-open');
           }
         }}
-        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/70 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-      >
-        <PanelLeft className="h-4 w-4" />
-      </button>
+      />
 
-      {/* Search — desktop */}
-      <div className="hidden flex-1 md:flex md:mx-3">
-        <button
-          type="button"
-          className="inline-flex h-9 w-full max-w-sm items-center gap-2 rounded-md border border-border/70 bg-muted/40 px-3 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/60"
-        >
-          <Search className="h-3.5 w-3.5 shrink-0" />
-          <span>{t('Search...')}</span>
-          <span className="ml-auto rounded border border-border/80 px-1.5 py-0.5 text-[10px] tracking-wide uppercase">
-            Ctrl K
-          </span>
-        </button>
-      </div>
-
-      {/* Search icon — mobile */}
-      <button
-        type="button"
-        aria-label={t('Search')}
-        className="md:hidden ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-      >
-        <Search className="h-4 w-4" />
-      </button>
+      <PrivateHeaderSearchBlock
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        label={t('Search...')}
+      />
 
       {/* Theme toggle + controls slot */}
       <div className="ml-auto flex items-center gap-1.5">

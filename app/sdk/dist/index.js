@@ -4,6 +4,7 @@ export { createTranslator } from './i18n/translator.js';
 export { I18nProvider, useI18n } from './i18n/theme.js';
 export { resolveThemeTranslationsByLocale, resolveModuleTranslationsByLocale, resolveI18nTranslationsByLocale } from './i18n/runtime.js';
 export { defineThemeConfig } from './theme/config.js';
+export { defineSearchEntry, defineSearchProvider, createSearchResult, composeSearchEntries, composeSearchResults } from './search/builders.js';
 export { buildTableAction, buildTableFilter, buildTableColumn, composeBuildTableDefinition, defineBuildTable, withBuildTableData, withBuildTableQuery } from './datatables/definition.js';
 export { DEFAULT_BUILD_TABLE_PAGE, DEFAULT_BUILD_TABLE_PAGE_SIZE, filterBuildTableData, formatBuildTablePaginationSummary, normalizeBuildTablePage, normalizeBuildTablePageSize, normalizeBuildTableQueryState, normalizeBuildTableSortDirection, paginateBuildTableData, resolveBuildTableView, sortBuildTableData } from './datatables/state.js';
 export { createBuildTableQuerySearchParams, parseBuildTableQueryState } from './datatables/query.js';

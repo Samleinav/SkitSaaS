@@ -7,8 +7,10 @@ import { withApiRouteEntries } from '../../lib/routing/with-api-route';
 test('core api routes are named and exposed through Routes.api', () => {
   assert.equal(String(Routes.api.user.get), '/api/user');
   assert.equal(String(Routes.api.team.get), '/api/team');
+  assert.equal(String(Routes.api.search.query), '/api/search');
   assert.equal(route('api.user.get'), '/api/user');
   assert.equal(route('api.team.get'), '/api/team');
+  assert.equal(route('api.search.query'), '/api/search');
 });
 
 test('withApiRouteEntries executes typed api route proxies before the handler', async () => {

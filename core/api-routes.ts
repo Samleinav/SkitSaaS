@@ -55,6 +55,14 @@ export const CoreApiRoutes = {
       .name('api.forms.validate'),
   },
 
+  // ─── Search ────────────────────────────────────────────────────────────────
+  search: {
+    query: RouteApi('/search')
+      .GET()
+      .rateLimit({ limit: 60, windowSeconds: 60 })
+      .name('api.search.query'),
+  },
+
   // ─── Checkout ──────────────────────────────────────────────────────────────
   checkout: {
     methods: RouteApi('/checkout/methods').GET().auth('user').name('api.checkout.methods'),

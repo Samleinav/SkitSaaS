@@ -63,6 +63,7 @@ export default defineModule({
   - flat i18n types/helpers (`createTranslator`, `I18nProvider`, `useI18n`)
   - persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
   - theme config helper (`defineThemeConfig`)
+  - context-aware search helpers (`defineSearchEntry`, `defineSearchProvider`, `composeSearchEntries`)
   - datatable contracts/helpers + host bridge (`DataTableUiAdapterProvider`)
   - structured form contract/helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
   - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
@@ -181,6 +182,49 @@ const recentAuthEvents = await listSystemActivityLogs({
   eventCategory: 'auth',
   limit: 50,
   requestId: 'req-123'
+});
+```
+
+## Search Registration
+
+Modules can register static shortcuts and dynamic providers directly from the
+SDK manifest surface:
+
+```ts
+import {
+  defineModule,
+  defineSearchEntry,
+  defineSearchProvider
+} from '@skitsaas/sdk';
+
+export default defineModule({
+  moduleId: 'mod.example.search',
+  version: '1.0.0',
+  displayName: 'Search Example',
+  searchEntries: [
+    defineSearchEntry({
+      id: 'mod.example.search.settings',
+      title: 'Example settings',
+      href: '/dashboard/example/settings',
+      areas: ['dashboard'],
+      contextTags: ['dashboard.team']
+    })
+  ],
+  searchProviders: [
+    defineSearchProvider({
+      providerId: 'mod.example.search.records',
+      areas: ['dashboard'],
+      async search(context) {
+        return [
+          {
+            id: 'record-1',
+            title: `Results for ${context.query}`,
+            href: '/dashboard/example'
+          }
+        ];
+      }
+    })
+  ]
 });
 ```
 

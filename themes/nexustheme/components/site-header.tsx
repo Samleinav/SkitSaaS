@@ -4,23 +4,17 @@ import * as React from "react"
 import { Button } from "./ui/button"
 import { Separator } from "./ui/separator"
 import { SidebarTrigger } from "./ui/sidebar"
-import { CommandSearch, SearchTrigger } from "./command-search"
+import {
+  CommandSearch,
+  SearchTrigger,
+  useCommandSearchHotkey,
+} from "./command-search"
 import { ModeToggle } from "./mode-toggle"
 
 export function SiteHeader() {
   const [searchOpen, setSearchOpen] = React.useState(false)
 
-  React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setSearchOpen((open) => !open)
-      }
-    }
-
-    document.addEventListener("keydown", down)
-    return () => document.removeEventListener("keydown", down)
-  }, [])
+  useCommandSearchHotkey(() => setSearchOpen((open) => !open))
 
   return (
     <>

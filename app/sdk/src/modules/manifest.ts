@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import type { ModuleEventHandler } from '../events/types.js';
 import type { ModuleMessagesByArea } from '../i18n/types.js';
 import type { ApiRouteEntry } from '../routing/api-route.js';
+import type { SearchProvider, SearchStaticEntry } from '../search/types.js';
 export type { ApiRouteEntry };
 
 export type ModuleArea = 'admin' | 'dashboard' | 'frontend' | 'api';
@@ -190,6 +191,8 @@ export type ModuleManifest = {
   adminNavItems?: ModuleNavItem[];
   dashboardNavItems?: ModuleNavItem[];
   frontendNavItems?: ModuleNavItem[];
+  searchEntries?: SearchStaticEntry[];
+  searchProviders?: SearchProvider[];
   adminRouteAliases?: string[];
   dashboardRouteAliases?: string[];
   frontendRouteAliases?: string[];

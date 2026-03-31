@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { SearchStaticEntry } from '../search/types.js';
 export type ThemeAssetArea = 'admin' | 'dashboard' | 'frontend' | 'global';
 export type ThemeAssetPathMap = Partial<Record<ThemeAssetArea, string>>;
 export type ThemeAssetListPathMap = Partial<Record<ThemeAssetArea, string | string[]>>;
@@ -31,5 +32,6 @@ export type ThemeConfig = {
     head?: ThemeHeadConfig;
     assets?: ThemeAssetsConfig;
     additionalLocales?: string[];
+    searchEntries?: SearchStaticEntry[];
 };
 export declare function defineThemeConfig(config: ThemeConfig): ThemeConfig;

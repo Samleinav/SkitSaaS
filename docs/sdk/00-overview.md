@@ -40,6 +40,8 @@ Exports:
 - `ModuleMessagesByArea` (module i18n bundles)
 - `useI18n`, `createTranslator`, `FlatTranslationsByLocale`, and `FlatTranslationsByModuleId` (flat natural-key i18n helpers)
 - `defineThemeConfig` / `ThemeConfig.additionalLocales` for theme-side locale registration
+- search contracts (`defineSearchEntry`, `defineSearchProvider`, `SearchStaticEntry`, `SearchProvider`, `SearchContext`, `SearchResultItem`) for context-aware global search registration
+- `ThemeConfig.searchEntries` for theme-owned static search shortcuts
 - persisted notification hook/helpers (`useNotifications`, `resolveSdkNotificationAreaFromPath`)
 - structured form helpers (`defineBuildForm`, `buildFormField`, `withBuildFormValues`, `defineBuildModal`)
 - structured form validation helpers (`defineValidatedBuildForm`, `withBuildFormValidation`, `buildFormRule`, `validateBuildFormLocally`)
