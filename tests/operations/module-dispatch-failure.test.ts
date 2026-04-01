@@ -8,6 +8,18 @@ function flushMicrotasks() {
   });
 }
 
+async function waitForWrite(
+  writes: Array<Record<string, unknown>>,
+  expectedCount: number,
+  timeoutMs = 250
+) {
+  const startedAt = Date.now();
+
+  while (writes.length < expectedCount && Date.now() - startedAt < timeoutMs) {
+    await flushMicrotasks();
+  }
+}
+
 test('recordModuleDispatchFailure also emits a governance activity log entry', async () => {
   const { configureSysActivityLogWriter } = await import('@/lib/system/activity-logs');
   const writes: Array<Record<string, unknown>> = [];
@@ -21,7 +33,7 @@ test('recordModuleDispatchFailure also emits a governance activity log entry', a
       requestId: 'req-module-dispatch-1'
     });
 
-    await flushMicrotasks();
+    await waitForWrite(writes, 1);
 
     assert.equal(metric.metric, 'migration.module_dispatch.failed');
     assert.equal(writes.length, 1);

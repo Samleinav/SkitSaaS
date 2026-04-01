@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test, { mock } from 'node:test';
-import { getUserContext } from '../../lib/auth/contexts';
-import { db } from '../../lib/db/drizzle';
+import {
+  authContextInternals,
+  getUserContext
+} from '../../lib/auth/contexts';
 import type { User } from '../../lib/db/schema';
 
 function createUser(overrides: Partial<User> = {}): User {
@@ -23,8 +25,8 @@ function createUser(overrides: Partial<User> = {}): User {
 
 test('getUserContext returns system_admin for admin users', async () => {
   const findFirstMock = mock.method(
-    db.query.teamMembers,
-    'findFirst',
+    authContextInternals,
+    'getTeamMembership',
     async () => null
   );
 
@@ -39,8 +41,8 @@ test('getUserContext returns system_admin for admin users', async () => {
 
 test('getUserContext returns team_member when membership exists', async () => {
   const findFirstMock = mock.method(
-    db.query.teamMembers,
-    'findFirst',
+    authContextInternals,
+    'getTeamMembership',
     async () => ({
       teamId: 7,
       role: 'owner'
@@ -65,8 +67,8 @@ test('getUserContext returns standalone when teams are disabled', async () => {
   process.env.TEAMS_ENABLED = 'false';
 
   const findFirstMock = mock.method(
-    db.query.teamMembers,
-    'findFirst',
+    authContextInternals,
+    'getTeamMembership',
     async () => ({
       teamId: 7,
       role: 'owner'
@@ -92,8 +94,8 @@ test('getUserContext returns standalone when teams are disabled', async () => {
 
 test('getUserContext returns standalone for authenticated users without team', async () => {
   const findFirstMock = mock.method(
-    db.query.teamMembers,
-    'findFirst',
+    authContextInternals,
+    'getTeamMembership',
     async () => null
   );
 
@@ -111,8 +113,8 @@ test('getUserContext returns standalone for authenticated users without team', a
 
 test('getUserContext returns public without authenticated user', async () => {
   const findFirstMock = mock.method(
-    db.query.teamMembers,
-    'findFirst',
+    authContextInternals,
+    'getTeamMembership',
     async () => null
   );
 

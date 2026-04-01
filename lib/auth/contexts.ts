@@ -21,15 +21,17 @@ type AuthenticatedDashboardContext = Exclude<UserContext, { type: 'public' }>;
 type TeamDashboardContext = Extract<UserContext, { type: 'team_member' }>;
 type StandaloneDashboardContext = Extract<UserContext, { type: 'standalone' }>;
 
-async function getTeamMembership(userId: number) {
-  return db.query.teamMembers.findFirst({
-    columns: {
-      teamId: true,
-      role: true
-    },
-    where: eq(teamMembers.userId, userId)
-  });
-}
+export const authContextInternals = {
+  async getTeamMembership(userId: number) {
+    return db.query.teamMembers.findFirst({
+      columns: {
+        teamId: true,
+        role: true
+      },
+      where: eq(teamMembers.userId, userId)
+    });
+  }
+};
 
 export async function getUserContext(user: User | null): Promise<UserContext> {
   if (!user) {
@@ -51,7 +53,7 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
   if (affinity === 'team_member') {
     // Role requires team context; fall back to standalone if not in a team.
     if (areTeamsEnabled()) {
-      const teamMembership = await getTeamMembership(user.id);
+      const teamMembership = await authContextInternals.getTeamMembership(user.id);
       if (teamMembership) {
         return {
           type: 'team_member',
@@ -68,7 +70,7 @@ export async function getUserContext(user: User | null): Promise<UserContext> {
     return { type: 'standalone', userId: user.id };
   }
 
-  const teamMembership = await getTeamMembership(user.id);
+  const teamMembership = await authContextInternals.getTeamMembership(user.id);
   if (teamMembership) {
     return {
       type: 'team_member',

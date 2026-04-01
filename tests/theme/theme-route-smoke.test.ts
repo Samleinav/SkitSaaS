@@ -123,7 +123,8 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       | 'ThemeFrontendRoute'
       | 'ThemeTemplate'
       | 'AdminTableSlotTemplate'
-      | 'DashboardTableSlotTemplate';
+      | 'DashboardTableSlotTemplate'
+      | 'redirect';
     expectedSnippet: string;
   }> = [
     {
@@ -138,8 +139,8 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
     },
     {
       filePath: 'app/(frontend)/packs/page.tsx',
-      renderer: 'ThemeFrontendRoute',
-      expectedSnippet: 'path="/packs"'
+      renderer: 'redirect',
+      expectedSnippet: "redirect('/pricing')"
     },
     {
       filePath: 'app/(frontend)/not-found.tsx',

@@ -4,6 +4,7 @@ export default [
   {
     ignores: [
       '.next/**',
+      '.source/**',
       'node_modules/**',
       'plans/**',
       'docs/**',

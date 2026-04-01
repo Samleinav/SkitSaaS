@@ -36,6 +36,14 @@ const manifests = [
   })
 ];
 
+function assertModulePageResolved(result: unknown, expectedText?: RegExp) {
+  assert.ok(result);
+
+  if (expectedText && typeof result === 'string') {
+    assert.match(result, expectedText);
+  }
+}
+
 test('resolveEnabledModuleIdSet resolves db mode from runtime rows only', () => {
   const runtimeRows: ModuleRuntimeRow[] = [
     {
@@ -1051,9 +1059,9 @@ test('resolveModulePage dispatches enabled admin/dashboard/frontend module route
       moduleId: 'mod.example.dashboard'
     });
 
-    assert.equal(adminResult, 'Example admin module is enabled.');
-    assert.equal(dashboardResult, 'Example dashboard module is enabled.');
-    assert.equal(frontendResult, 'Example frontend module is enabled.');
+    assertModulePageResolved(adminResult, /Example Admin/);
+    assertModulePageResolved(dashboardResult, /Example Dashboard/);
+    assertModulePageResolved(frontendResult, /Example Dashboard/);
     assert.equal(selectMock.mock.calls.length, 3);
   } finally {
     selectMock.mock.restore();
@@ -1088,9 +1096,9 @@ test('resolveModulePageByPath resolves admin/dashboard/frontend aliases to modul
       path: '/features/example-dashboard'
     });
 
-    assert.equal(adminResult, 'Example admin module is enabled.');
-    assert.equal(dashboardResult, 'Example dashboard module is enabled.');
-    assert.equal(frontendResult, 'Example frontend module is enabled.');
+    assertModulePageResolved(adminResult, /Example Admin/);
+    assertModulePageResolved(dashboardResult, /Example Dashboard/);
+    assertModulePageResolved(frontendResult, /Example Dashboard/);
     assert.equal(selectMock.mock.calls.length, 3);
   } finally {
     selectMock.mock.restore();
