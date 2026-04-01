@@ -81,7 +81,7 @@ Validation scripts:
 Escalation path on failure:
 
 1. Fix docs in the same PR when possible.
-2. If blocked by pending runtime change, add a temporary PR note and track follow-up in a concrete planning file such as `plans/context-aware-search-system.md`.
+2. If blocked by a pending runtime change, add a temporary PR note and track follow-up in a concrete tracked audit note under `docs/audit/`, for example `docs/audit/canary-reports/2026-02-05/notes.md`.
 3. Do not merge with unresolved docs check failures.
 
 `docs:check:module-readmes` is advisory and should be treated as quality guidance, not a release blocker.
