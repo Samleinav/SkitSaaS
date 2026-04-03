@@ -8,6 +8,11 @@ export function validateModuleManifest(manifest) {
     const localePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
     const authProviderIdPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
     const paymentMethodIdPattern = authProviderIdPattern;
+    const paymentMethodUiModeValues = new Set([
+        'submit',
+        'embedded',
+        'redirect'
+    ]);
     const runtimeConfigNamespacePattern = /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
     const runtimeConfigKeyPattern = /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
     const runtimeConfigEnvKeyPattern = /^[A-Z][A-Z0-9_]*$/;
@@ -349,6 +354,17 @@ export function validateModuleManifest(manifest) {
             validatePaymentMethodPath(paymentMethod.routes?.cancelPath, 'cancel_path');
             validatePaymentMethodPath(paymentMethod.routes?.returnPath, 'return_path');
             validatePaymentMethodPath(paymentMethod.routes?.webhookPath, 'webhook_path');
+            const checkoutUi = paymentMethod.checkoutUi;
+            if (checkoutUi !== undefined) {
+                if (!checkoutUi || typeof checkoutUi !== 'object' || Array.isArray(checkoutUi)) {
+                    errors.push(`module_payment_method_checkout_ui_invalid:${index}`);
+                    continue;
+                }
+                if (checkoutUi.mode !== undefined &&
+                    !paymentMethodUiModeValues.has(checkoutUi.mode)) {
+                    errors.push(`module_payment_method_checkout_ui_mode_invalid:${index}`);
+                }
+            }
         }
     }
     return errors;

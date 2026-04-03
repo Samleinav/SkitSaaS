@@ -70,6 +70,21 @@ export type UiUserMenuTemplateData = {
   tone?: string;
 };
 
+export type UiCheckoutPaymentMethodSelectorOption = {
+  id: string;
+  label: string;
+  description?: string | null;
+  badge?: string | null;
+  iconKey?: string | null;
+  content: ReactNode;
+};
+
+export type UiCheckoutPaymentMethodSelectorTemplateData = {
+  label: string;
+  options: UiCheckoutPaymentMethodSelectorOption[];
+  defaultMethod?: string | null;
+};
+
 export type TemplateDataById = {
   'section.admin.nav': SectionAdminNavTemplateData;
   'layout.private.header': LayoutPrivateHeaderTemplateData;
@@ -78,10 +93,10 @@ export type TemplateDataById = {
   'ui.language-switcher': UiLanguageSwitcherTemplateData;
   'ui.theme-toggle': UiThemeToggleTemplateData;
   'ui.user-menu': UiUserMenuTemplateData;
+  'ui.checkout.payment-method-selector': UiCheckoutPaymentMethodSelectorTemplateData;
 };
 
 export type TemplateDataForId<TId extends string> =
   TId extends keyof TemplateDataById
     ? TemplateDataById[TId]
     : unknown;
-

@@ -108,6 +108,17 @@ Compatibility API surface (kept for migration):
 - Stripe: `/api/stripe/*`
 - PayPal: `/api/paypal/*`
 
+Checkout method discovery and UI:
+
+- `GET /api/checkout/methods?checkoutToken=...` returns the filtered method list
+  for the current checkout context
+- returned method metadata now includes presentation hints (`checkoutUi`) so
+  host- or theme-owned checkout pages can render method cards/selectors without
+  exposing provider ids or provider-specific routing choices to the end user
+- current frontend checkout uses that model for the selection list, while still
+  allowing provider-specific execution renderers where required (for example,
+  embedded PayPal buttons)
+
 ## 6) Admin area capabilities
 
 Base route group:

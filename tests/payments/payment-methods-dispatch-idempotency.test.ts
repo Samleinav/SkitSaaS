@@ -121,6 +121,12 @@ test('resolveCheckoutProviderPendingStartReuse reuses provider_pending paypal ch
       returnPath: '/api/checkout/methods/paypal/return',
       webhookPath: '/api/checkout/methods/paypal/webhook'
     },
+    checkoutUi: {
+      mode: 'embedded',
+      badge: 'Express',
+      iconKey: 'wallet',
+      ctaLabel: 'Continue with PayPal'
+    },
     metadata: null
   };
 

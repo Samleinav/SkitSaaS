@@ -228,6 +228,48 @@ export default defineModule({
 });
 ```
 
+## Payment Method Registration
+
+Modules can register checkout payment methods in the manifest and provide small
+presentation hints for host-owned checkout UIs:
+
+```ts
+import { defineModule } from '@skitsaas/sdk';
+
+export default defineModule({
+  moduleId: 'mod.example.payments',
+  version: '1.0.0',
+  displayName: 'Payments Example',
+  paymentMethods: [
+    {
+      paymentMethodId: 'walletx',
+      displayName: 'Wallet X',
+      description: 'Repeat-buyer wallet checkout.',
+      supportsOrderTypes: ['one_time'],
+      supportsTargetTypes: ['user', 'team'],
+      checkoutUi: {
+        mode: 'redirect',
+        badge: 'Fast',
+        iconKey: 'wallet',
+        ctaLabel: 'Continue with Wallet X'
+      },
+      routes: {
+        startPath: '/api/modules/mod.example.payments/walletx/start',
+        returnPath: '/api/modules/mod.example.payments/walletx/return',
+        webhookPath: '/api/modules/mod.example.payments/walletx/webhook'
+      }
+    }
+  ]
+});
+```
+
+Notes:
+
+- checkout execution still stays internal to the platform through
+  `paymentMethodId`
+- `checkoutUi` is presentational metadata only
+- the canonical discovery surface remains `GET /api/checkout/methods`
+
 ## Persisted Notifications
 
 Client components can read the current private notification feed with the SDK hook:

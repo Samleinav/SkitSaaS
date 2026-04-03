@@ -41,6 +41,45 @@ Nota:
 
 ## 2026-04-02 - sdk-payment-method-target-types
 
+## 2026-04-03 - sdk-payment-method-checkout-ui
+
+- `status`: published
+- `sprint`: sprint-d
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk` payment methods can now declare lightweight checkout presentation metadata so host-owned checkout UIs can render method selectors without exposing provider internals.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/modules/manifest.ts`
+  - `app/sdk/src/index.ts`
+  - `app/sdk/package.json`
+  - `app/sdk/README.md`
+  - `lib/modules/runtime.ts`
+  - `lib/payments/payment-methods.ts`
+  - `app/api/checkout/methods/route.ts`
+  - `app/(frontend)/pricing/payment-method-selector.tsx`
+  - `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+  - `tests/modules/payment-method-registry.test.ts`
+  - `tests/payments/payment-methods-core-registry.test.ts`
+  - `docs/modules/01-manifest-registry.md`
+  - `docs/reference/01-platform-capabilities.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.18.0 -> v1.19.0 (MINOR).
+
+    New public manifest contract:
+
+    - `ModulePaymentMethod.checkoutUi?: { mode?: 'submit' | 'embedded' | 'redirect'; badge?: string; iconKey?: string; ctaLabel?: string }`
+
+    Host/runtime behavior in this slice:
+
+    - module payment methods are normalized with a resolved `checkoutUi` shape
+    - core methods now expose default checkout presentation metadata
+    - `/api/checkout/methods` returns those presentation hints together with routing and capability metadata
+    - the default frontend checkout selector now renders host-owned method cards from registry data instead of hardcoding Stripe/PayPal labels in the selection UI
+
+## 2026-04-02 - sdk-payment-method-target-types
+
 - `status`: published
 - `sprint`: sprint-d
 - `module`: core

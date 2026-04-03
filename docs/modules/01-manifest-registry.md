@@ -35,7 +35,7 @@ Optional fields:
 - `templatePack` (`defaults` / `overrides`)
 - `runtimeConfig` (`namespace`, manifest-defined editable BuildForm fields for `/admin/app-config/modules`)
 - `authProviders`
-- `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`, `supportsTargetTypes`)
+- `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`, `supportsTargetTypes`, optional `checkoutUi`)
 
 Type reference: `ModuleManifest`.
 
@@ -116,7 +116,43 @@ precedence when both are present.
 - `templatePack.defaults/overrides` component ID format + duplicate checks
 - `runtimeConfig` namespace/field validation (keys, kinds, env keys, select options, duplicates)
 - `authProviders` (`providerId`, `kind`, `flow`, routes) validation
-- `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`, `supportsTargetTypes`) validation
+- `paymentMethods` (`paymentMethodId`, routes, `supportsOrderTypes`, `supportsTargetTypes`, optional `checkoutUi.mode`) validation
+
+### Payment method checkout presentation
+
+Module payment methods can now declare lightweight checkout presentation hints
+through `checkoutUi`:
+
+```ts
+paymentMethods: [
+  {
+    paymentMethodId: 'walletx',
+    displayName: 'Wallet X',
+    description: 'Fast wallet checkout for repeat buyers.',
+    supportsOrderTypes: ['one_time'],
+    supportsTargetTypes: ['user', 'team'],
+    checkoutUi: {
+      mode: 'redirect',
+      badge: 'Fast',
+      iconKey: 'wallet',
+      ctaLabel: 'Continue with Wallet X'
+    },
+    routes: {
+      startPath: '/api/modules/mod.payments/walletx/start',
+      returnPath: '/api/modules/mod.payments/walletx/return',
+      webhookPath: '/api/modules/mod.payments/walletx/webhook'
+    }
+  }
+]
+```
+
+Notes:
+
+- `checkoutUi` is intentionally presentational only; payment execution still runs
+  through `paymentMethodId` and the configured routes.
+- the canonical list of methods remains `GET /api/checkout/methods`
+- host/theme checkout UIs can use `displayName`, `description`, and `checkoutUi`
+  to render fully host-owned selectors without exposing provider internals to the user
 
 Host runtime additionally enforces alias collisions against core routes and other modules during module registry load/prepare.
 

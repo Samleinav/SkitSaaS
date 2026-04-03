@@ -21,6 +21,12 @@ test('buildPaymentMethodRegistry resolves methods from enabled modules only', ()
           displayName: 'Wallet X',
           supportsOrderTypes: ['subscription'],
           supportsTargetTypes: ['user'],
+          checkoutUi: {
+            mode: 'redirect',
+            badge: 'Popular',
+            iconKey: 'wallet',
+            ctaLabel: 'Continue with Wallet X'
+          },
           routes: {
             startPath: '/payments/walletx/start',
             returnPath: '/payments/walletx/return',
@@ -72,6 +78,13 @@ test('buildPaymentMethodRegistry resolves methods from enabled modules only', ()
   assert.equal(registry.methods[0]?.moduleId, 'mod.pay.a');
   assert.deepEqual(registry.methods[0]?.supportsOrderTypes, ['subscription']);
   assert.deepEqual(registry.methods[0]?.supportsTargetTypes, ['user']);
+  assert.equal(registry.methods[0]?.checkoutUi.mode, 'redirect');
+  assert.equal(registry.methods[0]?.checkoutUi.badge, 'Popular');
+  assert.equal(registry.methods[0]?.checkoutUi.iconKey, 'wallet');
+  assert.equal(
+    registry.methods[0]?.checkoutUi.ctaLabel,
+    'Continue with Wallet X'
+  );
   assert.equal(registry.methods[0]?.routes.startPath, '/payments/walletx/start');
 });
 
@@ -114,6 +127,10 @@ test('buildPaymentMethodRegistry defaults order and target types to full support
     'subscription'
   ]);
   assert.deepEqual(registry.methods[0]?.supportsTargetTypes, ['team', 'user']);
+  assert.equal(registry.methods[0]?.checkoutUi.mode, 'submit');
+  assert.equal(registry.methods[0]?.checkoutUi.badge, null);
+  assert.equal(registry.methods[0]?.checkoutUi.iconKey, 'wallet');
+  assert.equal(registry.methods[0]?.checkoutUi.ctaLabel, null);
 });
 
 test('buildPaymentMethodRegistry fails closed on duplicate payment method ids', () => {
@@ -190,6 +207,9 @@ test('validateModuleManifest validates payment method definitions', () => {
           paymentMethodId: 'walletx',
           supportsOrderTypes: ['subscription', 'invalid' as 'subscription'],
           supportsTargetTypes: ['team', 'invalid' as 'team'],
+          checkoutUi: {
+            mode: 'overlay' as 'submit'
+          },
           routes: {
             startPath: '/payments/ok/start'
           }
@@ -213,6 +233,7 @@ test('validateModuleManifest validates payment method definitions', () => {
   assert.ok(errors.includes('module_payment_method_id_invalid:0'));
   assert.ok(errors.includes('module_payment_method_order_types_invalid:1'));
   assert.ok(errors.includes('module_payment_method_target_types_invalid:1'));
+  assert.ok(errors.includes('module_payment_method_checkout_ui_mode_invalid:1'));
   assert.ok(errors.includes('module_payment_method_duplicate:walletx'));
   assert.ok(errors.includes('module_payment_method_start_path_invalid:2'));
 });

@@ -15,6 +15,12 @@ type PaymentMethodsExports = {
         returnPath: string | null;
         webhookPath: string | null;
       };
+      checkoutUi: {
+        mode: 'submit' | 'embedded' | 'redirect';
+        badge: string | null;
+        iconKey: string | null;
+        ctaLabel: string | null;
+      };
       supportsTargetTypes: Array<'team' | 'user'>;
     }>;
   }>;
@@ -50,6 +56,9 @@ test('core payment methods expose canonical checkout dispatcher routes', async (
     assert.equal(stripe.routes.webhookPath, '/api/checkout/methods/stripe/webhook');
     assert.deepEqual(stripe.supportsOrderTypes, ['subscription', 'one_time']);
     assert.deepEqual(stripe.supportsTargetTypes, ['team', 'user']);
+    assert.equal(stripe.checkoutUi.mode, 'submit');
+    assert.equal(stripe.checkoutUi.badge, 'Hosted');
+    assert.equal(stripe.checkoutUi.iconKey, 'credit-card');
 
     assert.ok(paypal);
     assert.equal(paypal.routes.startPath, '/api/checkout/{checkoutToken}/pay/paypal');
@@ -58,6 +67,9 @@ test('core payment methods expose canonical checkout dispatcher routes', async (
     assert.equal(paypal.routes.webhookPath, '/api/checkout/methods/paypal/webhook');
     assert.deepEqual(paypal.supportsOrderTypes, ['subscription', 'one_time']);
     assert.deepEqual(paypal.supportsTargetTypes, ['team', 'user']);
+    assert.equal(paypal.checkoutUi.mode, 'embedded');
+    assert.equal(paypal.checkoutUi.badge, 'Express');
+    assert.equal(paypal.checkoutUi.iconKey, 'wallet');
 
     const methodIds = registry.methods.map((method) => method.paymentMethodId).sort();
     assert.deepEqual(methodIds, ['paypal', 'stripe']);

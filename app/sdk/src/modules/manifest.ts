@@ -144,6 +144,14 @@ export type ModuleAuthProvider = {
 
 export type ModulePaymentOrderType = 'subscription' | 'one_time';
 export type ModulePaymentTargetType = 'team' | 'user';
+export type ModulePaymentMethodUiMode = 'submit' | 'embedded' | 'redirect';
+
+export type ModulePaymentMethodCheckoutUi = {
+  mode?: ModulePaymentMethodUiMode;
+  badge?: string;
+  iconKey?: string;
+  ctaLabel?: string;
+};
 
 export type ModulePaymentMethodRoutes = {
   startPath: string;
@@ -159,6 +167,7 @@ export type ModulePaymentMethod = {
   order?: number;
   supportsOrderTypes?: ModulePaymentOrderType[];
   supportsTargetTypes?: ModulePaymentTargetType[];
+  checkoutUi?: ModulePaymentMethodCheckoutUi;
   routes: ModulePaymentMethodRoutes;
   metadata?: Record<string, unknown>;
 };
@@ -239,6 +248,11 @@ export function validateModuleManifest(manifest: ModuleManifest) {
   const localePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
   const authProviderIdPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
   const paymentMethodIdPattern = authProviderIdPattern;
+  const paymentMethodUiModeValues = new Set<ModulePaymentMethodUiMode>([
+    'submit',
+    'embedded',
+    'redirect'
+  ]);
   const runtimeConfigNamespacePattern =
     /^[a-z0-9](?:[a-z0-9._-]{0,120}[a-z0-9])?$/;
   const runtimeConfigKeyPattern =
@@ -681,6 +695,21 @@ export function validateModuleManifest(manifest: ModuleManifest) {
       validatePaymentMethodPath(paymentMethod.routes?.cancelPath, 'cancel_path');
       validatePaymentMethodPath(paymentMethod.routes?.returnPath, 'return_path');
       validatePaymentMethodPath(paymentMethod.routes?.webhookPath, 'webhook_path');
+
+      const checkoutUi = paymentMethod.checkoutUi;
+      if (checkoutUi !== undefined) {
+        if (!checkoutUi || typeof checkoutUi !== 'object' || Array.isArray(checkoutUi)) {
+          errors.push(`module_payment_method_checkout_ui_invalid:${index}`);
+          continue;
+        }
+
+        if (
+          checkoutUi.mode !== undefined &&
+          !paymentMethodUiModeValues.has(checkoutUi.mode)
+        ) {
+          errors.push(`module_payment_method_checkout_ui_mode_invalid:${index}`);
+        }
+      }
     }
   }
 

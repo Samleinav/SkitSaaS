@@ -326,57 +326,75 @@ export default async function CheckoutPage({
     : [];
   const restartHref = resolveCheckoutOrderRestartPath(checkoutOrder);
 
-  const stripeNode = stripeEnabled ? (
-    <form action={checkoutWithPaymentMethodAction}>
-      <input type="hidden" name="checkoutToken" value={checkoutOrder.checkoutToken} />
-      <input type="hidden" name="paymentMethodId" value="stripe" />
-      <SubmitButton />
-    </form>
-  ) : null;
-
-  const payPalNode = payPalEnabled && payPalClientId ? (
-    <PayPalCheckoutButton
-      clientId={payPalClientId!}
-      checkoutToken={checkoutOrder.checkoutToken}
-      orderType={checkoutOrder.orderType}
-      currency={payPalCurrency}
-    />
-  ) : null;
-
   const paymentMethodOptions = availablePaymentMethods.reduce<
-    Array<{ id: string; label: string; content: ReactNode }>
+    Array<{
+      id: string;
+      label: string;
+      description?: string | null;
+      badge?: string | null;
+      iconKey?: string | null;
+      content: ReactNode;
+    }>
   >((acc, method) => {
-      if (method.ownerType === 'core' && method.paymentMethodId === 'stripe') {
-        if (!stripeNode) {
-          return acc;
-        }
+      const selectionLabel = method.displayName;
+      const selectionDescription = method.description;
+      const ctaLabel = method.checkoutUi.ctaLabel || null;
 
+      if (
+        method.ownerType === 'core' &&
+        method.paymentMethodId === 'paypal' &&
+        payPalEnabled &&
+        payPalClientId &&
+        method.checkoutUi.mode === 'embedded'
+      ) {
         acc.push({
           id: method.paymentMethodId,
-          label: pricing.paymentMethodStripe,
-          content: stripeNode
-        });
-        return acc;
-      }
-
-      if (method.ownerType === 'core' && method.paymentMethodId === 'paypal') {
-        if (!payPalNode) {
-          return acc;
-        }
-
-        acc.push({
-          id: method.paymentMethodId,
-          label: pricing.paymentMethodPayPal,
-          content: payPalNode
+          label: selectionLabel,
+          description: selectionDescription,
+          badge: method.checkoutUi.badge,
+          iconKey: method.checkoutUi.iconKey,
+          content: (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-zinc-100">
+                  {selectionLabel}
+                </p>
+                {selectionDescription ? (
+                  <p className="text-xs leading-5 text-zinc-400">
+                    {selectionDescription}
+                  </p>
+                ) : null}
+              </div>
+              <PayPalCheckoutButton
+                clientId={payPalClientId}
+                checkoutToken={checkoutOrder.checkoutToken}
+                orderType="one_time"
+                currency={payPalCurrency}
+              />
+            </div>
+          )
         });
         return acc;
       }
 
       acc.push({
         id: method.paymentMethodId,
-        label: method.displayName,
+        label: selectionLabel,
+        description: selectionDescription,
+        badge: method.checkoutUi.badge,
+        iconKey: method.checkoutUi.iconKey,
         content: (
           <div className="space-y-2">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-zinc-100">
+                {selectionLabel}
+              </p>
+              {selectionDescription ? (
+                <p className="text-xs leading-5 text-zinc-400">
+                  {selectionDescription}
+                </p>
+              ) : null}
+            </div>
             <form action={checkoutWithPaymentMethodAction}>
               <input
                 type="hidden"
@@ -388,11 +406,8 @@ export default async function CheckoutPage({
                 name="paymentMethodId"
                 value={method.paymentMethodId}
               />
-              <SubmitButton />
+              <SubmitButton idleLabel={ctaLabel} />
             </form>
-            {method.description ? (
-              <p className="text-xs text-zinc-500">{method.description}</p>
-            ) : null}
           </div>
         )
       });

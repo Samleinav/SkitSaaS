@@ -104,6 +104,13 @@ export type ModuleAuthProvider = {
 };
 export type ModulePaymentOrderType = 'subscription' | 'one_time';
 export type ModulePaymentTargetType = 'team' | 'user';
+export type ModulePaymentMethodUiMode = 'submit' | 'embedded' | 'redirect';
+export type ModulePaymentMethodCheckoutUi = {
+    mode?: ModulePaymentMethodUiMode;
+    badge?: string;
+    iconKey?: string;
+    ctaLabel?: string;
+};
 export type ModulePaymentMethodRoutes = {
     startPath: string;
     cancelPath?: string;
@@ -117,6 +124,7 @@ export type ModulePaymentMethod = {
     order?: number;
     supportsOrderTypes?: ModulePaymentOrderType[];
     supportsTargetTypes?: ModulePaymentTargetType[];
+    checkoutUi?: ModulePaymentMethodCheckoutUi;
     routes: ModulePaymentMethodRoutes;
     metadata?: Record<string, unknown>;
 };

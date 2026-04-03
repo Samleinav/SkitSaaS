@@ -35,6 +35,8 @@ export type {
   ModuleAuthProvider,
   ModulePaymentOrderType,
   ModulePaymentTargetType,
+  ModulePaymentMethodUiMode,
+  ModulePaymentMethodCheckoutUi,
   ModulePaymentMethodRoutes,
   ModulePaymentMethod,
   ModuleLanguagePackScope,

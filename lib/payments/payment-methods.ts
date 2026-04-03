@@ -55,6 +55,7 @@ import {
 
 export type CheckoutPaymentOrderType = 'subscription' | 'one_time';
 export type CheckoutPaymentTargetType = 'team' | 'user';
+export type CheckoutPaymentMethodUiMode = 'submit' | 'embedded' | 'redirect';
 export type CheckoutPaymentMethodRegistryIssue =
   | {
       code: 'duplicate_payment_method_id';
@@ -86,6 +87,12 @@ export type ResolvedCheckoutPaymentMethod = {
     returnPath: string | null;
     webhookPath: string | null;
   };
+  checkoutUi: {
+    mode: CheckoutPaymentMethodUiMode;
+    badge: string | null;
+    iconKey: string | null;
+    ctaLabel: string | null;
+  };
   metadata: Record<string, unknown> | null;
 };
 
@@ -110,6 +117,12 @@ const CORE_CHECKOUT_PAYMENT_METHODS: ResolvedCheckoutPaymentMethod[] = [
       returnPath: '/api/checkout/methods/stripe/return',
       webhookPath: '/api/checkout/methods/stripe/webhook'
     },
+    checkoutUi: {
+      mode: 'submit',
+      badge: 'Hosted',
+      iconKey: 'credit-card',
+      ctaLabel: 'Continue with Stripe'
+    },
     metadata: null
   },
   {
@@ -126,6 +139,12 @@ const CORE_CHECKOUT_PAYMENT_METHODS: ResolvedCheckoutPaymentMethod[] = [
       cancelPath: '/api/checkout/methods/paypal/cancel',
       returnPath: '/api/checkout/methods/paypal/return',
       webhookPath: '/api/checkout/methods/paypal/webhook'
+    },
+    checkoutUi: {
+      mode: 'embedded',
+      badge: 'Express',
+      iconKey: 'wallet',
+      ctaLabel: 'Continue with PayPal'
     },
     metadata: null
   }
@@ -412,6 +431,7 @@ export async function getCheckoutPaymentMethodRegistry(): Promise<CheckoutPaymen
       supportsOrderTypes: method.supportsOrderTypes,
       supportsTargetTypes: method.supportsTargetTypes,
       routes: method.routes,
+      checkoutUi: method.checkoutUi,
       metadata: method.metadata
     });
   }
@@ -1255,6 +1275,12 @@ async function startStripeCheckoutPayment({
         cancelPath: '/checkout/{checkoutToken}?status=canceled&provider=stripe',
         returnPath: '/api/checkout/methods/stripe/return',
         webhookPath: '/api/checkout/methods/stripe/webhook'
+      },
+      checkoutUi: {
+        mode: 'submit',
+        badge: 'Hosted',
+        iconKey: 'credit-card',
+        ctaLabel: 'Continue with Stripe'
       },
       metadata: null
     },

@@ -19,6 +19,8 @@ import type {
   ModuleAuthProviderFlow,
   ModuleAuthProviderKind,
   ModulePaymentMethod,
+  ModulePaymentMethodCheckoutUi,
+  ModulePaymentMethodUiMode,
   ModulePaymentOrderType,
   ModulePaymentTargetType,
   ModuleFrontendSlotDefinition,
@@ -113,6 +115,12 @@ export type ResolvedModulePaymentMethod = {
     returnPath: string | null;
     webhookPath: string | null;
   };
+  checkoutUi: {
+    mode: ModulePaymentMethodUiMode;
+    badge: string | null;
+    iconKey: string | null;
+    ctaLabel: string | null;
+  };
   metadata: Record<string, unknown> | null;
 };
 
@@ -192,6 +200,25 @@ function normalizeOptionalPaymentMethodPath(value: string | undefined) {
   }
 
   return `/${normalized}`;
+}
+
+function normalizeModulePaymentMethodCheckoutUi(
+  checkoutUi: ModulePaymentMethodCheckoutUi | undefined
+): ResolvedModulePaymentMethod['checkoutUi'] {
+  const normalizeText = (value: string | undefined) => {
+    const normalized = String(value ?? '').trim();
+    return normalized.length > 0 ? normalized : null;
+  };
+
+  return {
+    mode:
+      checkoutUi?.mode === 'embedded' || checkoutUi?.mode === 'redirect'
+        ? checkoutUi.mode
+        : 'submit',
+    badge: normalizeText(checkoutUi?.badge),
+    iconKey: normalizeText(checkoutUi?.iconKey) ?? 'wallet',
+    ctaLabel: normalizeText(checkoutUi?.ctaLabel)
+  };
 }
 
 function splitModuleApiPath(path: string) {
@@ -892,6 +919,9 @@ export function buildPaymentMethodRegistry({
             moduleMethod.routes?.webhookPath
           )
         },
+        checkoutUi: normalizeModulePaymentMethodCheckoutUi(
+          moduleMethod.checkoutUi
+        ),
         metadata: normalizeAuthProviderMetadata(moduleMethod.metadata)
       });
     }
