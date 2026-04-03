@@ -6,6 +6,7 @@ export type AdminLogsCopy = {
   description: string;
   tabs: {
     system: string;
+    checkout: string;
     email: string;
   };
   filterPlaceholder: string;
@@ -53,6 +54,36 @@ export type AdminLogsCopy = {
       details: string;
     };
   };
+  checkout: {
+    filterPlaceholder: string;
+    table: {
+      createdHeader: string;
+      outcomeHeader: string;
+      eventHeader: string;
+      methodHeader: string;
+      providerHeader: string;
+      orderTypeHeader: string;
+      ownerHeader: string;
+      targetHeader: string;
+      sourceHeader: string;
+      checkoutHeader: string;
+      providerIdsHeader: string;
+      messageHeader: string;
+      replayed: string;
+      providerPending: string;
+      failed: string;
+      ignored: string;
+      succeeded: string;
+      unknown: string;
+      orderTypeOneTime: string;
+      orderTypeSubscription: string;
+      ownerCore: string;
+      ownerModule: string;
+      ownerUnknown: string;
+      none: string;
+      unknownTarget: string;
+    };
+  };
   dataTable: DataTableLabels;
 };
 
@@ -60,10 +91,11 @@ export function createAdminLogsCopy(t: Translator): AdminLogsCopy {
   return {
     title: t('Logs'),
     description: t(
-      'Centralized view for system audit events and email delivery records.'
+      'Choose which audit table to inspect across system, checkout, and email logs.'
     ),
     tabs: {
       system: t('System logs'),
+      checkout: t('Checkout logs'),
       email: t('Email logs')
     },
     filterPlaceholder: t('Filter by event, request, source, or message...'),
@@ -109,6 +141,38 @@ export function createAdminLogsCopy(t: Translator): AdminLogsCopy {
         source: t('Source'),
         message: t('Message'),
         details: t('Details')
+      }
+    },
+    checkout: {
+      filterPlaceholder: t(
+        'Filter by checkout, payment method, provider, target, or message...'
+      ),
+      table: {
+        createdHeader: t('Created'),
+        outcomeHeader: t('Outcome'),
+        eventHeader: t('Event'),
+        methodHeader: t('Payment method'),
+        providerHeader: t('Provider'),
+        orderTypeHeader: t('Order type'),
+        ownerHeader: t('Owner'),
+        targetHeader: t('Target'),
+        sourceHeader: t('Source'),
+        checkoutHeader: t('Checkout'),
+        providerIdsHeader: t('Provider IDs'),
+        messageHeader: t('Message'),
+        replayed: t('Replayed'),
+        providerPending: t('Provider pending'),
+        failed: t('Failed'),
+        ignored: t('Ignored'),
+        succeeded: t('Succeeded'),
+        unknown: t('Unknown'),
+        orderTypeOneTime: t('One-time'),
+        orderTypeSubscription: t('Subscription'),
+        ownerCore: t('Core'),
+        ownerModule: t('Module'),
+        ownerUnknown: t('Unknown'),
+        none: t('None'),
+        unknownTarget: t('Unknown target')
       }
     },
     dataTable: {

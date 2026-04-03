@@ -71,6 +71,7 @@ Recent callback attempt outcomes are now classified explicitly in the attempt/te
 Operational review:
 
 - `/admin/payments` now includes a recent checkout callback summary backed by `checkout_payment_attempt_logs`, so admins can distinguish replayed, provider-pending, failed, ignored, and succeeded callbacks without inspecting raw metadata first.
+- `/admin/logs?tab=checkout` now exposes the same callback-attempt source as a dedicated searchable/filterable admin log table when operators want the full trace list instead of the compact payments summary.
 
 ### 2) Provider adapters
 

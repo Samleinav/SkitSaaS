@@ -17,7 +17,10 @@ For SMTP delivery/audit details, use `email_logs` instead.
 - Table schema: `lib/db/schema.ts` (`sys_activity_logs`)
 - Write helper: `lib/system/activity-logs.ts` (`createSysActivityLog`)
 - Read helper: `lib/db/queries.admin.ts` (`getSystemActivityLogsForAdmin`)
-- Admin UI: `/admin/logs`
+- Admin UI:
+  - `/admin/logs` (system logs)
+  - `/admin/logs?tab=checkout` (checkout callback logs)
+  - `/admin/logs?tab=email` (email logs)
 
 Portable module reads:
 
@@ -153,8 +156,9 @@ into a dense telemetry table.
 
 ## Admin log surface
 
-`/admin/logs` now treats `eventCategory` and `requestId` as first-class
-governance fields:
+`/admin/logs` now acts as the admin log-table selector for governance surfaces.
+The default system view treats `eventCategory` and `requestId` as first-class
+fields:
 
 - category filter in the system logs table
 - free-text search across event type, source, request id, and message
@@ -176,6 +180,13 @@ Email logs reference:
 - Write helper: `lib/email/logs.ts` (`createEmailLog`)
 - SMTP sender: `lib/email/smtp.ts` (`sendSmtpEmail`)
 - Admin UI: `/admin/logs?tab=email`
+
+Checkout callback logs reference:
+
+- Table schema: `lib/db/schema.ts` (`checkout_payment_attempt_logs`)
+- Write helper: `lib/payments/attempt-logs.ts` (`createCheckoutPaymentAttemptLog`)
+- Read helper: `lib/db/queries.admin.ts` (`getCheckoutCallbackAttemptsForAdmin`)
+- Admin UI: `/admin/logs?tab=checkout`
 
 ## Related technical guide
 

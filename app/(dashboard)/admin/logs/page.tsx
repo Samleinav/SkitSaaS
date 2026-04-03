@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
+  getCheckoutCallbackAttemptsForAdmin,
   getEmailLogsForAdmin,
   getSystemActivityLogsForAdmin
 } from '@/lib/db/queries.admin';
@@ -16,7 +17,14 @@ import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
+import { getCheckoutCallbackOutcome } from '../payments/callback-attempts';
 import { formatDateTime } from '../utils';
+import { AdminCheckoutLogsDataTable } from './checkout-logs-data-table';
+import {
+  type AdminCheckoutLogRow,
+  type AdminCheckoutLogOrderType,
+  type AdminCheckoutLogOwnerType
+} from './checkout-log-columns';
 import { AdminLogsDataTable } from './logs-data-table';
 import type { AdminSystemLogRow } from './log-columns';
 import { createAdminLogsCopy, type AdminLogsCopy } from './i18n';
@@ -25,11 +33,23 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type AdminLogTab = 'system' | 'email';
+type AdminLogTab = 'system' | 'checkout' | 'email';
 
 function resolveLogTab(value: string | string[] | undefined): AdminLogTab {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === 'email' ? 'email' : 'system';
+  if (raw === 'email') {
+    return 'email';
+  }
+
+  if (raw === 'checkout') {
+    return 'checkout';
+  }
+
+  return 'system';
+}
+
+function getLogTabHref(tab: AdminLogTab) {
+  return tab === 'system' ? '/admin/logs' : `/admin/logs?tab=${tab}`;
 }
 
 function formatActorLabel(
@@ -117,6 +137,114 @@ function truncateText(value: string | null, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 }
 
+function normalizeCheckoutLogOrderType(
+  value: string | null
+): AdminCheckoutLogOrderType {
+  if (value === 'subscription' || value === 'one_time') {
+    return value;
+  }
+
+  return 'unknown';
+}
+
+function normalizeCheckoutLogOwnerType(
+  value: string | null
+): AdminCheckoutLogOwnerType {
+  if (value === 'core' || value === 'module') {
+    return value;
+  }
+
+  return 'unknown';
+}
+
+function formatCheckoutLogOwnerLabel(
+  {
+    ownerType,
+    moduleId
+  }: {
+    ownerType: string | null;
+    moduleId: string | null;
+  },
+  copy: AdminLogsCopy['checkout']['table']
+) {
+  const normalizedOwnerType = normalizeCheckoutLogOwnerType(ownerType);
+
+  if (normalizedOwnerType === 'module') {
+    return moduleId ? `${copy.ownerModule}:${moduleId}` : copy.ownerModule;
+  }
+
+  if (normalizedOwnerType === 'core') {
+    return copy.ownerCore;
+  }
+
+  return copy.ownerUnknown;
+}
+
+function formatCheckoutLogTargetLabel(
+  {
+    targetType,
+    targetTeamId,
+    targetUserId,
+    teamId,
+    teamName
+  }: {
+    targetType: string | null;
+    targetTeamId: number | null;
+    targetUserId: number | null;
+    teamId: number | null;
+    teamName: string | null;
+  },
+  copy: AdminLogsCopy['checkout']['table']
+) {
+  if (targetType === 'team') {
+    return teamName || (targetTeamId ? `team:${targetTeamId}` : copy.unknownTarget);
+  }
+
+  if (targetType === 'user') {
+    return targetUserId ? `user:${targetUserId}` : copy.unknownTarget;
+  }
+
+  return teamName || (teamId ? `team:${teamId}` : copy.unknownTarget);
+}
+
+function formatCheckoutProviderIdsLabel(
+  {
+    providerReferenceId,
+    providerSessionId,
+    externalPaymentId,
+    externalOrderId
+  }: {
+    providerReferenceId: string | null;
+    providerSessionId: string | null;
+    externalPaymentId: string | null;
+    externalOrderId: string | null;
+  },
+  copy: AdminLogsCopy['checkout']['table']
+) {
+  const ids = [
+    providerReferenceId,
+    providerSessionId,
+    externalPaymentId,
+    externalOrderId
+  ].filter((value): value is string => Boolean(value));
+
+  return ids.length ? ids.join(' / ') : copy.none;
+}
+
+function formatCheckoutMessage({
+  message,
+  metadata
+}: {
+  message: string | null;
+  metadata: string | null;
+}) {
+  if (message) {
+    return message;
+  }
+
+  return truncateText(metadata, 180);
+}
+
 export default async function AdminLogsPage({ searchParams }: PageProps) {
   const [locale, t] = await Promise.all([
     getRequestLocale(),
@@ -132,6 +260,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
   await requireAdminAccess();
 
   let rows: AdminSystemLogRow[] = [];
+  let checkoutRows: AdminCheckoutLogRow[] = [];
   let emailLogs: Awaited<ReturnType<typeof getEmailLogsForAdmin>> = [];
 
   if (selectedTab === 'system') {
@@ -157,6 +286,30 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
       ipAddress: log.ipAddress || '-',
       message: formatMessage(log)
     }));
+  } else if (selectedTab === 'checkout') {
+    const checkoutLogs = await getCheckoutCallbackAttemptsForAdmin(500);
+    checkoutRows = checkoutLogs.map((log) => ({
+      id: log.id,
+      createdAt: log.createdAt.getTime(),
+      createdAtLabel: formatDateTime(log.createdAt, dateLocale),
+      eventType: log.eventType,
+      outcome: getCheckoutCallbackOutcome(log.eventType),
+      paymentMethodId: log.paymentMethodId,
+      provider: log.provider,
+      orderType: normalizeCheckoutLogOrderType(log.orderType),
+      ownerType: normalizeCheckoutLogOwnerType(log.ownerType),
+      ownerLabel: formatCheckoutLogOwnerLabel(log, copy.checkout.table),
+      targetLabel: formatCheckoutLogTargetLabel(log, copy.checkout.table),
+      source: log.source || copy.checkout.table.none,
+      checkoutLabel:
+        log.checkoutToken ||
+        (log.checkoutOrderId ? `#${log.checkoutOrderId}` : copy.checkout.table.none),
+      providerIdsLabel: formatCheckoutProviderIdsLabel(
+        log,
+        copy.checkout.table
+      ),
+      message: formatCheckoutMessage(log)
+    }));
   } else {
     emailLogs = await getEmailLogsForAdmin(500);
   }
@@ -181,7 +334,15 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
             variant={selectedTab === 'system' ? 'default' : 'ghost'}
             className="rounded-lg"
           >
-            <Link href="/admin/logs">{logsPage.tabs.system}</Link>
+            <Link href={getLogTabHref('system')}>{logsPage.tabs.system}</Link>
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            variant={selectedTab === 'checkout' ? 'default' : 'ghost'}
+            className="rounded-lg"
+          >
+            <Link href={getLogTabHref('checkout')}>{logsPage.tabs.checkout}</Link>
           </Button>
           <Button
             asChild
@@ -189,7 +350,7 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
             variant={selectedTab === 'email' ? 'default' : 'ghost'}
             className="rounded-lg"
           >
-            <Link href="/admin/logs?tab=email">{logsPage.tabs.email}</Link>
+            <Link href={getLogTabHref('email')}>{logsPage.tabs.email}</Link>
           </Button>
         </div>
       </CardHeader>
@@ -197,6 +358,15 @@ export default async function AdminLogsPage({ searchParams }: PageProps) {
         {selectedTab === 'system' ? (
           <AdminLogsDataTable
             data={rows}
+            copy={copy}
+            tableTemplate={{
+              componentId: 'ui.table',
+              area: 'admin',
+            }}
+          />
+        ) : selectedTab === 'checkout' ? (
+          <AdminCheckoutLogsDataTable
+            data={checkoutRows}
             copy={copy}
             tableTemplate={{
               componentId: 'ui.table',
