@@ -11,17 +11,18 @@ import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
 import {
-  getActiveUserSubscriptionAssignment,
   getAllSubscriptionTemplatesForPricing,
-  getTeamForUser,
-  getUser
+  getTeamForUser
 } from '@/lib/db/queries';
 import {
   classifySubscriptionPlanRelation,
   type SubscriptionPlanRelation,
   type SubscriptionPlanTemplateLike
 } from '@/lib/payments/subscription-policy';
-import { supportsSelfServiceSubscriptionTemplateScope } from '@/lib/payments/subscription-scope';
+import {
+  filterSelfServiceSubscriptionTemplates,
+  supportsSelfServiceSubscriptionTemplateScope
+} from '@/lib/payments/subscription-scope';
 import { areTeamsEnabled } from '@/lib/organizations/config';
 import {
   createMarketingPricingCopy,
@@ -244,15 +245,11 @@ export default async function PricingPage({
   const dateLocale = getDateLocale(locale);
   const teamsEnabled = areTeamsEnabled();
 
-  const [templates, paymentConfig, team, user] = await Promise.all([
+  const [templates, paymentConfig, team] = await Promise.all([
     getPricingTemplates(),
     getPricingPaymentConfig(),
-    teamsEnabled ? getTeamForUser() : Promise.resolve(null),
-    getUser()
+    teamsEnabled ? getTeamForUser() : Promise.resolve(null)
   ]);
-  const activeUserAssignment = user
-    ? await getActiveUserSubscriptionAssignment(user.id)
-    : null;
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const changeModeParam = Array.isArray(resolvedSearchParams?.changeMode)
     ? resolvedSearchParams.changeMode[0]
@@ -274,10 +271,12 @@ export default async function PricingPage({
     : null;
   const showChangeMode = teamsEnabled && Boolean(team?.subscriptionTemplateId);
   const themeSelection = await getThemeSelectionForArea('frontend');
-  const userTemplates = templates.filter((template) => template.targetScope === 'user');
-  const organizationTemplates = teamsEnabled
-    ? templates.filter((template) => template.targetScope === 'organization')
-    : [];
+  const selfServiceTemplates = filterSelfServiceSubscriptionTemplates(templates, {
+    teamsEnabled
+  });
+  const organizationTemplates = selfServiceTemplates.filter(
+    (template) => template.targetScope === 'organization'
+  );
   const currentOrganizationTemplate =
     teamsEnabled && team?.subscriptionTemplateId
       ? templates.find(
@@ -286,18 +285,8 @@ export default async function PricingPage({
             template.targetScope === 'organization'
         ) || null
       : null;
-  const currentUserTemplate =
-    activeUserAssignment?.subscriptionTemplateId
-      ? templates.find(
-          (template) =>
-            template.id === activeUserAssignment.subscriptionTemplateId &&
-            template.targetScope === 'user'
-        ) || null
-      : null;
-  const hasAnyTemplate = userTemplates.length > 0 || organizationTemplates.length > 0;
-  const pricingSummary = teamsEnabled
-    ? `${pricing.userPlansDescription} ${pricing.organizationPlansDescription}`
-    : pricing.userPlansDescription;
+  const hasAnyTemplate = organizationTemplates.length > 0;
+  const pricingSummary = pricing.organizationPlansDescription;
   const changeModeOptions = [
     {
       value: 'immediate' as const,
@@ -325,10 +314,6 @@ export default async function PricingPage({
     pricing
   });
   const overviewItems = [
-    {
-      id: 'user-plans',
-      value: formatCountValue(userTemplates.length),
-    },
     ...(teamsEnabled
       ? [
           {
@@ -351,9 +336,6 @@ export default async function PricingPage({
     }
   ];
   const sectionLinks = [
-    ...(userTemplates.length > 0
-      ? [{ href: '#user-plans', id: 'user-plans' }]
-      : []),
     ...(teamsEnabled && organizationTemplates.length > 0
       ? [{ href: '#organization-plans', id: 'organization-plans' }]
       : [])
@@ -421,20 +403,6 @@ export default async function PricingPage({
       ) : null}
 
       <div className="space-y-16">
-        <PricingSection
-          sectionId="user-plans"
-          title={pricing.userPlansTitle}
-          description={pricing.userPlansDescription}
-          emptyLabel={pricing.noUserPlansConfigured}
-          templates={userTemplates}
-          pricing={pricing}
-          enabledPaymentMethods={enabledPaymentMethods}
-          dateLocale={dateLocale}
-          changeMode={changeMode}
-          currentTemplate={currentUserTemplate}
-          themeId={themeSelection?.themeKey ?? null}
-        />
-
         {teamsEnabled ? (
           <PricingSection
             sectionId="organization-plans"

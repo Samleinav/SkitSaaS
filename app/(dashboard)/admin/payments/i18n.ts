@@ -12,6 +12,33 @@ export type AdminPaymentsCopy = {
     missingReferencePayments: string;
     missingReferenceHint: string;
   };
+  callbackSummary: {
+    title: string;
+    description: string;
+    recentCallbacks: string;
+    replayedCallbacks: string;
+    providerPendingCallbacks: string;
+    failedCallbacks: string;
+    emptyState: string;
+    none: string;
+    unknown: string;
+    unknownTarget: string;
+    checkoutLabel: string;
+    targetLabel: string;
+    providerIdsLabel: string;
+    sourceLabel: string;
+    ownerLabel: string;
+    replayed: string;
+    providerPending: string;
+    failed: string;
+    ignored: string;
+    succeeded: string;
+    orderTypeSubscription: string;
+    orderTypeOneTime: string;
+    ownerCore: string;
+    ownerModule: string;
+    ownerUnknown: string;
+  };
   table: {
     paidAtHeader: string;
     whoHeader: string;
@@ -53,6 +80,35 @@ export function createAdminPaymentsCopy(t: Translator): AdminPaymentsCopy {
       paypalPayments: t('PayPal payments'),
       missingReferencePayments: t('Missing payment reference'),
       missingReferenceHint: t('Orders without external payment ID')
+    },
+    callbackSummary: {
+      title: t('Recent checkout callbacks'),
+      description: t(
+        'Latest return/webhook outcomes with explicit replayed, provider-pending, ignored, and failed states.'
+      ),
+      recentCallbacks: t('Recent callbacks'),
+      replayedCallbacks: t('Replayed'),
+      providerPendingCallbacks: t('Provider pending'),
+      failedCallbacks: t('Failed'),
+      emptyState: t('No recent checkout callbacks yet.'),
+      none: t('none'),
+      unknown: t('unknown'),
+      unknownTarget: t('No target'),
+      checkoutLabel: t('Checkout'),
+      targetLabel: t('Target'),
+      providerIdsLabel: t('Provider ids'),
+      sourceLabel: t('Source'),
+      ownerLabel: t('Owner'),
+      replayed: t('replayed'),
+      providerPending: t('provider pending'),
+      failed: t('failed'),
+      ignored: t('ignored'),
+      succeeded: t('succeeded'),
+      orderTypeSubscription: t('subscription'),
+      orderTypeOneTime: t('one_time'),
+      ownerCore: t('core'),
+      ownerModule: t('module'),
+      ownerUnknown: t('unknown')
     },
     table: {
       paidAtHeader: t('Paid at'),

@@ -398,6 +398,71 @@ export const checkoutOrderItems = pgTable(
   })
 );
 
+export const checkoutPaymentAttemptLogs = pgTable(
+  'checkout_payment_attempt_logs',
+  {
+    id: serial('id').primaryKey(),
+    checkoutOrderId: integer('checkout_order_id').references(() => checkoutOrders.id),
+    checkoutToken: varchar('checkout_token', { length: 120 }),
+    paymentMethodId: varchar('payment_method_id', { length: 60 }).notNull(),
+    provider: varchar('provider', { length: 30 }).notNull(),
+    ownerType: varchar('owner_type', { length: 20 }).notNull().default('unknown'),
+    moduleId: varchar('module_id', { length: 120 }),
+    orderType: varchar('order_type', { length: 20 }),
+    source: varchar('source', { length: 30 }).notNull().default('system'),
+    eventType: varchar('event_type', { length: 60 }).notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('info'),
+    teamId: integer('team_id').references(() => teams.id),
+    targetType: varchar('target_type', { length: 20 }),
+    targetTeamId: integer('target_team_id').references(() => teams.id),
+    targetUserId: integer('target_user_id').references(() => users.id),
+    providerSessionId: text('provider_session_id'),
+    providerReferenceId: text('provider_reference_id'),
+    externalOrderId: text('external_order_id'),
+    externalPaymentId: text('external_payment_id'),
+    message: text('message'),
+    metadata: text('metadata'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    checkoutOrderIndex: index('checkout_payment_attempt_logs_checkout_order_idx').on(
+      table.checkoutOrderId
+    ),
+    paymentMethodCreatedAtIndex: index(
+      'checkout_payment_attempt_logs_method_created_idx'
+    ).on(table.paymentMethodId, table.createdAt),
+    providerCreatedAtIndex: index(
+      'checkout_payment_attempt_logs_provider_created_idx'
+    ).on(table.provider, table.createdAt),
+    providerSessionIndex: index(
+      'checkout_payment_attempt_logs_provider_session_idx'
+    ).on(table.provider, table.providerSessionId),
+    externalPaymentIndex: index(
+      'checkout_payment_attempt_logs_external_payment_idx'
+    ).on(table.provider, table.externalPaymentId),
+    ownerTypeCheck: check(
+      'checkout_payment_attempt_logs_owner_type_chk',
+      sql`${table.ownerType} in ('core', 'module', 'unknown')`
+    ),
+    orderTypeCheck: check(
+      'checkout_payment_attempt_logs_order_type_chk',
+      sql`${table.orderType} is null or ${table.orderType} in ('subscription', 'one_time')`
+    ),
+    targetTypeCheck: check(
+      'checkout_payment_attempt_logs_target_type_chk',
+      sql`${table.targetType} is null or ${table.targetType} in ('team', 'user')`
+    ),
+    targetIntegrityCheck: check(
+      'checkout_payment_attempt_logs_target_integrity_chk',
+      sql`(
+        (${table.targetType} is null and ${table.targetTeamId} is null and ${table.targetUserId} is null) or
+        (${table.targetType} = 'team' and ${table.targetTeamId} is not null and ${table.targetUserId} is null) or
+        (${table.targetType} = 'user' and ${table.targetUserId} is not null and ${table.targetTeamId} is null)
+      )`
+    ),
+  })
+);
+
 export const appConfigs = pgTable(
   'app_configs',
   {
@@ -1044,6 +1109,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   authSessions: many(authSessions),
   passwordResetTokens: many(passwordResetTokens),
   emailLogs: many(emailLogs),
+  checkoutPaymentAttemptLogs: many(checkoutPaymentAttemptLogs),
   subscriptionTrialUsage: many(subscriptionTrialUsage),
   systemNotificationsCreated: many(systemNotifications),
   systemNotificationRecipients: many(systemNotificationRecipients),
@@ -1147,6 +1213,24 @@ export const paymentLogsRelations = relations(paymentLogs, ({ one }) => ({
   }),
 }));
 
+export const checkoutPaymentAttemptLogsRelations = relations(
+  checkoutPaymentAttemptLogs,
+  ({ one }) => ({
+    checkoutOrder: one(checkoutOrders, {
+      fields: [checkoutPaymentAttemptLogs.checkoutOrderId],
+      references: [checkoutOrders.id],
+    }),
+    team: one(teams, {
+      fields: [checkoutPaymentAttemptLogs.teamId],
+      references: [teams.id],
+    }),
+    targetUser: one(users, {
+      fields: [checkoutPaymentAttemptLogs.targetUserId],
+      references: [users.id],
+    }),
+  })
+);
+
 export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
   recipientUser: one(users, {
     fields: [emailLogs.recipientUserId],
@@ -1168,15 +1252,16 @@ export const paymentOrdersRelations = relations(paymentOrders, ({ one }) => ({
 export const checkoutOrdersRelations = relations(
   checkoutOrders,
   ({ one, many }) => ({
-  items: many(checkoutOrderItems),
-  team: one(teams, {
-    fields: [checkoutOrders.teamId],
-    references: [teams.id],
-  }),
-  template: one(subscriptionTemplates, {
-    fields: [checkoutOrders.subscriptionTemplateId],
-    references: [subscriptionTemplates.id],
-  }),
+    items: many(checkoutOrderItems),
+    paymentAttemptLogs: many(checkoutPaymentAttemptLogs),
+    team: one(teams, {
+      fields: [checkoutOrders.teamId],
+      references: [teams.id],
+    }),
+    template: one(subscriptionTemplates, {
+      fields: [checkoutOrders.subscriptionTemplateId],
+      references: [subscriptionTemplates.id],
+    }),
   })
 );
 
@@ -1346,6 +1431,10 @@ export type UserThemePreference = typeof userThemePreferences.$inferSelect;
 export type NewUserThemePreference = typeof userThemePreferences.$inferInsert;
 export type SysActivityLog = typeof sysActivityLogs.$inferSelect;
 export type NewSysActivityLog = typeof sysActivityLogs.$inferInsert;
+export type CheckoutPaymentAttemptLog =
+  typeof checkoutPaymentAttemptLogs.$inferSelect;
+export type NewCheckoutPaymentAttemptLog =
+  typeof checkoutPaymentAttemptLogs.$inferInsert;
 export type TeamMember = typeof teamMembers.$inferSelect;
 export type NewTeamMember = typeof teamMembers.$inferInsert;
 export type ActivityLog = typeof activityLogs.$inferSelect;

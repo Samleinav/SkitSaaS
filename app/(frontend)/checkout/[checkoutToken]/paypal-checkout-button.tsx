@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n/client';
 type PayPalCheckoutButtonProps = {
   clientId: string;
   checkoutToken: string;
+  orderType: 'subscription' | 'one_time';
   currency: string;
 };
 
@@ -19,15 +20,39 @@ type StartPaymentResponse = {
   ok?: boolean;
   error?: string;
   clientPayload?: {
+    flow?: string;
     planId?: string;
+    orderId?: string;
+    customId?: string;
+    providerSessionId?: string;
     [key: string]: unknown;
   } | null;
   redirectUrl?: string;
 };
 
+type PayPalClickActions = {
+  resolve: () => Promise<void>;
+  reject: () => Promise<void>;
+};
+
+type PayPalSubscriptionActions = {
+  subscription: {
+    create: (payload: {
+      plan_id: string;
+      custom_id?: string;
+    }) => Promise<string>;
+  };
+};
+
+type PayPalApproveData = {
+  orderID?: string;
+  subscriptionID?: string | null;
+};
+
 export function PayPalCheckoutButton({
   clientId,
   checkoutToken,
+  orderType,
   currency
 }: PayPalCheckoutButtonProps) {
   const t = useI18n({ area: 'global' });
@@ -47,8 +72,8 @@ export function PayPalCheckoutButton({
         const paypalClient = await loadScript({
           clientId,
           currency,
-          intent: 'subscription',
-          vault: true,
+          intent: orderType === 'one_time' ? 'capture' : 'subscription',
+          vault: orderType === 'subscription',
           components: ['buttons']
         });
 
@@ -59,11 +84,11 @@ export function PayPalCheckoutButton({
         const buttons = paypalClient.Buttons({
           style: {
             color: 'blue',
-            label: 'subscribe',
+            label: orderType === 'one_time' ? 'pay' : 'subscribe',
             layout: 'vertical',
             shape: 'pill'
           },
-          onClick: async (_, actions) => {
+          onClick: async (_: unknown, actions: PayPalClickActions) => {
             const currentUserResponse = await fetch('/api/user', {
               cache: 'no-store'
             });
@@ -77,51 +102,109 @@ export function PayPalCheckoutButton({
             setError(null);
             return actions.resolve();
           },
-          createSubscription: async (_, actions) => {
-            const paymentStartResponse = await fetch(
-              `/api/checkout/${encodeURIComponent(checkoutToken)}/pay/paypal`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
+          ...(orderType === 'subscription'
+            ? {
+                createSubscription: async (
+                  _: unknown,
+                  actions: PayPalSubscriptionActions
+                ) => {
+                  const paymentStartResponse = await fetch(
+                    `/api/checkout/${encodeURIComponent(checkoutToken)}/pay/paypal`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      }
+                    }
+                  );
+
+                  const paymentStartBody = (await paymentStartResponse
+                    .json()
+                    .catch(() => ({}))) as StartPaymentResponse;
+                  const planId =
+                    typeof paymentStartBody.clientPayload?.planId === 'string'
+                      ? paymentStartBody.clientPayload.planId
+                      : '';
+                  const customId =
+                    typeof paymentStartBody.clientPayload?.customId === 'string'
+                      ? paymentStartBody.clientPayload.customId
+                      : undefined;
+
+                  if (!paymentStartResponse.ok || !paymentStartBody.ok || !planId) {
+                    if (
+                      paymentStartResponse.status === 401 &&
+                      paymentStartBody.redirectUrl
+                    ) {
+                      window.location.href = paymentStartBody.redirectUrl;
+                      return Promise.reject(new Error('Unauthorized'));
+                    }
+
+                    setError(
+                      paymentStartBody.error ||
+                        t('Unable to confirm PayPal subscription.')
+                    );
+                    return Promise.reject(new Error('Plan not available'));
+                  }
+
+                  return actions.subscription.create({
+                    plan_id: planId,
+                    custom_id: customId
+                  });
                 }
               }
-            );
+            : {
+                createOrder: async (_: unknown) => {
+                  const paymentStartResponse = await fetch(
+                    `/api/checkout/${encodeURIComponent(checkoutToken)}/pay/paypal`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      }
+                    }
+                  );
 
-            const paymentStartBody = (await paymentStartResponse
-              .json()
-              .catch(() => ({}))) as StartPaymentResponse;
-            const planId =
-              typeof paymentStartBody.clientPayload?.planId === 'string'
-                ? paymentStartBody.clientPayload.planId
-                : '';
+                  const paymentStartBody = (await paymentStartResponse
+                    .json()
+                    .catch(() => ({}))) as StartPaymentResponse;
+                  const orderId =
+                    typeof paymentStartBody.clientPayload?.orderId === 'string'
+                      ? paymentStartBody.clientPayload.orderId
+                      : typeof paymentStartBody.clientPayload?.providerSessionId ===
+                            'string'
+                        ? paymentStartBody.clientPayload.providerSessionId
+                        : '';
 
-            if (
-              !paymentStartResponse.ok ||
-              !paymentStartBody.ok ||
-              !planId
-            ) {
-              if (
-                paymentStartResponse.status === 401 &&
-                paymentStartBody.redirectUrl
-              ) {
-                window.location.href = paymentStartBody.redirectUrl;
-                return Promise.reject(new Error('Unauthorized'));
-              }
+                  if (!paymentStartResponse.ok || !paymentStartBody.ok || !orderId) {
+                    if (
+                      paymentStartResponse.status === 401 &&
+                      paymentStartBody.redirectUrl
+                    ) {
+                      window.location.href = paymentStartBody.redirectUrl;
+                      return Promise.reject(new Error('Unauthorized'));
+                    }
 
+                    setError(
+                      paymentStartBody.error ||
+                        t('Unable to prepare PayPal payment.')
+                    );
+                    return Promise.reject(new Error('Order not available'));
+                  }
+
+                  return orderId;
+                }
+              }),
+          onApprove: async (data: PayPalApproveData) => {
+            const isOneTime = orderType === 'one_time';
+            const providerReferenceId = isOneTime
+              ? data.orderID
+              : data.subscriptionID;
+            if (!providerReferenceId) {
               setError(
-                paymentStartBody.error || t('Unable to confirm PayPal subscription.')
+                isOneTime
+                  ? t('PayPal did not return an order ID.')
+                  : t('PayPal did not return a subscription ID.')
               );
-              return Promise.reject(new Error('Plan not available'));
-            }
-
-            return actions.subscription.create({
-              plan_id: planId
-            });
-          },
-          onApprove: async (data) => {
-            if (!data.subscriptionID) {
-              setError(t('PayPal did not return a subscription ID.'));
               return;
             }
 
@@ -131,7 +214,9 @@ export function PayPalCheckoutButton({
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                subscriptionId: data.subscriptionID,
+                ...(isOneTime
+                  ? { orderId: providerReferenceId }
+                  : { subscriptionId: providerReferenceId }),
                 checkoutToken
               })
             });
@@ -144,11 +229,16 @@ export function PayPalCheckoutButton({
                 return;
               }
 
-              setError(body.error || t('Unable to confirm PayPal subscription.'));
+              setError(
+                body.error ||
+                  (isOneTime
+                    ? t('Unable to confirm PayPal payment.')
+                    : t('Unable to confirm PayPal subscription.'))
+              );
               return;
             }
 
-            window.location.href = body.redirectUrl || '/dashboard';
+            window.location.href = body.redirectUrl || `/checkout/${checkoutToken}`;
           },
           onCancel: async () => {
             await fetch(
@@ -161,7 +251,11 @@ export function PayPalCheckoutButton({
             window.location.reload();
           },
           onError: () => {
-            setError(t('PayPal checkout failed. Please try again.'));
+            setError(
+              orderType === 'one_time'
+                ? t('PayPal payment failed. Please try again.')
+                : t('PayPal checkout failed. Please try again.')
+            );
           }
         });
 
@@ -187,7 +281,7 @@ export function PayPalCheckoutButton({
         void closeButtons();
       }
     };
-  }, [checkoutToken, clientId, currency, t]);
+  }, [checkoutToken, clientId, currency, orderType, t]);
 
   return (
     <div className="space-y-2">

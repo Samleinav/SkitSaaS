@@ -20,7 +20,7 @@ export type PaymentOrderSource =
 
 type UpsertPaymentOrderInput = {
   provider: string;
-  orderType?: PaymentOrderType;
+  orderType: PaymentOrderType;
   moduleId?: string | null;
   status?: PaymentOrderStatus;
   eventType: string;
@@ -140,12 +140,12 @@ function normalizeSource(
 
 function normalizeOrderType(
   orderType: PaymentOrderType | null | undefined
-): PaymentOrderType {
+): PaymentOrderType | null {
   if (orderType === 'subscription' || orderType === 'one_time') {
     return orderType;
   }
 
-  return 'subscription';
+  return null;
 }
 
 function normalizeTargetType(
@@ -200,7 +200,7 @@ export function mapOrderStatusToSubscriptionStatus(status: PaymentOrderStatus) {
 
 export async function upsertPaymentOrder({
   provider,
-  orderType = 'subscription',
+  orderType,
   moduleId = null,
   status = 'pending',
   eventType,
@@ -226,6 +226,11 @@ export async function upsertPaymentOrder({
   const safeExternalOrderId = normalizeText(externalOrderId, 255);
 
   if (!safeProvider || !safeEventType) {
+    return null;
+  }
+
+  const normalizedOrderType = normalizeOrderType(orderType);
+  if (!normalizedOrderType) {
     return null;
   }
 
@@ -272,7 +277,7 @@ export async function upsertPaymentOrder({
 
   const safeValues = {
     provider: safeProvider,
-    orderType: normalizeOrderType(orderType),
+    orderType: normalizedOrderType,
     status: normalizeStatus(status),
     eventType: safeEventType,
     source: normalizeSource(source),

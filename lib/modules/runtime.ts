@@ -20,6 +20,7 @@ import type {
   ModuleAuthProviderKind,
   ModulePaymentMethod,
   ModulePaymentOrderType,
+  ModulePaymentTargetType,
   ModuleFrontendSlotDefinition,
   ModuleApiHandler,
   ModuleManifest,
@@ -105,6 +106,7 @@ export type ResolvedModulePaymentMethod = {
   description: string | null;
   order: number;
   supportsOrderTypes: ModulePaymentOrderType[];
+  supportsTargetTypes: ModulePaymentTargetType[];
   routes: {
     startPath: string;
     cancelPath: string | null;
@@ -244,6 +246,23 @@ function normalizePaymentMethodOrderTypes(
 
   if (normalized.size === 0) {
     return ['subscription', 'one_time'] as ModulePaymentOrderType[];
+  }
+
+  return Array.from(normalized.values()).sort();
+}
+
+function normalizePaymentMethodTargetTypes(
+  targetTypes: ModulePaymentMethod['supportsTargetTypes']
+) {
+  const normalized = new Set<ModulePaymentTargetType>();
+  for (const entry of targetTypes ?? ['team', 'user']) {
+    if (entry === 'team' || entry === 'user') {
+      normalized.add(entry);
+    }
+  }
+
+  if (normalized.size === 0) {
+    return ['team', 'user'] as ModulePaymentTargetType[];
   }
 
   return Array.from(normalized.values()).sort();
@@ -854,6 +873,9 @@ export function buildPaymentMethodRegistry({
         order: normalizeOrder(moduleMethod.order),
         supportsOrderTypes: normalizePaymentMethodOrderTypes(
           moduleMethod.supportsOrderTypes
+        ),
+        supportsTargetTypes: normalizePaymentMethodTargetTypes(
+          moduleMethod.supportsTargetTypes
         ),
         routes: {
           startPath: normalizePaymentMethodPath(

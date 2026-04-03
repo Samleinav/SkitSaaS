@@ -5,12 +5,17 @@ import type { SubscriptionTemplate, Team, User } from '@/lib/db/schema';
 import {
   getTeamByStripeCustomerId,
   getActiveTeamSubscriptionAssignmentByProviderReferenceId,
+  getActiveUserSubscriptionAssignmentByProviderReferenceId,
   getUser
 } from '@/lib/db/queries';
 import { getPaymentConfigValue } from './config';
 import { createCheckoutTemplateSnapshot } from './checkout-system';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
+import {
+  getCheckoutOrderByToken,
+  type CheckoutOrderLineItem
+} from './checkout-orders';
 
 let stripeClient: { key: string; client: Stripe } | null = null;
 
@@ -262,6 +267,9 @@ function normalizeIdempotencyKey(value: string | null | undefined) {
 export async function createCheckoutSession({
   team,
   user,
+  targetType,
+  targetTeamId,
+  targetUserId,
   template,
   changeMode,
   currentPeriodEnd,
@@ -277,6 +285,9 @@ export async function createCheckoutSession({
 }: {
   team: Pick<Team, 'id' | 'stripeCustomerId' | 'stripeProductId'> | null;
   user?: Pick<User, 'id'> | null;
+  targetType?: 'team' | 'user' | null;
+  targetTeamId?: number | null;
+  targetUserId?: number | null;
   template: SubscriptionTemplate;
   changeMode?: 'immediate' | 'period_end' | null;
   currentPeriodEnd?: Date | null;
@@ -301,8 +312,13 @@ export async function createCheckoutSession({
   }
 
   const resolvedUser = user ?? (await getUser());
+  const resolvedTargetType = targetType === 'user' ? 'user' : 'team';
+  const resolvedTargetTeamId =
+    resolvedTargetType === 'team' ? targetTeamId ?? team?.id ?? null : null;
+  const resolvedTargetUserId =
+    resolvedTargetType === 'user' ? targetUserId ?? resolvedUser?.id ?? null : null;
 
-  if (!team || !resolvedUser) {
+  if (!resolvedUser || (resolvedTargetType === 'team' && !team)) {
     redirect(
       `/sign-up?redirect=checkout&templateId=${encodeURIComponent(
         String(template.id)
@@ -371,8 +387,10 @@ export async function createCheckoutSession({
     {
       provider: 'stripe',
       templateId: template.id,
-      teamId: team.id,
+      teamId: resolvedTargetTeamId,
       userId: resolvedUser.id,
+      targetType: resolvedTargetType,
+      targetUserId: resolvedTargetUserId,
       changeMode: resolvedChangeMode,
       checkoutOrderId: checkoutOrderId ?? null
     },
@@ -391,7 +409,8 @@ export async function createCheckoutSession({
       mode: 'subscription',
       success_url: successUrl.toString(),
       cancel_url: `${baseUrl}${resolvedCancelPath}`,
-      customer: team.stripeCustomerId || undefined,
+      customer:
+        resolvedTargetType === 'team' ? team?.stripeCustomerId || undefined : undefined,
       client_reference_id: resolvedUser.id.toString(),
       allow_promotion_codes: true,
       metadata: subscriptionMetadata,
@@ -406,8 +425,187 @@ export async function createCheckoutSession({
       provider: 'stripe',
       sessionId: session.id,
       templateId: template.id,
-      teamId: team.id,
+      teamId: resolvedTargetTeamId,
       userId: resolvedUser.id,
+      targetType: resolvedTargetType,
+      targetUserId: resolvedTargetUserId,
+      checkoutOrderId: checkoutOrderId ?? null
+    },
+    { source: '/lib/payments/stripe' }
+  );
+
+  if (redirectOnSuccess) {
+    if (!session.url) {
+      redirect('/pricing');
+    }
+
+    redirect(session.url);
+  }
+
+  return {
+    id: session.id,
+    url: session.url
+  };
+}
+
+export async function createOneTimeCheckoutSession({
+  team,
+  user,
+  targetType,
+  targetTeamId,
+  targetUserId,
+  checkoutToken,
+  checkoutOrderId,
+  amount,
+  currency,
+  planName,
+  lineItems,
+  idempotencyKey,
+  cancelPath,
+  redirectOnSuccess = true
+}: {
+  team: Pick<Team, 'id' | 'stripeCustomerId'> | null;
+  user?: Pick<User, 'id'> | null;
+  targetType?: 'team' | 'user' | null;
+  targetTeamId?: number | null;
+  targetUserId?: number | null;
+  checkoutToken?: string | null;
+  checkoutOrderId?: number | null;
+  amount: number;
+  currency: string;
+  planName?: string | null;
+  lineItems: Array<
+    Pick<
+      CheckoutOrderLineItem,
+      'name' | 'description' | 'quantity' | 'unitAmount' | 'totalAmount' | 'currency'
+    >
+  >;
+  idempotencyKey?: string | null;
+  cancelPath?: string | null;
+  redirectOnSuccess?: boolean;
+}) {
+  const stripeEnabled = await isStripeEnabled();
+  if (!stripeEnabled) {
+    redirect('/pricing');
+  }
+
+  const stripe = await getStripeClient();
+  if (!stripe) {
+    redirect('/pricing');
+  }
+
+  const resolvedUser = user ?? (await getUser());
+  const resolvedTargetType = targetType === 'user' ? 'user' : 'team';
+  const resolvedTargetTeamId =
+    resolvedTargetType === 'team' ? targetTeamId ?? team?.id ?? null : null;
+  const resolvedTargetUserId =
+    resolvedTargetType === 'user' ? targetUserId ?? resolvedUser?.id ?? null : null;
+
+  if (!resolvedUser || (resolvedTargetType === 'team' && !team)) {
+    redirect('/sign-up?redirect=pricing');
+  }
+
+  const normalizedCurrency = currency.trim().toLowerCase() || 'usd';
+  const normalizedLineItems =
+    lineItems.length > 0
+      ? lineItems
+      : [
+          {
+            name: planName?.trim() || 'One-time payment',
+            description: null,
+            quantity: 1,
+            unitAmount: amount,
+            totalAmount: amount,
+            currency: normalizedCurrency.toUpperCase()
+          }
+        ];
+
+  const paymentMetadata: Record<string, string> = {
+    checkout_order_type: 'one_time'
+  };
+  if (checkoutToken) {
+    paymentMetadata.checkout_token = checkoutToken;
+  }
+  if (checkoutOrderId && Number.isInteger(checkoutOrderId) && checkoutOrderId > 0) {
+    paymentMetadata.checkout_order_id = String(checkoutOrderId);
+  }
+  if (resolvedTargetType === 'team' && resolvedTargetTeamId) {
+    paymentMetadata.checkout_target_type = 'team';
+    paymentMetadata.checkout_target_team_id = String(resolvedTargetTeamId);
+  }
+  if (resolvedTargetType === 'user' && resolvedTargetUserId) {
+    paymentMetadata.checkout_target_type = 'user';
+    paymentMetadata.checkout_target_user_id = String(resolvedTargetUserId);
+  }
+
+  const baseUrl = await getBaseUrl();
+  const successUrl = new URL('/api/checkout/methods/stripe/return', baseUrl);
+  successUrl.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+  if (checkoutToken) {
+    successUrl.searchParams.set('checkout_token', checkoutToken);
+  }
+  const resolvedCancelPath =
+    cancelPath && cancelPath.startsWith('/') ? cancelPath : '/pricing';
+
+  await emitEventAsync(
+    EVENT_HOOKS.checkoutSessionCreateBefore,
+    {
+      provider: 'stripe',
+      orderType: 'one_time',
+      amount,
+      currency: normalizedCurrency.toUpperCase(),
+      teamId: resolvedTargetTeamId,
+      userId: resolvedUser.id,
+      targetType: resolvedTargetType,
+      targetUserId: resolvedTargetUserId,
+      checkoutOrderId: checkoutOrderId ?? null
+    },
+    { source: '/lib/payments/stripe' }
+  );
+
+  const resolvedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
+  const session = await stripe.checkout.sessions.create(
+    {
+      payment_method_types: ['card'],
+      line_items: normalizedLineItems.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency: (item.currency || normalizedCurrency).toLowerCase(),
+          unit_amount: item.unitAmount,
+          product_data: {
+            name: item.name,
+            ...(item.description ? { description: item.description } : {})
+          }
+        }
+      })),
+      mode: 'payment',
+      success_url: successUrl.toString(),
+      cancel_url: `${baseUrl}${resolvedCancelPath}`,
+      customer:
+        resolvedTargetType === 'team' ? team?.stripeCustomerId || undefined : undefined,
+      client_reference_id: resolvedUser.id.toString(),
+      allow_promotion_codes: true,
+      metadata: paymentMetadata,
+      payment_intent_data: {
+        metadata: paymentMetadata
+      },
+      submit_type: 'pay'
+    },
+    resolvedIdempotencyKey ? { idempotencyKey: resolvedIdempotencyKey } : undefined
+  );
+
+  await emitEventAsync(
+    EVENT_HOOKS.checkoutSessionCreateAfter,
+    {
+      provider: 'stripe',
+      sessionId: session.id,
+      orderType: 'one_time',
+      amount,
+      currency: normalizedCurrency.toUpperCase(),
+      teamId: resolvedTargetTeamId,
+      userId: resolvedUser.id,
+      targetType: resolvedTargetType,
+      targetUserId: resolvedTargetUserId,
       checkoutOrderId: checkoutOrderId ?? null
     },
     { source: '/lib/payments/stripe' }
@@ -526,26 +724,68 @@ export async function handleSubscriptionChange(
   const customerId = subscription.customer as string;
   const subscriptionId = subscription.id;
   const status = subscription.status;
+  const checkoutToken =
+    typeof subscription.metadata?.checkout_token === 'string'
+      ? subscription.metadata.checkout_token.trim()
+      : null;
 
-  const team = await getTeamByStripeCustomerId(customerId);
-  const assignment = await getActiveTeamSubscriptionAssignmentByProviderReferenceId({
-    provider: 'stripe',
-    referenceId: subscriptionId
-  });
-  const resolvedTeamId = team?.id ?? assignment?.targetTeamId ?? null;
+  const [checkoutOrder, team, teamAssignment, userAssignment] = await Promise.all([
+    checkoutToken ? getCheckoutOrderByToken(checkoutToken) : Promise.resolve(null),
+    customerId ? getTeamByStripeCustomerId(customerId) : Promise.resolve(null),
+    getActiveTeamSubscriptionAssignmentByProviderReferenceId({
+      provider: 'stripe',
+      referenceId: subscriptionId
+    }),
+    getActiveUserSubscriptionAssignmentByProviderReferenceId({
+      provider: 'stripe',
+      referenceId: subscriptionId
+    })
+  ]);
+
+  if (
+    checkoutOrder?.targetType === 'user' &&
+    typeof checkoutOrder.targetUserId === 'number'
+  ) {
+    return {
+      handled: true,
+      targetType: 'user' as const,
+      targetTeamId: null,
+      targetUserId: checkoutOrder.targetUserId,
+      subscriptionStatus: status
+    };
+  }
+
+  if (typeof userAssignment?.targetUserId === 'number') {
+    return {
+      handled: true,
+      targetType: 'user' as const,
+      targetTeamId: null,
+      targetUserId: userAssignment.targetUserId,
+      subscriptionStatus: status
+    };
+  }
+
+  const resolvedTeamId =
+    checkoutOrder?.targetType === 'team'
+      ? checkoutOrder.targetTeamId ?? checkoutOrder.teamId ?? null
+      : team?.id ?? teamAssignment?.targetTeamId ?? null;
 
   if (!resolvedTeamId) {
-    console.error('Team not found for Stripe customer:', customerId);
+    console.error('Checkout target not found for Stripe subscription:', subscriptionId);
     return {
       handled: false,
-      teamId: null,
+      targetType: null,
+      targetTeamId: null,
+      targetUserId: null,
       subscriptionStatus: status
     };
   }
 
   return {
     handled: true,
-    teamId: resolvedTeamId,
+    targetType: 'team' as const,
+    targetTeamId: resolvedTeamId,
+    targetUserId: null,
     subscriptionStatus: status
   };
 }

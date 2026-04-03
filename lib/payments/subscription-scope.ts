@@ -48,6 +48,19 @@ export function supportsSelfServiceSubscriptionTemplateScope(
   return SELF_SERVICE_SUBSCRIPTION_TEMPLATE_SCOPE_SET.has(normalizedTemplateScope);
 }
 
+export function filterSelfServiceSubscriptionTemplates<
+  T extends { targetScope: string | null | undefined }
+>(
+  templates: readonly T[],
+  options?: {
+    teamsEnabled?: boolean;
+  }
+) {
+  return templates.filter((template) =>
+    supportsSelfServiceSubscriptionTemplateScope(template.targetScope, options)
+  );
+}
+
 export function isSubscriptionTemplateScopeCompatible({
   checkoutTargetType,
   templateTargetScope

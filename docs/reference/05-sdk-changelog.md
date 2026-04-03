@@ -39,6 +39,40 @@ Nota:
 - algunos snippets viejos muestran patrones que ya no son la guia preferida
 - para el contrato vigente, tomar como fuente de verdad `docs/sdk/00-overview.md` y `docs/modules/07-api-modules.md`
 
+## 2026-04-02 - sdk-payment-method-target-types
+
+- `status`: published
+- `sprint`: sprint-d
+- `module`: core
+- `type`: change
+- `summary`: `@skitsaas/sdk` payment methods can now declare `supportsTargetTypes`, so checkout discovery can hide team-only methods from user-scoped orders before start time.
+- `sdk_surface`: `@skitsaas/sdk`
+- `files`:
+  - `app/sdk/src/modules/manifest.ts`
+  - `app/sdk/package.json`
+  - `lib/modules/runtime.ts`
+  - `lib/payments/payment-methods.ts`
+  - `app/api/checkout/methods/route.ts`
+  - `app/(frontend)/checkout/[checkoutToken]/page.tsx`
+  - `tests/modules/payment-method-registry.test.ts`
+  - `tests/payments/payment-methods-core-registry.test.ts`
+  - `docs/modules/01-manifest-registry.md`
+  - `docs/reference/05-sdk-changelog.md`
+- `notes`: |
+    SDK v1.17.0 -> v1.18.0 (MINOR).
+
+    New public manifest contract:
+
+    - `ModulePaymentMethod.supportsTargetTypes?: ('team' | 'user')[]`
+
+    Host/runtime behavior in this slice:
+
+    - core Stripe and PayPal advertise `supportsTargetTypes: ['team', 'user']`
+    - module methods default to `['team', 'user']` when omitted
+    - `/api/checkout/methods` filters by both `orderType` and `targetType`
+    - the checkout page hides methods that cannot serve the current checkout target
+    - the start dispatcher blocks unsupported target types explicitly instead of failing later on missing `team` context
+
 ## 2026-03-30 - sdk-context-aware-search-contract
 
 - `status`: published

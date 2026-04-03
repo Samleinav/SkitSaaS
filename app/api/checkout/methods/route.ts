@@ -3,7 +3,8 @@ import { getUser } from '@/lib/db/queries';
 import { getCheckoutOrderByTokenForUser } from '@/lib/payments/checkout-orders';
 import {
   getCheckoutPaymentMethodRegistry,
-  supportsCheckoutPaymentMethodOrderType
+  supportsCheckoutPaymentMethodOrderType,
+  supportsCheckoutPaymentMethodTargetType
 } from '@/lib/payments/payment-methods';
 import { getPayPalClientId, isPayPalConfigured } from '@/lib/payments/paypal';
 import { isStripeConfigured } from '@/lib/payments/stripe';
@@ -53,6 +54,11 @@ export const GET = withApiRouteEntries(
       .filter((method) =>
         checkoutOrder
           ? supportsCheckoutPaymentMethodOrderType(method, checkoutOrder.orderType)
+          : true
+      )
+      .filter((method) =>
+        checkoutOrder
+          ? supportsCheckoutPaymentMethodTargetType(method, checkoutOrder.targetType)
           : true
       )
       .filter((method) => {

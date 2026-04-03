@@ -469,6 +469,47 @@ export async function getActiveTeamSubscriptionAssignmentByProviderReferenceId({
   return row;
 }
 
+export async function getActiveUserSubscriptionAssignmentByProviderReferenceId({
+  provider,
+  referenceId
+}: {
+  provider: string;
+  referenceId: string;
+}) {
+  const normalizedProvider = provider.trim().toLowerCase();
+  const normalizedReference = referenceId.trim();
+  if (!normalizedProvider || !normalizedReference) {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      targetUserId: subscriptionAssignments.targetUserId,
+      subscriptionTemplateId: subscriptionAssignments.subscriptionTemplateId,
+      paymentProvider: subscriptionAssignments.paymentProvider,
+      providerReferenceId: subscriptionAssignments.providerReferenceId,
+      providerPlanId: subscriptionAssignments.providerPlanId,
+      status: subscriptionAssignments.status,
+      planName: subscriptionAssignments.planName
+    })
+    .from(subscriptionAssignments)
+    .where(
+      and(
+        eq(subscriptionAssignments.targetType, 'user'),
+        isNull(subscriptionAssignments.effectiveTo),
+        eq(subscriptionAssignments.paymentProvider, normalizedProvider),
+        eq(subscriptionAssignments.providerReferenceId, normalizedReference)
+      )
+    )
+    .limit(1);
+
+  if (!row || typeof row.targetUserId !== 'number') {
+    return null;
+  }
+
+  return row;
+}
+
 export type DashboardSubscriptionUserSummary = {
   id: number;
   email: string;

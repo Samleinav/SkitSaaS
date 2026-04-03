@@ -11,6 +11,7 @@ import {
   isReusableSubscriptionCheckoutOrderForContext,
   isCheckoutOrderPayable,
   parseCheckoutOrderMetadata,
+  resolveCheckoutOrderRestartPath,
   type CheckoutOrderWithMetadata
 } from '../../lib/payments/checkout-orders';
 
@@ -104,7 +105,8 @@ test('parseCheckoutOrderMetadata infers schemaVersion for legacy payload without
     JSON.stringify({
       oneTime: {
         productId: 77,
-        quantity: 2
+        quantity: 2,
+        restartPath: '/modules/shop'
       }
     })
   );
@@ -113,6 +115,7 @@ test('parseCheckoutOrderMetadata infers schemaVersion for legacy payload without
   assert.equal(metadata?.schemaVersion, 1);
   assert.equal(metadata?.oneTime?.productId, 77);
   assert.equal(metadata?.oneTime?.quantity, 2);
+  assert.equal(metadata?.oneTime?.restartPath, '/modules/shop');
 });
 
 test('parseCheckoutOrderMetadata drops invalid oneTime envelope while keeping metadata object', () => {
@@ -177,6 +180,37 @@ test('isCheckoutOrderPayable validates status and expiration', () => {
     expiresAt: new Date(Date.now() - 1_000)
   });
   assert.equal(isCheckoutOrderPayable(expired), false);
+});
+
+test('resolveCheckoutOrderRestartPath falls back to pricing and honors safe one-time restart paths', () => {
+  const subscriptionOrder = buildCheckoutOrder();
+  assert.equal(resolveCheckoutOrderRestartPath(subscriptionOrder), '/pricing');
+
+  const oneTimeOrder = buildCheckoutOrder({
+    orderType: 'one_time',
+    parsedMetadata: parseCheckoutOrderMetadata(
+      JSON.stringify({
+        schemaVersion: 1,
+        oneTime: {
+          restartPath: '/modules/shop'
+        }
+      })
+    )
+  });
+  assert.equal(resolveCheckoutOrderRestartPath(oneTimeOrder), '/modules/shop');
+
+  const invalidOneTimeOrder = buildCheckoutOrder({
+    orderType: 'one_time',
+    parsedMetadata: parseCheckoutOrderMetadata(
+      JSON.stringify({
+        schemaVersion: 1,
+        oneTime: {
+          restartPath: 'https://evil.example'
+        }
+      })
+    )
+  });
+  assert.equal(resolveCheckoutOrderRestartPath(invalidOneTimeOrder), '/pricing');
 });
 
 test('isReusableSubscriptionCheckoutOrderForContext accepts matching payable subscription order', () => {

@@ -143,6 +143,7 @@ export type ModuleAuthProvider = {
 };
 
 export type ModulePaymentOrderType = 'subscription' | 'one_time';
+export type ModulePaymentTargetType = 'team' | 'user';
 
 export type ModulePaymentMethodRoutes = {
   startPath: string;
@@ -157,6 +158,7 @@ export type ModulePaymentMethod = {
   description?: string;
   order?: number;
   supportsOrderTypes?: ModulePaymentOrderType[];
+  supportsTargetTypes?: ModulePaymentTargetType[];
   routes: ModulePaymentMethodRoutes;
   metadata?: Record<string, unknown>;
 };
@@ -633,6 +635,18 @@ export function validateModuleManifest(manifest: ModuleManifest) {
         for (const orderType of orderTypes) {
           if (orderType !== 'subscription' && orderType !== 'one_time') {
             errors.push(`module_payment_method_order_types_invalid:${index}`);
+            break;
+          }
+        }
+      }
+
+      const targetTypes = paymentMethod.supportsTargetTypes ?? ['team', 'user'];
+      if (!Array.isArray(targetTypes) || targetTypes.length === 0) {
+        errors.push(`module_payment_method_target_types_invalid:${index}`);
+      } else {
+        for (const targetType of targetTypes) {
+          if (targetType !== 'team' && targetType !== 'user') {
+            errors.push(`module_payment_method_target_types_invalid:${index}`);
             break;
           }
         }

@@ -69,6 +69,7 @@ export type CheckoutOrderOneTimeMetadata = {
   itemsCount?: number | null;
   paymentMethodId: string | null;
   provider: string | null;
+  restartPath?: string | null;
   snapshot: Record<string, unknown> | null;
 };
 
@@ -164,6 +165,15 @@ function normalizeAmount(value: number | null | undefined) {
   return Math.round(value);
 }
 
+function normalizeCheckoutRelativePath(value: string | null | undefined) {
+  const normalized = normalizeText(value, 400);
+  if (!normalized || !normalized.startsWith('/') || normalized.startsWith('//')) {
+    return null;
+  }
+
+  return normalized;
+}
+
 function isPgUniqueViolation(error: unknown) {
   if (!error || typeof error !== 'object') {
     return false;
@@ -234,6 +244,17 @@ export function buildCheckoutOrderUrl({
   }
 
   return `${resolvedOrigin}${checkoutPath}`;
+}
+
+export function resolveCheckoutOrderRestartPath(order: CheckoutOrderWithMetadata) {
+  if (order.orderType === 'subscription') {
+    return '/pricing';
+  }
+
+  return (
+    normalizeCheckoutRelativePath(order.parsedMetadata?.oneTime?.restartPath ?? null) ??
+    '/pricing'
+  );
 }
 
 function serializeCheckoutOrderMetadata(metadata: CheckoutOrderMetadata) {
@@ -310,6 +331,9 @@ function normalizeCheckoutOrderOneTimeMetadata(
       typeof oneTime.provider === 'string' ? oneTime.provider : null,
       60
     ),
+    restartPath: normalizeCheckoutRelativePath(
+      typeof oneTime.restartPath === 'string' ? oneTime.restartPath : null
+    ),
     snapshot: toMetadataRecord(oneTime.snapshot)
   };
 
@@ -323,6 +347,7 @@ function normalizeCheckoutOrderOneTimeMetadata(
     normalized.itemsCount !== null ||
     normalized.paymentMethodId !== null ||
     normalized.provider !== null ||
+    normalized.restartPath !== null ||
     normalized.snapshot !== null;
 
   return hasValues ? normalized : undefined;
@@ -1539,6 +1564,10 @@ export async function createOneTimeCheckoutOrder({
       provider:
         typeof normalizedMetadata?.provider === 'string'
           ? normalizeText(normalizedMetadata.provider, 60)
+          : null,
+      restartPath:
+        typeof normalizedMetadata?.restartPath === 'string'
+          ? normalizeCheckoutRelativePath(normalizedMetadata.restartPath)
           : null,
       snapshot: normalizeMetadataRecord(normalizedMetadata?.snapshot)
     }

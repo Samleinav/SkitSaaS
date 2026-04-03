@@ -5,7 +5,6 @@ import { createCustomerPortalSession } from './stripe';
 import { cancelPayPalSubscription } from './paypal';
 import { withTeam } from '@/lib/auth/middleware';
 import {
-  getActiveUserSubscriptionAssignment,
   getActiveTeamSubscriptionAssignment,
   getTeamById,
   getTeamForUser,
@@ -15,7 +14,6 @@ import {
 import { recordPayPalCheckoutEvent } from './checkout-system';
 import {
   createSubscriptionCheckoutOrder,
-  createUserSubscriptionCheckoutOrder,
   getCheckoutOrderByTokenForUser,
   isCheckoutOrderPayable
 } from './checkout-orders';
@@ -179,90 +177,57 @@ export async function checkoutAction(formData: FormData) {
   if (!template) {
     redirect('/pricing');
   }
+  if (!supportsSelfServiceSubscriptionTemplateScope(template.targetScope)) {
+    redirect('/pricing');
+  }
 
   const changeMode = normalizeChangeMode(formData.get('changeMode'));
   let checkoutOrder: Awaited<ReturnType<typeof createSubscriptionCheckoutOrder>> =
     null;
 
-  if (template.targetScope === 'organization') {
-    if (
-      !supportsSelfServiceSubscriptionTemplateScope(template.targetScope) ||
-      !isSubscriptionTemplateScopeCompatible({
-        checkoutTargetType: 'team',
-        templateTargetScope: template.targetScope
-      })
-    ) {
-      redirect('/pricing');
-    }
-
-    const team = await getTeamForUser();
-    if (!team) {
-      redirect('/pricing');
-    }
-
-    ensureTeamOwnerAccess({
-      teamMembers: team.teamMembers,
-      userId: user.id
-    });
-
-    const activeAssignment = await getActiveTeamSubscriptionAssignment(team.id);
-    if (activeAssignment?.subscriptionTemplateId === template.id) {
-      redirect('/pricing');
-    }
-    const scheduledStartTime =
-      changeMode === 'period_end'
-        ? activeAssignment?.currentPeriodEnd?.toISOString() ??
-          activeAssignment?.trialEndsAt?.toISOString() ??
-          null
-        : null;
-    const resolvedChangeMode =
-      changeMode === 'period_end' && !scheduledStartTime
-        ? 'immediate'
-        : changeMode;
-
-    checkoutOrder = await createSubscriptionCheckoutOrder({
-      teamId: team.id,
-      userId: user.id,
-      template,
-      changeMode: resolvedChangeMode,
-      currentAssignmentId: activeAssignment?.id ?? null,
-      currentTemplateId: activeAssignment?.subscriptionTemplateId ?? null,
-      scheduledStartTime
-    });
-  } else if (template.targetScope === 'user') {
-    if (
-      !isSubscriptionTemplateScopeCompatible({
-        checkoutTargetType: 'user',
-        templateTargetScope: template.targetScope
-      })
-    ) {
-      redirect('/pricing');
-    }
-
-    const activeAssignment = await getActiveUserSubscriptionAssignment(user.id);
-    if (activeAssignment?.subscriptionTemplateId === template.id) {
-      redirect('/pricing');
-    }
-    const scheduledStartTime =
-      changeMode === 'period_end'
-        ? activeAssignment?.currentPeriodEnd?.toISOString() ??
-          activeAssignment?.trialEndsAt?.toISOString() ??
-          null
-        : null;
-    const resolvedChangeMode =
-      changeMode === 'period_end' && !scheduledStartTime
-        ? 'immediate'
-        : changeMode;
-
-    checkoutOrder = await createUserSubscriptionCheckoutOrder({
-      userId: user.id,
-      template,
-      changeMode: resolvedChangeMode,
-      currentAssignmentId: activeAssignment?.id ?? null,
-      currentTemplateId: activeAssignment?.subscriptionTemplateId ?? null,
-      scheduledStartTime
-    });
+  if (
+    !isSubscriptionTemplateScopeCompatible({
+      checkoutTargetType: 'team',
+      templateTargetScope: template.targetScope
+    })
+  ) {
+    redirect('/pricing');
   }
+
+  const team = await getTeamForUser();
+  if (!team) {
+    redirect('/pricing');
+  }
+
+  ensureTeamOwnerAccess({
+    teamMembers: team.teamMembers,
+    userId: user.id
+  });
+
+  const activeAssignment = await getActiveTeamSubscriptionAssignment(team.id);
+  if (activeAssignment?.subscriptionTemplateId === template.id) {
+    redirect('/pricing');
+  }
+  const scheduledStartTime =
+    changeMode === 'period_end'
+      ? activeAssignment?.currentPeriodEnd?.toISOString() ??
+        activeAssignment?.trialEndsAt?.toISOString() ??
+        null
+      : null;
+  const resolvedChangeMode =
+    changeMode === 'period_end' && !scheduledStartTime
+      ? 'immediate'
+      : changeMode;
+
+  checkoutOrder = await createSubscriptionCheckoutOrder({
+    teamId: team.id,
+    userId: user.id,
+    template,
+    changeMode: resolvedChangeMode,
+    currentAssignmentId: activeAssignment?.id ?? null,
+    currentTemplateId: activeAssignment?.subscriptionTemplateId ?? null,
+    scheduledStartTime
+  });
 
   if (!checkoutOrder) {
     redirect('/pricing');
@@ -317,6 +282,7 @@ export const customerPortalAction = withTeam(async (_, team, user) => {
 
     await cancelPayPalSubscription(team.providerReferenceId);
     await recordPayPalCheckoutEvent({
+      orderType: 'subscription',
       status: 'canceled',
       logStatus: 'success',
       eventType: 'billing.cancelled_by_customer',

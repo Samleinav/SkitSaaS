@@ -135,6 +135,12 @@ if (!hasModuleMock) {
     }) as typeof fetch;
 
     try {
+      applyModuleMock('@/lib/payments/legacy-routes', {
+        namedExports: {
+          logLegacyCheckoutRouteUsage: async () => {}
+        }
+      });
+
       applyModuleMock('@/lib/payments/config', {
         namedExports: {
           getPaymentConfigValue: async (configName: string) =>
@@ -301,6 +307,7 @@ if (!hasModuleMock) {
       assert.equal(successCheckout?.teamId, 42);
       assert.equal(successCheckout?.providerPlanId, 'P-PLAN-2');
       assert.equal(successCheckout?.externalPaymentId, 'I-SUB-2');
+      assert.equal(successCheckout?.externalLogId, 'WH-TRANS-2');
       assert.equal(
         successCheckout?.message,
         'PayPal webhook event processed.'
@@ -338,6 +345,7 @@ if (!hasModuleMock) {
       assert.equal(state.checkoutCalls[0]?.status, 'pending');
       assert.equal(state.checkoutCalls[0]?.logStatus, 'failed');
       assert.equal(state.checkoutCalls[0]?.persistOrder, false);
+      assert.equal(state.checkoutCalls[0]?.externalLogId, 'WH-TRANS-IGNORED');
       assert.equal(
         state.checkoutCalls[0]?.message,
         'PayPal webhook event ignored.'
@@ -368,6 +376,7 @@ if (!hasModuleMock) {
       assert.equal(state.checkoutCalls[0]?.logStatus, 'failed');
       assert.equal(state.checkoutCalls[0]?.persistOrder, false);
       assert.equal(state.checkoutCalls[0]?.eventType, 'BILLING.SUBSCRIPTION.CANCELLED');
+      assert.equal(state.checkoutCalls[0]?.externalLogId, 'WH-TRANS-3');
       assert.equal(consoleErrorMock.mock.calls.length, 1);
       assert.equal(
         state.checkoutCalls[0]?.message,

@@ -14,6 +14,7 @@ import {
   eq,
   gte,
   ilike,
+  like,
   isNotNull,
   isNull,
   ne,
@@ -25,6 +26,7 @@ import { adminDb } from './drizzle';
 import {
   appConfigs,
   appModules,
+  checkoutPaymentAttemptLogs,
   emailLogs,
   paymentLogs,
   paymentOrders,
@@ -784,6 +786,58 @@ export async function getPaymentTransactionsForAdmin(limit = 300) {
     )
     .orderBy(desc(paymentTransactions.occurredAt), desc(paymentTransactions.createdAt))
     .limit(Math.max(1, Math.min(limit, 1000)));
+}
+
+export async function getCheckoutCallbackAttemptsForAdmin(limit = 120) {
+  return adminDb
+    .select({
+      id: checkoutPaymentAttemptLogs.id,
+      checkoutOrderId: checkoutPaymentAttemptLogs.checkoutOrderId,
+      checkoutToken: checkoutPaymentAttemptLogs.checkoutToken,
+      paymentMethodId: checkoutPaymentAttemptLogs.paymentMethodId,
+      provider: checkoutPaymentAttemptLogs.provider,
+      ownerType: checkoutPaymentAttemptLogs.ownerType,
+      moduleId: checkoutPaymentAttemptLogs.moduleId,
+      orderType: checkoutPaymentAttemptLogs.orderType,
+      source: checkoutPaymentAttemptLogs.source,
+      eventType: checkoutPaymentAttemptLogs.eventType,
+      status: checkoutPaymentAttemptLogs.status,
+      teamId: checkoutPaymentAttemptLogs.teamId,
+      targetType: checkoutPaymentAttemptLogs.targetType,
+      targetTeamId: checkoutPaymentAttemptLogs.targetTeamId,
+      targetUserId: checkoutPaymentAttemptLogs.targetUserId,
+      providerSessionId: checkoutPaymentAttemptLogs.providerSessionId,
+      providerReferenceId: checkoutPaymentAttemptLogs.providerReferenceId,
+      externalOrderId: checkoutPaymentAttemptLogs.externalOrderId,
+      externalPaymentId: checkoutPaymentAttemptLogs.externalPaymentId,
+      message: checkoutPaymentAttemptLogs.message,
+      metadata: checkoutPaymentAttemptLogs.metadata,
+      createdAt: checkoutPaymentAttemptLogs.createdAt,
+      teamName: teams.name
+    })
+    .from(checkoutPaymentAttemptLogs)
+    .leftJoin(
+      teams,
+      eq(
+        teams.id,
+        sql<number>`coalesce(${checkoutPaymentAttemptLogs.teamId}, ${checkoutPaymentAttemptLogs.targetTeamId})`
+      )
+    )
+    .where(
+      and(
+        or(
+          like(checkoutPaymentAttemptLogs.eventType, 'return_%'),
+          like(checkoutPaymentAttemptLogs.eventType, 'webhook_%')
+        ),
+        ne(checkoutPaymentAttemptLogs.eventType, 'return_received'),
+        ne(checkoutPaymentAttemptLogs.eventType, 'webhook_received')
+      )
+    )
+    .orderBy(
+      desc(checkoutPaymentAttemptLogs.createdAt),
+      desc(checkoutPaymentAttemptLogs.id)
+    )
+    .limit(Math.max(1, Math.min(limit, 500)));
 }
 
 export async function getPaymentOrderForAdminById(orderId: number) {

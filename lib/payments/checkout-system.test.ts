@@ -154,6 +154,7 @@ test('emitTemplatePricingChangedEvent logs, records checkout, and queues both jo
     CHECKOUT_SYSTEM_EVENTS.subscriptionTemplatePricingChanged
   );
   assert.equal(checkoutPayload.persistOrder, false);
+  assert.equal(checkoutPayload.orderType, 'subscription');
   assert.equal(checkoutPayload.source, 'system');
   assert.equal(checkoutPayload.subscriptionTemplateId, 12);
   assert.equal(checkoutPayload.planName, 'Starter');
@@ -237,6 +238,7 @@ test('emitTemplateActiveSubscriptionsUpdateRequestedEvent logs, records checkout
     CHECKOUT_SYSTEM_EVENTS.subscriptionTemplateActiveUpdateRequested
   );
   assert.equal(checkoutPayload.persistOrder, false);
+  assert.equal(checkoutPayload.orderType, 'subscription');
   assert.equal(checkoutPayload.source, 'system');
   assert.equal(checkoutPayload.subscriptionTemplateId, 12);
   assert.equal(checkoutPayload.planName, 'Starter');

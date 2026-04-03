@@ -10,6 +10,7 @@ This guide documents the technical event pipeline used by checkout, webhooks, an
 ## Objectives
 
 - Centralize payment event writes (`payment_logs`, `payment_orders`)
+- Keep an append-only checkout-attempt trace before operational payment settlement
 - Avoid duplicating status-sync logic across Stripe/PayPal/Admin flows
 - Apply deterministic subscription lifecycle changes from order status
 - Keep auditable traces in `sys_activity_logs`
@@ -27,6 +28,49 @@ File: `lib/payments/checkout-system.ts`
 - For actionable statuses (`received`, `canceled`, `failed`), executes:
   - `runPaymentOrderSubscriptionLifecycle(...)`
   - For `orderType='one_time'`, lifecycle projection is skipped by design.
+
+### 1.5) Checkout payment attempt log
+
+Files:
+
+- `lib/payments/attempt-logs.ts`
+- `lib/payments/payment-methods.ts`
+
+Purpose:
+
+- capture pre-settlement checkout orchestration events such as:
+  - `start_requested`
+  - `start_succeeded`
+  - `start_failed`
+  - `reused_pending_start`
+  - `return_received`
+  - `webhook_received`
+  - `transition_provider_pending`
+  - `transition_completed`
+  - `transition_failed`
+  - `transition_canceled`
+
+Table:
+
+- `checkout_payment_attempt_logs`
+
+This table is intentionally separate from `payment_orders` and `payment_logs`:
+
+- `checkout_payment_attempt_logs` = checkout orchestration trace
+- `payment_orders` = operational provider/order timeline
+- `payment_logs` = raw provider event audit
+
+Recent callback attempt outcomes are now classified explicitly in the attempt/telemetry layer instead of only as generic `*_succeeded`:
+
+- `*_provider_pending`
+- `*_ignored`
+- `*_replayed`
+- `*_failed`
+- `*_succeeded`
+
+Operational review:
+
+- `/admin/payments` now includes a recent checkout callback summary backed by `checkout_payment_attempt_logs`, so admins can distinguish replayed, provider-pending, failed, ignored, and succeeded callbacks without inspecting raw metadata first.
 
 ### 2) Provider adapters
 
@@ -129,6 +173,45 @@ Notes:
 3. `recordCheckoutEvent(...)` stores order/log
 4. Lifecycle executor activates/suspends the organization depending on mapped status
 
+### Core return callbacks
+
+- `GET /api/checkout/methods/stripe/return` now executes the Stripe core return action directly from the dispatcher runtime.
+- `POST /api/checkout/methods/paypal/return` now executes the PayPal core return action directly from the dispatcher runtime.
+- For `one_time` checkout:
+  - Stripe confirms `mode='payment'` sessions from the same return action.
+  - Stripe now also reuses an already completed local one-time checkout order when the browser return arrives after a webhook-first completion for the same session/payment intent.
+  - PayPal reconciles the current provider order state first and only captures server-created Orders when the order is still `APPROVED`.
+  - If PayPal already shows the order as completed, the return action reuses that provider state instead of forcing a second capture attempt.
+  - If PayPal reports `PENDING` after capture/reconciliation, the checkout stays in `provider_pending` instead of being downgraded to `failed`.
+- For `subscription` checkout:
+  - Stripe and PayPal now also reuse an already completed local checkout order when the browser return is replayed with matching provider identifiers.
+  - A mismatched PayPal subscription callback against an already completed checkout order now returns a conflict instead of silently re-projecting the order.
+- Legacy routes:
+  - `/api/stripe/checkout`
+  - `/api/paypal/checkout`
+  remain as compatibility wrappers that log legacy usage and then delegate to the same shared core return helpers.
+
+### Core webhook callbacks
+
+- `POST /api/checkout/methods/stripe/webhook` now executes the Stripe core webhook action directly from the dispatcher runtime.
+- `POST /api/checkout/methods/paypal/webhook` now executes the PayPal core webhook action directly from the dispatcher runtime.
+- Core webhook handlers now promote provider webhook ids into `externalLogId` when available, so retries can be audited and settlement dedupe has a stable provider event identifier.
+- Settlement webhook replays are now short-circuited by `provider + externalLogId` against `payment_transactions.provider_event_id`:
+  - repeated deliveries still append a `payment_logs` audit row
+  - duplicate material effects are skipped (`checkoutBeforeCreateOrder`, order status hooks, lifecycle projection, settlement transaction event)
+- Stripe core webhook handling now also recognizes one-time `checkout.session.completed` payment-mode events.
+- PayPal core webhook handling now also recognizes one-time capture events:
+  - `PAYMENT.CAPTURE.COMPLETED`
+  - `PAYMENT.CAPTURE.PENDING`
+  - `PAYMENT.CAPTURE.DENIED`
+- PayPal one-time browser return is idempotent against a webhook-first completion: if the webhook already marked the checkout order as completed, the return path reuses that result instead of failing the checkout.
+- One-time core webhook handlers now also short-circuit when the local `checkout_order` is already converged in the same provider state (`provider_pending`, `completed`, or `failed`) for the same provider session/reference ids. That keeps webhook retries auditable through `checkout.webhook.received` and `payment_logs`, but avoids repeating order transitions and checkout event projection.
+- `CHECKOUT.ORDER.APPROVED` is intentionally not auto-captured from webhook yet; capture still happens from the canonical return flow to avoid racing the browser return until that path is fully normalized.
+- Legacy routes:
+  - `/api/stripe/webhook`
+  - `/api/paypal/webhook`
+  remain as compatibility wrappers that log legacy usage and then delegate to the same shared core webhook helpers.
+
 ### Example B: Admin manually creates subscription order with `received` status
 
 1. `app/(dashboard)/admin/orders/actions.ts` inserts into `payment_orders`
@@ -175,6 +258,7 @@ Routes:
 
 ## Related files
 
+- `lib/payments/attempt-logs.ts`
 - `lib/payments/checkout-system.ts`
 - `lib/payments/order-subscription-events.ts`
 - `lib/payments/orders.ts`

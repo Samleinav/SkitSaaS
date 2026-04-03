@@ -30,6 +30,7 @@ export type {
   ModuleAuthProviderRoutes,
   ModuleAuthProvider,
   ModulePaymentOrderType,
+  ModulePaymentTargetType,
   ModulePaymentMethodRoutes,
   ModulePaymentMethod,
   ModuleLanguagePackScope,

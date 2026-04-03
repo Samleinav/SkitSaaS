@@ -20,6 +20,7 @@ test('buildPaymentMethodRegistry resolves methods from enabled modules only', ()
           paymentMethodId: 'walletx',
           displayName: 'Wallet X',
           supportsOrderTypes: ['subscription'],
+          supportsTargetTypes: ['user'],
           routes: {
             startPath: '/payments/walletx/start',
             returnPath: '/payments/walletx/return',
@@ -70,10 +71,11 @@ test('buildPaymentMethodRegistry resolves methods from enabled modules only', ()
   assert.equal(registry.methods[0]?.paymentMethodId, 'walletx');
   assert.equal(registry.methods[0]?.moduleId, 'mod.pay.a');
   assert.deepEqual(registry.methods[0]?.supportsOrderTypes, ['subscription']);
+  assert.deepEqual(registry.methods[0]?.supportsTargetTypes, ['user']);
   assert.equal(registry.methods[0]?.routes.startPath, '/payments/walletx/start');
 });
 
-test('buildPaymentMethodRegistry defaults order types to subscription and one_time', () => {
+test('buildPaymentMethodRegistry defaults order and target types to full support', () => {
   const manifests = [
     defineModule({
       moduleId: 'mod.pay.default',
@@ -111,6 +113,7 @@ test('buildPaymentMethodRegistry defaults order types to subscription and one_ti
     'one_time',
     'subscription'
   ]);
+  assert.deepEqual(registry.methods[0]?.supportsTargetTypes, ['team', 'user']);
 });
 
 test('buildPaymentMethodRegistry fails closed on duplicate payment method ids', () => {
@@ -186,6 +189,7 @@ test('validateModuleManifest validates payment method definitions', () => {
         {
           paymentMethodId: 'walletx',
           supportsOrderTypes: ['subscription', 'invalid' as 'subscription'],
+          supportsTargetTypes: ['team', 'invalid' as 'team'],
           routes: {
             startPath: '/payments/ok/start'
           }
@@ -208,6 +212,7 @@ test('validateModuleManifest validates payment method definitions', () => {
 
   assert.ok(errors.includes('module_payment_method_id_invalid:0'));
   assert.ok(errors.includes('module_payment_method_order_types_invalid:1'));
+  assert.ok(errors.includes('module_payment_method_target_types_invalid:1'));
   assert.ok(errors.includes('module_payment_method_duplicate:walletx'));
   assert.ok(errors.includes('module_payment_method_start_path_invalid:2'));
 });

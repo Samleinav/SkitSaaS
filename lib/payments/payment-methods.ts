@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import {
+  getActiveUserSubscriptionAssignment,
   getActiveTeamSubscriptionAssignment,
   getSubscriptionTemplateById
 } from '@/lib/db/queries';
@@ -12,10 +13,22 @@ import {
 import { createSysActivityLog } from '@/lib/system/activity-logs';
 import {
   ensurePayPalPlanForTemplate,
-  getPayPalCurrency
+  getPayPalCurrency,
+  buildPayPalCheckoutTargetCustomId,
+  createPayPalOneTimeOrder
 } from './paypal';
+import { createCheckoutPaymentAttemptLog } from './attempt-logs';
+import {
+  executePayPalCheckoutReturnAction,
+  executeStripeCheckoutReturnAction
+} from './core-return-actions';
+import {
+  executePayPalCheckoutWebhookAction,
+  executeStripeCheckoutWebhookAction
+} from './core-webhook-actions';
 import {
   createCheckoutSession,
+  createOneTimeCheckoutSession,
   getCheckoutSessionRedirectUrl
 } from './stripe';
 import {
@@ -25,6 +38,7 @@ import {
 } from './checkout-system';
 import {
   getCheckoutOrderByToken,
+  listCheckoutOrderLineItems,
   type CheckoutOrderPaymentProvider,
   type CheckoutOrderWithMetadata,
   isCheckoutOrderPayable,
@@ -40,6 +54,7 @@ import {
 } from './subscription-policy';
 
 export type CheckoutPaymentOrderType = 'subscription' | 'one_time';
+export type CheckoutPaymentTargetType = 'team' | 'user';
 export type CheckoutPaymentMethodRegistryIssue =
   | {
       code: 'duplicate_payment_method_id';
@@ -64,6 +79,7 @@ export type ResolvedCheckoutPaymentMethod = {
   description: string | null;
   order: number;
   supportsOrderTypes: CheckoutPaymentOrderType[];
+  supportsTargetTypes: CheckoutPaymentTargetType[];
   routes: {
     startPath: string;
     cancelPath: string | null;
@@ -84,9 +100,10 @@ const CORE_CHECKOUT_PAYMENT_METHODS: ResolvedCheckoutPaymentMethod[] = [
     ownerType: 'core',
     moduleId: null,
     displayName: 'Stripe',
-    description: 'Core Stripe subscription checkout adapter.',
+    description: 'Core Stripe checkout adapter for subscriptions and one-time payments.',
     order: 10,
-    supportsOrderTypes: ['subscription'],
+    supportsOrderTypes: ['subscription', 'one_time'],
+    supportsTargetTypes: ['team', 'user'],
     routes: {
       startPath: '/api/checkout/{checkoutToken}/pay/stripe',
       cancelPath: '/checkout/{checkoutToken}?status=canceled&provider=stripe',
@@ -100,9 +117,10 @@ const CORE_CHECKOUT_PAYMENT_METHODS: ResolvedCheckoutPaymentMethod[] = [
     ownerType: 'core',
     moduleId: null,
     displayName: 'PayPal',
-    description: 'Core PayPal subscription checkout adapter.',
+    description: 'Core PayPal checkout adapter for subscriptions and one-time payments.',
     order: 20,
-    supportsOrderTypes: ['subscription'],
+    supportsOrderTypes: ['subscription', 'one_time'],
+    supportsTargetTypes: ['team', 'user'],
     routes: {
       startPath: '/api/checkout/{checkoutToken}/pay/paypal',
       cancelPath: '/api/checkout/methods/paypal/cancel',
@@ -145,6 +163,70 @@ function normalizeCheckoutMetadataRecord(metadata: unknown) {
   }
 
   return metadata as Record<string, unknown>;
+}
+
+function normalizeCheckoutAttemptTargetType(value: unknown): 'team' | 'user' | null {
+  if (value === 'team' || value === 'user') {
+    return value;
+  }
+
+  return null;
+}
+
+async function logCheckoutPaymentAttempt({
+  paymentMethodId,
+  paymentMethod = null,
+  checkoutOrder = null,
+  fallbackCheckoutToken = null,
+  eventType,
+  status = 'info',
+  source = 'system',
+  providerSessionId = null,
+  providerReferenceId = null,
+  externalOrderId = null,
+  externalPaymentId = null,
+  message = null,
+  metadata = null
+}: {
+  paymentMethodId: string;
+  paymentMethod?: ResolvedCheckoutPaymentMethod | null;
+  checkoutOrder?: CheckoutOrderWithMetadata | null;
+  fallbackCheckoutToken?: string | null;
+  eventType: string;
+  status?: 'info' | 'success' | 'warning' | 'failed';
+  source?: string;
+  providerSessionId?: string | null;
+  providerReferenceId?: string | null;
+  externalOrderId?: string | null;
+  externalPaymentId?: string | null;
+  message?: string | null;
+  metadata?: Record<string, unknown> | null;
+}) {
+  await createCheckoutPaymentAttemptLog({
+    checkoutOrderId: checkoutOrder?.id ?? null,
+    checkoutToken: checkoutOrder?.checkoutToken ?? fallbackCheckoutToken,
+    paymentMethodId:
+      normalizeCheckoutPaymentMethodId(
+        paymentMethod?.paymentMethodId ?? paymentMethodId
+      ) || 'unknown',
+    provider: paymentMethod ? normalizeProviderForCheckoutOrder(paymentMethod) : 'unknown',
+    ownerType: paymentMethod?.ownerType ?? 'unknown',
+    moduleId: paymentMethod?.moduleId ?? null,
+    orderType: normalizeCheckoutOrderType(checkoutOrder?.orderType ?? '') ?? null,
+    source,
+    eventType,
+    status,
+    teamId: checkoutOrder?.teamId ?? null,
+    targetType: normalizeCheckoutAttemptTargetType(checkoutOrder?.targetType),
+    targetTeamId: checkoutOrder?.targetTeamId ?? null,
+    targetUserId: checkoutOrder?.targetUserId ?? null,
+    providerSessionId,
+    providerReferenceId,
+    externalOrderId,
+    externalPaymentId,
+    message,
+    metadata
+  });
 }
 
 function resolveTemplateSnapshot(
@@ -205,6 +287,68 @@ async function resolveCheckoutOrderTrialEligibility({
   return trialEligibility.trialEligible;
 }
 
+async function resolveCoreOneTimeCheckoutLineItems(
+  checkoutOrder: CheckoutOrderWithMetadata
+) {
+  const persistedLineItems = await listCheckoutOrderLineItems(checkoutOrder.id);
+  if (persistedLineItems.length > 0) {
+    return persistedLineItems.map((item) => ({
+      name: item.name,
+      description: item.description,
+      quantity: item.quantity,
+      unitAmount: item.unitAmount,
+      totalAmount: item.totalAmount,
+      currency: item.currency
+    }));
+  }
+
+  const oneTimeMetadata = checkoutOrder.parsedMetadata?.oneTime;
+  const oneTimeSnapshot = oneTimeMetadata?.snapshot;
+  const legacyQuantity =
+    typeof oneTimeMetadata?.quantity === 'number' &&
+    Number.isInteger(oneTimeMetadata.quantity) &&
+    oneTimeMetadata.quantity > 0
+      ? oneTimeMetadata.quantity
+      : 1;
+  const legacyAmount = checkoutOrder.amount ?? 0;
+  const snapshotUnitAmount =
+    typeof oneTimeSnapshot?.unitAmountCents === 'number' &&
+    Number.isInteger(oneTimeSnapshot.unitAmountCents) &&
+    oneTimeSnapshot.unitAmountCents >= 0
+      ? oneTimeSnapshot.unitAmountCents
+      : null;
+  const useSnapshotUnitAmount =
+    snapshotUnitAmount !== null &&
+    legacyQuantity * snapshotUnitAmount === legacyAmount;
+  const snapshotName =
+    typeof oneTimeSnapshot?.name === 'string'
+      ? oneTimeSnapshot.name.trim()
+      : '';
+  const snapshotDescription =
+    typeof oneTimeSnapshot?.description === 'string'
+      ? oneTimeSnapshot.description.trim()
+      : '';
+  const fallbackProductKey =
+    typeof oneTimeMetadata?.productKey === 'string'
+      ? oneTimeMetadata.productKey.trim()
+      : '';
+
+  return [
+    {
+      name:
+        snapshotName ||
+        checkoutOrder.planName ||
+        fallbackProductKey ||
+        'One-time product',
+      description: snapshotDescription || null,
+      quantity: useSnapshotUnitAmount ? legacyQuantity : 1,
+      unitAmount: useSnapshotUnitAmount ? snapshotUnitAmount! : legacyAmount,
+      totalAmount: legacyAmount,
+      currency: checkoutOrder.currency ?? 'USD'
+    }
+  ];
+}
+
 export function supportsCheckoutPaymentMethodOrderType(
   paymentMethod: ResolvedCheckoutPaymentMethod,
   orderType: string
@@ -215,6 +359,17 @@ export function supportsCheckoutPaymentMethodOrderType(
   }
 
   return paymentMethod.supportsOrderTypes.includes(normalizedOrderType);
+}
+
+export function supportsCheckoutPaymentMethodTargetType(
+  paymentMethod: ResolvedCheckoutPaymentMethod,
+  targetType: string | null | undefined
+) {
+  if (targetType !== 'team' && targetType !== 'user') {
+    return false;
+  }
+
+  return paymentMethod.supportsTargetTypes.includes(targetType);
 }
 
 export async function getCheckoutPaymentMethodRegistry(): Promise<CheckoutPaymentMethodRegistry> {
@@ -255,6 +410,7 @@ export async function getCheckoutPaymentMethodRegistry(): Promise<CheckoutPaymen
       description: method.description,
       order: method.order,
       supportsOrderTypes: method.supportsOrderTypes,
+      supportsTargetTypes: method.supportsTargetTypes,
       routes: method.routes,
       metadata: method.metadata
     });
@@ -389,6 +545,20 @@ function normalizeOptionalMetadata(value: unknown) {
 
 type CheckoutMethodTelemetryStatus = 'info' | 'success' | 'warning' | 'failed';
 
+type CheckoutCallbackObservation = {
+  attemptEventType: string;
+  attemptStatus: 'info' | 'success' | 'warning' | 'failed';
+  telemetryEventType:
+    | 'checkout.method.callback.succeeded'
+    | 'checkout.method.callback.provider_pending'
+    | 'checkout.method.callback.ignored'
+    | 'checkout.method.callback.replayed'
+    | 'checkout.method.callback.failed';
+  telemetryStatus: CheckoutMethodTelemetryStatus;
+  message: string;
+  metadata: Record<string, unknown>;
+};
+
 async function logCheckoutMethodTelemetry({
   eventType,
   action,
@@ -432,6 +602,93 @@ async function logCheckoutMethodTelemetry({
       ...(metadata || {})
     }
   });
+}
+
+function hasReplayLikeCheckoutCallbackMetadata(
+  metadata: Record<string, unknown> | null | undefined
+) {
+  return metadata?.replayed === true || metadata?.alreadyCompleted === true;
+}
+
+export function resolveCheckoutCallbackObservation({
+  action,
+  actionResult,
+  ownerType
+}: {
+  action: 'cancel' | 'return' | 'webhook';
+  actionResult: ModulePaymentMethodActionResult;
+  ownerType: 'core' | 'module';
+}): CheckoutCallbackObservation {
+  const ownerLabel = ownerType === 'core' ? 'Core' : 'Module';
+  const callbackOutcome = hasReplayLikeCheckoutCallbackMetadata(
+    actionResult.metadata
+  )
+    ? 'replayed'
+    : actionResult.status === 'provider_pending'
+      ? 'provider_pending'
+      : actionResult.status === 'ignored'
+        ? 'ignored'
+        : actionResult.status === 'failed'
+          ? 'failed'
+          : 'succeeded';
+
+  const metadata = {
+    actionStatus: actionResult.status,
+    callbackOutcome
+  } satisfies Record<string, unknown>;
+
+  if (callbackOutcome === 'failed') {
+    return {
+      attemptEventType: `${action}_failed`,
+      attemptStatus: 'failed',
+      telemetryEventType: 'checkout.method.callback.failed',
+      telemetryStatus: 'failed',
+      message: `${ownerLabel} ${action} action reported a failed checkout state.`,
+      metadata
+    };
+  }
+
+  if (callbackOutcome === 'replayed') {
+    return {
+      attemptEventType: `${action}_replayed`,
+      attemptStatus: 'info',
+      telemetryEventType: 'checkout.method.callback.replayed',
+      telemetryStatus: 'info',
+      message: `${ownerLabel} ${action} action reused an already settled checkout state.`,
+      metadata
+    };
+  }
+
+  if (callbackOutcome === 'provider_pending') {
+    return {
+      attemptEventType: `${action}_provider_pending`,
+      attemptStatus: 'info',
+      telemetryEventType: 'checkout.method.callback.provider_pending',
+      telemetryStatus: 'info',
+      message: `${ownerLabel} ${action} action left checkout in provider_pending.`,
+      metadata
+    };
+  }
+
+  if (callbackOutcome === 'ignored') {
+    return {
+      attemptEventType: `${action}_ignored`,
+      attemptStatus: 'info',
+      telemetryEventType: 'checkout.method.callback.ignored',
+      telemetryStatus: 'info',
+      message: `${ownerLabel} ${action} action was ignored for this checkout state.`,
+      metadata
+    };
+  }
+
+  return {
+    attemptEventType: `${action}_succeeded`,
+    attemptStatus: 'success',
+    telemetryEventType: 'checkout.method.callback.succeeded',
+    telemetryStatus: 'success',
+    message: `${ownerLabel} ${action} action executed for checkout payment method.`,
+    metadata
+  };
 }
 
 function normalizeModulePaymentMethodActionResult(
@@ -522,179 +779,6 @@ export function resolveCoreCheckoutLegacyActionPath({
   }
 
   return null;
-}
-
-async function parseCoreActionFailure(response: Response) {
-  const jsonBody = await response
-    .clone()
-    .json()
-    .catch(() => null as unknown);
-  const redirectUrl =
-    jsonBody &&
-    typeof jsonBody === 'object' &&
-    'redirectUrl' in jsonBody
-      ? normalizeOptionalText(
-          (jsonBody as Record<string, unknown>).redirectUrl,
-          2000
-        )
-      : null;
-
-  if (jsonBody && typeof jsonBody === 'object' && 'error' in jsonBody) {
-    return {
-      error: normalizeOptionalText(
-        (jsonBody as Record<string, unknown>).error,
-        500
-      ),
-      redirectUrl
-    };
-  }
-
-  const textBody = await response.text().catch(() => '');
-  return {
-    error: normalizeOptionalText(textBody, 500) || null,
-    redirectUrl
-  };
-}
-
-async function forwardCoreCheckoutPaymentMethodAction({
-  paymentMethod,
-  action,
-  request,
-  fallbackCheckoutToken
-}: {
-  paymentMethod: ResolvedCheckoutPaymentMethod;
-  action: 'cancel' | 'return' | 'webhook';
-  request: Request;
-  fallbackCheckoutToken: string | null;
-}) {
-  const legacyPath = resolveCoreCheckoutLegacyActionPath({
-    paymentMethodId: paymentMethod.paymentMethodId,
-    action
-  });
-  if (!legacyPath) {
-    return {
-      ok: false,
-      statusCode: 400,
-      error: `Core payment method ${paymentMethod.paymentMethodId} does not expose ${action} action bridge.`
-    } as const;
-  }
-
-  const sourceUrl = new URL(request.url);
-  const targetUrl = new URL(legacyPath, sourceUrl.origin);
-  if (action === 'return') {
-    sourceUrl.searchParams.forEach((value, key) => {
-      targetUrl.searchParams.set(key, value);
-    });
-    if (
-      fallbackCheckoutToken &&
-      paymentMethod.paymentMethodId === 'stripe' &&
-      !targetUrl.searchParams.get('checkout_token')
-    ) {
-      targetUrl.searchParams.set('checkout_token', fallbackCheckoutToken);
-    }
-  }
-
-  const headers = new Headers(request.headers);
-  headers.delete('content-length');
-  headers.delete('host');
-  headers.set('x-checkout-legacy-bridge', '1');
-  headers.set('x-checkout-legacy-payment-method', paymentMethod.paymentMethodId);
-  headers.set('x-checkout-legacy-action', action);
-
-  let method = action === 'return' && paymentMethod.paymentMethodId === 'stripe'
-    ? 'GET'
-    : 'POST';
-  let body: string | undefined = undefined;
-
-  if (method !== 'GET') {
-    const requestBody = await request.text().catch(() => '');
-    if (action === 'return' && paymentMethod.paymentMethodId === 'paypal') {
-      let payload: Record<string, unknown> = {};
-      if (requestBody) {
-        try {
-          const parsed = JSON.parse(requestBody);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            payload = parsed as Record<string, unknown>;
-          }
-        } catch {
-          payload = {};
-        }
-      }
-      if (
-        fallbackCheckoutToken &&
-        typeof payload.checkoutToken !== 'string'
-      ) {
-        payload.checkoutToken = fallbackCheckoutToken;
-      }
-      body = JSON.stringify(payload);
-      headers.set('content-type', 'application/json');
-    } else {
-      body = requestBody || undefined;
-    }
-  }
-
-  const forwardedResponse = await fetch(targetUrl.toString(), {
-    method,
-    headers,
-    body,
-    redirect: 'manual'
-  });
-  const isRedirectStatus =
-    forwardedResponse.status >= 300 && forwardedResponse.status < 400;
-  if (!forwardedResponse.ok && !isRedirectStatus) {
-    const failure = await parseCoreActionFailure(forwardedResponse);
-    return {
-      ok: false,
-      statusCode: forwardedResponse.status,
-      error: failure.error || 'Core payment method action bridge failed.',
-      redirectUrl: failure.redirectUrl
-    } as const;
-  }
-
-  const redirectUrl = normalizeOptionalText(
-    forwardedResponse.headers.get('location'),
-    2000
-  );
-  const responseJson = await forwardedResponse
-    .clone()
-    .json()
-    .catch(() => null as unknown);
-  const jsonRedirectUrl =
-    responseJson &&
-    typeof responseJson === 'object' &&
-    'redirectUrl' in responseJson
-      ? normalizeOptionalText(
-          (responseJson as Record<string, unknown>).redirectUrl,
-          2000
-        )
-      : null;
-
-  const checkoutToken =
-    normalizeOptionalText(fallbackCheckoutToken, 120) ||
-    (responseJson &&
-    typeof responseJson === 'object' &&
-    'checkoutToken' in responseJson
-      ? normalizeOptionalText(
-          (responseJson as Record<string, unknown>).checkoutToken,
-          120
-        )
-      : null);
-  const checkoutOrder = checkoutToken
-    ? await getCheckoutOrderByToken(checkoutToken)
-    : null;
-
-  return {
-    ok: true,
-    result: {
-      status: 'ignored',
-      checkoutToken: checkoutOrder?.checkoutToken ?? checkoutToken,
-      checkoutOrderId: checkoutOrder?.id ?? null,
-      redirectUrl: redirectUrl || jsonRedirectUrl,
-      paymentMethod: paymentMethod.paymentMethodId,
-      metadata: normalizeCheckoutMetadataRecord(responseJson)
-    } satisfies ModulePaymentMethodActionResult,
-    checkoutOrder
-  } as const;
 }
 
 async function invokeModulePaymentMethodRoute({
@@ -789,6 +873,20 @@ async function applyCheckoutPaymentMethodTransition({
       paymentMethod: actionResult.paymentMethod || paymentMethod.paymentMethodId,
       providerSessionId: actionResult.providerSessionId
     });
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: paymentMethod.paymentMethodId,
+      paymentMethod,
+      checkoutOrder,
+      source,
+      eventType: 'transition_provider_pending',
+      status: 'info',
+      providerSessionId: actionResult.providerSessionId,
+      providerReferenceId: actionResult.providerReferenceId,
+      externalOrderId: actionResult.externalOrderId,
+      externalPaymentId: actionResult.externalPaymentId,
+      message: actionResult.message || 'Checkout order moved to provider_pending.',
+      metadata: actionResult.metadata
+    });
     return;
   }
 
@@ -837,12 +935,21 @@ async function applyCheckoutPaymentMethodTransition({
           checkoutOrderSubscription: checkoutOrderSubscriptionMetadata
         }
       : undefined;
+  const normalizedOrderType = normalizeCheckoutOrderType(checkoutOrder.orderType);
+  if (!normalizedOrderType) {
+    console.error('Unable to record checkout event with invalid checkout order type.', {
+      checkoutOrderId: checkoutOrder.id,
+      orderType: checkoutOrder.orderType,
+      provider,
+      paymentMethodId: paymentMethod.paymentMethodId
+    });
+    return;
+  }
 
   await recordCheckoutEvent({
     provider,
     moduleId: paymentMethod.ownerType === 'module' ? paymentMethod.moduleId : null,
-    orderType:
-      normalizeCheckoutOrderType(checkoutOrder.orderType) ?? 'subscription',
+    orderType: normalizedOrderType,
     status: paymentOrderStatus,
     eventType: actionResult.eventType || CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
     source,
@@ -869,6 +976,27 @@ async function applyCheckoutPaymentMethodTransition({
       moduleId: paymentMethod.moduleId,
       actionStatus: actionResult.status
     }
+  });
+
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: paymentMethod.paymentMethodId,
+    paymentMethod,
+    checkoutOrder,
+    source,
+    eventType: `transition_${actionResult.status}`,
+    status:
+      actionResult.status === 'completed'
+        ? 'success'
+        : actionResult.status === 'failed'
+          ? 'failed'
+          : 'warning',
+    providerSessionId: actionResult.providerSessionId,
+    providerReferenceId: actionResult.providerReferenceId,
+    externalOrderId: actionResult.externalOrderId,
+    externalPaymentId: actionResult.externalPaymentId,
+    message:
+      actionResult.message || `Checkout order transitioned to ${actionResult.status}.`,
+    metadata: mergedMetadata
   });
 
   await logCheckoutMethodTelemetry({
@@ -976,80 +1104,169 @@ async function startStripeCheckoutPayment({
     id: number;
     stripeCustomerId: string | null;
     stripeProductId: string | null;
-  };
+  } | null;
   user: Pick<User, 'id'>;
 }): Promise<CheckoutPaymentStartResult> {
-  if (
-    checkoutOrder.orderType !== 'subscription' ||
-    !checkoutOrder.subscriptionTemplateId
-  ) {
+  const targetType = checkoutOrder.targetType;
+  if (targetType !== 'team' && targetType !== 'user') {
     return {
       ok: false,
       statusCode: 400,
-      error: 'Stripe core adapter currently supports subscription checkout only.'
+      error: 'Checkout order target is invalid for Stripe checkout.'
     };
   }
 
-  const template = await getSubscriptionTemplateById(
-    checkoutOrder.subscriptionTemplateId
-  );
-  if (!template) {
-    return {
-      ok: false,
-      statusCode: 404,
-      error: 'Subscription template not found for Stripe checkout.'
-    };
-  }
-
-  if (
-    !isSubscriptionTemplateScopeCompatible({
-      checkoutTargetType: checkoutOrder.targetType,
-      templateTargetScope: template.targetScope
-    })
-  ) {
+  if (targetType === 'team' && !team) {
     return {
       ok: false,
       statusCode: 400,
-      error: 'Subscription template scope does not match checkout target.'
+      error: 'Stripe team checkout requires team context.'
     };
   }
 
-  const activeAssignment = await getActiveTeamSubscriptionAssignment(team.id);
-  const subscriptionMetadata = checkoutOrder.parsedMetadata?.subscription;
-  const trialEligible = await resolveCheckoutOrderTrialEligibility({
-    checkoutOrder,
-    template
-  });
-  const stripeSession = await createCheckoutSession({
-    team,
-    user,
-    template,
-    changeMode:
-      subscriptionMetadata?.changeMode === 'immediate' ||
-      subscriptionMetadata?.changeMode === 'period_end'
-        ? subscriptionMetadata.changeMode
-        : null,
-    currentPeriodEnd: activeAssignment?.currentPeriodEnd ?? null,
-    trialEndsAt: activeAssignment?.trialEndsAt ?? null,
-    currentAssignmentId:
-      subscriptionMetadata?.currentAssignmentId ?? activeAssignment?.id ?? null,
-    currentTemplateId:
-      subscriptionMetadata?.currentTemplateId ??
-      activeAssignment?.subscriptionTemplateId ??
-      null,
-    checkoutToken: checkoutOrder.checkoutToken,
-    checkoutOrderId: checkoutOrder.id,
-    idempotencyKey: `checkout-order-${checkoutOrder.id}-method-stripe-start`,
-    cancelPath: `/checkout/${encodeURIComponent(checkoutOrder.checkoutToken)}?status=canceled&provider=stripe`,
-    trialEligible,
-    redirectOnSuccess: false
-  });
+  const resolvedTargetTeamId = targetType === 'team' ? team!.id : null;
+  const resolvedTargetUserId =
+    targetType === 'user' ? checkoutOrder.targetUserId : null;
+  const cancelPath = `/checkout/${encodeURIComponent(checkoutOrder.checkoutToken)}?status=canceled&provider=stripe`;
+
+  let stripeSession: Awaited<ReturnType<typeof createCheckoutSession>> | Awaited<ReturnType<typeof createOneTimeCheckoutSession>> | null = null;
+
+  if (checkoutOrder.orderType === 'one_time') {
+    const oneTimeLineItems = await resolveCoreOneTimeCheckoutLineItems(checkoutOrder);
+    const oneTimeAmount =
+      checkoutOrder.amount ??
+      oneTimeLineItems.reduce((total, item) => total + item.totalAmount, 0);
+    if (!Number.isInteger(oneTimeAmount) || oneTimeAmount <= 0) {
+      return {
+        ok: false,
+        statusCode: 400,
+        error: 'One-time checkout amount is invalid for Stripe checkout.'
+      };
+    }
+
+    stripeSession = await createOneTimeCheckoutSession({
+      team,
+      user,
+      targetType,
+      targetTeamId: resolvedTargetTeamId,
+      targetUserId: resolvedTargetUserId,
+      checkoutToken: checkoutOrder.checkoutToken,
+      checkoutOrderId: checkoutOrder.id,
+      amount: oneTimeAmount,
+      currency: checkoutOrder.currency ?? 'USD',
+      planName: checkoutOrder.planName,
+      lineItems: oneTimeLineItems,
+      idempotencyKey: `checkout-order-${checkoutOrder.id}-method-stripe-start`,
+      cancelPath,
+      redirectOnSuccess: false
+    });
+  } else {
+    if (!checkoutOrder.subscriptionTemplateId) {
+      return {
+        ok: false,
+        statusCode: 400,
+        error: 'Subscription template not found for Stripe checkout.'
+      };
+    }
+
+    const template = await getSubscriptionTemplateById(
+      checkoutOrder.subscriptionTemplateId
+    );
+    if (!template) {
+      return {
+        ok: false,
+        statusCode: 404,
+        error: 'Subscription template not found for Stripe checkout.'
+      };
+    }
+
+    if (
+      !isSubscriptionTemplateScopeCompatible({
+        checkoutTargetType: checkoutOrder.targetType,
+        templateTargetScope: template.targetScope
+      })
+    ) {
+      return {
+        ok: false,
+        statusCode: 400,
+        error: 'Subscription template scope does not match checkout target.'
+      };
+    }
+
+    const activeAssignment =
+      targetType === 'team'
+        ? await getActiveTeamSubscriptionAssignment(team!.id)
+        : checkoutOrder.targetUserId
+          ? await getActiveUserSubscriptionAssignment(checkoutOrder.targetUserId)
+          : null;
+    const subscriptionMetadata = checkoutOrder.parsedMetadata?.subscription;
+    const trialEligible = await resolveCheckoutOrderTrialEligibility({
+      checkoutOrder,
+      template
+    });
+    stripeSession = await createCheckoutSession({
+      team,
+      user,
+      targetType,
+      targetTeamId: resolvedTargetTeamId,
+      targetUserId: resolvedTargetUserId,
+      template,
+      changeMode:
+        subscriptionMetadata?.changeMode === 'immediate' ||
+        subscriptionMetadata?.changeMode === 'period_end'
+          ? subscriptionMetadata.changeMode
+          : null,
+      currentPeriodEnd: activeAssignment?.currentPeriodEnd ?? null,
+      trialEndsAt: activeAssignment?.trialEndsAt ?? null,
+      currentAssignmentId:
+        subscriptionMetadata?.currentAssignmentId ?? activeAssignment?.id ?? null,
+      currentTemplateId:
+        subscriptionMetadata?.currentTemplateId ??
+        activeAssignment?.subscriptionTemplateId ??
+        null,
+      checkoutToken: checkoutOrder.checkoutToken,
+      checkoutOrderId: checkoutOrder.id,
+      idempotencyKey: `checkout-order-${checkoutOrder.id}-method-stripe-start`,
+      cancelPath,
+      trialEligible,
+      redirectOnSuccess: false
+    });
+  }
 
   await markCheckoutOrderProviderPending({
     checkoutOrderId: checkoutOrder.id,
     provider: 'stripe',
     paymentMethod: 'card',
     providerSessionId: stripeSession.id
+  });
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: 'stripe',
+    paymentMethod: {
+      paymentMethodId: 'stripe',
+      ownerType: 'core',
+      moduleId: null,
+      displayName: 'Stripe',
+      description: null,
+      order: 10,
+      supportsOrderTypes: ['subscription', 'one_time'],
+      supportsTargetTypes: ['team', 'user'],
+      routes: {
+        startPath: '/api/checkout/{checkoutToken}/pay/stripe',
+        cancelPath: '/checkout/{checkoutToken}?status=canceled&provider=stripe',
+        returnPath: '/api/checkout/methods/stripe/return',
+        webhookPath: '/api/checkout/methods/stripe/webhook'
+      },
+      metadata: null
+    },
+    checkoutOrder,
+    source: 'checkout',
+    eventType: 'transition_provider_pending',
+    status: 'info',
+    providerSessionId: stripeSession.id,
+    message:
+      checkoutOrder.orderType === 'one_time'
+        ? 'Stripe one-time checkout session created and checkout order moved to provider_pending.'
+        : 'Stripe checkout session created and checkout order moved to provider_pending.'
   });
 
   return {
@@ -1066,14 +1283,73 @@ async function startPayPalCheckoutPayment({
 }: {
   checkoutOrder: CheckoutOrderWithMetadata;
 }): Promise<CheckoutPaymentStartResult> {
-  if (
-    checkoutOrder.orderType !== 'subscription' ||
-    !checkoutOrder.subscriptionTemplateId
-  ) {
+  const targetType = checkoutOrder.targetType;
+  if (targetType !== 'team' && targetType !== 'user') {
     return {
       ok: false,
       statusCode: 400,
-      error: 'PayPal core adapter currently supports subscription checkout only.'
+      error: 'Checkout order target is invalid for PayPal checkout.'
+    };
+  }
+
+  const customId = buildPayPalCheckoutTargetCustomId({
+    targetType,
+    targetTeamId: targetType === 'team' ? checkoutOrder.targetTeamId ?? checkoutOrder.teamId : null,
+    targetUserId: targetType === 'user' ? checkoutOrder.targetUserId : null
+  });
+
+  if (checkoutOrder.orderType === 'one_time') {
+    const payPalCurrency = await getPayPalCurrency();
+    const oneTimeLineItems = await resolveCoreOneTimeCheckoutLineItems(checkoutOrder);
+    const oneTimeAmount =
+      checkoutOrder.amount ??
+      oneTimeLineItems.reduce((total, item) => total + item.totalAmount, 0);
+    if (!Number.isInteger(oneTimeAmount) || oneTimeAmount <= 0) {
+      return {
+        ok: false,
+        statusCode: 400,
+        error: 'One-time checkout amount is invalid for PayPal checkout.'
+      };
+    }
+
+    const oneTimeOrder = await createPayPalOneTimeOrder({
+      checkoutOrderId: checkoutOrder.id,
+      targetType,
+      targetTeamId: targetType === 'team' ? checkoutOrder.targetTeamId ?? checkoutOrder.teamId : null,
+      targetUserId: targetType === 'user' ? checkoutOrder.targetUserId : null,
+      amount: oneTimeAmount,
+      currency: checkoutOrder.currency ?? payPalCurrency,
+      planName: checkoutOrder.planName,
+      lineItems: oneTimeLineItems
+    });
+
+    await markCheckoutOrderProviderPending({
+      checkoutOrderId: checkoutOrder.id,
+      provider: 'paypal',
+      paymentMethod: 'paypal',
+      providerSessionId: oneTimeOrder.orderId
+    });
+
+    return {
+      ok: true,
+      paymentMethodId: 'paypal',
+      status: 'provider_pending',
+      redirectUrl: null,
+      clientPayload: {
+        flow: 'paypal_onetime',
+        checkoutToken: checkoutOrder.checkoutToken,
+        orderId: oneTimeOrder.orderId,
+        currency: checkoutOrder.currency ?? payPalCurrency,
+        customId: oneTimeOrder.customId
+      }
+    };
+  }
+
+  if (!checkoutOrder.subscriptionTemplateId) {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: 'Subscription template not found for PayPal checkout.'
     };
   }
 
@@ -1120,7 +1396,8 @@ async function startPayPalCheckoutPayment({
       checkoutToken: checkoutOrder.checkoutToken,
       planId: payPalPlan.planId,
       currency: payPalCurrency,
-      trialEligible
+      trialEligible,
+      customId
     }
   };
 }
@@ -1230,13 +1507,40 @@ async function executeCoreCheckoutPaymentMethodAction({
   fallbackCheckoutToken: string | null;
   source: 'checkout' | 'webhook';
 }) {
-  if (action === 'return' || action === 'webhook') {
-    return forwardCoreCheckoutPaymentMethodAction({
-      paymentMethod,
-      action,
-      request,
-      fallbackCheckoutToken
-    });
+  if (action === 'return') {
+    if (paymentMethod.paymentMethodId === 'stripe') {
+      return executeStripeCheckoutReturnAction({
+        request,
+        fallbackCheckoutToken,
+        source: '/api/checkout/methods/stripe/return'
+      });
+    }
+
+    if (paymentMethod.paymentMethodId === 'paypal') {
+      return executePayPalCheckoutReturnAction({
+        request,
+        fallbackCheckoutToken,
+        source: '/api/checkout/methods/paypal/return'
+      });
+    }
+  }
+
+  if (action === 'webhook') {
+    if (paymentMethod.paymentMethodId === 'stripe') {
+      return executeStripeCheckoutWebhookAction({
+        request,
+        fallbackCheckoutToken,
+        source: '/api/checkout/methods/stripe/webhook'
+      });
+    }
+
+    if (paymentMethod.paymentMethodId === 'paypal') {
+      return executePayPalCheckoutWebhookAction({
+        request,
+        fallbackCheckoutToken,
+        source: '/api/checkout/methods/paypal/webhook'
+      });
+    }
   }
 
   const checkoutToken = normalizeOptionalText(fallbackCheckoutToken, 120);
@@ -1319,6 +1623,14 @@ export async function startCheckoutPaymentByMethod({
   } | null;
 }): Promise<CheckoutPaymentStartResult> {
   if (!isCheckoutOrderPayable(checkoutOrder)) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId,
+      checkoutOrder,
+      source: 'checkout',
+      eventType: 'start_blocked',
+      status: 'warning',
+      message: 'Checkout order is not payable.'
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.start.blocked',
       action: 'start',
@@ -1336,6 +1648,14 @@ export async function startCheckoutPaymentByMethod({
 
   const resolved = await getCheckoutPaymentMethodById(paymentMethodId);
   if (!resolved.method) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId,
+      checkoutOrder,
+      source: 'checkout',
+      eventType: 'start_failed',
+      status: 'failed',
+      message: resolved.issue?.message || 'Payment method not found.'
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.start.failed',
       action: 'start',
@@ -1351,7 +1671,29 @@ export async function startCheckoutPaymentByMethod({
     };
   }
 
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: resolved.method.paymentMethodId,
+    paymentMethod: resolved.method,
+    checkoutOrder,
+    source: 'checkout',
+    eventType: 'start_requested',
+    status: 'info',
+    message: 'Checkout payment method start requested.'
+  });
+
   if (!supportsCheckoutPaymentMethodOrderType(resolved.method, checkoutOrder.orderType)) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      checkoutOrder,
+      source: 'checkout',
+      eventType: 'start_blocked',
+      status: 'warning',
+      message: 'Payment method does not support this checkout order type.',
+      metadata: {
+        orderType: checkoutOrder.orderType
+      }
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.start.blocked',
       action: 'start',
@@ -1370,11 +1712,57 @@ export async function startCheckoutPaymentByMethod({
     };
   }
 
+  if (
+    !supportsCheckoutPaymentMethodTargetType(
+      resolved.method,
+      checkoutOrder.targetType
+    )
+  ) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      checkoutOrder,
+      source: 'checkout',
+      eventType: 'start_blocked',
+      status: 'warning',
+      message: 'Payment method does not support this checkout target type.',
+      metadata: {
+        targetType: checkoutOrder.targetType
+      }
+    });
+    await logCheckoutMethodTelemetry({
+      eventType: 'checkout.method.start.blocked',
+      action: 'start',
+      status: 'warning',
+      paymentMethodId: resolved.method.paymentMethodId,
+      checkoutOrder,
+      message: 'Payment method does not support checkout target type.',
+      metadata: {
+        targetType: checkoutOrder.targetType
+      }
+    });
+    return {
+      ok: false,
+      statusCode: 400,
+      error: 'Payment method does not support this checkout target type.'
+    };
+  }
+
   const reusedPendingStart = await resolveCheckoutProviderPendingStartReuse({
     paymentMethod: resolved.method,
     checkoutOrder
   });
   if (reusedPendingStart) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      checkoutOrder,
+      source: 'checkout',
+      eventType: 'reused_pending_start',
+      status: 'info',
+      providerSessionId: checkoutOrder.providerSessionId,
+      message: 'Reused provider_pending checkout start.'
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.start.reused',
       action: 'start',
@@ -1393,13 +1781,7 @@ export async function startCheckoutPaymentByMethod({
   let result: CheckoutPaymentStartResult;
 
   if (resolved.method.ownerType === 'core') {
-    if (!team) {
-      result = {
-        ok: false,
-        statusCode: 400,
-        error: 'Core payment methods require team checkout context.'
-      };
-    } else if (resolved.method.paymentMethodId === 'stripe') {
+    if (resolved.method.paymentMethodId === 'stripe') {
       result = await startStripeCheckoutPayment({
         checkoutOrder,
         team,
@@ -1423,6 +1805,26 @@ export async function startCheckoutPaymentByMethod({
       team
     });
   }
+
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: resolved.method.paymentMethodId,
+    paymentMethod: resolved.method,
+    checkoutOrder,
+    source: 'checkout',
+    eventType: result.ok ? 'start_succeeded' : 'start_failed',
+    status: result.ok ? 'success' : 'failed',
+    message: result.ok
+      ? 'Checkout payment method start executed.'
+      : result.error,
+    metadata: result.ok
+      ? {
+          checkoutStatus: result.status,
+          hasRedirectUrl: Boolean(result.redirectUrl)
+        }
+      : {
+          statusCode: result.statusCode
+        }
+  });
 
   await logCheckoutMethodTelemetry({
     eventType: result.ok
@@ -1529,6 +1931,16 @@ export async function executeCheckoutPaymentMethodAction({
     } as const;
   }
 
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: resolved.method.paymentMethodId,
+    paymentMethod: resolved.method,
+    fallbackCheckoutToken,
+    source,
+    eventType: `${action}_received`,
+    status: 'info',
+    message: `Checkout payment method ${action} callback received.`
+  });
+
   if (resolved.method.ownerType === 'core') {
     const coreResult = await executeCoreCheckoutPaymentMethodAction({
       paymentMethod: resolved.method,
@@ -1537,20 +1949,67 @@ export async function executeCheckoutPaymentMethodAction({
       fallbackCheckoutToken,
       source
     });
+    const coreCallbackObservation = coreResult.ok
+      ? resolveCheckoutCallbackObservation({
+          action,
+          actionResult: coreResult.result,
+          ownerType: 'core'
+        })
+      : null;
+
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      checkoutOrder: coreResult.ok ? coreResult.checkoutOrder ?? null : null,
+      fallbackCheckoutToken,
+      source,
+      eventType:
+        coreResult.ok && coreCallbackObservation
+          ? coreCallbackObservation.attemptEventType
+          : `${action}_failed`,
+      status:
+        coreResult.ok && coreCallbackObservation
+          ? coreCallbackObservation.attemptStatus
+          : 'failed',
+      providerSessionId: coreResult.ok ? coreResult.result.providerSessionId ?? null : null,
+      providerReferenceId: coreResult.ok
+        ? coreResult.result.providerReferenceId ?? null
+        : null,
+      externalOrderId: coreResult.ok ? coreResult.result.externalOrderId ?? null : null,
+      externalPaymentId: coreResult.ok
+        ? coreResult.result.externalPaymentId ?? null
+        : null,
+      message: coreResult.ok
+        ? coreCallbackObservation?.message ??
+          `Core ${action} action executed for checkout payment method.`
+        : coreResult.error,
+      metadata: coreResult.ok
+        ? coreCallbackObservation?.metadata ?? {
+            actionStatus: coreResult.result.status
+          }
+        : {
+            statusCode: coreResult.statusCode
+          }
+    });
     await logCheckoutMethodTelemetry({
-      eventType: coreResult.ok
-        ? 'checkout.method.callback.succeeded'
-        : 'checkout.method.callback.failed',
+      eventType:
+        coreResult.ok && coreCallbackObservation
+          ? coreCallbackObservation.telemetryEventType
+          : 'checkout.method.callback.failed',
       action,
-      status: coreResult.ok ? 'success' : 'failed',
+      status:
+        coreResult.ok && coreCallbackObservation
+          ? coreCallbackObservation.telemetryStatus
+          : 'failed',
       paymentMethodId: resolved.method.paymentMethodId,
       checkoutOrder: coreResult.ok ? coreResult.checkoutOrder ?? null : null,
       fallbackCheckoutToken,
       message: coreResult.ok
-        ? `Core ${action} action executed for checkout payment method.`
+        ? coreCallbackObservation?.message ??
+          `Core ${action} action executed for checkout payment method.`
         : coreResult.error,
       metadata: coreResult.ok
-        ? {
+        ? coreCallbackObservation?.metadata ?? {
             actionStatus: coreResult.result.status
           }
         : {
@@ -1561,6 +2020,15 @@ export async function executeCheckoutPaymentMethodAction({
   }
 
   if (!resolved.method.moduleId) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      fallbackCheckoutToken,
+      source,
+      eventType: `${action}_failed`,
+      status: 'failed',
+      message: 'Module payment method is missing module owner information.'
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.callback.failed',
       action,
@@ -1581,8 +2049,17 @@ export async function executeCheckoutPaymentMethodAction({
       ? resolved.method.routes.cancelPath
       : action === 'return'
         ? resolved.method.routes.returnPath
-        : resolved.method.routes.webhookPath;
+      : resolved.method.routes.webhookPath;
   if (!routePath) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      fallbackCheckoutToken,
+      source,
+      eventType: `${action}_failed`,
+      status: 'failed',
+      message: `Payment method ${action} route is not configured.`
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.callback.failed',
       action,
@@ -1632,6 +2109,18 @@ export async function executeCheckoutPaymentMethodAction({
   });
 
   if (!dispatchResponse.ok) {
+    await logCheckoutPaymentAttempt({
+      paymentMethodId: resolved.method.paymentMethodId,
+      paymentMethod: resolved.method,
+      fallbackCheckoutToken,
+      source,
+      eventType: `${action}_failed`,
+      status: 'failed',
+      message: dispatchResponse.error,
+      metadata: {
+        statusCode: dispatchResponse.statusCode
+      }
+    });
     await logCheckoutMethodTelemetry({
       eventType: 'checkout.method.callback.failed',
       action,
@@ -1676,6 +2165,19 @@ export async function executeCheckoutPaymentMethodAction({
           error: error instanceof Error ? error.message : 'unknown_error'
         }
       });
+      await logCheckoutPaymentAttempt({
+        paymentMethodId: resolved.method.paymentMethodId,
+        paymentMethod: resolved.method,
+        checkoutOrder,
+        fallbackCheckoutToken,
+        source,
+        eventType: `${action}_failed`,
+        status: 'failed',
+        message: 'Unable to apply checkout payment transition.',
+        metadata: {
+          error: error instanceof Error ? error.message : 'unknown_error'
+        }
+      });
       return {
         ok: false,
         statusCode: 500,
@@ -1684,17 +2186,36 @@ export async function executeCheckoutPaymentMethodAction({
     }
   }
 
-  await logCheckoutMethodTelemetry({
-    eventType: 'checkout.method.callback.succeeded',
+  const moduleCallbackObservation = resolveCheckoutCallbackObservation({
     action,
-    status: 'success',
+    actionResult: dispatchResponse.result,
+    ownerType: 'module'
+  });
+
+  await logCheckoutMethodTelemetry({
+    eventType: moduleCallbackObservation.telemetryEventType,
+    action,
+    status: moduleCallbackObservation.telemetryStatus,
     paymentMethodId: resolved.method.paymentMethodId,
     checkoutOrder,
     fallbackCheckoutToken,
-    message: `Module ${action} action executed for checkout payment method.`,
-    metadata: {
-      actionStatus: dispatchResponse.result.status
-    }
+    message: moduleCallbackObservation.message,
+    metadata: moduleCallbackObservation.metadata
+  });
+  await logCheckoutPaymentAttempt({
+    paymentMethodId: resolved.method.paymentMethodId,
+    paymentMethod: resolved.method,
+    checkoutOrder,
+    fallbackCheckoutToken,
+    source,
+    eventType: moduleCallbackObservation.attemptEventType,
+    status: moduleCallbackObservation.attemptStatus,
+    providerSessionId: dispatchResponse.result.providerSessionId ?? null,
+    providerReferenceId: dispatchResponse.result.providerReferenceId ?? null,
+    externalOrderId: dispatchResponse.result.externalOrderId ?? null,
+    externalPaymentId: dispatchResponse.result.externalPaymentId ?? null,
+    message: moduleCallbackObservation.message,
+    metadata: moduleCallbackObservation.metadata
   });
 
   return {

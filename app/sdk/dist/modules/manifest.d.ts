@@ -103,6 +103,7 @@ export type ModuleAuthProvider = {
     metadata?: Record<string, unknown>;
 };
 export type ModulePaymentOrderType = 'subscription' | 'one_time';
+export type ModulePaymentTargetType = 'team' | 'user';
 export type ModulePaymentMethodRoutes = {
     startPath: string;
     cancelPath?: string;
@@ -115,6 +116,7 @@ export type ModulePaymentMethod = {
     description?: string;
     order?: number;
     supportsOrderTypes?: ModulePaymentOrderType[];
+    supportsTargetTypes?: ModulePaymentTargetType[];
     routes: ModulePaymentMethodRoutes;
     metadata?: Record<string, unknown>;
 };

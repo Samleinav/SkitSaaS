@@ -114,6 +114,7 @@ test('resolveCheckoutProviderPendingStartReuse reuses provider_pending paypal ch
     description: 'Core PayPal subscription checkout adapter.',
     order: 20,
     supportsOrderTypes: ['subscription'],
+    supportsTargetTypes: ['team'],
     routes: {
       startPath: '/api/checkout/{checkoutToken}/pay/paypal',
       cancelPath: '/api/checkout/methods/paypal/cancel',

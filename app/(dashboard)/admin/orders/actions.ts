@@ -373,6 +373,16 @@ export const updatePaymentOrderAction = adminAction(
     if (!nextOrderPayload.valid || !nextOrderPayload.value) {
       return false;
     }
+    if (
+      existingOrder.orderType !== 'subscription' &&
+      existingOrder.orderType !== 'one_time'
+    ) {
+      console.error('Cannot update payment order with invalid orderType.', {
+        orderId,
+        orderType: existingOrder.orderType
+      });
+      return false;
+    }
 
     const nextOrder = nextOrderPayload.value;
 
@@ -396,7 +406,7 @@ export const updatePaymentOrderAction = adminAction(
         .update(paymentOrders)
         .set({
           ...nextOrder,
-          orderType: existingOrder.orderType ?? 'subscription',
+          orderType: existingOrder.orderType,
           targetType: existingOrder.targetType,
           targetTeamId: existingOrder.targetTeamId,
           targetUserId: existingOrder.targetUserId,
@@ -406,7 +416,7 @@ export const updatePaymentOrderAction = adminAction(
 
       await runPaymentOrderSubscriptionLifecycle({
         orderId,
-        orderType: existingOrder.orderType ?? 'subscription',
+        orderType: existingOrder.orderType,
         provider: nextOrder.provider,
         status: nextOrder.status,
         eventType: nextOrder.eventType,

@@ -4,6 +4,7 @@ import {
 } from '../admin-page-shell';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
+  getCheckoutCallbackAttemptsForAdmin,
   getPaymentTransactionsForAdmin
 } from '@/lib/db/queries.admin';
 import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
@@ -11,6 +12,7 @@ import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { requireAdminAccess } from '../guards';
 import { formatDateTime } from '../utils';
+import { AdminCheckoutCallbackAttemptsPanel } from './callback-attempts-panel';
 import { AdminPaymentsDataTable } from './payments-data-table';
 import type { AdminPaymentDataRow } from './payment-data-columns';
 import { createAdminPaymentsCopy } from './i18n';
@@ -62,7 +64,10 @@ export default async function AdminPaymentsPage() {
 
   let rows: AdminPaymentDataRow[] = [];
 
-  const transactions = await getPaymentTransactionsForAdmin(800);
+  const [transactions, callbackAttempts] = await Promise.all([
+    getPaymentTransactionsForAdmin(800),
+    getCheckoutCallbackAttemptsForAdmin(80)
+  ]);
   const settledTransactions = transactions.filter(
     (transaction) => transaction.status === 'succeeded'
   );
@@ -143,14 +148,21 @@ export default async function AdminPaymentsPage() {
       description={copy.description}
       metrics={metricsSlot}
     >
-      <AdminPaymentsDataTable
-        data={rows}
-        copy={copy}
-        tableTemplate={{
-          componentId: 'ui.table',
-          area: 'admin',
-        }}
-      />
+      <div className="space-y-6">
+        <AdminCheckoutCallbackAttemptsPanel
+          rows={callbackAttempts}
+          copy={copy}
+          dateLocale={dateLocale}
+        />
+        <AdminPaymentsDataTable
+          data={rows}
+          copy={copy}
+          tableTemplate={{
+            componentId: 'ui.table',
+            area: 'admin',
+          }}
+        />
+      </div>
     </AdminPageShell>
   );
 

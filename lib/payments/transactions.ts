@@ -7,6 +7,37 @@ import type { PaymentOrderStatus } from './orders';
 
 type PaymentTransactionStatus = 'pending' | 'succeeded' | 'failed' | 'reversed';
 
+type PaymentSettlementTransactionRecord = {
+  id: number;
+  orderId: number | null;
+  provider: string;
+  transactionType: string;
+  status: string;
+  amount: number | null;
+  currency: string | null;
+  externalTransactionId: string | null;
+  providerEventId: string | null;
+  dedupeKey: string | null;
+  externalInvoiceId: string | null;
+  payload: string | null;
+  metadata: string | null;
+  occurredAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type PaymentSettlementTransactionPersistOutcome =
+  | 'skipped'
+  | 'inserted'
+  | 'updated'
+  | 'unchanged'
+  | 'failed';
+
+export type PaymentSettlementTransactionPersistResult = {
+  transaction: PaymentSettlementTransactionRecord | null;
+  outcome: PaymentSettlementTransactionPersistOutcome;
+};
+
 export type PaymentSettlementTransactionInput = {
   orderId?: number | null;
   provider: string;
@@ -25,6 +56,25 @@ export type PaymentSettlementTransactionInput = {
 export type PaymentTransactionReplayPayload = {
   operation: 'upsert_sale';
   input: PaymentSettlementTransactionInput;
+};
+
+const paymentSettlementTransactionSelectFields = {
+  id: paymentTransactions.id,
+  orderId: paymentTransactions.orderId,
+  provider: paymentTransactions.provider,
+  transactionType: paymentTransactions.transactionType,
+  status: paymentTransactions.status,
+  amount: paymentTransactions.amount,
+  currency: paymentTransactions.currency,
+  externalTransactionId: paymentTransactions.externalTransactionId,
+  providerEventId: paymentTransactions.providerEventId,
+  dedupeKey: paymentTransactions.dedupeKey,
+  externalInvoiceId: paymentTransactions.externalInvoiceId,
+  payload: paymentTransactions.payload,
+  metadata: paymentTransactions.metadata,
+  occurredAt: paymentTransactions.occurredAt,
+  createdAt: paymentTransactions.createdAt,
+  updatedAt: paymentTransactions.updatedAt,
 };
 
 function normalizeText(value: string | null | undefined, maxLength: number) {
@@ -121,14 +171,14 @@ function buildFallbackDedupeKey(input: {
 
 export async function upsertPaymentSettlementTransaction(
   input: PaymentSettlementTransactionInput
-) {
+): Promise<PaymentSettlementTransactionPersistResult> {
   if (!isSettlementPaymentOrderStatus(input.orderStatus)) {
-    return null;
+    return { transaction: null, outcome: 'skipped' };
   }
 
   const provider = normalizeText(input.provider, 30);
   if (!provider) {
-    return null;
+    return { transaction: null, outcome: 'skipped' };
   }
 
   const orderId = normalizePositiveInt(input.orderId);
@@ -166,35 +216,11 @@ export async function upsertPaymentSettlementTransaction(
     updatedAt: now,
   };
 
-  const selectFields = {
-    id: paymentTransactions.id,
-    orderId: paymentTransactions.orderId,
-    provider: paymentTransactions.provider,
-    transactionType: paymentTransactions.transactionType,
-    status: paymentTransactions.status,
-    amount: paymentTransactions.amount,
-    currency: paymentTransactions.currency,
-    externalTransactionId: paymentTransactions.externalTransactionId,
-    providerEventId: paymentTransactions.providerEventId,
-    dedupeKey: paymentTransactions.dedupeKey,
-    externalInvoiceId: paymentTransactions.externalInvoiceId,
-    payload: paymentTransactions.payload,
-    metadata: paymentTransactions.metadata,
-    occurredAt: paymentTransactions.occurredAt,
-    createdAt: paymentTransactions.createdAt,
-    updatedAt: paymentTransactions.updatedAt,
-  };
-
-  let existing:
-    | (typeof paymentTransactions.$inferSelect & {
-        createdAt: Date;
-        updatedAt: Date;
-      })
-    | null = null;
+  let existing: PaymentSettlementTransactionRecord | null = null;
 
   if (externalTransactionId) {
     const [row] = await db
-      .select(selectFields)
+      .select(paymentSettlementTransactionSelectFields)
       .from(paymentTransactions)
       .where(
         and(
@@ -206,7 +232,7 @@ export async function upsertPaymentSettlementTransaction(
     existing = row ?? null;
   } else if (providerEventId) {
     const [row] = await db
-      .select(selectFields)
+      .select(paymentSettlementTransactionSelectFields)
       .from(paymentTransactions)
       .where(
         and(
@@ -218,7 +244,7 @@ export async function upsertPaymentSettlementTransaction(
     existing = row ?? null;
   } else if (dedupeKey) {
     const [row] = await db
-      .select(selectFields)
+      .select(paymentSettlementTransactionSelectFields)
       .from(paymentTransactions)
       .where(
         and(
@@ -234,9 +260,12 @@ export async function upsertPaymentSettlementTransaction(
     const [inserted] = await db
       .insert(paymentTransactions)
       .values(values)
-      .returning(selectFields);
+      .returning(paymentSettlementTransactionSelectFields);
 
-    return inserted ?? null;
+    return {
+      transaction: inserted ?? null,
+      outcome: inserted ? 'inserted' : 'failed'
+    };
   }
 
   const hasChanges =
@@ -253,16 +282,50 @@ export async function upsertPaymentSettlementTransaction(
     existing.occurredAt.getTime() !== values.occurredAt.getTime();
 
   if (!hasChanges) {
-    return existing;
+    return {
+      transaction: existing,
+      outcome: 'unchanged'
+    };
   }
 
   const [updated] = await db
     .update(paymentTransactions)
     .set(values)
     .where(eq(paymentTransactions.id, existing.id))
-    .returning(selectFields);
+    .returning(paymentSettlementTransactionSelectFields);
 
-  return updated ?? existing;
+  return {
+    transaction: updated ?? existing,
+    outcome: updated ? 'updated' : 'unchanged'
+  };
+}
+
+export async function getPaymentSettlementTransactionByProviderEventId({
+  provider,
+  providerEventId,
+}: {
+  provider: string;
+  providerEventId: string;
+}): Promise<PaymentSettlementTransactionRecord | null> {
+  const safeProvider = normalizeText(provider, 30);
+  const safeProviderEventId = normalizeText(providerEventId, 255);
+
+  if (!safeProvider || !safeProviderEventId) {
+    return null;
+  }
+
+  const [row] = await db
+    .select(paymentSettlementTransactionSelectFields)
+    .from(paymentTransactions)
+    .where(
+      and(
+        eq(paymentTransactions.provider, safeProvider),
+        eq(paymentTransactions.providerEventId, safeProviderEventId)
+      )
+    )
+    .limit(1);
+
+  return row ?? null;
 }
 
 export async function applyPaymentTransactionReplayPayload(
@@ -277,33 +340,33 @@ export async function applyPaymentTransactionReplayPayload(
 
 export async function persistPaymentSettlementTransaction(
   input: PaymentSettlementTransactionInput
-) {
+): Promise<PaymentSettlementTransactionPersistResult> {
   if (!isSettlementPaymentOrderStatus(input.orderStatus)) {
-    return null;
+    return { transaction: null, outcome: 'skipped' };
   }
 
   const provider = normalizeText(input.provider, 30);
   if (!provider) {
-    return null;
+    return { transaction: null, outcome: 'skipped' };
   }
 
   try {
-    const transaction = await upsertPaymentSettlementTransaction(input);
-    if (transaction) {
+    const result = await upsertPaymentSettlementTransaction(input);
+    if (result.transaction && result.outcome !== 'unchanged') {
       await emitEventAsync(
         EVENT_HOOKS.paymentTransactionRecorded,
         {
-          transactionId: transaction.id,
-          orderId: transaction.orderId,
-          provider: transaction.provider,
-          status: transaction.status,
-          amount: transaction.amount,
-          currency: transaction.currency
+          transactionId: result.transaction.id,
+          orderId: result.transaction.orderId,
+          provider: result.transaction.provider,
+          status: result.transaction.status,
+          amount: result.transaction.amount,
+          currency: result.transaction.currency
         },
         { source: '/lib/payments/transactions' }
       );
     }
-    return transaction;
+    return result;
   } catch (error) {
     const reason = formatErrorReason(error);
     console.warn('[payments.transactions] settlement transaction failed', {
@@ -312,6 +375,6 @@ export async function persistPaymentSettlementTransaction(
       orderId: normalizePositiveInt(input.orderId),
       reason,
     });
-    return null;
+    return { transaction: null, outcome: 'failed' };
   }
 }

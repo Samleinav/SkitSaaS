@@ -8,17 +8,23 @@ type PaymentMethodsExports = {
     methods: Array<{
       paymentMethodId: string;
       ownerType?: string;
+      supportsOrderTypes: Array<'subscription' | 'one_time'>;
       routes: {
         startPath: string;
         cancelPath: string | null;
         returnPath: string | null;
         webhookPath: string | null;
       };
+      supportsTargetTypes: Array<'team' | 'user'>;
     }>;
   }>;
   supportsCheckoutPaymentMethodOrderType: (
     paymentMethod: { supportsOrderTypes: Array<'subscription' | 'one_time'> },
     orderType: string
+  ) => boolean;
+  supportsCheckoutPaymentMethodTargetType: (
+    paymentMethod: { supportsTargetTypes: Array<'team' | 'user'> },
+    targetType: string | null | undefined
   ) => boolean;
 };
 
@@ -42,12 +48,16 @@ test('core payment methods expose canonical checkout dispatcher routes', async (
     assert.equal(stripe.routes.startPath, '/api/checkout/{checkoutToken}/pay/stripe');
     assert.equal(stripe.routes.returnPath, '/api/checkout/methods/stripe/return');
     assert.equal(stripe.routes.webhookPath, '/api/checkout/methods/stripe/webhook');
+    assert.deepEqual(stripe.supportsOrderTypes, ['subscription', 'one_time']);
+    assert.deepEqual(stripe.supportsTargetTypes, ['team', 'user']);
 
     assert.ok(paypal);
     assert.equal(paypal.routes.startPath, '/api/checkout/{checkoutToken}/pay/paypal');
     assert.equal(paypal.routes.cancelPath, '/api/checkout/methods/paypal/cancel');
     assert.equal(paypal.routes.returnPath, '/api/checkout/methods/paypal/return');
     assert.equal(paypal.routes.webhookPath, '/api/checkout/methods/paypal/webhook');
+    assert.deepEqual(paypal.supportsOrderTypes, ['subscription', 'one_time']);
+    assert.deepEqual(paypal.supportsTargetTypes, ['team', 'user']);
 
     const methodIds = registry.methods.map((method) => method.paymentMethodId).sort();
     assert.deepEqual(methodIds, ['paypal', 'stripe']);
@@ -62,7 +72,9 @@ test('core payment methods expose canonical checkout dispatcher routes', async (
 
 test('supportsCheckoutPaymentMethodOrderType enforces capability matching', () => {
   const method = {
-    supportsOrderTypes: ['subscription'] as Array<'subscription' | 'one_time'>
+    supportsOrderTypes: ['subscription', 'one_time'] as Array<
+      'subscription' | 'one_time'
+    >
   };
 
   assert.equal(
@@ -71,10 +83,29 @@ test('supportsCheckoutPaymentMethodOrderType enforces capability matching', () =
   );
   assert.equal(
     paymentMethods.supportsCheckoutPaymentMethodOrderType(method, 'one_time'),
-    false
+    true
   );
   assert.equal(
     paymentMethods.supportsCheckoutPaymentMethodOrderType(method, 'invalid'),
+    false
+  );
+});
+
+test('supportsCheckoutPaymentMethodTargetType enforces target matching', () => {
+  const method = {
+    supportsTargetTypes: ['team', 'user'] as Array<'team' | 'user'>
+  };
+
+  assert.equal(
+    paymentMethods.supportsCheckoutPaymentMethodTargetType(method, 'team'),
+    true
+  );
+  assert.equal(
+    paymentMethods.supportsCheckoutPaymentMethodTargetType(method, 'user'),
+    true
+  );
+  assert.equal(
+    paymentMethods.supportsCheckoutPaymentMethodTargetType(method, null),
     false
   );
 });

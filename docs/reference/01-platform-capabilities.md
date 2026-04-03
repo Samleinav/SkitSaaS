@@ -59,6 +59,7 @@ Operational timeline:
 
 - `checkout_orders` (pre-payment orchestration, tokenized checkout context)
 - `checkout_order_items` (line items attached to one checkout order)
+- `checkout_payment_attempt_logs` (append-only checkout start/callback/transition trace)
 - `payment_orders` (status, scope, provider refs)
 - `payment_logs` (raw event audit)
 
@@ -83,9 +84,23 @@ Canonical API surface:
 - `GET|POST /api/checkout/methods/[paymentMethodId]/return`
 - `POST /api/checkout/methods/[paymentMethodId]/webhook`
 
+Checkout target model:
+
+- canonical checkout orders can target either `team` or `user`
+- the dispatcher filters payment methods by both `orderType` and `targetType`
+- core Stripe and PayPal checkout adapters now advertise support for:
+  - `subscription`
+  - `one_time`
+  - `team`
+  - `user`
+- current core one-time paths:
+  - Stripe uses Checkout Session `mode='payment'`
+  - PayPal uses Orders create/capture through the canonical checkout dispatcher
+
 Current self-service scope policy:
 
 - `/pricing` self-service checkout currently provisions `organization`-scoped templates only.
+- `/pricing` only renders self-service eligible templates; `user`-scoped templates stay available through lifecycle, policy, and admin/manual assignment flows, not public self-service checkout.
 - `user`-scoped templates are still supported by lifecycle/policy and admin/manual assignment flows.
 
 Compatibility API surface (kept for migration):

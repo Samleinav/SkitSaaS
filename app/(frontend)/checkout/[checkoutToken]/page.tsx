@@ -10,7 +10,8 @@ import {
   getCheckoutOrderByTokenForUser,
   isCheckoutOrderPayable,
   listCheckoutOrderLineItems,
-  markCheckoutOrderCanceled
+  markCheckoutOrderCanceled,
+  resolveCheckoutOrderRestartPath
 } from '@/lib/payments/checkout-orders';
 import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
@@ -25,6 +26,7 @@ import { SubmitButton } from '../../pricing/submit-button';
 import { PayPalCheckoutButton } from './paypal-checkout-button';
 import {
   getCheckoutPaymentMethodRegistry,
+  supportsCheckoutPaymentMethodTargetType,
   supportsCheckoutPaymentMethodOrderType
 } from '@/lib/payments/payment-methods';
 import { createMarketingPricingCopy } from '../../pricing/i18n';
@@ -196,8 +198,18 @@ export default async function CheckoutPage({
   ]);
 
   const isPayable = isCheckoutOrderPayable(checkoutOrder);
+  const showPayPalPendingState =
+    checkoutOrder.orderType === 'one_time' &&
+    checkoutOrder.status === 'provider_pending' &&
+    checkoutOrder.selectedProvider === 'paypal';
   const availablePaymentMethods = paymentMethods.methods.filter((method) => {
     if (!supportsCheckoutPaymentMethodOrderType(method, checkoutOrder.orderType)) {
+      return false;
+    }
+
+    if (
+      !supportsCheckoutPaymentMethodTargetType(method, checkoutOrder.targetType)
+    ) {
       return false;
     }
 
@@ -215,7 +227,8 @@ export default async function CheckoutPage({
 
     return true;
   });
-  const canRenderPaymentMethods = isPayable && availablePaymentMethods.length > 0;
+  const canRenderPaymentMethods =
+    isPayable && availablePaymentMethods.length > 0 && !showPayPalPendingState;
 
   const subscriptionMetadata =
     isSubscriptionOrder ? checkoutOrder.parsedMetadata?.subscription : null;
@@ -311,7 +324,7 @@ export default async function CheckoutPage({
         ];
       })()
     : [];
-  const restartHref = isSubscriptionOrder ? '/pricing' : '/products';
+  const restartHref = resolveCheckoutOrderRestartPath(checkoutOrder);
 
   const stripeNode = stripeEnabled ? (
     <form action={checkoutWithPaymentMethodAction}>
@@ -325,6 +338,7 @@ export default async function CheckoutPage({
     <PayPalCheckoutButton
       clientId={payPalClientId!}
       checkoutToken={checkoutOrder.checkoutToken}
+      orderType={checkoutOrder.orderType}
       currency={payPalCurrency}
     />
   ) : null;
@@ -493,7 +507,22 @@ export default async function CheckoutPage({
           </p>
 
           <div className="mt-4 space-y-4">
-            {canRenderPaymentMethods ? (
+            {showPayPalPendingState ? (
+              <div className="space-y-2 rounded-xl border border-sky-200/20 bg-sky-200/10 p-4 text-sm text-sky-100">
+                <p className="font-medium">
+                  {t('PayPal payment is still processing.')}
+                </p>
+                <p className="text-xs text-sky-200/80">
+                  {t('Refresh this page in a moment to confirm the final result.')}
+                </p>
+                <Link
+                  href={`/checkout/${encodeURIComponent(checkoutOrder.checkoutToken)}`}
+                  className="inline-flex items-center text-xs font-medium uppercase tracking-[0.16em] text-sky-100 underline"
+                >
+                  {t('Refresh checkout')}
+                </Link>
+              </div>
+            ) : canRenderPaymentMethods ? (
               paymentMethodOptions.length > 1 ? (
                 <PaymentMethodSelector
                   label={pricing.paymentMethodLabel}

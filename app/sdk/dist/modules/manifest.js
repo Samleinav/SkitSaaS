@@ -319,6 +319,18 @@ export function validateModuleManifest(manifest) {
                     }
                 }
             }
+            const targetTypes = paymentMethod.supportsTargetTypes ?? ['team', 'user'];
+            if (!Array.isArray(targetTypes) || targetTypes.length === 0) {
+                errors.push(`module_payment_method_target_types_invalid:${index}`);
+            }
+            else {
+                for (const targetType of targetTypes) {
+                    if (targetType !== 'team' && targetType !== 'user') {
+                        errors.push(`module_payment_method_target_types_invalid:${index}`);
+                        break;
+                    }
+                }
+            }
             const validatePaymentMethodPath = (value, field) => {
                 if (value === undefined) {
                     return;

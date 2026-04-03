@@ -22,7 +22,12 @@ import {
   upsertPaymentOrder
 } from './orders';
 import { runPaymentOrderSubscriptionLifecycle } from './order-subscription-events';
-import { persistPaymentSettlementTransaction } from './transactions';
+import {
+  getPaymentSettlementTransactionByProviderEventId,
+  isSettlementPaymentOrderStatus,
+  type PaymentSettlementTransactionPersistResult,
+  persistPaymentSettlementTransaction
+} from './transactions';
 
 type TemplateSnapshotSource = Pick<
   SubscriptionTemplate,
@@ -239,7 +244,7 @@ export function hasCheckoutTemplatePricingChanged(
 
 export type RecordCheckoutEventInput = {
   provider: string;
-  orderType?: PaymentOrderType;
+  orderType: PaymentOrderType;
   moduleId?: string | null;
   status?: PaymentOrderStatus;
   logStatus?: CheckoutLogStatus;
@@ -441,6 +446,8 @@ type RecordCheckoutEventDeps = {
   emitEvent: typeof emitEvent;
   createPaymentLog: typeof createPaymentLog;
   upsertPaymentOrder: typeof upsertPaymentOrder;
+  getPaymentSettlementTransactionByProviderEventId:
+    typeof getPaymentSettlementTransactionByProviderEventId;
   persistPaymentSettlementTransaction: typeof persistPaymentSettlementTransaction;
   emitEventAsync: typeof emitEventAsync;
   runPaymentOrderSubscriptionLifecycle: typeof runPaymentOrderSubscriptionLifecycle;
@@ -450,6 +457,7 @@ const DEFAULT_RECORD_CHECKOUT_EVENT_DEPS: RecordCheckoutEventDeps = {
   emitEvent,
   createPaymentLog,
   upsertPaymentOrder,
+  getPaymentSettlementTransactionByProviderEventId,
   persistPaymentSettlementTransaction,
   emitEventAsync,
   runPaymentOrderSubscriptionLifecycle
@@ -457,7 +465,7 @@ const DEFAULT_RECORD_CHECKOUT_EVENT_DEPS: RecordCheckoutEventDeps = {
 
 export async function recordCheckoutEvent({
   provider,
-  orderType = 'subscription',
+  orderType,
   moduleId = null,
   status = 'pending',
   logStatus,
@@ -511,15 +519,16 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
     providerMetadata
   };
 
-  await deps.emitEvent(
-    EVENT_HOOKS.checkoutBeforeCreateOrder,
-    orderPayload,
-    {
-      teamId: orderPayload.teamId ?? null,
-      targetUserId: orderPayload.targetUserId ?? null,
-      source: '/lib/payments/checkout-system'
-    }
-  );
+  const settlementReplay =
+    orderPayload.source === 'webhook' &&
+    isSettlementPaymentOrderStatus(orderPayload.status ?? 'pending') &&
+    typeof orderPayload.externalLogId === 'string' &&
+    orderPayload.externalLogId.trim()
+      ? await deps.getPaymentSettlementTransactionByProviderEventId({
+          provider: orderPayload.provider,
+          providerEventId: orderPayload.externalLogId
+        })
+      : null;
 
   const eventMetadata = mergeEventMetadata({
     provider: orderPayload.provider,
@@ -534,7 +543,18 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
     templateSnapshot: orderPayload.templateSnapshot
   });
 
-  const paymentLogPromise = deps.createPaymentLog({
+  const paymentLogPayload = settlementReplay
+    ? {
+        ...eventMetadata,
+        checkoutReplay: {
+          detected: true,
+          reason: 'provider_event_id',
+          providerEventId: orderPayload.externalLogId
+        }
+      }
+    : eventMetadata;
+
+  await deps.createPaymentLog({
     provider: orderPayload.provider,
     eventType: orderPayload.eventType,
     status:
@@ -549,13 +569,27 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
     amount: orderPayload.amount ?? null,
     currency: orderPayload.currency ?? null,
     message: orderPayload.message ?? null,
-    payload: eventMetadata
+    payload: paymentLogPayload
   });
+
+  if (settlementReplay) {
+    return;
+  }
+
+  await deps.emitEvent(
+    EVENT_HOOKS.checkoutBeforeCreateOrder,
+    orderPayload,
+    {
+      teamId: orderPayload.teamId ?? null,
+      targetUserId: orderPayload.targetUserId ?? null,
+      source: '/lib/payments/checkout-system'
+    }
+  );
 
   const paymentOrderPromise = orderPayload.persistOrder
     ? deps.upsertPaymentOrder({
         provider: orderPayload.provider,
-        orderType: orderPayload.orderType ?? 'subscription',
+        orderType: orderPayload.orderType,
         moduleId: orderPayload.moduleId ?? null,
         status: orderPayload.status ?? 'pending',
         eventType: orderPayload.eventType,
@@ -583,17 +617,19 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
       })
     : Promise.resolve(null);
 
-  const [, persistedOrder] = await Promise.all([
-    paymentLogPromise,
-    paymentOrderPromise
-  ]);
+  const persistedOrder = await paymentOrderPromise;
+
+  let settlementResult: PaymentSettlementTransactionPersistResult = {
+    transaction: null,
+    outcome: 'skipped'
+  };
 
   if (
     orderPayload.status === 'received' ||
     orderPayload.status === 'canceled' ||
     orderPayload.status === 'failed'
   ) {
-    await deps.persistPaymentSettlementTransaction({
+    settlementResult = await deps.persistPaymentSettlementTransaction({
       orderId: persistedOrder?.id ?? null,
       provider: orderPayload.provider,
       orderStatus: orderPayload.status,
@@ -615,6 +651,15 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
         eventType: orderPayload.eventType,
       }
     });
+  }
+
+  const materialReplayDetected =
+    orderPayload.source === 'webhook' &&
+    Boolean(orderPayload.externalLogId) &&
+    settlementResult.outcome === 'unchanged';
+
+  if (materialReplayDetected) {
+    return;
   }
 
   if (persistedOrder) {
@@ -651,8 +696,7 @@ deps: RecordCheckoutEventDeps = DEFAULT_RECORD_CHECKOUT_EVENT_DEPS) {
     );
   }
 
-  const resolvedOrderType =
-    persistedOrder?.orderType ?? orderPayload.orderType ?? 'subscription';
+  const resolvedOrderType = persistedOrder?.orderType ?? orderPayload.orderType;
   if (
     resolvedOrderType === 'subscription' &&
     (orderPayload.status === 'received' ||
@@ -1077,6 +1121,7 @@ export async function queueManualActiveSubscriptionTemplateUpdate(
     targetsToQueue.map(async (target) => {
       if (target.targetType === 'team') {
         await recordSystemCheckoutEvent({
+          orderType: 'subscription',
           status: 'pending',
           persistOrder: false,
           eventType: CHECKOUT_SYSTEM_EVENTS.subscriptionTemplateActiveUpdateQueued,
@@ -1109,6 +1154,7 @@ export async function queueManualActiveSubscriptionTemplateUpdate(
       }
 
       await recordSystemCheckoutEvent({
+        orderType: 'subscription',
         status: 'pending',
         persistOrder: false,
         eventType: CHECKOUT_SYSTEM_EVENTS.subscriptionTemplateActiveUpdateQueued,
@@ -1233,6 +1279,7 @@ deps: EmitTemplatePricingChangedEventDeps =
   });
 
   await deps.recordSystemCheckoutEvent({
+    orderType: 'subscription',
     status: 'pending',
     persistOrder: false,
     eventType: CHECKOUT_SYSTEM_EVENTS.subscriptionTemplatePricingChanged,
@@ -1324,6 +1371,7 @@ deps: EmitTemplateActiveSubscriptionsUpdateRequestedEventDeps =
   });
 
   await deps.recordSystemCheckoutEvent({
+    orderType: 'subscription',
     status: 'pending',
     persistOrder: false,
     eventType: CHECKOUT_SYSTEM_EVENTS.subscriptionTemplateActiveUpdateRequested,

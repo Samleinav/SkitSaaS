@@ -47,6 +47,7 @@ Checkout orchestration:
 
 - `checkout_orders` - tokenized checkout session/state before settlement
 - `checkout_order_items` - line items attached to one checkout order
+- `checkout_payment_attempt_logs` - append-only checkout start/callback/transition attempt log before operational settlement
 
 Operational payment flow:
 
@@ -85,6 +86,8 @@ Financial settlement flow:
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
 - Checkout, operational payment lifecycle, and settled transactions are separate by design:
   - `checkout_orders` / `checkout_order_items` hold the pre-payment checkout context
+  - `checkout_payment_attempt_logs` captures checkout orchestration attempts such as
+    start requests, callback receipts, pending-provider transitions, and dispatcher outcomes
   - `payment_orders` / `payment_logs` track provider/order lifecycle and operational audit
   - `payment_transactions` track settled money movement such as sales, refunds, chargebacks, and fees
 - Notification visibility is evaluated at read time from the current private area (`/admin` or `/dashboard`) plus the user role. `area='auto'` maps to `admin` for admin-like roles and `dashboard` for everyone else.

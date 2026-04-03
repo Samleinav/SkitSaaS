@@ -133,6 +133,7 @@ export const manageOrganizationSubscriptionAction = dashboardValidatedAction(
       await cancelPayPalSubscription(membership.team.providerReferenceId);
 
       await recordPayPalCheckoutEvent({
+        orderType: 'subscription',
         status: 'canceled',
         logStatus: 'success',
         eventType: 'billing.cancelled_by_customer',

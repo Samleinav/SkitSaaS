@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  filterSelfServiceSubscriptionTemplates,
   isSubscriptionTemplateScopeCompatible,
   supportsSelfServiceSubscriptionTemplateScope
 } from '../../lib/payments/subscription-scope';
@@ -86,5 +87,25 @@ test('self-service organization checkout is disabled when teams are disabled', (
       teamsEnabled: false
     }),
     false
+  );
+});
+
+test('filterSelfServiceSubscriptionTemplates keeps only self-service eligible scopes', () => {
+  const templates = [
+    { id: 1, targetScope: 'organization' },
+    { id: 2, targetScope: 'user' },
+    { id: 3, targetScope: 'organization' }
+  ];
+
+  assert.deepEqual(
+    filterSelfServiceSubscriptionTemplates(templates, { teamsEnabled: true }),
+    [
+      { id: 1, targetScope: 'organization' },
+      { id: 3, targetScope: 'organization' }
+    ]
+  );
+  assert.deepEqual(
+    filterSelfServiceSubscriptionTemplates(templates, { teamsEnabled: false }),
+    []
   );
 });
