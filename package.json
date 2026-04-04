@@ -1,7 +1,7 @@
 {
   "name": "skitsaas",
   "private": true,
-  "version": "1.60.0",
+  "version": "1.61.0",
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "next dev --turbopack",
