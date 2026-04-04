@@ -1,5 +1,7 @@
 import '@/lib/modules/sdk-server-bootstrap';
 import { notFound, redirect } from 'next/navigation';
+import { resolveAndRenderFrontendThemeRoute } from '@/components/theme/theme-frontend-route';
+import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { getAllModuleManifests } from '@/lib/modules/registry';
 import { resolveModuleRouteAlias } from '@/lib/modules/routes';
 import {
@@ -30,6 +32,23 @@ export default async function FrontendModuleAliasPage({
     manifests: getAllModuleManifests()
   });
   if (!match) {
+    const themeSelection = await getThemeSelectionForArea('frontend');
+    if (themeSelection.themeKey) {
+      const { rendered } = await resolveAndRenderFrontendThemeRoute({
+        path,
+        themeId: themeSelection.themeKey,
+        data: {
+          path,
+          searchParams
+        },
+        logMissing: false
+      });
+
+      if (rendered) {
+        return rendered;
+      }
+    }
+
     notFound();
   }
 

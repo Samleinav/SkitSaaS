@@ -32,16 +32,42 @@ test('ThemeFrontendRoute renders active frontend route when registered', async (
   assert.doesNotMatch(html, /data-test-id="fallback"/);
 });
 
-test('ThemeFrontendRoute renders registered packs page route', async () => {
-  const rendered = await ThemeFrontendRoute({
-    path: '/packs',
-    themeId: 'theme.first.frontend',
-    fallback: <div data-test-id="fallback">fallback</div>
-  });
-  const html = renderToStaticMarkup(rendered);
+test('ThemeFrontendRoute renders a custom registered frontend path', async () => {
+  const themeId = 'theme.test.frontend.custom.outputs';
 
-  assert.match(html, /data-theme-template="page.frontend.packs"/);
-  assert.doesNotMatch(html, /data-test-id="fallback"/);
+  THEME_FRONTEND_ROUTE_REGISTRY[themeId] = {
+    themeId,
+    routesImport: async () => ({
+      default: [
+        {
+          path: '/outputs',
+          loader: async () => ({
+            default: function OutputsRoute() {
+              return (
+                <section data-theme-template="page.frontend.outputs">
+                  outputs
+                </section>
+              );
+            }
+          })
+        }
+      ]
+    })
+  };
+
+  try {
+    const rendered = await ThemeFrontendRoute({
+      path: '/outputs',
+      themeId,
+      fallback: <div data-test-id="fallback">fallback</div>
+    });
+    const html = renderToStaticMarkup(rendered);
+
+    assert.match(html, /data-theme-template="page.frontend.outputs"/);
+    assert.doesNotMatch(html, /data-test-id="fallback"/);
+  } finally {
+    delete THEME_FRONTEND_ROUTE_REGISTRY[themeId];
+  }
 });
 
 test('ThemeFrontendRoute renders fallback when route loader throws', async () => {

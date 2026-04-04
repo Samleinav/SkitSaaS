@@ -121,6 +121,7 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
     renderer:
       | 'ThemeCodeTemplate'
       | 'ThemeFrontendRoute'
+      | 'resolveAndRenderFrontendThemeRoute'
       | 'ThemeTemplate'
       | 'AdminTableSlotTemplate'
       | 'DashboardTableSlotTemplate'
@@ -146,6 +147,11 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       filePath: 'app/(frontend)/not-found.tsx',
       renderer: 'ThemeFrontendRoute',
       expectedSnippet: 'path="/404"'
+    },
+    {
+      filePath: 'app/(frontend)/[...moduleAlias]/page.tsx',
+      renderer: 'resolveAndRenderFrontendThemeRoute',
+      expectedSnippet: 'resolveAndRenderFrontendThemeRoute'
     },
     {
       filePath: 'app/(dashboard)/admin/page.tsx',

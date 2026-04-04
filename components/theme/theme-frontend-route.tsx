@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   resolveFrontendThemeRoute,
+  type FrontendThemeRouteResolution,
   type FrontendThemeRouteResolveFailureReason
 } from '@/lib/themes/frontend-routes';
 
@@ -40,18 +41,56 @@ export async function ThemeFrontendRoute<TData>({
   children?: ReactNode;
   fallback: ReactNode;
 }) {
+  const { rendered } = await resolveAndRenderFrontendThemeRoute({
+    path,
+    themeId,
+    data,
+    className,
+    children,
+    fallback
+  });
+
+  return <>{rendered}</>;
+}
+
+export async function resolveAndRenderFrontendThemeRoute<TData>({
+  path,
+  themeId,
+  data,
+  className,
+  children,
+  fallback,
+  logMissing = true
+}: {
+  path: string;
+  themeId: string | null | undefined;
+  data?: TData;
+  className?: string;
+  children?: ReactNode;
+  fallback?: ReactNode;
+  logMissing?: boolean;
+}): Promise<{
+  rendered: ReactNode | null;
+  resolved: FrontendThemeRouteResolution;
+}> {
   const resolved = await resolveFrontendThemeRoute({
     themeId,
     path
   });
 
   if (!resolved.Component) {
-    reportMissingThemeFrontendRoute({
-      reason: resolved.reason,
-      path: resolved.path,
-      themeId: resolved.themeId
-    });
-    return <>{fallback}</>;
+    if (logMissing) {
+      reportMissingThemeFrontendRoute({
+        reason: resolved.reason,
+        path: resolved.path,
+        themeId: resolved.themeId
+      });
+    }
+
+    return {
+      rendered: fallback ?? null,
+      resolved
+    };
   }
 
   const renderedRoute = (
@@ -65,8 +104,14 @@ export async function ThemeFrontendRoute<TData>({
   );
 
   if (resolved.Provider) {
-    return <resolved.Provider>{renderedRoute}</resolved.Provider>;
+    return {
+      rendered: <resolved.Provider>{renderedRoute}</resolved.Provider>,
+      resolved
+    };
   }
 
-  return renderedRoute;
+  return {
+    rendered: renderedRoute,
+    resolved
+  };
 }

@@ -65,6 +65,16 @@ Alias restrictions:
 - Must not conflict with reserved core paths (for example `/`, `/pricing`, `/login`, `/admin`, `/dashboard`, `/api`, `/modules`)
 - Must not overlap aliases from other modules
 
+Runtime precedence for non-core frontend paths:
+
+1. frontend module alias
+2. active frontend theme route from `themes/*/routes.ts`
+3. `notFound()`
+
+That means a theme can serve extra frontend pages such as `/outputs` without
+adding a new host page file, but it does not override a matching frontend
+module alias.
+
 ## Frontend auth policy
 
 `frontendRouteAccess` controls guard behavior for frontend module pages:

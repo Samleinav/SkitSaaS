@@ -69,6 +69,17 @@ Practical rule:
 - aliases are convenience paths
 - the dispatcher route remains the canonical contract
 
+Current catch-all precedence for non-core frontend paths:
+
+1. module alias match
+2. active frontend theme route from `themes/*/routes.ts`
+3. `notFound()`
+
+Use that rule when a request like `/outputs` is 404ing even though the theme
+registered it in `routes.ts`: if there is no matching module alias and the path
+still 404s, inspect the theme route registry and the frontend catch-all
+dispatcher next.
+
 ## Frontend Route Access Policy
 
 `frontendRouteAccess` controls guard behavior for frontend module pages.

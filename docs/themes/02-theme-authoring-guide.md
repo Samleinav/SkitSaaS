@@ -77,7 +77,10 @@ Frontend themes are route-driven.
   - `path` (for example `/`, `/pricing`, `/404`, `/__layout`)
   - `loader` (dynamic import returning the route component)
   - `metadata` (optional)
-- Host frontend pages render through `ThemeFrontendRoute` with explicit fallback.
+- Core host frontend pages render through `ThemeFrontendRoute` with explicit fallback.
+- Additional non-core frontend paths (for example `/outputs`) can also be served from `routes.ts`.
+  The host frontend catch-all now checks module aliases first and, when no module
+  alias matches, renders the active theme route before falling back to `notFound()`.
 
 Example:
 
@@ -86,11 +89,29 @@ const routes = [
   { path: '/__layout', loader: () => import('./frontend/layout-shell') },
   { path: '/', loader: () => import('./frontend/home-page') },
   { path: '/pricing', loader: () => import('./frontend/pricing-page') },
+  { path: '/outputs', loader: () => import('./frontend/outputs-page') },
   { path: '/404', loader: () => import('./frontend/not-found-page') }
 ];
 
 export default routes;
 ```
+
+### Frontend route precedence
+
+Request resolution order for the public area is:
+
+1. concrete App Router pages already owned by the host (`/`, `/pricing`, `/checkout/*`, `/contact-us`, etc.)
+2. frontend module aliases resolved from `app/(frontend)/[...moduleAlias]`
+3. active frontend theme routes registered in `routes.ts`
+4. frontend `not-found`
+
+Practical rules:
+
+- keep using concrete host pages when a route needs host-loaded data beyond `path`
+  and `searchParams`
+- do not expect a theme route to override a frontend module alias; the module alias
+  wins
+- do not use theme routes for admin/dashboard pages; those remain CTC-driven
 
 ## Code templates
 
