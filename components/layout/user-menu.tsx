@@ -19,7 +19,17 @@ import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { enrichUser } from '@skitsaas/sdk';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const response = await fetch(url, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return response.json();
+};
 
 function getUserInitials(user: Pick<User, 'name' | 'email'>) {
   const source = (user.name || user.email || '').trim();
@@ -39,7 +49,7 @@ function getUserInitials(user: Pick<User, 'name' | 'email'>) {
 export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
   const t = useI18n({ area: 'global' });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: user } = useSWR<User>('/api/user', fetcher);
+  const { data: user } = useSWR<User | null>('/api/user', fetcher);
   const router = useRouter();
   const pathname = usePathname();
   const isAdmin = user ? enrichUser(user).isAdmin() : false;
@@ -51,10 +61,21 @@ export function UserMenu({ tone }: { tone: 'public' | 'private' }) {
         : null;
 
   async function handleSignOut() {
+    setIsMenuOpen(false);
     await signOut();
-    mutate('/api/user');
-    const redirectPath = pathname.startsWith('/admin') ? '/admin/login' : '/';
-    router.push(redirectPath);
+    await Promise.all([
+      mutate('/api/user', null, { revalidate: false }),
+      mutate('/api/team', null, { revalidate: false })
+    ]);
+
+    const redirectPath = pathname?.startsWith('/admin')
+      ? '/admin/login'
+      : pathname?.startsWith('/dashboard')
+        ? '/login'
+        : pathname || '/';
+
+    router.replace(redirectPath);
+    router.refresh();
   }
 
   if (!user) {

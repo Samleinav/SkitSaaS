@@ -856,20 +856,24 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 });
 
 export async function signOut() {
-  const user = (await getUser()) as User;
-  const userWithTeam = await getUserWithTeam(user.id);
-  await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
-  await emitEventAsync(
-    EVENT_HOOKS.authSignOut,
-    { userId: user.id, teamId: userWithTeam?.teamId ?? null },
-    {
-      actorUserId: user.id,
-      actorEmail: user.email,
-      actorRole: user.role,
-      teamId: userWithTeam?.teamId ?? null,
-      source: '/sign-out'
-    }
-  );
+  const user = await getUser();
+
+  if (user) {
+    const userWithTeam = await getUserWithTeam(user.id);
+    await logActivity(userWithTeam?.teamId, user.id, ActivityType.SIGN_OUT);
+    await emitEventAsync(
+      EVENT_HOOKS.authSignOut,
+      { userId: user.id, teamId: userWithTeam?.teamId ?? null },
+      {
+        actorUserId: user.id,
+        actorEmail: user.email,
+        actorRole: user.role,
+        teamId: userWithTeam?.teamId ?? null,
+        source: '/sign-out'
+      }
+    );
+  }
+
   await clearSession({ reason: 'manual_sign_out' });
 }
 
