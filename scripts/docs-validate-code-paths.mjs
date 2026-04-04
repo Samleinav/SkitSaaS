@@ -10,9 +10,13 @@ const DOCS_SCOPE_DIRS = [
   path.resolve(process.cwd(), 'docs/extensions'),
   path.resolve(process.cwd(), 'docs/modules'),
   path.resolve(process.cwd(), 'docs/sdk'),
-  path.resolve(process.cwd(), 'docs/audit')
+  path.resolve(process.cwd(), 'docs/audit'),
+  path.resolve(process.cwd(), 'docs/skitsaas')
 ];
-const INDEX_DOC = path.resolve(process.cwd(), 'docs/00-documentation-index.md');
+const INDEX_DOC_CANDIDATES = [
+  path.resolve(process.cwd(), 'docs/00-documentation-index.md'),
+  path.resolve(process.cwd(), 'docs/skitsaas/index.md')
+];
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 const CODE_SPAN_REGEX = /`([^`\r\n]+)`/g;
 
@@ -124,9 +128,12 @@ function validateFile(filePath) {
 }
 
 function main() {
+  const indexDocs = INDEX_DOC_CANDIDATES.filter((candidate) =>
+    fs.existsSync(candidate)
+  );
   const files = [
     ...DOCS_SCOPE_DIRS.flatMap((dirPath) => listMarkdownFiles(dirPath)),
-    INDEX_DOC
+    ...indexDocs
   ].filter((value, index, array) => array.indexOf(value) === index && fs.existsSync(value));
 
   const errors = [];

@@ -1,4 +1,0 @@
-interface:
-  display_name: "SkitSaaS Theme Authoring"
-  short_description: "Create and evolve SkitSaaS themes safely"
-  default_prompt: "Use $skitsaas-theme-authoring to create or update a SkitSaaS theme pack for admin, dashboard, or frontend."

@@ -6,7 +6,10 @@ import path from 'node:path';
 const TARGET_DOC_DIRS = [
   path.resolve(process.cwd(), 'docs/core'),
   path.resolve(process.cwd(), 'docs/subscriptions'),
-  path.resolve(process.cwd(), 'docs/operations')
+  path.resolve(process.cwd(), 'docs/operations'),
+  path.resolve(process.cwd(), 'docs/skitsaas/reference'),
+  path.resolve(process.cwd(), 'docs/skitsaas/subscriptions'),
+  path.resolve(process.cwd(), 'docs/skitsaas/operations')
 ];
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 
@@ -93,4 +96,3 @@ function main() {
 }
 
 main();
-

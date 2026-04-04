@@ -8,7 +8,11 @@ const DOCS_SCOPE_DIRS = [
   path.resolve(process.cwd(), 'docs/reference'),
   path.resolve(process.cwd(), 'docs/subscriptions'),
   path.resolve(process.cwd(), 'docs/operations'),
-  path.resolve(process.cwd(), 'docs/security')
+  path.resolve(process.cwd(), 'docs/security'),
+  path.resolve(process.cwd(), 'docs/skitsaas/reference'),
+  path.resolve(process.cwd(), 'docs/skitsaas/subscriptions'),
+  path.resolve(process.cwd(), 'docs/skitsaas/operations'),
+  path.resolve(process.cwd(), 'docs/skitsaas/security')
 ];
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 

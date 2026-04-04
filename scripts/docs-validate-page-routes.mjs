@@ -9,7 +9,8 @@ const DOCS_SCOPE_DIRS = [
   path.resolve(process.cwd(), 'docs/operations'),
   path.resolve(process.cwd(), 'docs/extensions'),
   path.resolve(process.cwd(), 'docs/modules'),
-  path.resolve(process.cwd(), 'docs/sdk')
+  path.resolve(process.cwd(), 'docs/sdk'),
+  path.resolve(process.cwd(), 'docs/skitsaas')
 ];
 const APP_ROOT = path.resolve(process.cwd(), 'app');
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);

@@ -53,6 +53,12 @@ Quick guide for agents working in this repository (`saas-starter`).
 
 - The `docs/` directory is used for product/architecture documentation in Docusaurus.
 - When adding or changing features/quotas, also update the docs under `docs/`.
+- Maintain both documentation tracks together:
+  - human/web docs: the main Docusaurus-facing documentation under `docs/`
+  - agent docs: the agent-oriented operational reference layer under `.agents/docs/skitsaas/*`
+- When a change affects platform behavior, architecture, routes, SDK contracts, modules, themes, operations, or feature/quota rules, update both the human docs and the agent docs in the same task.
+- Human docs should stay broader and explanatory; agent docs should stay execution-oriented with read order, decision rules, and worked examples.
+- Do not leave one track updated and the other stale. If one track intentionally diverges, document the reason in the same task.
 - Use `docs/` for core developer-facing technical documentation (host implementation details, extension points, runtime behavior, and maintenance notes).
 - For subscription features, use `docs/subscriptions/features-and-quotas.md` as the base guide (do not use it for module-specific feature docs).
 - Keep docs technical by default: explain how something works and how developers should use/extend it.
@@ -180,6 +186,7 @@ If docs and code disagree:
 - prefer docs for initial planning intent and platform conventions
 - verify the implementation before making code changes
 - update docs as part of the same task when the implementation is the intended source of truth
+- if the documented behavior changes, sync both the human docs track and the agent docs track before closing the task
 
 ### Default agent behavior
 

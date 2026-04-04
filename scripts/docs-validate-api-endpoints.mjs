@@ -9,7 +9,8 @@ const DOCS_SCOPE_DIRS = [
   path.resolve(process.cwd(), 'docs/operations'),
   path.resolve(process.cwd(), 'docs/extensions'),
   path.resolve(process.cwd(), 'docs/modules'),
-  path.resolve(process.cwd(), 'docs/sdk')
+  path.resolve(process.cwd(), 'docs/sdk'),
+  path.resolve(process.cwd(), 'docs/skitsaas')
 ];
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 const API_REGEX = /\/api\/[A-Za-z0-9_\-./:[\]]+/g;

@@ -1,0 +1,95 @@
+type SidebarItem = {
+  text: string;
+  link?: string;
+  items?: SidebarItem[];
+};
+
+export default [
+  {
+    text: 'Getting Started',
+    items: [
+      { text: 'Overview', link: '/skitsaas/' },
+      { text: 'Getting Started', link: '/skitsaas/getting-started/' },
+      { text: 'Simple SaaS', link: '/skitsaas/getting-started/simple-saas' },
+      { text: 'Multi-Service Deployment', link: '/skitsaas/getting-started/multi-service' },
+      { text: 'AI Assistant Guide', link: '/skitsaas/ai-assistant-guide' },
+      { text: 'Source Code Structure', link: '/skitsaas/source-code-structure' },
+      { text: 'Request Lifecycle', link: '/skitsaas/request-lifecycle' },
+    ],
+  },
+  {
+    text: 'Runtime',
+    items: [
+      { text: 'Routing and Route Factories', link: '/skitsaas/routing-and-route-factories' },
+      { text: 'Proxies and API Security', link: '/skitsaas/proxies-and-api-security' },
+      { text: 'Portals and Aliases', link: '/skitsaas/portals-and-aliases' },
+      { text: 'Portal and Module API Examples', link: '/skitsaas/portal-and-module-api-examples' },
+      { text: 'Context Area', link: '/skitsaas/context-area/' },
+      { text: 'Frontend Routing and Slots', link: '/skitsaas/context-area/frontend-routing-and-slots' },
+    ],
+  },
+  {
+    text: 'Platform Manual',
+    items: [
+      { text: 'Platform Reference', link: '/skitsaas/reference/' },
+      { text: 'Platform Capabilities', link: '/skitsaas/reference/platform-capabilities' },
+      { text: 'Database Model', link: '/skitsaas/reference/database-model' },
+      { text: 'Env and Runtime Config', link: '/skitsaas/reference/env-and-runtime-config' },
+      { text: 'I18n Runtime', link: '/skitsaas/reference/i18n-runtime' },
+      { text: 'SDK Change Log Reference', link: '/skitsaas/reference/sdk-change-log' },
+      { text: 'Security', link: '/skitsaas/security/' },
+      { text: 'RLS and Tenant Isolation', link: '/skitsaas/security/rls-and-tenant-isolation' },
+      { text: 'Auth Provider SPI', link: '/skitsaas/security/auth-provider-spi' },
+      { text: 'Operations', link: '/skitsaas/operations/' },
+      { text: 'Admin Dashboard Runtime', link: '/skitsaas/operations/admin-dashboard' },
+      { text: 'System Activity and Audit Logs', link: '/skitsaas/operations/system-activity-and-audit-logs' },
+      { text: 'Email System', link: '/skitsaas/operations/email-system' },
+      { text: 'Validation and Canary', link: '/skitsaas/operations/validation-and-canary' },
+      { text: 'SDK', link: '/skitsaas/sdk/' },
+      { text: 'SDK Overview', link: '/skitsaas/sdk/overview' },
+      { text: 'SDK-First Migration', link: '/skitsaas/sdk/sdk-first-migration' },
+      { text: 'Subscriptions', link: '/skitsaas/subscriptions/' },
+      { text: 'Payment Lifecycle', link: '/skitsaas/subscriptions/payment-lifecycle' },
+      { text: 'Dashboard Management', link: '/skitsaas/subscriptions/dashboard-management' },
+      { text: 'Checkout Change Checklist', link: '/skitsaas/subscriptions/checkout-change-checklist' },
+      { text: 'Audit', link: '/skitsaas/audit/' },
+      { text: 'Documentation and Evidence', link: '/skitsaas/audit/documentation-and-evidence' },
+      { text: 'SDK Change Log Policy', link: '/skitsaas/audit/sdk-change-log-policy' },
+    ],
+  },
+  {
+    text: 'UI Builders',
+    items: [
+      { text: 'Forms and Validation', link: '/skitsaas/forms-and-validation' },
+      { text: 'Admin CRUD Playbook', link: '/skitsaas/admin-crud-playbook' },
+      { text: 'Datatables and Remote Actions', link: '/skitsaas/datatables-and-remote-actions' },
+      { text: 'Themes and CTC', link: '/skitsaas/themes-and-ctc' },
+      { text: 'Theme Development', link: '/skitsaas/theme-development/' },
+      { text: 'Build-Time Selection and ADR', link: '/skitsaas/theme-development/build-time-selection-and-adr' },
+      { text: 'Template Precedence and Locking', link: '/skitsaas/theme-development/template-precedence-and-locking' },
+      { text: 'Theme Pack Worked Examples', link: '/skitsaas/theme-development/theme-pack-worked-examples' },
+      { text: 'Backoffice Override Worked Example', link: '/skitsaas/theme-development/backoffice-override-worked-example' },
+      { text: 'Theme Override Catalog', link: '/skitsaas/theme-development/override-catalog' },
+    ],
+  },
+  {
+    text: 'Extension Model',
+    items: [
+      { text: 'Modules Development', link: '/skitsaas/modules-development/' },
+      { text: 'Permissions and Actions', link: '/skitsaas/modules-development/permissions-and-actions' },
+      { text: 'Navigation, Widgets, and Notifications', link: '/skitsaas/modules-development/navigation-widgets-and-notifications' },
+      { text: 'Module Ops Runbook', link: '/skitsaas/modules-development/ops-runbook' },
+      { text: 'Source-Package Worked Example', link: '/skitsaas/modules-development/source-package-worked-example' },
+      { text: 'Source-Host Worked Example', link: '/skitsaas/modules-development/source-host-worked-example' },
+      { text: 'Composite Module Worked Example', link: '/skitsaas/modules-development/composite-module-worked-example' },
+      { text: 'Modules and SDK Boundaries', link: '/skitsaas/modules-and-sdk-boundaries' },
+      { text: 'Module Starter Playbook', link: '/skitsaas/module-starter-playbook' },
+      { text: 'Events and Hooks', link: '/skitsaas/events-and-hooks' },
+      { text: 'Hooks', link: '/skitsaas/hooks/' },
+      { text: 'Hook Emitters Checklist', link: '/skitsaas/hooks/emitters-checklist' },
+      { text: 'Notifications and Delivery', link: '/skitsaas/notifications-and-delivery' },
+      { text: 'Checkout Side Effects Playbook', link: '/skitsaas/checkout-side-effects-playbook' },
+      { text: 'Subscriptions and Features', link: '/skitsaas/subscriptions-and-features' },
+    ],
+  },
+] satisfies SidebarItem[];

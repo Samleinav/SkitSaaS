@@ -176,8 +176,8 @@ Notes:
 
 ### Core return callbacks
 
-- `GET /api/checkout/methods/stripe/return` now executes the Stripe core return action directly from the dispatcher runtime.
-- `POST /api/checkout/methods/paypal/return` now executes the PayPal core return action directly from the dispatcher runtime.
+- `GET|POST /api/checkout/methods/[paymentMethodId]/return` now executes the core provider return action directly from the dispatcher runtime.
+- In practice, Stripe and PayPal both resolve through that same dispatcher path with their own `paymentMethodId`.
 - For `one_time` checkout:
   - Stripe confirms `mode='payment'` sessions from the same return action.
   - Stripe now also reuses an already completed local one-time checkout order when the browser return arrives after a webhook-first completion for the same session/payment intent.
@@ -194,8 +194,8 @@ Notes:
 
 ### Core webhook callbacks
 
-- `POST /api/checkout/methods/stripe/webhook` now executes the Stripe core webhook action directly from the dispatcher runtime.
-- `POST /api/checkout/methods/paypal/webhook` now executes the PayPal core webhook action directly from the dispatcher runtime.
+- `POST /api/checkout/methods/[paymentMethodId]/webhook` now executes the core provider webhook action directly from the dispatcher runtime.
+- In practice, Stripe and PayPal both resolve through that same dispatcher path with their own `paymentMethodId`.
 - Core webhook handlers now promote provider webhook ids into `externalLogId` when available, so retries can be audited and settlement dedupe has a stable provider event identifier.
 - Settlement webhook replays are now short-circuited by `provider + externalLogId` against `payment_transactions.provider_event_id`:
   - repeated deliveries still append a `payment_logs` audit row
