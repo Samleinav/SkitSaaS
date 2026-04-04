@@ -4,6 +4,7 @@ These are sample modules for quick verification of the module runtime.
 
 ## Available modules
 
+- `mod.contact` -> public contact form slot + admin inbox
 - `mod.example.admin` -> admin page + nav
 - `mod.example.dashboard` -> dashboard page + nav
 - `mod.example.api` -> API handler (`/api/modules/mod.example.api/test`)

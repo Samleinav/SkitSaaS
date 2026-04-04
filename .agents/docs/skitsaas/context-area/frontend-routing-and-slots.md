@@ -158,14 +158,12 @@ real embedded content.
 
 Current example module:
 
-- `modules/mod.example.dashboard`
+- `modules/mod.contact`
 
 That module demonstrates:
 
-- `frontendRouteAliases`
-- `frontendPage`
 - `frontendSlots`
-- a concrete slot id:
+- a concrete public contact form slot id:
   `frontend.contact.form.primary`
 
 Current host usage:

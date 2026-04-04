@@ -7,22 +7,22 @@ export default async function ContactUsPage() {
     <main className="relative mx-auto w-full max-w-4xl px-4 pb-16 pt-14 sm:px-6 lg:px-8">
       <section className="space-y-4">
         <h1 className="font-[family-name:var(--font-marketing-serif)] text-4xl font-medium text-zinc-100 sm:text-5xl">
-          Contact
+          Contact us
         </h1>
         <p className="max-w-2xl text-sm text-zinc-400">
-          This page renders a frontend slot. If no module provides the slot, the
-          core fallback stays active.
+          Send your message and we will get back to you as soon as possible. If
+          the contact module is unavailable, this fallback stays visible.
         </p>
       </section>
 
       <section className="mt-8">
         <FrontendModuleSlot
           slotId="frontend.contact.form.primary"
-          moduleId="mod.example.dashboard"
+          moduleId="mod.contact"
           route="/contact-us"
           fallback={
             <div className="marketing-panel rounded-2xl p-6 text-sm text-zinc-300">
-              Contact form slot fallback.
+              Contact form unavailable right now.
             </div>
           }
         />

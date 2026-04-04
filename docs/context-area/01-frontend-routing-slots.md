@@ -123,7 +123,7 @@ export default async function ContactPage() {
 Current workspace pilot:
 
 - Slot id: `frontend.contact.form.primary`
-- Provider module: `mod.example.dashboard`
+- Provider module: `mod.contact`
 - Host page: `/contact-us`
 
 ## Test coverage

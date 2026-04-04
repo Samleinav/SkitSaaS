@@ -22,6 +22,7 @@ export type ExternalModuleMetaEntry = {
 };
 
 export const EXTERNAL_MODULE_META: ExternalModuleMetaEntry[] = [
+  { moduleId: "mod.contact", mode: "source-host", entry: "@/modules/mod.contact/src/manifest", sdkRange: "^1.9.0", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: {"schemaVersion":1,"migrationsDir":"modules/mod.contact/db/migrations"} },
   { moduleId: "mod.example.admin", mode: "source-host", entry: "@/modules/mod.example.admin/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },
   { moduleId: "mod.example.api", mode: "source-host", entry: "@/modules/mod.example.api/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },
   { moduleId: "mod.example.dashboard", mode: "source-host", entry: "@/modules/mod.example.dashboard/src/manifest", sdkRange: "^1.7.1", sdkCompatible: true, additionalLocales: [], languagePack: null, templatePack: null, db: null },
