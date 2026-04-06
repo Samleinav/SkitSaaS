@@ -23,7 +23,10 @@ import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPES } from '@/lib/payments/subscription-feature-types';
 import type { SubscriptionFeatureValueType } from '@/lib/payments/subscription-feature-types';
-import { isReservedFreeSubscriptionTemplateId } from '@/lib/payments/subscription-default-templates';
+import {
+  getReservedFreeTemplateRequiredFeatures,
+  isReservedFreeSubscriptionTemplateId
+} from '@/lib/payments/subscription-default-templates';
 import { createAdminSubscriptionTemplateFormCopy } from '../../../i18n';
 
 export default async function AdminEditSubscriptionTemplatePage({
@@ -46,11 +49,15 @@ export default async function AdminEditSubscriptionTemplatePage({
   }
   const isReservedTemplate = isReservedFreeSubscriptionTemplateId(template.id);
   const themeSelection = await getThemeSelectionForArea('admin');
+  const lockedFeatureKeys = new Set(
+    getReservedFreeTemplateRequiredFeatures(template.id).map((feature) => feature.key)
+  );
 
   const featureRows =
     template.features.length > 0
       ? template.features.map((f) => ({
           id: String(f.id),
+          removable: !lockedFeatureKeys.has(f.key),
           featureKey: f.key,
           featureLabel: f.label || f.key,
           featureValueType: SUBSCRIPTION_FEATURE_VALUE_TYPES.includes(
@@ -153,7 +160,7 @@ export default async function AdminEditSubscriptionTemplatePage({
         {isReservedTemplate ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             {t(
-              'This is a reserved core free template. You can edit it, but its scope stays locked and it cannot be deleted.'
+              'This is a reserved core free template. You can edit it, but its scope stays locked, baseline features stay pinned, and the template cannot be deleted.'
             )}
           </div>
         ) : null}

@@ -10,16 +10,13 @@ import {
   defineBuildTable,
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
-import { cn } from '@/lib/utils';
+import {
+  getPaymentProviderClassName,
+  getSubscriptionStatusClassName,
+  type AdminNormalizedSubscriptionStatus
+} from './presentation';
 import { AdminTableSlotTemplate } from '../table-slot-template';
 import type { AdminSubscriptionsCopy } from './i18n';
-
-type SubscriptionStatus =
-  | 'free'
-  | 'trialing'
-  | 'active'
-  | 'unpaid'
-  | 'canceled';
 
 export type AdminSubscriptionRow = {
   id: number;
@@ -28,54 +25,20 @@ export type AdminSubscriptionRow = {
   createdAtLabel: string;
   membersCount: number;
   paymentProvider: string | null;
-  subscriptionStatus: SubscriptionStatus;
+  subscriptionStatus: AdminNormalizedSubscriptionStatus;
   planName: string | null;
   subscriptionTemplateId: number | null;
-  stripeSubscriptionId: string | null;
-  paypalSubscriptionId: string | null;
+  planMetaLabel: string | null;
+  providerReferenceId: string | null;
+  providerPlanId: string | null;
+  lifecycleLabel: string;
 };
-
-function getStatusClassName(status: SubscriptionStatus) {
-  if (status === 'active') {
-    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
-  }
-
-  if (status === 'trialing') {
-    return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
-  }
-
-  if (status === 'unpaid') {
-    return 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300';
-  }
-
-  if (status === 'canceled') {
-    return 'border-border bg-muted text-muted-foreground';
-  }
-
-  return 'border-border bg-muted text-muted-foreground';
-}
-
-function getProviderClassName(provider: string | null) {
-  if (provider === 'stripe') {
-    return 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300';
-  }
-
-  if (provider === 'paypal') {
-    return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
-  }
-
-  if (!provider) {
-    return 'border-border bg-muted text-muted-foreground';
-  }
-
-  return 'border-primary/30 bg-primary/10 text-primary';
-}
 
 export function getColumns(
   copy: AdminSubscriptionsCopy
 ): ColumnDef<AdminSubscriptionRow>[] {
   const table = copy.organizationTable;
-  const statusLabels: Record<SubscriptionStatus, string> = {
+  const statusLabels: Record<AdminNormalizedSubscriptionStatus, string> = {
     free: table.free,
     trialing: table.trialing,
     active: table.active,
@@ -143,14 +106,23 @@ export function getColumns(
       header: table.providerHeader,
       cell: ({ row }) => {
         const fallbackCell = (
-          <span
-            className={cn(
-              'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-              getProviderClassName(row.original.paymentProvider)
-            )}
-          >
-            {row.original.paymentProvider || table.none}
-          </span>
+          <div className="min-w-[150px] space-y-1.5">
+            <span
+              className={getPaymentProviderClassName(
+                row.original.paymentProvider
+              )}
+            >
+              {row.original.paymentProvider || table.none}
+            </span>
+            {row.original.providerReferenceId ? (
+              <p
+                className="truncate font-mono text-[11px] text-muted-foreground"
+                title={row.original.providerReferenceId}
+              >
+                {row.original.providerReferenceId}
+              </p>
+            ) : null}
+          </div>
         );
 
         return (
@@ -171,14 +143,18 @@ export function getColumns(
       header: table.statusHeader,
       cell: ({ row }) => {
         const fallbackCell = (
-          <span
-            className={cn(
-              'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-              getStatusClassName(row.original.subscriptionStatus)
-            )}
-          >
-            {statusLabels[row.original.subscriptionStatus]}
-          </span>
+          <div className="min-w-[180px] space-y-1.5">
+            <span
+              className={getSubscriptionStatusClassName(
+                row.original.subscriptionStatus
+              )}
+            >
+              {statusLabels[row.original.subscriptionStatus]}
+            </span>
+            <p className="text-xs text-muted-foreground">
+              {row.original.lifecycleLabel}
+            </p>
+          </div>
         );
 
         return (
@@ -207,6 +183,11 @@ export function getColumns(
               ? `#${row.original.subscriptionTemplateId}`
               : table.noTemplate}
           </p>
+          {row.original.planMetaLabel ? (
+            <p className="text-xs text-muted-foreground">
+              {row.original.planMetaLabel}
+            </p>
+          ) : null}
         </div>
       )
     },
@@ -214,28 +195,43 @@ export function getColumns(
       id: 'ids',
       header: table.idsHeader,
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="min-w-[250px] space-y-1.5 text-xs">
-          <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
-            <span className="font-medium text-foreground">{table.stripe}:</span>{' '}
-            <span
-              className="font-mono text-[11px] text-muted-foreground"
-              title={row.original.stripeSubscriptionId || '-'}
-            >
-              {row.original.stripeSubscriptionId || '-'}
-            </span>
-          </p>
-          <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
-            <span className="font-medium text-foreground">{table.paypal}:</span>{' '}
-            <span
-              className="font-mono text-[11px] text-muted-foreground"
-              title={row.original.paypalSubscriptionId || '-'}
-            >
-              {row.original.paypalSubscriptionId || '-'}
-            </span>
-          </p>
-        </div>
-      )
+      cell: ({ row }) => {
+        const hasIds =
+          Boolean(row.original.providerReferenceId) ||
+          Boolean(row.original.providerPlanId);
+
+        return (
+          <div className="min-w-[240px] space-y-1.5 text-xs">
+            {row.original.providerReferenceId ? (
+              <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+                <span className="font-medium text-foreground">Ref:</span>{' '}
+                <span
+                  className="font-mono text-[11px] text-muted-foreground"
+                  title={row.original.providerReferenceId}
+                >
+                  {row.original.providerReferenceId}
+                </span>
+              </p>
+            ) : null}
+            {row.original.providerPlanId ? (
+              <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+                <span className="font-medium text-foreground">Plan:</span>{' '}
+                <span
+                  className="font-mono text-[11px] text-muted-foreground"
+                  title={row.original.providerPlanId}
+                >
+                  {row.original.providerPlanId}
+                </span>
+              </p>
+            ) : null}
+            {!hasIds ? (
+              <p className="rounded-md border border-dashed border-border/70 bg-muted/20 px-2 py-1.5 text-muted-foreground">
+                No provider identifiers
+              </p>
+            ) : null}
+          </div>
+        );
+      }
     },
     {
       id: 'actions',
@@ -275,7 +271,7 @@ export function getSubscriptionsTableDefinition({
   copy: AdminSubscriptionsCopy;
 }): BuildTableDefinition<AdminSubscriptionRow> {
   const table = copy.organizationTable;
-  const statusLabels: Record<SubscriptionStatus, string> = {
+  const statusLabels: Record<AdminNormalizedSubscriptionStatus, string> = {
     free: table.free,
     trialing: table.trialing,
     active: table.active,
@@ -329,14 +325,19 @@ export function getSubscriptionsTableDefinition({
             slot="cell.provider"
             data={{ provider: row.paymentProvider }}
           >
-            <span
-              className={cn(
-                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-                getProviderClassName(row.paymentProvider)
-              )}
-            >
-              {row.paymentProvider || table.none}
-            </span>
+            <div className="min-w-[150px] space-y-1.5">
+              <span className={getPaymentProviderClassName(row.paymentProvider)}>
+                {row.paymentProvider || table.none}
+              </span>
+              {row.providerReferenceId ? (
+                <p
+                  className="truncate font-mono text-[11px] text-muted-foreground"
+                  title={row.providerReferenceId}
+                >
+                  {row.providerReferenceId}
+                </p>
+              ) : null}
+            </div>
           </AdminTableSlotTemplate>
         )
       }),
@@ -349,14 +350,16 @@ export function getSubscriptionsTableDefinition({
             slot="cell.status"
             data={{ status: row.subscriptionStatus }}
           >
-            <span
-              className={cn(
-                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-                getStatusClassName(row.subscriptionStatus)
-              )}
-            >
-              {statusLabels[row.subscriptionStatus]}
-            </span>
+            <div className="min-w-[180px] space-y-1.5">
+              <span
+                className={getSubscriptionStatusClassName(row.subscriptionStatus)}
+              >
+                {statusLabels[row.subscriptionStatus]}
+              </span>
+              <p className="text-xs text-muted-foreground">
+                {row.lifecycleLabel}
+              </p>
+            </div>
           </AdminTableSlotTemplate>
         )
       }),
@@ -373,34 +376,53 @@ export function getSubscriptionsTableDefinition({
                 ? `#${row.subscriptionTemplateId}`
                 : table.noTemplate}
             </p>
+            {row.planMetaLabel ? (
+              <p className="text-xs text-muted-foreground">
+                {row.planMetaLabel}
+              </p>
+            ) : null}
           </div>
         )
       }),
       buildTableColumn.text<AdminSubscriptionRow>({
-        key: 'stripeSubscriptionId',
+        key: 'providerReferenceId',
         header: table.idsHeader,
-        cell: (row) => (
-          <div className="min-w-[250px] space-y-1.5 text-xs">
-            <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
-              <span className="font-medium text-foreground">{table.stripe}:</span>{' '}
-              <span
-                className="font-mono text-[11px] text-muted-foreground"
-                title={row.stripeSubscriptionId || '-'}
-              >
-                {row.stripeSubscriptionId || '-'}
-              </span>
-            </p>
-            <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
-              <span className="font-medium text-foreground">{table.paypal}:</span>{' '}
-              <span
-                className="font-mono text-[11px] text-muted-foreground"
-                title={row.paypalSubscriptionId || '-'}
-              >
-                {row.paypalSubscriptionId || '-'}
-              </span>
-            </p>
-          </div>
-        )
+        cell: (row) => {
+          const hasIds =
+            Boolean(row.providerReferenceId) || Boolean(row.providerPlanId);
+
+          return (
+            <div className="min-w-[240px] space-y-1.5 text-xs">
+              {row.providerReferenceId ? (
+                <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+                  <span className="font-medium text-foreground">Ref:</span>{' '}
+                  <span
+                    className="font-mono text-[11px] text-muted-foreground"
+                    title={row.providerReferenceId}
+                  >
+                    {row.providerReferenceId}
+                  </span>
+                </p>
+              ) : null}
+              {row.providerPlanId ? (
+                <p className="rounded-md border border-border/70 bg-muted/30 px-2 py-1.5">
+                  <span className="font-medium text-foreground">Plan:</span>{' '}
+                  <span
+                    className="font-mono text-[11px] text-muted-foreground"
+                    title={row.providerPlanId}
+                  >
+                    {row.providerPlanId}
+                  </span>
+                </p>
+              ) : null}
+              {!hasIds ? (
+                <p className="rounded-md border border-dashed border-border/70 bg-muted/20 px-2 py-1.5 text-muted-foreground">
+                  No provider identifiers
+                </p>
+              ) : null}
+            </div>
+          );
+        }
       }),
       buildTableColumn.custom<AdminSubscriptionRow>({
         key: 'actions',

@@ -81,6 +81,9 @@ Operational rule:
   as the fallback for authenticated scopes when assignment data is missing
 - the managed core rows inside templates `1` and `2` are baseline data that
   should be preserved even when admins edit those templates
+- admin template UI should keep those baseline rows editable but non-removable;
+  use BuildForm repeater rows with `removable: false` instead of showing a
+  remove button that later fails on submit
 
 ## Module Consumption Through SDK
 

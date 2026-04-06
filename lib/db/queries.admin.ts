@@ -387,7 +387,19 @@ export async function getAllUsersForAdmin() {
     return {
       ...row,
       subscriptionTemplateId: a?.subscriptionTemplateId ?? null,
-      subscriptionTemplateName: a?.templateName ?? null
+      subscriptionTemplateName: a?.templateName ?? null,
+      subscriptionTemplateInterval: a?.templateInterval ?? null,
+      subscriptionTemplateCurrency: a?.templateCurrency ?? null,
+      subscriptionTemplatePriceCents: a?.templatePriceCents ?? null,
+      subscriptionStatus: a?.status ?? null,
+      paymentProvider: a?.paymentProvider ?? null,
+      providerReferenceId: a?.providerReferenceId ?? null,
+      providerPlanId: a?.providerPlanId ?? null,
+      subscriptionCurrentPeriodStart: a?.currentPeriodStart ?? null,
+      subscriptionCurrentPeriodEnd: a?.currentPeriodEnd ?? null,
+      subscriptionTrialEndsAt: a?.trialEndsAt ?? null,
+      subscriptionCancelAtPeriodEnd: a?.cancelAtPeriodEnd ?? null,
+      subscriptionCanceledAt: a?.canceledAt ?? null
     };
   });
 }
@@ -474,7 +486,16 @@ export async function getAdminUserById(userId: number) {
     subscriptionTemplateName: a?.templateName ?? null,
     subscriptionTemplateInterval: a?.templateInterval ?? null,
     subscriptionTemplateCurrency: a?.templateCurrency ?? null,
-    subscriptionTemplatePriceCents: a?.templatePriceCents ?? null
+    subscriptionTemplatePriceCents: a?.templatePriceCents ?? null,
+    subscriptionStatus: a?.status ?? null,
+    paymentProvider: a?.paymentProvider ?? null,
+    providerReferenceId: a?.providerReferenceId ?? null,
+    providerPlanId: a?.providerPlanId ?? null,
+    subscriptionCurrentPeriodStart: a?.currentPeriodStart ?? null,
+    subscriptionCurrentPeriodEnd: a?.currentPeriodEnd ?? null,
+    subscriptionTrialEndsAt: a?.trialEndsAt ?? null,
+    subscriptionCancelAtPeriodEnd: a?.cancelAtPeriodEnd ?? null,
+    subscriptionCanceledAt: a?.canceledAt ?? null
   };
 }
 
@@ -503,10 +524,20 @@ export async function getAdminUserOrganizations(userId: number) {
     return {
       ...row,
       paymentProvider: a?.paymentProvider ?? null,
+      providerReferenceId: a?.providerReferenceId ?? null,
+      providerPlanId: a?.providerPlanId ?? null,
       planName: a?.planName ?? null,
       subscriptionStatus: a?.status ?? null,
       subscriptionTemplateId: a?.subscriptionTemplateId ?? null,
-      subscriptionTemplateName: a?.templateName ?? null
+      subscriptionTemplateName: a?.templateName ?? null,
+      subscriptionTemplateInterval: a?.templateInterval ?? null,
+      subscriptionTemplateCurrency: a?.templateCurrency ?? null,
+      subscriptionTemplatePriceCents: a?.templatePriceCents ?? null,
+      subscriptionCurrentPeriodStart: a?.currentPeriodStart ?? null,
+      subscriptionCurrentPeriodEnd: a?.currentPeriodEnd ?? null,
+      subscriptionTrialEndsAt: a?.trialEndsAt ?? null,
+      subscriptionCancelAtPeriodEnd: a?.cancelAtPeriodEnd ?? null,
+      subscriptionCanceledAt: a?.canceledAt ?? null
     };
   });
 }
@@ -555,7 +586,16 @@ export async function getAllTeamsForAdmin() {
       providerPlanId: a?.providerPlanId ?? null,
       planName: a?.planName ?? null,
       subscriptionStatus: a?.status ?? null,
-      subscriptionTemplateId: a?.subscriptionTemplateId ?? null
+      subscriptionTemplateId: a?.subscriptionTemplateId ?? null,
+      subscriptionTemplateName: a?.templateName ?? null,
+      subscriptionTemplateInterval: a?.templateInterval ?? null,
+      subscriptionTemplateCurrency: a?.templateCurrency ?? null,
+      subscriptionTemplatePriceCents: a?.templatePriceCents ?? null,
+      subscriptionCurrentPeriodStart: a?.currentPeriodStart ?? null,
+      subscriptionCurrentPeriodEnd: a?.currentPeriodEnd ?? null,
+      subscriptionTrialEndsAt: a?.trialEndsAt ?? null,
+      subscriptionCancelAtPeriodEnd: a?.cancelAtPeriodEnd ?? null,
+      subscriptionCanceledAt: a?.canceledAt ?? null
     };
   });
 }
@@ -593,6 +633,9 @@ export async function getAdminTeamById(teamId: number) {
     subscriptionStatus: a?.status ?? null,
     subscriptionTemplateId: a?.subscriptionTemplateId ?? null,
     subscriptionTemplateName: a?.templateName ?? null,
+    subscriptionTemplateInterval: a?.templateInterval ?? null,
+    subscriptionTemplateCurrency: a?.templateCurrency ?? null,
+    subscriptionTemplatePriceCents: a?.templatePriceCents ?? null,
     subscriptionCurrentPeriodStart: a?.currentPeriodStart ?? null,
     subscriptionCurrentPeriodEnd: a?.currentPeriodEnd ?? null,
     subscriptionTrialEndsAt: a?.trialEndsAt ?? null,

@@ -120,7 +120,9 @@ scope when an authenticated entity is missing an active assignment.
 
 For the reserved free templates, the managed core quota rows are treated as
 required baseline data. Admin can edit their values, but those rows are not
-meant to disappear from templates `1` and `2`.
+meant to disappear from templates `1` and `2`. The admin template editor now
+hides the repeater remove control for those protected rows instead of letting
+operators attempt an invalid delete.
 
 ## Publication status and pricing visibility
 

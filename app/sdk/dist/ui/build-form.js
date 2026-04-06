@@ -202,7 +202,13 @@ function RepeaterField({ field, definition, columns, }) {
         setRows((prev) => [...prev, createEmptyRepeaterRow(field)]);
     }
     function removeRow(id) {
-        setRows((prev) => (prev.length <= minRows ? prev : prev.filter((r) => r.id !== id)));
+        setRows((prev) => {
+            const targetRow = prev.find((row) => row.id === id);
+            if (!targetRow || targetRow.removable === false || prev.length <= minRows) {
+                return prev;
+            }
+            return prev.filter((row) => row.id !== id);
+        });
     }
     function updateRow(id, name, value) {
         setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [name]: value } : r)));
@@ -223,7 +229,7 @@ function RepeaterField({ field, definition, columns, }) {
                                             return (_jsx("td", { className: "px-3 py-2", children: _jsx("select", { name: inputName, value: String(subValue), onChange: (e) => updateRow(row.id, sub.name, e.target.value), disabled: isDisabled, className: cx(selectClass, 'min-w-[120px]'), children: opts.map((opt) => (_jsx("option", { value: String(opt.value), disabled: opt.disabled, children: opt.label }, String(opt.value)))) }) }, sub.name));
                                         }
                                         return (_jsx("td", { className: "px-3 py-2", children: _jsx("input", { type: sub.kind === 'number' ? 'number' : 'text', name: inputName, value: String(subValue), placeholder: sub.placeholder, maxLength: sub.maxLength, min: sub.kind === 'number' ? sub.min : undefined, max: sub.kind === 'number' ? sub.max : undefined, step: sub.kind === 'number' ? sub.step : undefined, disabled: isDisabled, onChange: (e) => updateRow(row.id, sub.name, e.target.value), className: cx(inputClass, 'min-w-[100px]') }) }, sub.name));
-                                    }), _jsx("td", { className: "px-3 py-2 text-right", children: _jsx("button", { type: "button", disabled: rows.length <= minRows, onClick: () => removeRow(row.id), className: "inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40", children: field.removeLabel ?? 'Remove' }) })] }, row.id))) })] }) })] }));
+                                    }), _jsx("td", { className: "px-3 py-2 text-right", children: row.removable === false ? null : (_jsx("button", { type: "button", disabled: rows.length <= minRows, onClick: () => removeRow(row.id), className: "inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40", children: field.removeLabel ?? 'Remove' })) })] }, row.id))) })] }) })] }));
 }
 function Field({ definition, field, formId, columns, errorMessage }) {
     if (field.kind === 'repeater') {

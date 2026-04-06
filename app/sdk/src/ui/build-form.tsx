@@ -324,7 +324,14 @@ function RepeaterField({
   }
 
   function removeRow(id: string) {
-    setRows((prev) => (prev.length <= minRows ? prev : prev.filter((r) => r.id !== id)));
+    setRows((prev) => {
+      const targetRow = prev.find((row) => row.id === id);
+      if (!targetRow || targetRow.removable === false || prev.length <= minRows) {
+        return prev;
+      }
+
+      return prev.filter((row) => row.id !== id);
+    });
   }
 
   function updateRow(id: string, name: string, value: string | boolean) {
@@ -429,14 +436,16 @@ function RepeaterField({
                   );
                 })}
                 <td className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    disabled={rows.length <= minRows}
-                    onClick={() => removeRow(row.id)}
-                    className="inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
-                  >
-                    {field.removeLabel ?? 'Remove'}
-                  </button>
+                  {row.removable === false ? null : (
+                    <button
+                      type="button"
+                      disabled={rows.length <= minRows}
+                      onClick={() => removeRow(row.id)}
+                      className="inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      {field.removeLabel ?? 'Remove'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

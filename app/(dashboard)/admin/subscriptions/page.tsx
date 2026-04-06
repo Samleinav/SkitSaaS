@@ -19,22 +19,27 @@ import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import { Button } from '@/components/ui/button';
 import {
   getAllTeamsForAdmin,
-  getAllUsersForAdmin,
-  getAdminSubscriptionTargetIdsWithOrders
+  getAllUsersForAdmin
 } from '@/lib/db/queries.admin';
 import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
+import { FREE_USER_SUBSCRIPTION_TEMPLATE_ID } from '@/lib/payments/subscription-default-templates';
 import { cn } from '@/lib/utils';
 import { requireAdminAccess } from '../guards';
-import { formatDate, normalizeSubscriptionStatus } from '../utils';
+import { formatDate, formatDateTime, normalizeSubscriptionStatus } from '../utils';
 import { type AdminSubscriptionRow } from './columns';
 import { AdminSubscriptionsDataTable } from './subscriptions-data-table';
 import { resolveAdminUserDisplayStatus } from '../users/status';
 import { AdminUserSubscriptionsDataTable } from '../suscriptions/user-subscriptions-data-table';
 import type { AdminUserSubscriptionRow } from '../suscriptions/user-subscriptions-columns';
 import {
+  formatSubscriptionPrice,
+  type AdminNormalizedSubscriptionStatus
+} from './presentation';
+import {
   createAdminSubscriptionsCopy,
+  getAdminSubscriptionIntervalLabels,
   type AdminSubscriptionsCopy
 } from './i18n';
 
@@ -107,6 +112,63 @@ function ScopeHeader({
   );
 }
 
+function createSubscriptionLifecycleLabel({
+  currentPeriodEnd,
+  trialEndsAt,
+  canceledAt,
+  cancelAtPeriodEnd,
+  locale,
+  labels
+}: {
+  currentPeriodEnd: Date | null;
+  trialEndsAt: Date | null;
+  canceledAt: Date | null;
+  cancelAtPeriodEnd: boolean | null;
+  locale: string;
+  labels: {
+    renews: string;
+    trialEnds: string;
+    canceled: string;
+    endsAtPeriodEnd: string;
+    noCycle: string;
+  };
+}) {
+  if (canceledAt) {
+    return `${labels.canceled} ${formatDateTime(canceledAt, locale)}`;
+  }
+
+  if (trialEndsAt) {
+    return `${labels.trialEnds} ${formatDateTime(trialEndsAt, locale)}`;
+  }
+
+  if (currentPeriodEnd) {
+    const suffix = cancelAtPeriodEnd ? ` • ${labels.endsAtPeriodEnd}` : '';
+    return `${labels.renews} ${formatDateTime(currentPeriodEnd, locale)}${suffix}`;
+  }
+
+  return labels.noCycle;
+}
+
+function createPlanMetaLabel({
+  locale,
+  interval,
+  priceCents,
+  currency
+}: {
+  locale: string;
+  interval: string | null;
+  priceCents: number | null;
+  currency: string | null;
+}) {
+  const amount = formatSubscriptionPrice({
+    priceCents,
+    currency,
+    locale
+  });
+  const parts = [amount, interval].filter(Boolean);
+  return parts.length > 0 ? parts.join(' / ') : null;
+}
+
 type MetricCardProps = {
   label: string;
   value: number;
@@ -160,6 +222,14 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
   const scope = resolveScopeFilter(resolvedSearchParams.scope);
   const dateLocale = getDateLocale(locale);
   const copy = createAdminSubscriptionsCopy(t);
+  const intervalLabels = getAdminSubscriptionIntervalLabels(t);
+  const lifecycleLabels = {
+    renews: t('Renews'),
+    trialEnds: t('Trial ends'),
+    canceled: t('Canceled'),
+    endsAtPeriodEnd: t('Cancel at period end'),
+    noCycle: t('No billing cycle')
+  };
   const createSubscriptionHref =
     scope === 'user'
       ? '/admin/orders/create?targetType=user'
@@ -169,13 +239,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
   const themeSelection = await getThemeSelectionForArea('admin');
 
   if (scope === 'user') {
-    const [users, subscriptionTargets] = await Promise.all([
-      getAllUsersForAdmin(),
-      getAdminSubscriptionTargetIdsWithOrders()
-    ]);
-    const userIdSet = new Set(subscriptionTargets.userIds);
+    const users = await getAllUsersForAdmin();
     const rows: AdminUserSubscriptionRow[] = users
-      .filter((user) => userIdSet.has(user.id))
       .map((user) => ({
         id: user.id,
         name: user.name,
@@ -185,14 +250,48 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
           deletedAt: user.deletedAt,
           accountStatus: user.accountStatus
         }),
+        paymentProvider: user.paymentProvider,
+        providerReferenceId: user.providerReferenceId,
+        providerPlanId: user.providerPlanId,
+        subscriptionStatus:
+          normalizeSubscriptionStatus(
+            user.subscriptionStatus
+          ) as AdminNormalizedSubscriptionStatus,
         subscriptionTemplateName: user.subscriptionTemplateName,
+        subscriptionTemplateId: user.subscriptionTemplateId,
+        subscriptionPlanMetaLabel: createPlanMetaLabel({
+          locale: dateLocale,
+          interval:
+            user.subscriptionTemplateInterval
+              ? intervalLabels[
+                  user.subscriptionTemplateInterval as keyof typeof intervalLabels
+                ] || user.subscriptionTemplateInterval
+              : null,
+          priceCents: user.subscriptionTemplatePriceCents,
+          currency: user.subscriptionTemplateCurrency
+        }),
+        subscriptionLifecycleLabel: createSubscriptionLifecycleLabel({
+          currentPeriodEnd: user.subscriptionCurrentPeriodEnd,
+          trialEndsAt: user.subscriptionTrialEndsAt,
+          canceledAt: user.subscriptionCanceledAt,
+          cancelAtPeriodEnd: user.subscriptionCancelAtPeriodEnd,
+          locale: dateLocale,
+          labels: lifecycleLabels
+        }),
         organizationsCount: user.organizationsCount,
         ownedOrganizationsCount: user.ownedOrganizationsCount
       }));
 
     const activeUsers = rows.filter((row) => row.status === 'active').length;
-    const usersWithSubscription = rows.filter((row) =>
-      Boolean(row.subscriptionTemplateName)
+    const managedUsers = rows.filter(
+      (row) =>
+        row.subscriptionTemplateId !== null &&
+        row.subscriptionTemplateId !== FREE_USER_SUBSCRIPTION_TEMPLATE_ID
+    ).length;
+    const freeBaselineUsers = rows.filter(
+      (row) =>
+        row.subscriptionTemplateId === null ||
+        row.subscriptionTemplateId === FREE_USER_SUBSCRIPTION_TEMPLATE_ID
     ).length;
     const metricsFallback = (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -203,7 +302,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
         />
         <MetricCard
           label={copy.userMetrics.usersWithSubscription}
-          value={usersWithSubscription}
+          value={managedUsers}
           icon={CreditCard}
         />
         <MetricCard
@@ -214,7 +313,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
         />
         <MetricCard
           label={copy.userMetrics.withoutSubscription}
-          value={Math.max(0, rows.length - usersWithSubscription)}
+          value={freeBaselineUsers}
           icon={AlertTriangle}
           tone="warning"
         />
@@ -286,15 +385,9 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
     );
   }
 
-  const [allTeams, subscriptionTargets] = await Promise.all([
-    getAllTeamsForAdmin(),
-    getAdminSubscriptionTargetIdsWithOrders()
-  ]);
-  const teamIdSet = new Set(subscriptionTargets.teamIds);
-  const teamsWithOrders = allTeams.filter((team) => teamIdSet.has(team.id));
+  const allTeams = await getAllTeamsForAdmin();
 
-  const data: AdminSubscriptionRow[] = teamsWithOrders.map((team) => {
-    const providerReferenceId = team.providerReferenceId ?? null;
+  const data: AdminSubscriptionRow[] = allTeams.map((team) => {
     return {
       id: team.id,
       name: team.name,
@@ -305,13 +398,30 @@ export default async function AdminSubscriptionsPage({ searchParams }: PageProps
       subscriptionStatus:
         normalizeSubscriptionStatus(
           team.subscriptionStatus
-        ) as AdminSubscriptionRow['subscriptionStatus'],
+        ) as AdminNormalizedSubscriptionStatus,
       planName: team.planName || copy.organizationTable.free,
       subscriptionTemplateId: team.subscriptionTemplateId,
-      stripeSubscriptionId:
-        team.paymentProvider === 'stripe' ? providerReferenceId : null,
-      paypalSubscriptionId:
-        team.paymentProvider === 'paypal' ? providerReferenceId : null
+      planMetaLabel: createPlanMetaLabel({
+        locale: dateLocale,
+        interval:
+          team.subscriptionTemplateInterval
+            ? intervalLabels[
+                team.subscriptionTemplateInterval as keyof typeof intervalLabels
+              ] || team.subscriptionTemplateInterval
+            : null,
+        priceCents: team.subscriptionTemplatePriceCents,
+        currency: team.subscriptionTemplateCurrency
+      }),
+      providerReferenceId: team.providerReferenceId,
+      providerPlanId: team.providerPlanId,
+      lifecycleLabel: createSubscriptionLifecycleLabel({
+        currentPeriodEnd: team.subscriptionCurrentPeriodEnd,
+        trialEndsAt: team.subscriptionTrialEndsAt,
+        canceledAt: team.subscriptionCanceledAt,
+        cancelAtPeriodEnd: team.subscriptionCancelAtPeriodEnd,
+        locale: dateLocale,
+        labels: lifecycleLabels
+      })
     };
   });
 

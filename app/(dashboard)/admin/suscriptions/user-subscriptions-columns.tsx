@@ -10,9 +10,14 @@ import {
   defineBuildTable,
   type BuildTableDefinition
 } from '@skitsaas/sdk/datatables';
-import { cn } from '@/lib/utils';
 import type { AdminUserDisplayStatus } from '../users/status';
 import { AdminTableSlotTemplate } from '../table-slot-template';
+import {
+  getAccountStatusClassName,
+  getPaymentProviderClassName,
+  getSubscriptionStatusClassName,
+  type AdminNormalizedSubscriptionStatus
+} from '../subscriptions/presentation';
 import type {
   AdminSubscriptionsCopy,
   AdminUserSubscriptionsTableCopy
@@ -24,7 +29,14 @@ export type AdminUserSubscriptionRow = {
   email: string;
   role: string;
   status: AdminUserDisplayStatus;
+  paymentProvider: string | null;
+  providerReferenceId: string | null;
+  providerPlanId: string | null;
+  subscriptionStatus: AdminNormalizedSubscriptionStatus;
   subscriptionTemplateName: string | null;
+  subscriptionTemplateId: number | null;
+  subscriptionPlanMetaLabel: string | null;
+  subscriptionLifecycleLabel: string;
   organizationsCount: number;
   ownedOrganizationsCount: number;
 };
@@ -68,6 +80,15 @@ export function getUserSubscriptionsColumns(
   copy: AdminSubscriptionsCopy
 ): ColumnDef<AdminUserSubscriptionRow>[] {
   const usersTable = copy.userTable;
+  const subscriptionLabels = copy.organizationTable;
+  const subscriptionStatusLabels: Record<AdminNormalizedSubscriptionStatus, string> =
+    {
+      free: subscriptionLabels.free,
+      trialing: subscriptionLabels.trialing,
+      active: subscriptionLabels.active,
+      unpaid: subscriptionLabels.unpaid,
+      canceled: subscriptionLabels.canceled
+    };
 
   return [
     {
@@ -101,6 +122,16 @@ export function getUserSubscriptionsColumns(
               {row.original.name || usersTable.unnamedUser}
             </p>
             <p className="text-xs text-muted-foreground">{row.original.email}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium capitalize text-foreground">
+                {row.original.role}
+              </span>
+              {row.original.paymentProvider ? (
+                <span className={getPaymentProviderClassName(row.original.paymentProvider)}>
+                  {row.original.paymentProvider}
+                </span>
+              ) : null}
+            </div>
           </div>
         );
 
@@ -118,27 +149,22 @@ export function getUserSubscriptionsColumns(
       }
     },
     {
-      accessorKey: 'role',
-      header: usersTable.roleHeader,
-      cell: ({ row }) => (
-        <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-foreground">
-          {row.original.role}
-        </span>
-      )
-    },
-    {
       accessorKey: 'status',
       header: usersTable.statusHeader,
       cell: ({ row }) => {
         const fallbackCell = (
-          <span
-            className={cn(
-              'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-              getStatusClassName(row.original.status)
-            )}
-          >
-            {getStatusLabel(row.original.status, usersTable)}
-          </span>
+          <div className="min-w-[150px] space-y-1.5">
+            <span
+              className={getSubscriptionStatusClassName(
+                row.original.subscriptionStatus
+              )}
+            >
+              {subscriptionStatusLabels[row.original.subscriptionStatus]}
+            </span>
+            <span className={getAccountStatusClassName(getStatusClassName(row.original.status))}>
+              {getStatusLabel(row.original.status, usersTable)}
+            </span>
+          </div>
         );
 
         return (
@@ -157,11 +183,37 @@ export function getUserSubscriptionsColumns(
     {
       accessorKey: 'subscriptionTemplateName',
       header: usersTable.subscriptionHeader,
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">
-          {row.original.subscriptionTemplateName || usersTable.noSubscription}
-        </span>
-      )
+      cell: ({ row }) => {
+        const hasIds =
+          Boolean(row.original.providerReferenceId) ||
+          Boolean(row.original.providerPlanId);
+
+        return (
+          <div className="min-w-[220px] space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {row.original.subscriptionTemplateName || usersTable.noSubscription}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {row.original.subscriptionTemplateId
+                ? `#${row.original.subscriptionTemplateId}`
+                : usersTable.noSubscription}
+            </p>
+            {row.original.subscriptionPlanMetaLabel ? (
+              <p className="text-xs text-muted-foreground">
+                {row.original.subscriptionPlanMetaLabel}
+              </p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              {row.original.subscriptionLifecycleLabel}
+            </p>
+            {hasIds ? (
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
+                {row.original.providerReferenceId || row.original.providerPlanId}
+              </p>
+            ) : null}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'organizationsCount',
@@ -212,6 +264,15 @@ export function getUserSubscriptionsTableDefinition({
   copy: AdminSubscriptionsCopy;
 }): BuildTableDefinition<AdminUserSubscriptionRow> {
   const usersTable = copy.userTable;
+  const subscriptionLabels = copy.organizationTable;
+  const subscriptionStatusLabels: Record<AdminNormalizedSubscriptionStatus, string> =
+    {
+      free: subscriptionLabels.free,
+      trialing: subscriptionLabels.trialing,
+      active: subscriptionLabels.active,
+      unpaid: subscriptionLabels.unpaid,
+      canceled: subscriptionLabels.canceled
+    };
 
   const definition: BuildTableDefinition<AdminUserSubscriptionRow> = {
     data,
@@ -228,6 +289,7 @@ export function getUserSubscriptionsTableDefinition({
         ),
         sortable: true,
         searchable: true,
+        filterValue: (row) => `${row.name ?? ''} ${row.email}`.trim(),
         cell: (row) => (
           <AdminTableSlotTemplate
             templateId="section.admin.table.suscriptions.user.cell"
@@ -239,17 +301,18 @@ export function getUserSubscriptionsTableDefinition({
                 {row.name || usersTable.unnamedUser}
               </p>
               <p className="text-xs text-muted-foreground">{row.email}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-[11px] font-medium capitalize text-foreground">
+                  {row.role}
+                </span>
+                {row.paymentProvider ? (
+                  <span className={getPaymentProviderClassName(row.paymentProvider)}>
+                    {row.paymentProvider}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </AdminTableSlotTemplate>
-        )
-      }),
-      buildTableColumn.text<AdminUserSubscriptionRow>({
-        key: 'role',
-        header: usersTable.roleHeader,
-        cell: (row) => (
-          <span className="inline-flex rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs font-medium capitalize text-foreground">
-            {row.role}
-          </span>
         )
       }),
       buildTableColumn.text<AdminUserSubscriptionRow>({
@@ -261,14 +324,16 @@ export function getUserSubscriptionsTableDefinition({
             slot="cell.status"
             data={{ status: row.status }}
           >
-            <span
-              className={cn(
-                'inline-flex rounded-full border px-2 py-0.5 text-xs font-medium',
-                getStatusClassName(row.status)
-              )}
-            >
-              {getStatusLabel(row.status, usersTable)}
-            </span>
+            <div className="min-w-[150px] space-y-1.5">
+              <span
+                className={getSubscriptionStatusClassName(row.subscriptionStatus)}
+              >
+                {subscriptionStatusLabels[row.subscriptionStatus]}
+              </span>
+              <span className={getAccountStatusClassName(getStatusClassName(row.status))}>
+                {getStatusLabel(row.status, usersTable)}
+              </span>
+            </div>
           </AdminTableSlotTemplate>
         )
       }),
@@ -276,9 +341,29 @@ export function getUserSubscriptionsTableDefinition({
         key: 'subscriptionTemplateName',
         header: usersTable.subscriptionHeader,
         cell: (row) => (
-          <span className="text-xs text-muted-foreground">
-            {row.subscriptionTemplateName || usersTable.noSubscription}
-          </span>
+          <div className="min-w-[220px] space-y-1">
+            <p className="text-sm font-medium text-foreground">
+              {row.subscriptionTemplateName || usersTable.noSubscription}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {row.subscriptionTemplateId
+                ? `#${row.subscriptionTemplateId}`
+                : usersTable.noSubscription}
+            </p>
+            {row.subscriptionPlanMetaLabel ? (
+              <p className="text-xs text-muted-foreground">
+                {row.subscriptionPlanMetaLabel}
+              </p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              {row.subscriptionLifecycleLabel}
+            </p>
+            {row.providerReferenceId || row.providerPlanId ? (
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
+                {row.providerReferenceId || row.providerPlanId}
+              </p>
+            ) : null}
+          </div>
         )
       }),
       buildTableColumn.text<AdminUserSubscriptionRow>({

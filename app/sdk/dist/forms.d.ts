@@ -86,7 +86,8 @@ export type BuildFormRepeaterSubFieldDefinition = {
 };
 export type BuildFormRepeaterRow = {
     id: string;
-    [key: string]: BuildFormValue;
+    removable?: boolean;
+    [key: string]: BuildFormValue | undefined;
 };
 export type BuildFormRepeaterFieldDefinition = {
     kind: 'repeater';

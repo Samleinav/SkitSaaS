@@ -66,6 +66,8 @@ Important behavior:
   server actions in core flows
 - `composeRegisteredBuildFormDefinition(...)` binds the registered request
   automatically
+- `repeaterRows` can preload row metadata such as `removable: false` when a row
+  must stay visible/editable but should not expose a remove affordance
 
 ## Validation Layers
 

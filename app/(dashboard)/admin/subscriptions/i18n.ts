@@ -89,9 +89,9 @@ export function createAdminSubscriptionsCopy(
     userSectionDescription: t('Filter by email...'),
     userMetrics: {
       totalUsers: t('Users'),
-      usersWithSubscription: t('User subscription'),
-      activeUsers: t('Status'),
-      withoutSubscription: t('No subscription')
+      usersWithSubscription: t('Managed user plans'),
+      activeUsers: t('Active accounts'),
+      withoutSubscription: t('Free baseline')
     },
     organizationMetrics: {
       payingTeams: t('Paying teams'),
