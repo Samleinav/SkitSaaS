@@ -1,22 +1,8 @@
 import {
   buildFormField,
-  buildFormRule,
-  buildFormValidationPreset,
-  defineBuildForm,
-  validationCondition,
-  withBuildFormValidation
+  defineBuildForm
 } from '@skitsaas/sdk';
 import type { ConfigRow } from './config';
-
-export type AdminOrganizationControlsBuildFormCopy = {
-  allowMultiOrganizationsLabel: string;
-  allowMultiOrganizationsHint: string;
-  maxOrganizationsPerUserLabel: string;
-  maxOrganizationsPerUserHint: string;
-  unlimitedPlaceholder: string;
-  envPrefix: string;
-  sourcePrefix: string;
-};
 
 export type AdminProviderConfigBuildFormCopy = {
   envPrefix: string;
@@ -26,19 +12,6 @@ export type AdminProviderConfigBuildFormCopy = {
   enabledLabel?: string;
   disabledLabel?: string;
 };
-
-const DEFAULT_ADMIN_ORGANIZATION_CONTROLS_BUILD_FORM_COPY: AdminOrganizationControlsBuildFormCopy =
-  {
-    allowMultiOrganizationsLabel: 'Allow multiple organizations',
-    allowMultiOrganizationsHint:
-      'Allow each user account to own or belong to more than one organization.',
-    maxOrganizationsPerUserLabel: 'Maximum organizations per user',
-    maxOrganizationsPerUserHint:
-      'Leave empty to allow unlimited organizations when multi-organization mode is enabled.',
-    unlimitedPlaceholder: 'Unlimited',
-    envPrefix: 'ENV',
-    sourcePrefix: 'Source'
-  };
 
 const DEFAULT_ADMIN_PROVIDER_CONFIG_BUILD_FORM_COPY: AdminProviderConfigBuildFormCopy =
   {
@@ -130,77 +103,6 @@ function createProviderConfigField({
             ? copy.overriddenByEnv
             : copy.dbFallbackValue
       });
-}
-
-export function createAdminOrganizationControlsBuildFormBase({
-  copy = DEFAULT_ADMIN_ORGANIZATION_CONTROLS_BUILD_FORM_COPY,
-  allowMultiOrganizationsEnvKey,
-  allowMultiOrganizationsSource,
-  maxOrganizationsPerUserEnvKey,
-  maxOrganizationsPerUserSource
-}: {
-  copy?: AdminOrganizationControlsBuildFormCopy;
-  allowMultiOrganizationsEnvKey?: string;
-  allowMultiOrganizationsSource?: ConfigRow['source'];
-  maxOrganizationsPerUserEnvKey?: string;
-  maxOrganizationsPerUserSource?: ConfigRow['source'];
-} = {}) {
-  return withBuildFormValidation(
-    defineBuildForm({
-      id: 'admin-app-config-general-form',
-      layout: {
-        columns: 1
-      },
-      fields: [
-        buildFormField.checkbox({
-          name: 'allowMultiOrganizations',
-          label: copy.allowMultiOrganizationsLabel,
-          description: formatConfigMetaDescription({
-            base: copy.allowMultiOrganizationsHint,
-            envKey:
-              allowMultiOrganizationsEnvKey ??
-              'NEXT_PUBLIC_ALLOW_MULTI_ORGANIZATIONS',
-            source: allowMultiOrganizationsSource ?? 'default',
-            envPrefix: copy.envPrefix,
-            sourcePrefix: copy.sourcePrefix
-          }),
-          uncheckedValue: 'false'
-        }),
-        buildFormField.number({
-          name: 'maxOrganizationsPerUser',
-          label: copy.maxOrganizationsPerUserLabel,
-          description: formatConfigMetaDescription({
-            base: copy.maxOrganizationsPerUserHint,
-            envKey:
-              maxOrganizationsPerUserEnvKey ??
-              'NEXT_PUBLIC_MAX_ORGANIZATIONS_PER_USER',
-            source: maxOrganizationsPerUserSource ?? 'default',
-            envPrefix: copy.envPrefix,
-            sourcePrefix: copy.sourcePrefix
-          }),
-          placeholder: copy.unlimitedPlaceholder,
-          min: 1,
-          step: 1,
-          inputMode: 'numeric'
-        })
-      ]
-    }),
-    buildFormValidationPreset.blur(
-      {
-        maxOrganizationsPerUser: [
-          buildFormRule.integer({
-            when: [validationCondition.truthy('allowMultiOrganizations')]
-          }),
-          buildFormRule.min(1, {
-            when: [validationCondition.truthy('allowMultiOrganizations')]
-          })
-        ]
-      },
-      {
-        validateOn: ['change', 'submit']
-      }
-    )
-  );
 }
 
 export function createAdminProviderConfigBuildFormBase({

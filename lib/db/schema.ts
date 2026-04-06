@@ -56,6 +56,9 @@ export const subscriptionTemplates = pgTable(
     compareAtPriceCents: integer('compare_at_price_cents'),
     currency: varchar('currency', { length: 10 }).notNull().default('USD'),
     trialPeriodDays: integer('trial_period_days').notNull().default(0),
+    publicationStatus: varchar('publication_status', { length: 20 })
+      .notNull()
+      .default('draft'),
     paypalProductId: text('paypal_product_id'),
     paypalPlanId: text('paypal_plan_id'),
     paypalPlanFingerprint: text('paypal_plan_fingerprint'),
@@ -81,6 +84,10 @@ export const subscriptionTemplates = pgTable(
     categoryKeyCheck: check(
       'subscription_templates_category_key_chk',
       sql`char_length(trim(${table.categoryKey})) > 0`
+    ),
+    publicationStatusCheck: check(
+      'subscription_templates_publication_status_chk',
+      sql`${table.publicationStatus} in ('draft', 'published')`
     ),
   })
 );

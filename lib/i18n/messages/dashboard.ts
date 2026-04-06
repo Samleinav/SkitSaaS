@@ -101,13 +101,8 @@ export type DashboardMessages = {
     };
     organizationPolicy: {
       title: string;
-      allowMultiOrganizations: string;
-      maxByConfig: string;
       maxBySubscription: string;
-      effectiveLimit: string;
       currentOrganizations: string;
-      yes: string;
-      no: string;
       unlimited: string;
     };
     organizations: {

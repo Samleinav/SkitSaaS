@@ -144,6 +144,12 @@ export default async function AdminSubscriptionTemplatesPage() {
               </TableHead>
               <TableHead>
                 {resolveTableCellSlot({
+                  slot: 'header.status',
+                  fallback: <>{t('Status')}</>
+                })}
+              </TableHead>
+              <TableHead>
+                {resolveTableCellSlot({
                   slot: 'header.category',
                   fallback: <>{t('Category key')}</>
                 })}
@@ -189,6 +195,10 @@ export default async function AdminSubscriptionTemplatesPage() {
               const scopeLabel =
                 scopeLabels[template.targetScope as keyof typeof scopeLabels] ||
                 template.targetScope;
+              const publicationStatusLabel =
+                template.publicationStatus === 'published'
+                  ? t('Published')
+                  : t('Draft');
               const templatePublicFeaturesCount = template.features.filter(
                 (feature) => feature.isPublic
               ).length;
@@ -212,6 +222,16 @@ export default async function AdminSubscriptionTemplatesPage() {
                         scope: template.targetScope
                       },
                       fallback: <>{scopeLabel}</>
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    {resolveTableCellSlot({
+                      slot: 'cell.status',
+                      data: {
+                        templateId: template.id,
+                        publicationStatus: template.publicationStatus
+                      },
+                      fallback: <>{publicationStatusLabel}</>
                     })}
                   </TableCell>
                   <TableCell>

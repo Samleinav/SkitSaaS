@@ -33,8 +33,10 @@ This document covers core tables only. Each installed module owns its own tables
 
 - `subscription_templates` - plan catalog
   - includes scope + hierarchy metadata (`target_scope`, `category_key`, `hierarchy_rank`)
+  - includes editorial visibility metadata (`publication_status`)
   - includes PayPal plan metadata (`paypal_product_id`, `paypal_plan_id`, `paypal_plan_fingerprint`)
   - includes optional PayPal no-trial plan metadata (`paypal_plan_id_no_trial`, `paypal_plan_fingerprint_no_trial`)
+  - reserves `id=1` for the core free `user` template and `id=2` for the core free `organization` template
 - `subscription_template_features` - features/quota values per template
 - `quota_usage` - per-scope (`team`/`user`), per-feature usage ledger for quota enforcement windows
 - `subscription_trial_usage` - one-time trial consumption ledger per target (`team`/`user`) and category
@@ -84,6 +86,7 @@ Financial settlement flow:
 ## Notes
 
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
+- The normal authenticated baseline is no longer "no assignment = free". New users and new teams are provisioned with reserved free templates (`subscription_templates.id=1` for `user`, `id=2` for `organization`), and legacy records without an active assignment are backfilled to those templates.
 - Checkout, operational payment lifecycle, and settled transactions are separate by design:
   - `checkout_orders` / `checkout_order_items` hold the pre-payment checkout context
   - `checkout_payment_attempt_logs` captures checkout orchestration attempts such as

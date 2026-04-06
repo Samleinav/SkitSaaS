@@ -102,14 +102,9 @@ const messages = {
       keep: 'Mantener suscripcion'
     },
     organizationPolicy: {
-      title: 'Politica y limites de organizaciones',
-      allowMultiOrganizations: 'Permitir multiples organizaciones',
-      maxByConfig: 'Maximo de organizaciones (app config)',
+      title: 'Limites de organizaciones',
       maxBySubscription: 'Maximo de organizaciones (suscripcion de usuario)',
-      effectiveLimit: 'Limite efectivo de organizaciones',
       currentOrganizations: 'Organizaciones actuales',
-      yes: 'Si',
-      no: 'No',
       unlimited: 'Ilimitado'
     },
     organizations: {

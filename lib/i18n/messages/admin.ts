@@ -349,15 +349,6 @@ export type AdminMessages = {
       overrideEnabled: string;
       overrideDisabled: string;
     };
-    organization: {
-      title: string;
-      description: string;
-      allowMultiOrganizationsLabel: string;
-      allowMultiOrganizationsHint: string;
-      maxOrganizationsPerUserLabel: string;
-      maxOrganizationsPerUserHint: string;
-      unlimitedPlaceholder: string;
-    };
     email: {
       description: string;
       smtpConfigTitle: string;

@@ -17,6 +17,8 @@ Key files:
 - `lib/features/catalog.ts`
 - `lib/features/controller.ts`
 - `lib/features/subscription.ts`
+- `lib/payments/subscription-default-templates.ts`
+- `lib/quota/service.ts`
 
 The host feature catalog defines:
 
@@ -25,6 +27,19 @@ The host feature catalog defines:
 - value type
 - defaults
 - numeric minimums or limits
+
+Current core count-quota semantics:
+
+- `dashboard.user.organizations.max`
+- `dashboard.team.members.max`
+
+For these keys:
+
+- `-1` means unlimited
+- `1..N` means a finite allowed limit
+- `0` is invalid and should not be persisted by normal admin flows
+
+`dashboard.team.invites.enabled` is the canonical gate for invite permission.
 
 ## Feature Controller
 
@@ -50,6 +65,22 @@ Examples:
 
 - `dashboard.user.organizations.max`
 - `dashboard.team.members.max`
+
+Reserved baseline templates:
+
+- `subscription_templates.id = 1`
+  free `user`
+- `subscription_templates.id = 2`
+  free `organization`
+
+Operational rule:
+
+- authenticated user/team paths should assume those reserved templates define
+  the baseline free behavior, not `null` assignment
+- feature controllers and the quota adapter now use the reserved free template
+  as the fallback for authenticated scopes when assignment data is missing
+- the managed core rows inside templates `1` and `2` are baseline data that
+  should be preserved even when admins edit those templates
 
 ## Module Consumption Through SDK
 

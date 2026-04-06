@@ -12,7 +12,8 @@ import {
 import {
   getActiveTeamSubscriptionAssignment,
   getActiveUserSubscriptionAssignment,
-  getSubscriptionTemplateById
+  getSubscriptionTemplateById,
+  getSubscriptionTemplateWithFeaturesById
 } from '@/lib/db/queries';
 import {
   revalidateAdminBilling,
@@ -28,6 +29,7 @@ import { SUBSCRIPTION_FEATURE_VALUE_TYPE_SET } from '@/lib/payments/subscription
 import { SUBSCRIPTION_TARGET_SCOPE_SET } from '@/lib/payments/subscription-scopes';
 import {
   getManagedSubscriptionFeatureDefinition,
+  isManagedSubscriptionFeatureInputValid,
   normalizeManagedSubscriptionFeature
 } from '@/lib/features/catalog';
 import {
@@ -38,8 +40,14 @@ import {
 } from '@/lib/payments/checkout-system';
 import { isSubscriptionMutationBlocked } from '@/lib/payments/subscription-single-writer';
 import {
+  FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
+  FREE_USER_SUBSCRIPTION_TEMPLATE_ID,
+  getReservedFreeTemplateRequiredFeatures,
+  normalizeSubscriptionTemplatePublicationStatus
+} from '@/lib/payments/subscription-default-templates';
+import {
   activateSubscriptionAssignment,
-  suspendSubscriptionAssignment
+  replaceWithReservedFreeSubscriptionAssignment,
 } from '@/lib/payments/subscription-assignments';
 import { createSysActivityLog } from '@/lib/system/activity-logs';
 import { emitEventAsync } from '@/lib/events/bus';
@@ -158,9 +166,97 @@ function normalizeSource(input: string, fallback: string) {
   return normalized.slice(0, 120);
 }
 
+function getReservedTemplateScope(templateId: number) {
+  if (templateId === FREE_USER_SUBSCRIPTION_TEMPLATE_ID) {
+    return 'user' as const;
+  }
+
+  if (templateId === FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID) {
+    return 'organization' as const;
+  }
+
+  return null;
+}
+
+type ParsedTemplateFeature = {
+  featureKey: string;
+  featureLabel: string;
+  valueType: string;
+  featureValue: string | null;
+  valueLabel: string | null;
+  isPublic: boolean;
+};
+
+type TemplateFeatureSeed = {
+  key: string;
+  label: string;
+  valueType: string;
+  value: string | null;
+  valueLabel: string | null;
+  isPublic: boolean;
+};
+
+function mapTemplateFeaturesByKey(
+  features: Array<{
+    key: string;
+    label: string;
+    valueType: string;
+    value: string | null;
+    valueLabel: string | null;
+    isPublic: boolean;
+  }>
+) {
+  return new Map<string, TemplateFeatureSeed>(
+    features.map((feature) => [
+      feature.key,
+      {
+        key: feature.key,
+        label: feature.label,
+        valueType: feature.valueType,
+        value: feature.value,
+        valueLabel: feature.valueLabel,
+        isPublic: feature.isPublic
+      }
+    ])
+  );
+}
+
+function mapRequiredTemplateFeatures(
+  templateId: number | null | undefined
+) {
+  return new Map<string, TemplateFeatureSeed>(
+    getReservedFreeTemplateRequiredFeatures(templateId).map((feature) => [
+      feature.key,
+      {
+        key: feature.key,
+        label: feature.label,
+        valueType: feature.valueType,
+        value: feature.value,
+        valueLabel: feature.valueLabel,
+        isPublic: feature.isPublic
+      }
+    ])
+  );
+}
+
+function toParsedTemplateFeature(feature: TemplateFeatureSeed): ParsedTemplateFeature {
+  return {
+    featureKey: feature.key,
+    featureLabel: feature.label,
+    valueType: feature.valueType,
+    featureValue: feature.value,
+    valueLabel: feature.valueLabel,
+    isPublic: feature.isPublic
+  };
+}
+
 function parseTemplateFeatures(
   formData: FormData,
-  targetScope: 'user' | 'organization'
+  targetScope: 'user' | 'organization',
+  options?: {
+    preservedFeaturesByKey?: Map<string, TemplateFeatureSeed>;
+    requiredFeaturesByKey?: Map<string, TemplateFeatureSeed>;
+  }
 ) {
   const rowIds = formData
     .getAll('featureRowId')
@@ -169,17 +265,8 @@ function parseTemplateFeatures(
 
   const uniqueRowIds = Array.from(new Set(rowIds));
 
-  const featuresMap = new Map<
-    string,
-    {
-      featureKey: string;
-      featureLabel: string;
-      valueType: string;
-      featureValue: string | null;
-      valueLabel: string | null;
-      isPublic: boolean;
-    }
-  >();
+  const featuresMap = new Map<string, ParsedTemplateFeature>();
+  let hasInvalidManagedFeatureInput = false;
 
   for (const rowId of uniqueRowIds) {
     const featureKey = String(formData.get(`featureKey_${rowId}`) || '').trim();
@@ -198,12 +285,41 @@ function parseTemplateFeatures(
       continue;
     }
 
+    const managedDefinition = getManagedSubscriptionFeatureDefinition(featureKey);
+    const normalizedManagedKey = managedDefinition?.key ?? featureKey;
+    const preservedFeature =
+      options?.preservedFeaturesByKey?.get(normalizedManagedKey) ??
+      options?.requiredFeaturesByKey?.get(normalizedManagedKey) ??
+      null;
+    const featureValueInput =
+      featureValueRaw.length > 0 ? featureValueRaw : preservedFeature?.value ?? null;
+    const valueLabelInput =
+      valueLabelRaw.length > 0
+        ? valueLabelRaw
+        : preservedFeature?.valueLabel ?? null;
+
+    if (managedDefinition) {
+      if (managedDefinition.targetScope !== targetScope) {
+        continue;
+      }
+
+      if (
+        !isManagedSubscriptionFeatureInputValid(
+          managedDefinition,
+          featureValueRaw || null
+        )
+      ) {
+        hasInvalidManagedFeatureInput = true;
+        continue;
+      }
+    }
+
     const managedFeature = normalizeManagedSubscriptionFeature({
       featureKey,
       featureLabel,
       valueType,
-      featureValue: featureValueRaw || null,
-      valueLabel: valueLabelRaw || null,
+      featureValue: featureValueInput,
+      valueLabel: valueLabelInput,
       isPublic
     }, { targetScope });
 
@@ -259,7 +375,24 @@ function parseTemplateFeatures(
     });
   }
 
-  return Array.from(featuresMap.values());
+  if (options?.requiredFeaturesByKey) {
+    for (const [featureKey, requiredFeature] of options.requiredFeaturesByKey) {
+      if (featuresMap.has(featureKey)) {
+        continue;
+      }
+
+      const preservedFeature = options.preservedFeaturesByKey?.get(featureKey);
+      featuresMap.set(
+        featureKey,
+        toParsedTemplateFeature(preservedFeature ?? requiredFeature)
+      );
+    }
+  }
+
+  return {
+    features: Array.from(featuresMap.values()),
+    hasInvalidManagedFeatureInput
+  };
 }
 
 const adminRequestTemplateActiveUpdateBuildForm =
@@ -278,6 +411,9 @@ export const createSubscriptionTemplateAction = adminAction(
     const name = form.string('name');
     const targetScopeInput = form.string('targetScope');
     const targetScope = normalizeTemplateTargetScope(targetScopeInput);
+    const publicationStatus = normalizeSubscriptionTemplatePublicationStatus(
+      form.string('publicationStatus')
+    );
     const categoryKey = normalizeTemplateCategoryKey(
       form.string('categoryKey'),
       name
@@ -296,6 +432,7 @@ export const createSubscriptionTemplateAction = adminAction(
     if (
       !name ||
       !targetScope ||
+      !publicationStatus ||
       !categoryKey ||
       !billingInterval ||
       priceCents === null ||
@@ -311,11 +448,17 @@ export const createSubscriptionTemplateAction = adminAction(
       return false;
     }
 
+    const parsedFeatures = parseTemplateFeatures(formData, targetScope);
+    if (parsedFeatures.hasInvalidManagedFeatureInput) {
+      return false;
+    }
+
     const [createdTemplate] = await db
       .insert(subscriptionTemplates)
       .values({
         name,
         targetScope,
+        publicationStatus,
         categoryKey,
         hierarchyRank,
         billingInterval,
@@ -329,8 +472,7 @@ export const createSubscriptionTemplateAction = adminAction(
 
     // NOTE: Provider-specific plans are intentionally provisioned on-demand
     // during checkout (e.g., Stripe). This keeps templates provider-agnostic.
-
-    const featuresToInsert = parseTemplateFeatures(formData, targetScope);
+    const featuresToInsert = parsedFeatures.features;
 
     if (featuresToInsert.length > 0) {
       await db.insert(subscriptionTemplateFeatures).values(
@@ -375,6 +517,9 @@ export const updateSubscriptionTemplateAction = adminAction(
     const name = form.string('name');
     const targetScopeInput = form.string('targetScope');
     const targetScope = normalizeTemplateTargetScope(targetScopeInput);
+    const publicationStatus = normalizeSubscriptionTemplatePublicationStatus(
+      form.string('publicationStatus')
+    );
     const categoryKey = normalizeTemplateCategoryKey(
       form.string('categoryKey'),
       name
@@ -394,6 +539,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       !templateId ||
       !name ||
       !targetScope ||
+      !publicationStatus ||
       !categoryKey ||
       !billingInterval ||
       priceCents === null ||
@@ -402,8 +548,13 @@ export const updateSubscriptionTemplateAction = adminAction(
       return false;
     }
 
-    const currentTemplate = await getSubscriptionTemplateById(templateId);
+    const currentTemplate = await getSubscriptionTemplateWithFeaturesById(templateId);
     if (!currentTemplate) {
+      return false;
+    }
+
+    const reservedTemplateScope = getReservedTemplateScope(currentTemplate.id);
+    if (reservedTemplateScope && targetScope !== reservedTemplateScope) {
       return false;
     }
 
@@ -414,6 +565,14 @@ export const updateSubscriptionTemplateAction = adminAction(
       return false;
     }
 
+    const parsedFeatures = parseTemplateFeatures(formData, targetScope, {
+      preservedFeaturesByKey: mapTemplateFeaturesByKey(currentTemplate.features),
+      requiredFeaturesByKey: mapRequiredTemplateFeatures(templateId)
+    });
+    if (parsedFeatures.hasInvalidManagedFeatureInput) {
+      return false;
+    }
+
     const updatedAt = new Date();
 
     await db
@@ -421,6 +580,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       .set({
         name,
         targetScope,
+        publicationStatus,
         categoryKey,
         hierarchyRank,
         billingInterval,
@@ -439,7 +599,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       .delete(subscriptionTemplateFeatures)
       .where(eq(subscriptionTemplateFeatures.templateId, templateId));
 
-    const featuresToInsert = parseTemplateFeatures(formData, targetScope);
+    const featuresToInsert = parsedFeatures.features;
     if (featuresToInsert.length > 0) {
       await db.insert(subscriptionTemplateFeatures).values(
         featuresToInsert.map((feature) => ({
@@ -459,6 +619,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       ...currentTemplate,
       name,
       targetScope,
+      publicationStatus,
       categoryKey,
       hierarchyRank,
       billingInterval,
@@ -612,6 +773,15 @@ export const deleteSubscriptionTemplateAction = adminValidatedAction(
       });
     }
 
+    if (
+      templateId === FREE_USER_SUBSCRIPTION_TEMPLATE_ID ||
+      templateId === FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
+    ) {
+      return invalid({
+        templateId: ['Reserved free templates cannot be deleted.']
+      });
+    }
+
     await db
       .delete(subscriptionTemplateFeatures)
       .where(eq(subscriptionTemplateFeatures.templateId, templateId));
@@ -716,10 +886,10 @@ export const updateUserSubscriptionAction = adminValidatedAction(
         sourceOrderId: null
       });
     } else if (currentAssignment) {
-      await suspendSubscriptionAssignment({
+      await replaceWithReservedFreeSubscriptionAssignment({
         targetType: 'user',
         targetId: userId,
-        status: 'canceled',
+        closeStatus: 'canceled',
         sourceOrderId: null
       });
     }
@@ -860,10 +1030,10 @@ export const updateTeamSubscriptionAction = adminValidatedAction(
     } else if (currentAssignment) {
       const suspendStatus =
         resolvedUpdate.subscriptionStatus === 'unpaid' ? 'unpaid' : 'canceled';
-      await suspendSubscriptionAssignment({
+      await replaceWithReservedFreeSubscriptionAssignment({
         targetType: 'team',
         targetId: teamId,
-        status: suspendStatus,
+        closeStatus: suspendStatus,
         sourceOrderId: null
       });
     }
@@ -979,10 +1149,10 @@ export const clearTeamSubscriptionAction = adminValidatedAction(
     const currentAssignment = await getActiveTeamSubscriptionAssignment(teamId);
 
     if (currentAssignment) {
-      await suspendSubscriptionAssignment({
+      await replaceWithReservedFreeSubscriptionAssignment({
         targetType: 'team',
         targetId: teamId,
-        status: 'canceled',
+        closeStatus: 'canceled',
         sourceOrderId: null
       });
     }

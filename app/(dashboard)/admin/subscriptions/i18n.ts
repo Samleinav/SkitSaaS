@@ -179,11 +179,16 @@ export function createAdminSubscriptionTemplateFormCopy(
     templateNameLabel: t('Template name'),
     templateNamePlaceholder: t('Template name'),
     targetScopeLabel: t('Subscription scope'),
+    publicationStatusLabel: t('Publication status'),
     categoryKeyLabel: t('Category key'),
     categoryKeyPlaceholder: t('Category key (e.g. team.pro)'),
     hierarchyRankLabel: t('Hierarchy rank'),
     hierarchyRankPlaceholder: t('Hierarchy rank (higher means bigger plan)'),
     scopeLabels: getAdminSubscriptionScopeLabels(t),
+    publicationStatusLabels: {
+      draft: t('Draft'),
+      published: t('Published')
+    },
     billingIntervalLabel: t('Billing interval'),
     intervalLabels: getAdminSubscriptionIntervalLabels(t),
     priceLabel: t('Price'),

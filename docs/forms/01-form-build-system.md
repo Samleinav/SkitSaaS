@@ -562,7 +562,6 @@ Current core controllers:
 - `admin-edit-user-profile-form`
 - `admin-update-user-status-form`
 - `admin-delete-user-form`
-- `admin-app-config-general-form`
 - `admin-create-order-form`
 - `admin-edit-order-form`
 - `admin-create-subscription-template-form`

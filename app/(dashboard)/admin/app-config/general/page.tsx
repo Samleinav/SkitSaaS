@@ -6,61 +6,12 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
-import { TemplateBuildForm } from '@/components/ui/template-build-form';
-import { composeRegisteredBuildFormDefinition } from '@/lib/forms/registry';
 import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
-import { getAdminAppConfigData } from '../config';
-import { createAdminOrganizationControlsBuildFormBase } from '../forms';
 
 export default async function AdminAppConfigGeneralPage() {
   const t = await getServerTranslator({ area: 'admin' });
-  const savingLabel = `${t('Save')}...`;
-
-  const {
-    organizationAllowMultiConfig,
-    organizationMaxConfig,
-    allowMultiOrganizations,
-    maxOrganizationsPerUser
-  } = await getAdminAppConfigData();
   const themeSelection = await getThemeSelectionForArea('admin');
-  const organizationControlsForm = composeRegisteredBuildFormDefinition(
-    'admin-app-config-general-form',
-    createAdminOrganizationControlsBuildFormBase({
-      copy: {
-        allowMultiOrganizationsLabel: t('Allow multi organizations per user'),
-        allowMultiOrganizationsHint: t(
-          'If disabled, each user can only belong to one organization.'
-        ),
-        maxOrganizationsPerUserLabel: t(
-          'Max organizations per user (optional)'
-        ),
-        maxOrganizationsPerUserHint: t(
-          'Leave empty for unlimited when multi organizations are enabled.'
-        ),
-        unlimitedPlaceholder: t('Unlimited'),
-        envPrefix: t('ENV'),
-        sourcePrefix: t('Value source')
-      },
-      allowMultiOrganizationsEnvKey: organizationAllowMultiConfig.envKey,
-      allowMultiOrganizationsSource: organizationAllowMultiConfig.source,
-      maxOrganizationsPerUserEnvKey: organizationMaxConfig.envKey,
-      maxOrganizationsPerUserSource: organizationMaxConfig.source
-    }),
-    {
-      submit: {
-        idleLabel: t('Save'),
-        pendingLabel: savingLabel,
-        align: 'end',
-        size: 'sm',
-        variant: 'outline'
-      },
-      values: {
-        allowMultiOrganizations,
-        maxOrganizationsPerUser: maxOrganizationsPerUser ?? null
-      }
-    }
-  );
 
   const fallbackPage = (
     <div className="space-y-6">
@@ -82,18 +33,17 @@ export default async function AdminAppConfigGeneralPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('Organizations')}</CardTitle>
+          <CardTitle>{t('Organization limits')}</CardTitle>
           <CardDescription>
-            {t('Control multi-organization limits per user.')}
+            {t('Organization quotas are now controlled from subscription templates.')}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TemplateBuildForm
-            definition={organizationControlsForm}
-            area="admin"
-            route="/admin/app-config/general"
-            slot="admin.app-config.general"
-          />
+          <p className="text-sm text-muted-foreground">
+            {t(
+              'Use subscription templates to define dashboard.user.organizations.max and other organization-related limits. This page no longer overrides those quotas with app config.'
+            )}
+          </p>
         </CardContent>
       </Card>
     </div>

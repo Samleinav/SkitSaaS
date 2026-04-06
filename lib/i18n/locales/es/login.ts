@@ -44,7 +44,9 @@ const messages = {
         'No se pudo crear el usuario. Intenta nuevamente.',
       invalidInvitation: 'La invitacion es invalida o expiro.',
       failedToCreateTeam:
-        'No se pudo crear el equipo. Intenta nuevamente.'
+        'No se pudo crear el equipo. Intenta nuevamente.',
+      teamMemberLimitReached:
+        'Este equipo ya alcanzo su limite de miembros.'
     }
   },
   forgotPassword: {

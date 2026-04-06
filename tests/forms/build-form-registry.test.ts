@@ -20,7 +20,6 @@ import {
   createAdminEditUserProfileBuildFormBase,
   createAdminEditUserStatusBuildFormBase
 } from '../../app/(dashboard)/admin/users/forms';
-import { createAdminOrganizationControlsBuildFormBase } from '../../app/(dashboard)/admin/app-config/forms';
 import {
   createAdminDeleteSubscriptionTemplateBuildFormBase,
   createAdminRequestTemplateActiveUpdateBuildFormBase
@@ -56,7 +55,6 @@ function listCurrentCoreBuildForms() {
     createAdminEditUserProfileBuildFormBase(),
     createAdminEditUserStatusBuildFormBase(),
     createAdminDeleteUserBuildFormBase(),
-    createAdminOrganizationControlsBuildFormBase(),
     createAdminUpdateUserSubscriptionBuildFormBase(),
     createAdminManageOrganizationSubscriptionBuildFormBase(),
     createAdminClearOrganizationSubscriptionBuildFormBase(),

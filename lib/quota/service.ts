@@ -12,6 +12,10 @@ import {
   subscriptionTemplateFeatures,
   quotaUsage,
 } from '@/lib/db/schema';
+import {
+  FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
+  FREE_USER_SUBSCRIPTION_TEMPLATE_ID
+} from '@/lib/payments/subscription-default-templates';
 
 const TRUE_VALUES = new Set([
   '1',
@@ -56,7 +60,8 @@ function parseBooleanFeatureValue(value: string | null) {
 
 /**
  * Resolve the active subscription template ID for a given QuotaContext.
- * Returns null when no active assignment exists (free / unauthenticated).
+ * Returns the reserved free template when no active assignment exists for an
+ * authenticated scope.
  */
 async function resolveTemplateId(ctx: QuotaContext): Promise<number | null> {
   if (ctx.teamId !== null) {
@@ -71,7 +76,7 @@ async function resolveTemplateId(ctx: QuotaContext): Promise<number | null> {
         )
       )
       .limit(1);
-    return rows[0]?.templateId ?? null;
+    return rows[0]?.templateId ?? FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
   }
 
   if (ctx.userId !== null) {
@@ -86,7 +91,7 @@ async function resolveTemplateId(ctx: QuotaContext): Promise<number | null> {
         )
       )
       .limit(1);
-    return rows[0]?.templateId ?? null;
+    return rows[0]?.templateId ?? FREE_USER_SUBSCRIPTION_TEMPLATE_ID;
   }
 
   return null;
@@ -239,10 +244,15 @@ export const quotaAdapter: SubscriptionFeaturesAdapter = {
       if (limit === null || isNaN(limit)) {
         return { enabled: true, limit: null };
       }
-      // 0 or negative limit means disabled
-      if (limit <= 0) {
-        return { enabled: false, limit };
+
+      if (limit < 0) {
+        return { enabled: true, limit: null };
       }
+
+      if (limit === 0) {
+        return { enabled: false, limit: 0 };
+      }
+
       return { enabled: true, limit };
     }
 

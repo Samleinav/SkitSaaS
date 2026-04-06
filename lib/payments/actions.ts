@@ -173,7 +173,9 @@ export async function checkoutAction(formData: FormData) {
     redirect('/pricing');
   }
 
-  const template = await getSubscriptionTemplateById(templateId);
+  const template = await getSubscriptionTemplateById(templateId, {
+    publicationStatus: 'published'
+  });
   if (!template) {
     redirect('/pricing');
   }

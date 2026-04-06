@@ -361,15 +361,6 @@ const messages = {
       overrideEnabled: 'Forced enabled by app.config/env',
       overrideDisabled: 'Forced disabled by app.config/env'
     },
-    organization: {
-      title: 'Organizations',
-      description: 'Control multi-organization limits per user.',
-      allowMultiOrganizationsLabel: 'Allow multi organizations per user',
-      allowMultiOrganizationsHint: 'If disabled, each user can only belong to one organization.',
-      maxOrganizationsPerUserLabel: 'Max organizations per user (optional)',
-      maxOrganizationsPerUserHint: 'Leave empty for unlimited when multi organizations are enabled.',
-      unlimitedPlaceholder: 'Unlimited'
-    },
     email: {
       description: 'Configure external SMTP delivery and review outgoing notification logs.',
       smtpConfigTitle: 'SMTP Configuration',

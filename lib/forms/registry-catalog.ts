@@ -9,7 +9,6 @@ import {
   createAdminEditUserStatusBuildFormBase,
   createAdminEditUserProfileBuildFormBase
 } from '@/app/(dashboard)/admin/users/forms';
-import { createAdminOrganizationControlsBuildFormBase } from '@/app/(dashboard)/admin/app-config/forms';
 import {
   createAdminCreateOrderBuildFormBase,
   createAdminEditOrderBuildFormBase
@@ -86,13 +85,6 @@ const buildFormControllerCatalog: BuildFormControllerCatalogEntry[] = [
     access: 'admin',
     route: '/admin/users/[userId]',
     resolveDefinition: () => createAdminDeleteUserBuildFormBase()
-  },
-  {
-    formId: 'admin-app-config-general-form',
-    area: 'admin',
-    access: 'admin',
-    route: '/admin/app-config/general',
-    resolveDefinition: () => createAdminOrganizationControlsBuildFormBase()
   },
   {
     formId: 'admin-update-user-subscription-form',

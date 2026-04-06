@@ -14,7 +14,6 @@ import {
   updateUserAccountStatusAction,
   updateUserProfileAction
 } from '@/app/(dashboard)/admin/users/actions';
-import { upsertOrganizationControlsAction } from '@/app/(dashboard)/admin/app-config/actions';
 import {
   clearTeamSubscriptionAction,
   createSubscriptionTemplateAction,
@@ -92,7 +91,6 @@ const buildFormControllerSubmitActions: Partial<
   'admin-edit-user-profile-form': updateUserProfileAction,
   'admin-update-user-status-form': updateUserAccountStatusAction,
   'admin-delete-user-form': deleteUserAction,
-  'admin-app-config-general-form': upsertOrganizationControlsAction,
   'admin-update-user-subscription-form': updateUserSubscriptionAction,
   'admin-manage-organization-subscription-form': updateTeamSubscriptionAction,
   'admin-clear-organization-subscription-form': clearTeamSubscriptionAction,

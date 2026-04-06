@@ -23,6 +23,7 @@ import { getServerTranslator } from '@/lib/i18n/server';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPES } from '@/lib/payments/subscription-feature-types';
 import type { SubscriptionFeatureValueType } from '@/lib/payments/subscription-feature-types';
+import { isReservedFreeSubscriptionTemplateId } from '@/lib/payments/subscription-default-templates';
 import { createAdminSubscriptionTemplateFormCopy } from '../../../i18n';
 
 export default async function AdminEditSubscriptionTemplatePage({
@@ -43,6 +44,7 @@ export default async function AdminEditSubscriptionTemplatePage({
   if (!template) {
     notFound();
   }
+  const isReservedTemplate = isReservedFreeSubscriptionTemplateId(template.id);
   const themeSelection = await getThemeSelectionForArea('admin');
 
   const featureRows =
@@ -77,6 +79,7 @@ export default async function AdminEditSubscriptionTemplatePage({
         templateId: template.id,
         name: template.name,
         targetScope: template.targetScope,
+        publicationStatus: template.publicationStatus,
         categoryKey: template.categoryKey,
         hierarchyRank: template.hierarchyRank,
         billingInterval: template.billingInterval,
@@ -147,6 +150,13 @@ export default async function AdminEditSubscriptionTemplatePage({
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
+        {isReservedTemplate ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            {t(
+              'This is a reserved core free template. You can edit it, but its scope stays locked and it cannot be deleted.'
+            )}
+          </div>
+        ) : null}
         <div className="rounded-md border border-border/70 bg-muted/20 p-4">
           <p className="text-sm font-medium text-foreground">
             {t('Active Subscription Update')}
@@ -171,17 +181,19 @@ export default async function AdminEditSubscriptionTemplatePage({
           route={`/admin/subscriptions/templates/${template.id}/edit`}
           slot="admin.subscriptions.template.edit"
         />
-        <div className="rounded-md border border-red-200 bg-red-50 p-4">
-          <p className="mb-3 text-sm text-red-700">
-            {t('Deleting this template will unassign it from teams using it.')}
-          </p>
-          <TemplateBuildForm
-            definition={deleteTemplateForm}
-            area="admin"
-            route={`/admin/subscriptions/templates/${template.id}/edit`}
-            slot="admin.subscriptions.template.delete"
-          />
-        </div>
+        {isReservedTemplate ? null : (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4">
+            <p className="mb-3 text-sm text-red-700">
+              {t('Deleting this template will move active targets back to the reserved free template.')}
+            </p>
+            <TemplateBuildForm
+              definition={deleteTemplateForm}
+              area="admin"
+              route={`/admin/subscriptions/templates/${template.id}/edit`}
+              slot="admin.subscriptions.template.delete"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -36,6 +36,11 @@ import {
   SUBSCRIPTION_TARGET_SCOPE_SORT_WEIGHT,
   type SubscriptionTargetScope
 } from '@/lib/payments/subscription-scopes';
+import {
+  FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
+  FREE_USER_SUBSCRIPTION_TEMPLATE_ID,
+  type SubscriptionTemplatePublicationStatus
+} from '@/lib/payments/subscription-default-templates';
 import { areTeamsEnabled } from '@/lib/organizations/config';
 
 export async function getUser() {
@@ -825,11 +830,24 @@ export async function getCurrentUserSubscriptionManagementData(options?: {
   };
 }
 
-export async function getSubscriptionTemplateById(templateId: number) {
+export async function getSubscriptionTemplateById(
+  templateId: number,
+  options?: {
+    publicationStatus?: SubscriptionTemplatePublicationStatus;
+  }
+) {
+  const conditions = [eq(subscriptionTemplates.id, templateId)];
+
+  if (options?.publicationStatus) {
+    conditions.push(
+      eq(subscriptionTemplates.publicationStatus, options.publicationStatus)
+    );
+  }
+
   const result = await db
     .select()
     .from(subscriptionTemplates)
-    .where(eq(subscriptionTemplates.id, templateId))
+    .where(and(...conditions))
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
@@ -927,11 +945,9 @@ export async function getCurrentOrganizationSubscriptionTemplateFeatureEntries()
   }
 
   const assignments = await getActiveTeamSubscriptionAssignmentsByTeamIds([team.id]);
-  const subscriptionTemplateId = assignments[0]?.subscriptionTemplateId ?? null;
-
-  if (!subscriptionTemplateId) {
-    return [] as SubscriptionTemplateFeatureEntry[];
-  }
+  const subscriptionTemplateId =
+    assignments[0]?.subscriptionTemplateId ??
+    FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
 
   return getSubscriptionTemplateFeatureEntriesByScope({
     templateId: subscriptionTemplateId,
@@ -948,11 +964,8 @@ export async function getCurrentUserSubscriptionTemplateFeatureEntries() {
   const assignments = await getActiveUserSubscriptionAssignmentsByUserIds([
     user.id
   ]);
-  const subscriptionTemplateId = assignments[0]?.subscriptionTemplateId ?? null;
-
-  if (!subscriptionTemplateId) {
-    return [] as SubscriptionTemplateFeatureEntry[];
-  }
+  const subscriptionTemplateId =
+    assignments[0]?.subscriptionTemplateId ?? FREE_USER_SUBSCRIPTION_TEMPLATE_ID;
 
   return getSubscriptionTemplateFeatureEntriesByScope({
     templateId: subscriptionTemplateId,
@@ -971,7 +984,10 @@ export async function getCurrentSubscriptionTemplateFeatureEntriesByScope(
 }
 
 export async function getAllSubscriptionTemplatesForPricing() {
-  const templates = await db.select().from(subscriptionTemplates);
+  const templates = await db
+    .select()
+    .from(subscriptionTemplates)
+    .where(eq(subscriptionTemplates.publicationStatus, 'published'));
 
   if (templates.length === 0) {
     return [];

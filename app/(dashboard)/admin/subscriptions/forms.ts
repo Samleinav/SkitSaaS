@@ -9,6 +9,7 @@ import {
 import { SUBSCRIPTION_BILLING_INTERVALS } from '@/lib/payments/subscription-intervals';
 import { SUBSCRIPTION_TARGET_SCOPES } from '@/lib/payments/subscription-scopes';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPES } from '@/lib/payments/subscription-feature-types';
+import { SUBSCRIPTION_TEMPLATE_PUBLICATION_STATUSES } from '@/lib/payments/subscription-default-templates';
 
 // ─── Subscription Template Form ───────────────────────────────────────────────
 
@@ -17,11 +18,13 @@ export type SubscriptionTemplateFormCopy = {
   templateNameLabel: string;
   templateNamePlaceholder: string;
   targetScopeLabel: string;
+  publicationStatusLabel: string;
   categoryKeyLabel: string;
   categoryKeyPlaceholder: string;
   hierarchyRankLabel: string;
   hierarchyRankPlaceholder: string;
   scopeLabels: { user: string; organization: string };
+  publicationStatusLabels: { draft: string; published: string };
   billingIntervalLabel: string;
   intervalLabels: Record<string, string>;
   priceLabel: string;
@@ -54,11 +57,13 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE_FORM_COPY: SubscriptionTemplateFormCo
   templateNameLabel: 'Name',
   templateNamePlaceholder: 'e.g. Pro Monthly',
   targetScopeLabel: 'Target scope',
+  publicationStatusLabel: 'Publication status',
   categoryKeyLabel: 'Category key',
   categoryKeyPlaceholder: 'e.g. pro',
   hierarchyRankLabel: 'Hierarchy rank',
   hierarchyRankPlaceholder: '0',
   scopeLabels: { user: 'User', organization: 'Organization / Team' },
+  publicationStatusLabels: { draft: 'Draft', published: 'Published' },
   billingIntervalLabel: 'Billing interval',
   intervalLabels: {
     daily: 'Daily',
@@ -98,6 +103,12 @@ function buildSubscriptionTemplateSections(copy: SubscriptionTemplateFormCopy) {
     value: s,
     label: copy.scopeLabels[s] ?? s
   }));
+  const publicationStatusOptions = SUBSCRIPTION_TEMPLATE_PUBLICATION_STATUSES.map(
+    (status) => ({
+      value: status,
+      label: copy.publicationStatusLabels[status] ?? status
+    })
+  );
 
   const billingIntervalOptions = SUBSCRIPTION_BILLING_INTERVALS.map((i) => ({
     value: i,
@@ -126,6 +137,11 @@ function buildSubscriptionTemplateSections(copy: SubscriptionTemplateFormCopy) {
           name: 'targetScope',
           label: copy.targetScopeLabel,
           options: targetScopeOptions
+        }),
+        buildFormField.select({
+          name: 'publicationStatus',
+          label: copy.publicationStatusLabel,
+          options: publicationStatusOptions
         }),
         buildFormField.text({
           name: 'categoryKey',

@@ -37,13 +37,8 @@ export type DashboardSubscriptionsCopy = {
   };
   organizationPolicy: {
     title: string;
-    allowMultiOrganizations: string;
-    maxByConfig: string;
     maxBySubscription: string;
-    effectiveLimit: string;
     currentOrganizations: string;
-    yes: string;
-    no: string;
     unlimited: string;
   };
   organizations: {
@@ -165,14 +160,9 @@ export function createDashboardSubscriptionsCopy(
       keep: t('Keep subscription')
     },
     organizationPolicy: {
-      title: t('Organization policy and limits'),
-      allowMultiOrganizations: t('Allow multi organizations'),
-      maxByConfig: t('Max organizations (app config)'),
+      title: t('Organization limits'),
       maxBySubscription: t('Max organizations (user subscription)'),
-      effectiveLimit: t('Effective max organizations'),
       currentOrganizations: t('Current organizations'),
-      yes: t('Yes'),
-      no: t('No'),
       unlimited: t('Unlimited')
     },
     organizations: {

@@ -69,6 +69,7 @@ function buildSubscriptionTemplate(
     compareAtPriceCents: null,
     currency: 'USD',
     trialPeriodDays: 0,
+    publicationStatus: 'published',
     paypalProductId: null,
     paypalPlanId: null,
     paypalPlanFingerprint: null,

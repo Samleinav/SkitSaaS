@@ -11,6 +11,8 @@ import {
   users,
   teams,
   teamMembers,
+  subscriptionAssignments,
+  subscriptionTemplateFeatures,
   activityLogs,
   passwordResetTokens,
   type NewUser,
@@ -39,6 +41,7 @@ import { isPasswordLoginAllowedForArea } from '@/lib/auth/login-policy';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
+import { activateReservedFreeSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
 import { sendTeamInvitationEmail } from '@/lib/email/invitations';
 import {
   getSubscriptionTemplateById,
@@ -53,12 +56,58 @@ import {
 } from '@/lib/auth/middleware';
 import { resolveRoleRedirect } from '@/lib/portals/role-routing';
 import { areTeamsEnabled } from '@/lib/organizations/config';
+import { createFeatureController } from '@/lib/features/controller';
+import {
+  canAddTeamMemberBySubscription,
+  getTeamMemberLimitBySubscriptionFeatureController
+} from '@/lib/organizations/subscription-limit-values';
+import { FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID } from '@/lib/payments/subscription-default-templates';
+
+async function getTeamMemberLimitForSignUpInvitation({
+  executor,
+  teamId
+}: {
+  executor: Pick<typeof db, 'select'>;
+  teamId: number;
+}) {
+  const [assignment] = await executor
+    .select({
+      templateId: subscriptionAssignments.subscriptionTemplateId
+    })
+    .from(subscriptionAssignments)
+    .where(
+      and(
+        eq(subscriptionAssignments.targetType, 'team'),
+        eq(subscriptionAssignments.targetTeamId, teamId),
+        isNull(subscriptionAssignments.effectiveTo)
+      )
+    )
+    .limit(1);
+
+  const subscriptionTemplateId =
+    assignment?.templateId ?? FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
+
+  const features = await executor
+    .select({
+      key: subscriptionTemplateFeatures.featureKey,
+      value: subscriptionTemplateFeatures.featureValue
+    })
+    .from(subscriptionTemplateFeatures)
+    .where(eq(subscriptionTemplateFeatures.templateId, subscriptionTemplateId));
+
+  return getTeamMemberLimitBySubscriptionFeatureController(
+    createFeatureController(features)
+  );
+}
 
 async function logActivity(
   teamId: number | null | undefined,
   userId: number,
   type: ActivityType,
-  ipAddress?: string
+  ipAddress?: string,
+  options?: {
+    executor?: Pick<typeof db, 'insert'>;
+  }
 ) {
   if (teamId === null || teamId === undefined) {
     return;
@@ -69,7 +118,8 @@ async function logActivity(
     action: type,
     ipAddress: ipAddress || ''
   };
-  await db.insert(activityLogs).values(newActivity);
+  const executor = options?.executor ?? db;
+  await executor.insert(activityLogs).values(newActivity);
 }
 
 type AuthArea = 'admin' | 'dashboard';
@@ -585,7 +635,9 @@ async function signInByArea(
       redirect('/pricing');
     }
 
-    const template = await getSubscriptionTemplateById(templateId);
+    const template = await getSubscriptionTemplateById(templateId, {
+      publicationStatus: 'published'
+    });
     if (!template) {
       redirect('/pricing');
     }
@@ -671,18 +723,211 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const passwordHash = await hashPassword(password);
 
-  const newUser: NewUser = {
-    email,
-    passwordHash,
-    role: 'owner' // Default role, will be overridden if there's an invitation
-  };
+  const SIGN_UP_FAILURE = {
+    invalidInvite: 'invalid_invite',
+    userCreateFailed: 'user_create_failed',
+    teamCreateFailed: 'team_create_failed',
+    teamMemberLimitReached: 'team_member_limit_reached'
+  } as const;
 
-  const [createdUser] = await db.insert(users).values(newUser).returning();
+  let teamId: number | null = null;
+  let createdTeam: typeof teams.$inferSelect | null = null;
+  let createdUser: User | null = null;
+  let acceptedInvitationId: number | null = null;
+  let createdNewTeam = false;
 
-  if (!createdUser) {
+  try {
+    const provisioned = await db.transaction(async (tx) => {
+      let resolvedTeamId: number | null = null;
+      let resolvedUserRole = 'owner';
+      let resolvedTeam: typeof teams.$inferSelect | null = null;
+      let invitationRecord: typeof invitations.$inferSelect | null = null;
+
+      if (inviteId) {
+        [invitationRecord] = await tx
+          .select()
+          .from(invitations)
+          .where(
+            and(
+              eq(invitations.id, parseInt(inviteId, 10)),
+              eq(invitations.email, email),
+              eq(invitations.status, 'pending')
+            )
+          )
+          .limit(1);
+
+        if (!invitationRecord) {
+          throw new Error(SIGN_UP_FAILURE.invalidInvite);
+        }
+
+        resolvedTeamId = invitationRecord.teamId;
+        resolvedUserRole = invitationRecord.role;
+
+        [resolvedTeam] = await tx
+          .select()
+          .from(teams)
+          .where(eq(teams.id, resolvedTeamId))
+          .limit(1);
+
+        if (!resolvedTeam) {
+          throw new Error(SIGN_UP_FAILURE.invalidInvite);
+        }
+      }
+
+      const newUser: NewUser = {
+        email,
+        passwordHash,
+        role: 'owner'
+      };
+
+      const [insertedUser] = await tx.insert(users).values(newUser).returning();
+      if (!insertedUser) {
+        throw new Error(SIGN_UP_FAILURE.userCreateFailed);
+      }
+
+      await activateReservedFreeSubscriptionAssignment(
+        {
+          targetType: 'user',
+          targetId: insertedUser.id
+        },
+        {
+          executor: tx,
+          emitEvents: false
+        }
+      );
+
+      if (!invitationRecord && teamsEnabled) {
+        const newTeam: NewTeam = {
+          name: `${email}'s Team`
+        };
+
+        [resolvedTeam] = await tx.insert(teams).values(newTeam).returning();
+        if (!resolvedTeam) {
+          throw new Error(SIGN_UP_FAILURE.teamCreateFailed);
+        }
+
+        resolvedTeamId = resolvedTeam.id;
+        resolvedUserRole = 'owner';
+        createdNewTeam = true;
+
+        await activateReservedFreeSubscriptionAssignment(
+          {
+            targetType: 'team',
+            targetId: resolvedTeam.id
+          },
+          {
+            executor: tx,
+            emitEvents: false
+          }
+        );
+      }
+
+      if (resolvedTeamId !== null) {
+        if (invitationRecord) {
+          const [teamMemberCountRow, maxMembers] = await Promise.all([
+            tx
+              .select({
+                count: sql<number>`cast(count(*) as int)`
+              })
+              .from(teamMembers)
+              .where(eq(teamMembers.teamId, resolvedTeamId))
+              .limit(1),
+            getTeamMemberLimitForSignUpInvitation({
+              executor: tx,
+              teamId: resolvedTeamId
+            })
+          ]);
+
+          const currentMemberCount = teamMemberCountRow[0]?.count ?? 0;
+          if (
+            !canAddTeamMemberBySubscription({
+              currentMemberCount,
+              maxMembers
+            })
+          ) {
+            throw new Error(SIGN_UP_FAILURE.teamMemberLimitReached);
+          }
+        }
+
+        const newTeamMember: NewTeamMember = {
+          userId: insertedUser.id,
+          teamId: resolvedTeamId,
+          role: resolvedUserRole
+        };
+
+        await tx.insert(teamMembers).values(newTeamMember);
+      }
+
+      if (invitationRecord) {
+        await tx
+          .update(invitations)
+          .set({ status: 'accepted' })
+          .where(eq(invitations.id, invitationRecord.id));
+
+        await logActivity(
+          resolvedTeamId,
+          insertedUser.id,
+          ActivityType.ACCEPT_INVITATION,
+          undefined,
+          { executor: tx }
+        );
+      }
+
+      if (createdNewTeam) {
+        await logActivity(
+          resolvedTeamId,
+          insertedUser.id,
+          ActivityType.CREATE_TEAM,
+          undefined,
+          { executor: tx }
+        );
+      }
+
+      await logActivity(
+        resolvedTeamId,
+        insertedUser.id,
+        ActivityType.SIGN_UP,
+        undefined,
+        { executor: tx }
+      );
+
+      return {
+        createdUser: insertedUser,
+        createdTeam: resolvedTeam,
+        teamId: resolvedTeamId,
+        invitationId: invitationRecord?.id ?? null,
+        createdNewTeam
+      };
+    });
+
+    createdUser = provisioned.createdUser;
+    createdTeam = provisioned.createdTeam;
+    teamId = provisioned.teamId;
+    acceptedInvitationId = provisioned.invitationId;
+    createdNewTeam = provisioned.createdNewTeam;
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : SIGN_UP_FAILURE.userCreateFailed;
+
+    if (reason === SIGN_UP_FAILURE.invalidInvite) {
+      return {
+        error: t('Invalid or expired invitation.'),
+        email,
+        password
+      };
+    }
+
+    if (reason === SIGN_UP_FAILURE.teamMemberLimitReached) {
+      return {
+        error: t('This team has reached its member limit.'),
+        email,
+        password
+      };
+    }
+
     await emitEventAsync(
       EVENT_HOOKS.authSignUpFailed,
-      { email, reason: 'user_create_failed' },
+      { email, reason },
       { source: '/sign-up' }
     );
     return {
@@ -692,90 +937,41 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     };
   }
 
-  let teamId: number | null = null;
-  let userRole = 'owner';
-  let createdTeam: typeof teams.$inferSelect | null = null;
-
-  if (inviteId) {
-    // Check if there's a valid invitation
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, 'pending')
-        )
-      )
-      .limit(1);
-
-    if (invitation) {
-      teamId = invitation.teamId;
-      userRole = invitation.role;
-
-      await db
-        .update(invitations)
-        .set({ status: 'accepted' })
-        .where(eq(invitations.id, invitation.id));
-
-      await logActivity(teamId, createdUser.id, ActivityType.ACCEPT_INVITATION);
-
-      await emitEventAsync(
-        EVENT_HOOKS.authInvitationAccepted,
-        {
-          inviteId: invitation.id,
-          teamId,
-          userId: createdUser.id,
-          email
-        },
-        {
-          actorUserId: createdUser.id,
-          actorEmail: createdUser.email,
-          actorRole: createdUser.role,
-          teamId,
-          source: '/sign-up'
-        }
-      );
-
-      [createdTeam] = await db
-        .select()
-        .from(teams)
-        .where(eq(teams.id, teamId))
-        .limit(1);
-    } else {
-      return {
-        error: t('Invalid or expired invitation.'),
-        email,
-        password
-      };
-    }
-  } else if (teamsEnabled) {
-    // Create a new team if there's no invitation
-    const newTeam: NewTeam = {
-      name: `${email}'s Team`
+  if (!createdUser) {
+    await emitEventAsync(
+      EVENT_HOOKS.authSignUpFailed,
+      { email, reason: SIGN_UP_FAILURE.userCreateFailed },
+      { source: '/sign-up' }
+    );
+    return {
+      error: t('Failed to create user. Please try again.'),
+      email,
+      password
     };
+  }
 
-    [createdTeam] = await db.insert(teams).values(newTeam).returning();
+  await setSession(createdUser);
 
-    if (!createdTeam) {
-      await emitEventAsync(
-        EVENT_HOOKS.authSignUpFailed,
-        { email, reason: 'team_create_failed' },
-        { source: '/sign-up' }
-      );
-      return {
-        error: t('Failed to create team. Please try again.'),
-        email,
-        password
-      };
-    }
+  if (acceptedInvitationId && teamId !== null) {
+    await emitEventAsync(
+      EVENT_HOOKS.authInvitationAccepted,
+      {
+        inviteId: acceptedInvitationId,
+        teamId,
+        userId: createdUser.id,
+        email
+      },
+      {
+        actorUserId: createdUser.id,
+        actorEmail: createdUser.email,
+        actorRole: createdUser.role,
+        teamId,
+        source: '/sign-up'
+      }
+    );
+  }
 
-    teamId = createdTeam.id;
-    userRole = 'owner';
-
-    await logActivity(teamId, createdUser.id, ActivityType.CREATE_TEAM);
-
+  if (createdNewTeam && teamId !== null) {
     await emitEventAsync(
       EVENT_HOOKS.authTeamCreated,
       { teamId, teamName: createdTeam?.name ?? null, userId: createdUser.id },
@@ -801,22 +997,6 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     );
   }
 
-  const signUpOperations: Promise<unknown>[] = [
-    logActivity(teamId, createdUser.id, ActivityType.SIGN_UP),
-    setSession(createdUser)
-  ];
-
-  if (teamId !== null) {
-    const newTeamMember: NewTeamMember = {
-      userId: createdUser.id,
-      teamId,
-      role: userRole
-    };
-    signUpOperations.unshift(db.insert(teamMembers).values(newTeamMember));
-  }
-
-  await Promise.all(signUpOperations);
-
   await emitEventAsync(
     EVENT_HOOKS.authSignUpCreated,
     {
@@ -840,7 +1020,9 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       redirect('/pricing');
     }
 
-    const template = await getSubscriptionTemplateById(templateId);
+    const template = await getSubscriptionTemplateById(templateId, {
+      publicationStatus: 'published'
+    });
     if (!template) {
       redirect('/pricing');
     }

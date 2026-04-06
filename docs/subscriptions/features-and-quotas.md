@@ -27,6 +27,20 @@ This file defines:
 - default
 - minimum/maximum values (for numeric quotas)
 
+For the core count-based quotas:
+
+- `dashboard.user.organizations.max`
+- `dashboard.team.members.max`
+
+the effective runtime semantics are:
+
+- `-1` = unlimited
+- `1..N` = allowed with a finite limit
+- `0` = invalid for these two managed keys
+
+`dashboard.team.invites.enabled` is the official gate for allowing or blocking
+team invitations.
+
 ## How to create a new feature
 
 1. Add the key to `SUBSCRIPTION_FEATURE_KEYS`.
@@ -55,7 +69,7 @@ const userFeatures = await getDashboardFeatureController('user');
 ### 2) Evaluate flags/quotas
 
 ```ts
-if (!orgFeatures.bool('dashboard.team.invites.enabled', true)) {
+if (!orgFeatures.bool('dashboard.team.invites.enabled', false)) {
   return { error: 'Invites disabled' };
 }
 
@@ -93,6 +107,30 @@ const maxMembers = orgFeatures.int(
 
 Current subscription state comes from `subscription_assignments`. The controller helpers resolve the active
 assignment (user or team) and then apply the template features for that scope.
+
+Reserved core free templates:
+
+- `subscription_templates.id = 1` -> free `user`
+- `subscription_templates.id = 2` -> free `organization`
+
+New authenticated users and new teams are provisioned with those templates by
+default. As an operational safety net, host feature controllers and the SDK
+quota adapter also fall back to the reserved free template for the current
+scope when an authenticated entity is missing an active assignment.
+
+For the reserved free templates, the managed core quota rows are treated as
+required baseline data. Admin can edit their values, but those rows are not
+meant to disappear from templates `1` and `2`.
+
+## Publication status and pricing visibility
+
+`subscription_templates.publication_status` controls self-service visibility:
+
+- `draft` -> editable in Admin, hidden from `/pricing` and self-service checkout
+- `published` -> eligible for `/pricing` and self-service checkout
+
+The reserved free templates are initialized as `draft` so they define the
+baseline feature set without automatically appearing on the public pricing page.
 
 ## Module Access via SDK
 

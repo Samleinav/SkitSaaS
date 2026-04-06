@@ -3,6 +3,9 @@ import { db } from '@/lib/db/drizzle';
 import { subscriptionAssignments } from '@/lib/db/schema';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
+import {
+  getReservedFreeSubscriptionTemplateIdForTargetType
+} from '@/lib/payments/subscription-default-templates';
 
 export type SubscriptionAssignmentTarget = {
   targetType: 'team' | 'user';
@@ -37,6 +40,16 @@ export type SubscriptionAssignmentWriteResult =
   | 'closed'
   | 'skipped'
   | 'not_found';
+
+type SubscriptionAssignmentDbExecutor = Pick<
+  typeof db,
+  'select' | 'insert' | 'update'
+>;
+
+type SubscriptionAssignmentWriteOptions = {
+  executor?: SubscriptionAssignmentDbExecutor;
+  emitEvents?: boolean;
+};
 
 function normalizeText(value: string | null | undefined, maxLength: number) {
   if (!value) {
@@ -114,8 +127,11 @@ function isSameDate(
   return left.getTime() === right.getTime();
 }
 
-async function getActiveSubscriptionAssignment(target: SubscriptionAssignmentTarget) {
-  const [active] = await db
+async function getActiveSubscriptionAssignment(
+  executor: SubscriptionAssignmentDbExecutor,
+  target: SubscriptionAssignmentTarget
+) {
+  const [active] = await executor
     .select({
       id: subscriptionAssignments.id,
       targetType: subscriptionAssignments.targetType,
@@ -153,8 +169,11 @@ async function getActiveSubscriptionAssignment(target: SubscriptionAssignmentTar
 }
 
 export async function activateSubscriptionAssignment(
-  input: ActivateSubscriptionAssignmentInput
+  input: ActivateSubscriptionAssignmentInput,
+  options: SubscriptionAssignmentWriteOptions = {}
 ): Promise<SubscriptionAssignmentWriteResult> {
+  const executor = options.executor ?? db;
+  const emitEvents = options.emitEvents !== false;
   const targetId = normalizePositiveInt(input.targetId);
   const templateId = normalizePositiveInt(input.subscriptionTemplateId);
 
@@ -202,23 +221,25 @@ export async function activateSubscriptionAssignment(
     updatedAt: Date;
   };
 
-  const active = await getActiveSubscriptionAssignment({
+  const active = await getActiveSubscriptionAssignment(executor, {
     targetType: input.targetType,
     targetId,
   });
 
   if (!active) {
-    await db.insert(subscriptionAssignments).values(values);
-    await emitEventAsync(
-      EVENT_HOOKS.subscriptionAssignmentActivated,
-      {
-        targetType: input.targetType,
-        targetId,
-        subscriptionTemplateId: templateId,
-        status: values.status
-      },
-      { source: '/lib/payments/subscription-assignments' }
-    );
+    await executor.insert(subscriptionAssignments).values(values);
+    if (emitEvents) {
+      await emitEventAsync(
+        EVENT_HOOKS.subscriptionAssignmentActivated,
+        {
+          targetType: input.targetType,
+          targetId,
+          subscriptionTemplateId: templateId,
+          status: values.status
+        },
+        { source: '/lib/payments/subscription-assignments' }
+      );
+    }
     return 'inserted';
   }
 
@@ -275,28 +296,33 @@ export async function activateSubscriptionAssignment(
     updateValues.canceledAt = canceledAt;
   }
 
-  await db
+  await executor
     .update(subscriptionAssignments)
     .set(updateValues)
     .where(eq(subscriptionAssignments.id, active.id));
 
-  await emitEventAsync(
-    EVENT_HOOKS.subscriptionAssignmentActivated,
-    {
-      targetType: input.targetType,
-      targetId,
-      subscriptionTemplateId: templateId,
-      status: values.status
-    },
-    { source: '/lib/payments/subscription-assignments' }
-  );
+  if (emitEvents) {
+    await emitEventAsync(
+      EVENT_HOOKS.subscriptionAssignmentActivated,
+      {
+        targetType: input.targetType,
+        targetId,
+        subscriptionTemplateId: templateId,
+        status: values.status
+      },
+      { source: '/lib/payments/subscription-assignments' }
+    );
+  }
 
   return 'updated';
 }
 
 export async function suspendSubscriptionAssignment(
-  input: SuspendSubscriptionAssignmentInput
+  input: SuspendSubscriptionAssignmentInput,
+  options: SubscriptionAssignmentWriteOptions = {}
 ): Promise<SubscriptionAssignmentWriteResult> {
+  const executor = options.executor ?? db;
+  const emitEvents = options.emitEvents !== false;
   const targetId = normalizePositiveInt(input.targetId);
   if (!targetId) {
     return 'skipped';
@@ -306,7 +332,7 @@ export async function suspendSubscriptionAssignment(
   const sourceOrderId = normalizePositiveInt(input.sourceOrderId);
   const now = new Date();
   const effectiveTo = input.effectiveTo ?? now;
-  const active = await getActiveSubscriptionAssignment({
+  const active = await getActiveSubscriptionAssignment(executor, {
     targetType: input.targetType,
     targetId,
   });
@@ -324,7 +350,7 @@ export async function suspendSubscriptionAssignment(
     return 'skipped';
   }
 
-  await db
+  await executor
     .update(subscriptionAssignments)
     .set({
       status,
@@ -334,17 +360,86 @@ export async function suspendSubscriptionAssignment(
     })
     .where(eq(subscriptionAssignments.id, active.id));
 
-  await emitEventAsync(
-    status === 'canceled'
-      ? EVENT_HOOKS.subscriptionAssignmentCanceled
-      : EVENT_HOOKS.subscriptionAssignmentSuspended,
-    {
-      targetType: input.targetType,
-      targetId,
-      status
-    },
-    { source: '/lib/payments/subscription-assignments' }
-  );
+  if (emitEvents) {
+    await emitEventAsync(
+      status === 'canceled'
+        ? EVENT_HOOKS.subscriptionAssignmentCanceled
+        : EVENT_HOOKS.subscriptionAssignmentSuspended,
+      {
+        targetType: input.targetType,
+        targetId,
+        status
+      },
+      { source: '/lib/payments/subscription-assignments' }
+    );
+  }
 
   return 'closed';
+}
+
+export async function activateReservedFreeSubscriptionAssignment(
+  input: SubscriptionAssignmentTarget & {
+    sourceOrderId?: number | null;
+  },
+  options: SubscriptionAssignmentWriteOptions = {}
+) {
+  return activateSubscriptionAssignment(
+    {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      subscriptionTemplateId: getReservedFreeSubscriptionTemplateIdForTargetType(
+        input.targetType
+      ),
+      paymentProvider: null,
+      providerReferenceId: null,
+      providerPlanId: null,
+      status: 'free',
+      planName: null,
+      sourceOrderId: input.sourceOrderId ?? null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+      canceledAt: null
+    },
+    options
+  );
+}
+
+export async function replaceWithReservedFreeSubscriptionAssignment(
+  input: SubscriptionAssignmentTarget & {
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  },
+  options: SubscriptionAssignmentWriteOptions = {}
+) {
+  const executor = options.executor ?? db;
+  const active = await getActiveSubscriptionAssignment(executor, input);
+  const reservedTemplateId = getReservedFreeSubscriptionTemplateIdForTargetType(
+    input.targetType
+  );
+
+  if (
+    active &&
+    active.subscriptionTemplateId !== reservedTemplateId
+  ) {
+    await suspendSubscriptionAssignment(
+      {
+        targetType: input.targetType,
+        targetId: input.targetId,
+        status: input.closeStatus ?? 'canceled',
+        sourceOrderId: input.sourceOrderId ?? null
+      },
+      options
+    );
+  }
+
+  return activateReservedFreeSubscriptionAssignment(
+    {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      sourceOrderId: input.sourceOrderId ?? null
+    },
+    options
+  );
 }

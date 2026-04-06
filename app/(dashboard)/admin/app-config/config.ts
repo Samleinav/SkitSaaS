@@ -2,7 +2,6 @@ import {
   getPaymentProviderConfigsForAdmin
 } from '@/lib/db/queries.admin';
 import { getEmailConfigDefinitionsForAdmin } from '@/lib/email/config';
-import { getOrganizationConfigDefinitionsForAdmin } from '@/lib/organizations/config';
 import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';
 
 export type ConfigSource = 'env' | 'db' | 'default';
@@ -71,30 +70,10 @@ function resolveConfigRow({
   };
 }
 
-export function parseBooleanConfigValue(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return (
-    normalized === 'true' ||
-    normalized === '1' ||
-    normalized === 'yes' ||
-    normalized === 'on'
-  );
-}
-
-export function parsePositiveInteger(value: string) {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
-
 export async function getAdminAppConfigData() {
   const dbConfigs = await getPaymentProviderConfigsForAdmin();
   const paymentDefinitions = getPaymentConfigDefinitionsForAdmin();
   const emailDefinitions = getEmailConfigDefinitionsForAdmin();
-  const organizationDefinitions = getOrganizationConfigDefinitionsForAdmin();
   const dbConfigMap = new Map(
     dbConfigs.map((config) => [`${config.provider}:${config.configKey}`, config.configValue])
   );
@@ -127,23 +106,8 @@ export async function getAdminAppConfigData() {
     { stripe: [], paypal: [] }
   );
 
-  const organizationAllowMultiConfig = resolveConfigRow({
-    definition: organizationDefinitions.allowMultiOrganizations,
-    dbConfigMap
-  });
-  const organizationMaxConfig = resolveConfigRow({
-    definition: organizationDefinitions.maxOrganizationsPerUser,
-    dbConfigMap
-  });
-
   return {
     paymentRowsByProvider,
-    emailRows,
-    organizationAllowMultiConfig,
-    organizationMaxConfig,
-    allowMultiOrganizations: parseBooleanConfigValue(
-      organizationAllowMultiConfig.value
-    ),
-    maxOrganizationsPerUser: parsePositiveInteger(organizationMaxConfig.value)
+    emailRows
   };
 }

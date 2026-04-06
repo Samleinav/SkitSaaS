@@ -19,6 +19,7 @@ type NumberFeatureDefinition = BaseFeatureDefinition & {
   min?: number;
   max?: number;
   integer?: boolean;
+  unlimitedValue?: number;
 };
 
 type TextFeatureDefinition = BaseFeatureDefinition & {
@@ -46,6 +47,8 @@ export const SUBSCRIPTION_FEATURE_KEYS = {
 export type SubscriptionFeatureKey =
   (typeof SUBSCRIPTION_FEATURE_KEYS)[keyof typeof SUBSCRIPTION_FEATURE_KEYS];
 
+export const UNLIMITED_SUBSCRIPTION_QUOTA_VALUE = -1;
+
 export const DASHBOARD_TEAM_INVITES_ENABLED_FEATURE: BooleanFeatureDefinition = {
   key: SUBSCRIPTION_FEATURE_KEYS.DASHBOARD_TEAM_INVITES_ENABLED,
   label: 'Allow team invitations',
@@ -63,6 +66,7 @@ export const DASHBOARD_TEAM_MEMBERS_MAX_FEATURE: NumberFeatureDefinition = {
   defaultValue: null,
   min: 1,
   integer: true,
+  unlimitedValue: UNLIMITED_SUBSCRIPTION_QUOTA_VALUE,
   isPublicByDefault: false
 };
 
@@ -74,6 +78,7 @@ export const DASHBOARD_USER_ORGANIZATIONS_MAX_FEATURE: NumberFeatureDefinition =
   defaultValue: 3,
   min: 1,
   integer: true,
+  unlimitedValue: UNLIMITED_SUBSCRIPTION_QUOTA_VALUE,
   isPublicByDefault: false
 };
 
@@ -208,6 +213,104 @@ export function getManagedSubscriptionFeatureDefinitionsByScope(
   );
 }
 
+export function isManagedSubscriptionFeatureInputValid(
+  definitionOrKey: ManagedSubscriptionFeatureDefinition | string,
+  rawValue: string | null
+) {
+  const definition =
+    typeof definitionOrKey === 'string'
+      ? getManagedDefinition(definitionOrKey)
+      : definitionOrKey;
+
+  if (!definition) {
+    return false;
+  }
+
+  if (definition.valueType === 'null') {
+    return true;
+  }
+
+  if (definition.valueType === 'boolean') {
+    const normalized = normalizeTextValue(rawValue);
+    return normalized === null || parseBooleanValue(normalized) !== null;
+  }
+
+  if (definition.valueType === 'text') {
+    return true;
+  }
+
+  const normalized = normalizeTextValue(rawValue);
+  if (normalized === null) {
+    return true;
+  }
+
+  const parsed = parseNumberValue(normalized);
+  if (parsed === null) {
+    return false;
+  }
+
+  if (definition.integer && !Number.isInteger(parsed)) {
+    return false;
+  }
+
+  if (
+    typeof definition.unlimitedValue === 'number' &&
+    parsed === definition.unlimitedValue
+  ) {
+    return true;
+  }
+
+  if (typeof definition.min === 'number' && parsed < definition.min) {
+    return false;
+  }
+
+  if (typeof definition.max === 'number' && parsed > definition.max) {
+    return false;
+  }
+
+  return true;
+}
+
+export function resolveManagedSubscriptionNumberLimit({
+  definition,
+  configuredLimit,
+  fallback = null
+}: {
+  definition: NumberFeatureDefinition;
+  configuredLimit: number | null | undefined;
+  fallback?: number | null;
+}) {
+  if (configuredLimit === null || configuredLimit === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isFinite(configuredLimit)) {
+    return fallback;
+  }
+
+  let normalized = configuredLimit;
+  if (definition.integer) {
+    normalized = Math.trunc(normalized);
+  }
+
+  if (
+    typeof definition.unlimitedValue === 'number' &&
+    normalized === definition.unlimitedValue
+  ) {
+    return null;
+  }
+
+  if (typeof definition.min === 'number' && normalized < definition.min) {
+    return fallback;
+  }
+
+  if (typeof definition.max === 'number' && normalized > definition.max) {
+    normalized = definition.max;
+  }
+
+  return normalized;
+}
+
 function toStoredFeatureValue(
   definition: ManagedSubscriptionFeatureDefinition,
   rawValue: string | null
@@ -232,16 +335,23 @@ function toStoredFeatureValue(
       return null;
     }
 
+    if (definition.integer) {
+      parsed = Math.trunc(parsed);
+    }
+
+    if (
+      typeof definition.unlimitedValue === 'number' &&
+      parsed === definition.unlimitedValue
+    ) {
+      return String(parsed);
+    }
+
     if (typeof definition.min === 'number' && parsed < definition.min) {
       parsed = definition.min;
     }
 
     if (typeof definition.max === 'number' && parsed > definition.max) {
       parsed = definition.max;
-    }
-
-    if (definition.integer) {
-      parsed = Math.trunc(parsed);
     }
 
     return String(parsed);

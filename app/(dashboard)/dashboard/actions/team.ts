@@ -6,8 +6,12 @@ import {
 } from '@/app/(login)/actions';
 import { customerPortalAction as customerPortalActionBase } from '@/lib/payments/actions';
 import { getTeamForUser } from '@/lib/db/queries';
-import { DASHBOARD_SUBSCRIPTION_FEATURES } from '@/lib/features/catalog';
 import { getDashboardFeatureController } from '../controller';
+import {
+  areTeamInvitesEnabledBySubscription,
+  canAddTeamMemberBySubscription,
+  getTeamMemberLimitBySubscriptionFeatureController
+} from '@/lib/organizations/subscription-limit-values';
 
 async function canInviteTeamMember() {
   const [featureController, team] = await Promise.all([
@@ -15,12 +19,7 @@ async function canInviteTeamMember() {
     getTeamForUser()
   ]);
 
-  if (
-    !featureController.bool(
-      DASHBOARD_SUBSCRIPTION_FEATURES.teamInvitesEnabled.key,
-      DASHBOARD_SUBSCRIPTION_FEATURES.teamInvitesEnabled.defaultValue
-    )
-  ) {
+  if (!areTeamInvitesEnabledBySubscription(featureController)) {
     return {
       allowed: false,
       message:
@@ -28,19 +27,19 @@ async function canInviteTeamMember() {
     } as const;
   }
 
-  const configuredMaxMembers = featureController.int(
-    DASHBOARD_SUBSCRIPTION_FEATURES.teamMembersMax.key,
-    DASHBOARD_SUBSCRIPTION_FEATURES.teamMembersMax.defaultValue
-  );
-
-  if (configuredMaxMembers === null || !team) {
+  if (!team) {
     return { allowed: true } as const;
   }
 
-  const minMembersLimit = DASHBOARD_SUBSCRIPTION_FEATURES.teamMembersMax.min ?? 1;
-  const maxMembers = Math.max(configuredMaxMembers, minMembersLimit);
+  const maxMembers =
+    getTeamMemberLimitBySubscriptionFeatureController(featureController);
 
-  if (team.teamMembers.length >= maxMembers) {
+  if (
+    !canAddTeamMemberBySubscription({
+      currentMemberCount: team.teamMembers.length,
+      maxMembers
+    })
+  ) {
     return {
       allowed: false,
       message: `Team member limit reached (${maxMembers}).`

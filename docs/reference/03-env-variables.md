@@ -131,18 +131,16 @@ Notes:
 - If those env vars are set, env wins over DB.
 - PayPal plans are generated from subscription templates and persisted for reuse.
 
-## Organization policy overrides
+## Organization runtime toggle
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
 | `TEAMS_ENABLED` | Enable the team/organization system and `/api/team` | `true` |
-| `ALLOW_MULTI_ORGANIZATIONS` | Allow multiple teams per user | `false` |
-| `MAX_ORGANIZATIONS_PER_USER` | Hard cap on org count | empty |
 
 Notes:
 
 - `TEAMS_ENABLED=false` switches dashboard users into standalone mode, skips automatic team creation during sign-up/seed, and makes `/api/team` return `404`.
-- When `TEAMS_ENABLED=false`, `ALLOW_MULTI_ORGANIZATIONS` and `MAX_ORGANIZATIONS_PER_USER` are effectively ignored.
+- User and organization quotas are controlled by subscription templates, not by app-config environment overrides.
 
 ## Theme selection (build-time target)
 

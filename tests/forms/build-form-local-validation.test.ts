@@ -22,7 +22,6 @@ import {
   createAdminDeleteUserBuildFormBase,
   createAdminEditUserStatusBuildFormBase
 } from '../../app/(dashboard)/admin/users/forms';
-import { createAdminOrganizationControlsBuildFormBase } from '../../app/(dashboard)/admin/app-config/forms';
 import {
   createAdminManageOrganizationSubscriptionBuildFormBase,
   createAdminUpdateUserSubscriptionBuildFormBase
@@ -167,20 +166,6 @@ test('createBuildFormInvalidFactory builds server-style field errors without cop
 
   assert.equal(result.valid, false);
   assert.deepEqual(result.fieldErrors.itemId, ['A valid item id is required.']);
-});
-
-test('admin organization controls form requires a positive max when multi-org is enabled', () => {
-  const form = createAdminOrganizationControlsBuildFormBase();
-  const formData = new FormData();
-  formData.set('allowMultiOrganizations', 'true');
-  formData.set('maxOrganizationsPerUser', '0');
-
-  const result = runBuildFormLocalValidation(form, formData);
-
-  assert.equal(result.valid, false);
-  assert.deepEqual(result.fieldErrors.maxOrganizationsPerUser, [
-    'Maximum organizations per user must be at least 1.'
-  ]);
 });
 
 test('admin user subscription form accepts empty template selection locally', () => {

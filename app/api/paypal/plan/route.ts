@@ -130,7 +130,9 @@ export const POST = withApiRouteEntries(
         );
       }
 
-      template = await getSubscriptionTemplateById(templateId);
+      template = await getSubscriptionTemplateById(templateId, {
+        publicationStatus: 'published'
+      });
     }
 
     if (!template) {

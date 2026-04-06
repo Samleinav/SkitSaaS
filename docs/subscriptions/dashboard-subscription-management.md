@@ -34,23 +34,22 @@ Both actions use `dashboardAction(...)` from `app/(dashboard)/dashboard/controll
 
 - Main dashboard payload:
   - `getCurrentUserSubscriptionManagementData()` in `lib/db/queries.ts`
-- Organization config limits:
-  - `getOrganizationLimits()` in `lib/organizations/config.ts`
 - Subscription feature quota limit:
   - `getCurrentUserOrganizationLimitBySubscription()` in
     `lib/organizations/subscription-limits.ts`
 
-## Multi-organization effective limit
+## User organization limit
 
-Effective user organization limit is resolved with:
+The dashboard surface now presents the user organization limit from the active
+user subscription template:
 
-1. App config:
-   - `allow_multi_organizations`
-   - `max_organizations_per_user`
-2. User subscription quota:
-   - `dashboard.user.organizations.max`
+- `dashboard.user.organizations.max`
 
-If both max limits exist, the effective limit is the minimum of both.
+Core count quota semantics:
+
+- `-1` = unlimited
+- `1..N` = finite limit
+- `0` is not a valid stored value for this managed key
 
 ## Scope handling
 
@@ -66,4 +65,3 @@ Payment/order scope resolution relies on explicit target columns:
 ## Related test
 
 - `tests/payments/order-subscription-lifecycle.test.ts`
-

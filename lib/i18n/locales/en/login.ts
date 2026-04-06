@@ -40,7 +40,8 @@ const messages = {
         'Team invitations are disabled for this deployment.',
       failedToCreateUser: 'Failed to create user. Please try again.',
       invalidInvitation: 'Invalid or expired invitation.',
-      failedToCreateTeam: 'Failed to create team. Please try again.'
+      failedToCreateTeam: 'Failed to create team. Please try again.',
+      teamMemberLimitReached: 'This team has reached its member limit.'
     }
   },
   forgotPassword: {

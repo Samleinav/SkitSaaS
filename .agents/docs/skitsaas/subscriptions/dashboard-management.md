@@ -51,9 +51,8 @@ Main payload loader:
 
 - `getCurrentUserSubscriptionManagementData()` in `lib/db/queries.ts`
 
-Related limit/config sources:
+Related limit source:
 
-- `lib/organizations/config.ts`
 - `lib/organizations/subscription-limits.ts`
 
 ## Scope Model
@@ -71,17 +70,20 @@ Order targeting relies on explicit order target columns such as:
 - `payment_orders.target_team_id`
 - `payment_orders.target_user_id`
 
-## Multi-Organization Limit
+## User Organization Limit
 
-The effective user organization limit is resolved from:
+The dashboard view now treats the active user subscription template as the
+authoritative source for the organization limit:
 
-1. app-config policy
-2. user subscription quota
+- `dashboard.user.organizations.max`
 
-When both define a max, the effective limit is the minimum.
+Count-quota semantics for the current core keys:
 
-That means dashboard behavior is not just a UI preference. It depends on both
-host config and plan reads.
+- `-1` = unlimited
+- `1..N` = finite limit
+- `0` is invalid for `dashboard.user.organizations.max` and
+  `dashboard.team.members.max`
+- `dashboard.team.invites.enabled` is the official invite gate
 
 ## Practical Review Questions
 
@@ -89,7 +91,7 @@ When changing dashboard subscription behavior, verify:
 
 1. which scope the screen is showing
 2. whether the user is owner-capable for the team flow
-3. whether effective limits come from app config, subscription quota, or both
+3. whether the relevant limit is being read from the correct template scope
 4. whether order target metadata still resolves correctly
 
 ## Tests Worth Knowing

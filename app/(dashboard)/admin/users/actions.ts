@@ -14,8 +14,11 @@ import {
   getSubscriptionTemplateById
 } from '@/lib/db/queries';
 import { teamMembers, teams, users } from '@/lib/db/schema';
+import { FREE_USER_SUBSCRIPTION_TEMPLATE_ID } from '@/lib/payments/subscription-default-templates';
 import {
   activateSubscriptionAssignment,
+  activateReservedFreeSubscriptionAssignment,
+  replaceWithReservedFreeSubscriptionAssignment,
   suspendSubscriptionAssignment
 } from '@/lib/payments/subscription-assignments';
 import { createSysActivityLog } from '@/lib/system/activity-logs';
@@ -108,6 +111,8 @@ export const createUserAction = adminValidatedAction(
     const teamName = buildDefaultTeamName({ name, email });
 
     let createdUserId = 0;
+    let resolvedSubscriptionTemplateId =
+      template?.id ?? FREE_USER_SUBSCRIPTION_TEMPLATE_ID;
 
     await db.transaction(async (tx) => {
       const [createdUser] = await tx
@@ -140,22 +145,52 @@ export const createUserAction = adminValidatedAction(
         joinedAt: new Date()
       });
 
-      createdUserId = createdUser.id;
-    });
+      if (template?.id) {
+        await activateSubscriptionAssignment(
+          {
+            targetType: 'user',
+            targetId: createdUser.id,
+            subscriptionTemplateId: template.id,
+            paymentProvider: null,
+            providerReferenceId: null,
+            providerPlanId: null,
+            status: 'active',
+            planName: template.name,
+            sourceOrderId: null
+          },
+          {
+            executor: tx,
+            emitEvents: false
+          }
+        );
+      } else {
+        await activateReservedFreeSubscriptionAssignment(
+          {
+            targetType: 'user',
+            targetId: createdUser.id
+          },
+          {
+            executor: tx,
+            emitEvents: false
+          }
+        );
+      }
 
-    if (template?.id) {
-      await activateSubscriptionAssignment({
-        targetType: 'user',
-        targetId: createdUserId,
-        subscriptionTemplateId: template.id,
-        paymentProvider: null,
-        providerReferenceId: null,
-        providerPlanId: null,
-        status: 'active',
-        planName: template.name,
-        sourceOrderId: null
-      });
-    }
+      await activateReservedFreeSubscriptionAssignment(
+        {
+          targetType: 'team',
+          targetId: createdTeam.id
+        },
+        {
+          executor: tx,
+          emitEvents: false
+        }
+      );
+
+      createdUserId = createdUser.id;
+      resolvedSubscriptionTemplateId =
+        template?.id ?? FREE_USER_SUBSCRIPTION_TEMPLATE_ID;
+    });
 
     await createSysActivityLog({
       eventType: 'admin.users.create',
@@ -172,7 +207,7 @@ export const createUserAction = adminValidatedAction(
       message: 'Admin created a user account.',
       metadata: {
         role,
-        subscriptionTemplateId: template?.id || null
+        subscriptionTemplateId: resolvedSubscriptionTemplateId
       }
     });
 
@@ -181,7 +216,7 @@ export const createUserAction = adminValidatedAction(
       {
         userId: createdUserId,
         role,
-        subscriptionTemplateId: template?.id || null
+        subscriptionTemplateId: resolvedSubscriptionTemplateId
       },
       {
         actorUserId: currentUser.id,
@@ -290,10 +325,10 @@ export const updateUserProfileAction = adminValidatedAction(
           sourceOrderId: null
         });
       } else if (currentAssignment) {
-        await suspendSubscriptionAssignment({
+        await replaceWithReservedFreeSubscriptionAssignment({
           targetType: 'user',
           targetId: userId,
-          status: 'canceled',
+          closeStatus: 'canceled',
           sourceOrderId: null
         });
       }

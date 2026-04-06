@@ -123,13 +123,16 @@ Practical rule:
 - when payment env flags are unset, runtime can fall back to DB-backed payment
   method config
 
-## Organization Policy
+## Organization Runtime Toggle
 
 | Variable | Purpose | Default |
 |---|---|---|
 | `TEAMS_ENABLED` | enable team system and `/api/team` | `true` |
-| `ALLOW_MULTI_ORGANIZATIONS` | allow multiple teams per user | `false` |
-| `MAX_ORGANIZATIONS_PER_USER` | hard cap for user org count | empty |
+
+Current rule:
+
+- organization/user quotas now come from subscription templates rather than
+  env-backed app-config overrides
 
 ## Theme Selection
 

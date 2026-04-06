@@ -204,6 +204,20 @@
       "when": 1774972800000,
       "tag": "0028_checkout_payment_attempt_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1775335793660,
+      "tag": "0029_low_dexter_bennett",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1775368572315,
+      "tag": "0030_remove_organization_policy_legacy",
+      "breakpoints": true
     }
   ]
 }

@@ -1,21 +1,24 @@
 import { USER_SUBSCRIPTION_FEATURES } from '@/lib/features/catalog';
 import { getCurrentUserOrganizationCount } from '@/lib/db/queries';
 import { getCurrentFeatureControllerByScope } from '@/lib/features/subscription';
+export {
+  areTeamInvitesEnabledBySubscription,
+  canAddTeamMemberBySubscription,
+  getTeamMemberLimitBySubscriptionFeatureController,
+  resolveTeamMemberLimitBySubscription,
+  resolveUserOrganizationLimitBySubscription
+} from '@/lib/organizations/subscription-limit-values';
+import { resolveUserOrganizationLimitBySubscription } from '@/lib/organizations/subscription-limit-values';
 
 export async function getCurrentUserOrganizationLimitBySubscription() {
   const featureController = await getCurrentFeatureControllerByScope('user');
 
   const configuredLimit = featureController.int(
     USER_SUBSCRIPTION_FEATURES.organizationsMax.key,
-    USER_SUBSCRIPTION_FEATURES.organizationsMax.defaultValue
+    null
   );
 
-  if (configuredLimit === null) {
-    return null;
-  }
-
-  const minimumLimit = USER_SUBSCRIPTION_FEATURES.organizationsMax.min ?? 1;
-  return Math.max(configuredLimit, minimumLimit);
+  return resolveUserOrganizationLimitBySubscription(configuredLimit);
 }
 
 export function canCreateOrganizationBySubscription({

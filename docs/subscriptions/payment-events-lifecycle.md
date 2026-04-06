@@ -99,8 +99,8 @@ File: `lib/payments/order-subscription-events.ts`
 
 - `pending` -> no lifecycle mutation
 - `received` -> activate target subscription
-- `failed` -> suspend target subscription (clear paid assignment)
-- `canceled` -> suspend target subscription (clear paid assignment)
+- `failed` -> close the current paid assignment and move the target back to the reserved free template for its scope
+- `canceled` -> close the current paid assignment and move the target back to the reserved free template for its scope
 
 ## Scheduled subscription changes (carryover + immediate)
 
@@ -228,10 +228,11 @@ Notes:
 
 ### Example D: Order becomes `failed` or `canceled`
 
-Lifecycle executor closes the active subscription assignment so feature/quota logic falls back to free:
+Lifecycle executor closes the active paid assignment and immediately activates
+the reserved free template for the same scope:
 
-- team: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
-- user: closes the active assignment (`effective_to` set, status -> `unpaid`/`canceled`)
+- team -> reserved free `organization` template (`subscription_templates.id = 2`)
+- user -> reserved free `user` template (`subscription_templates.id = 1`)
 
 ## Admin subscriptions visibility
 

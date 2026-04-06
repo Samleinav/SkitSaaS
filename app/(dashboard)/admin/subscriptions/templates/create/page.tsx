@@ -26,6 +26,9 @@ export default async function AdminCreateSubscriptionTemplatePage() {
       copy: createAdminSubscriptionTemplateFormCopy(t)
     }),
     {
+      values: {
+        publicationStatus: 'draft'
+      },
       submit: {
         idleLabel: t('Create template'),
         pendingLabel: `${t('Create template')}...`,

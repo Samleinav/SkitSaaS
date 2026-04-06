@@ -102,14 +102,9 @@ const messages = {
       keep: 'Keep subscription'
     },
     organizationPolicy: {
-      title: 'Organization policy and limits',
-      allowMultiOrganizations: 'Allow multi organizations',
-      maxByConfig: 'Max organizations (app config)',
+      title: 'Organization limits',
       maxBySubscription: 'Max organizations (user subscription)',
-      effectiveLimit: 'Effective max organizations',
       currentOrganizations: 'Current organizations',
-      yes: 'Yes',
-      no: 'No',
       unlimited: 'Unlimited'
     },
     organizations: {

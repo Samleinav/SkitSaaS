@@ -21,7 +21,7 @@ import {
 } from '@/lib/payments/checkout-system';
 import { isSubscriptionMutationBlocked } from '@/lib/payments/subscription-single-writer';
 import { createSysActivityLog } from '@/lib/system/activity-logs';
-import { suspendSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
+import { replaceWithReservedFreeSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { dashboardValidatedAction, revalidateDashboardRoot } from '../controller';
@@ -270,10 +270,10 @@ export const cancelUserSubscriptionAction = dashboardValidatedAction(
         }
       });
     } else {
-      await suspendSubscriptionAssignment({
+      await replaceWithReservedFreeSubscriptionAssignment({
         targetType: 'user',
         targetId: user.id,
-        status: 'canceled',
+        closeStatus: 'canceled',
         sourceOrderId: null
       });
     }

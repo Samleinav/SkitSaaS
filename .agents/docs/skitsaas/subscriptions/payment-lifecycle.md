@@ -102,9 +102,9 @@ Current default mental model:
 - `received`
   activate target subscription
 - `failed`
-  suspend or clear the paid assignment
+  close the paid assignment and restore the reserved free template for that scope
 - `canceled`
-  suspend or clear the paid assignment
+  close the paid assignment and restore the reserved free template for that scope
 
 The lifecycle layer is what turns order state into subscription state. Do not
 copy that logic into every provider or admin action.
@@ -191,8 +191,11 @@ Safe mental model:
 Safe mental model:
 
 1. lifecycle executor sees `failed` or `canceled`
-2. active paid assignment is closed or cleared for the target
-3. feature/quota reads fall back accordingly
+2. active paid assignment is closed for the target
+3. a reserved free template is activated immediately after:
+   - `id=1` for `user`
+   - `id=2` for `organization`
+4. feature/quota reads continue from an explicit template instead of `null`
 
 ## Dashboard And Admin Surfaces
 

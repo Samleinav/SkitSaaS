@@ -33,6 +33,7 @@ export type LoginMessages = {
       failedToCreateUser: string;
       invalidInvitation: string;
       failedToCreateTeam: string;
+      teamMemberLimitReached: string;
     };
   };
   forgotPassword: {

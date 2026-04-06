@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils';
 import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
 import { getDateLocale } from '@/lib/i18n/formatting';
 import { getCurrentUserSubscriptionManagementData } from '@/lib/db/queries';
-import { getOrganizationLimits } from '@/lib/organizations/config';
 import { getCurrentUserOrganizationLimitBySubscription } from '@/lib/organizations/subscription-limits';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import {
@@ -149,34 +148,6 @@ function getStatusClassName(status: string) {
   return 'border-border bg-muted text-muted-foreground';
 }
 
-function resolveEffectiveLimit({
-  allowMultiOrganizations,
-  maxByConfig,
-  maxBySubscription
-}: {
-  allowMultiOrganizations: boolean;
-  maxByConfig: number | null;
-  maxBySubscription: number | null;
-}) {
-  if (!allowMultiOrganizations) {
-    return 1;
-  }
-
-  if (maxByConfig === null && maxBySubscription === null) {
-    return null;
-  }
-
-  if (maxByConfig === null) {
-    return maxBySubscription;
-  }
-
-  if (maxBySubscription === null) {
-    return maxByConfig;
-  }
-
-  return Math.min(maxByConfig, maxBySubscription);
-}
-
 function formatLimit(value: number | null, unlimitedLabel: string) {
   if (value === null) {
     return unlimitedLabel;
@@ -219,11 +190,10 @@ export default async function DashboardSubscriptionsPage({
   searchParams
 }: PageProps) {
   const resolvedSearchParams = await searchParams;
-  const [[locale, t], subscriptionData, organizationLimits, subscriptionOrgLimit] =
+  const [[locale, t], subscriptionData, subscriptionOrgLimit] =
     await Promise.all([
       Promise.all([getRequestLocale(), getServerTranslator({ area: 'dashboard' })]),
       getCurrentUserSubscriptionManagementData(),
-      getOrganizationLimits(),
       getCurrentUserOrganizationLimitBySubscription()
     ]);
 
@@ -309,11 +279,6 @@ export default async function DashboardSubscriptionsPage({
     }
   );
 
-  const effectiveOrganizationLimit = resolveEffectiveLimit({
-    allowMultiOrganizations: organizationLimits.allowMultiOrganizations,
-    maxByConfig: organizationLimits.maxOrganizationsPerUser,
-    maxBySubscription: subscriptionOrgLimit
-  });
   const resolveOrganizationsTableCellSlot = ({
     slot,
     data,
@@ -538,36 +503,10 @@ export default async function DashboardSubscriptionsPage({
           </CardHeader>
           <CardContent className="space-y-1 text-sm text-muted-foreground">
             <p>
-              {subscriptions.organizationPolicy.allowMultiOrganizations}:{' '}
-              <span className="text-foreground">
-                {organizationLimits.allowMultiOrganizations
-                  ? subscriptions.organizationPolicy.yes
-                  : subscriptions.organizationPolicy.no}
-              </span>
-            </p>
-            <p>
-              {subscriptions.organizationPolicy.maxByConfig}:{' '}
-              <span className="text-foreground">
-                {formatLimit(
-                  organizationLimits.maxOrganizationsPerUser,
-                  subscriptions.organizationPolicy.unlimited
-                )}
-              </span>
-            </p>
-            <p>
               {subscriptions.organizationPolicy.maxBySubscription}:{' '}
               <span className="text-foreground">
                 {formatLimit(
                   subscriptionOrgLimit,
-                  subscriptions.organizationPolicy.unlimited
-                )}
-              </span>
-            </p>
-            <p>
-              {subscriptions.organizationPolicy.effectiveLimit}:{' '}
-              <span className="text-foreground">
-                {formatLimit(
-                  effectiveOrganizationLimit,
                   subscriptions.organizationPolicy.unlimited
                 )}
               </span>

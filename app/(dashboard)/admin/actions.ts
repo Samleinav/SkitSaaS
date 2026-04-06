@@ -17,7 +17,6 @@ export {
   updateTeamSubscriptionAction
 } from './subscriptions/actions';
 export {
-  upsertOrganizationControlsAction,
   upsertPaymentProviderConfigAction,
   upsertProviderConfigBatchAction,
   upsertModuleRuntimeConfigAction,

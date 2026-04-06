@@ -106,21 +106,21 @@ export function createFeatureController(source: FeatureSource = {}): FeatureCont
 
   const getRawValue = (key: string) => featureMap.get(normalizeFeatureKey(key)) ?? null;
 
-  const has = (key: string) => {
-    const rawValue = getRawValue(key);
-    if (rawValue === null) {
-      return false;
-    }
+    const has = (key: string) => {
+      const rawValue = getRawValue(key);
+      if (rawValue === null) {
+        return false;
+      }
 
     const booleanValue = parseBooleanFeatureValue(rawValue);
     if (booleanValue !== null) {
       return booleanValue;
     }
 
-    const numberValue = parseNumberFeatureValue(rawValue);
-    if (numberValue !== null) {
-      return numberValue > 0;
-    }
+      const numberValue = parseNumberFeatureValue(rawValue);
+      if (numberValue !== null) {
+        return numberValue < 0 || numberValue > 0;
+      }
 
     return true;
   };
@@ -154,6 +154,10 @@ export function createFeatureController(source: FeatureSource = {}): FeatureCont
 
       const numberValue = parseNumberFeatureValue(rawValue);
       if (numberValue !== null) {
+        if (numberValue < 0) {
+          return true;
+        }
+
         return numberValue >= minimum;
       }
 

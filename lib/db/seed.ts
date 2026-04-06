@@ -1,9 +1,10 @@
 import { getStripeClient } from '../payments/stripe';
 import { db } from './drizzle';
-import { users, teams, teamMembers } from './schema';
+import { users, teams, teamMembers, subscriptionAssignments } from './schema';
 import { hashPassword } from '@/lib/auth/session';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { areTeamsEnabled } from '@/lib/organizations/config';
+import { activateReservedFreeSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
 
 function isTruthyEnvFlag(value: string | undefined) {
   const normalized = value?.trim().toLowerCase();
@@ -107,6 +108,30 @@ async function createStripeProducts() {
   console.log('Stripe products and prices created successfully.');
 }
 
+async function hasActiveSubscriptionAssignment({
+  targetType,
+  targetId
+}: {
+  targetType: 'user' | 'team';
+  targetId: number;
+}) {
+  const [assignment] = await db
+    .select({ id: subscriptionAssignments.id })
+    .from(subscriptionAssignments)
+    .where(
+      and(
+        eq(subscriptionAssignments.targetType, targetType),
+        targetType === 'team'
+          ? eq(subscriptionAssignments.targetTeamId, targetId)
+          : eq(subscriptionAssignments.targetUserId, targetId),
+        isNull(subscriptionAssignments.effectiveTo)
+      )
+    )
+    .limit(1);
+
+  return Boolean(assignment);
+}
+
 async function seed() {
   const {
     email,
@@ -160,6 +185,22 @@ async function seed() {
     throw new Error('Failed to create or load seed user.');
   }
 
+  if (
+    !(await hasActiveSubscriptionAssignment({
+      targetType: 'user',
+      targetId: user.id
+    }))
+  ) {
+    await activateReservedFreeSubscriptionAssignment({
+      targetType: 'user',
+      targetId: user.id
+    }, {
+      emitEvents: false
+    });
+
+    console.log(`Assigned reserved free user template to ${email}.`);
+  }
+
   if (!areTeamsEnabled()) {
     console.log('Teams disabled. Skipping bootstrap team creation.');
     return;
@@ -172,6 +213,24 @@ async function seed() {
     .limit(1);
 
   if (existingTeamMember) {
+    if (
+      !(await hasActiveSubscriptionAssignment({
+        targetType: 'team',
+        targetId: existingTeamMember.teamId
+      }))
+    ) {
+      await activateReservedFreeSubscriptionAssignment({
+        targetType: 'team',
+        targetId: existingTeamMember.teamId
+      }, {
+        emitEvents: false
+      });
+
+      console.log(
+        `Assigned reserved free organization template to existing team ${existingTeamMember.teamId}.`
+      );
+    }
+
     console.log(
       `User ${email} is already in team ${existingTeamMember.teamId}. Skipping team and Stripe seed.`
     );
@@ -189,6 +248,13 @@ async function seed() {
     teamId: team.id,
     userId: user.id,
     role: 'owner',
+  });
+
+  await activateReservedFreeSubscriptionAssignment({
+    targetType: 'team',
+    targetId: team.id
+  }, {
+    emitEvents: false
   });
 
   console.log(`Team ${team.name} created and user added as owner.`);
