@@ -41,6 +41,13 @@ const CRITICAL_ROUTE_SLOT_CONTRACTS: readonly RouteSlotContract[] = [
     requiresFallbackProp: true
   },
   {
+    filePath: 'app/(frontend)/contact-us/page.tsx',
+    renderer: 'ThemeFrontendRoute',
+    requiredSnippets: ['path="/contact-us"'],
+    requiredDataKeys: [],
+    requiresFallbackProp: true
+  },
+  {
     filePath: 'app/(dashboard)/private-area-shell.tsx',
     renderer: 'ThemeTemplate',
     requiredSnippets: ['id="layout.private.shell"'],

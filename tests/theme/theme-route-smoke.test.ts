@@ -139,6 +139,11 @@ test('core routes reference expected renderer contracts for smoke paths', () => 
       expectedSnippet: 'path="/pricing"'
     },
     {
+      filePath: 'app/(frontend)/contact-us/page.tsx',
+      renderer: 'ThemeFrontendRoute',
+      expectedSnippet: 'path="/contact-us"'
+    },
+    {
       filePath: 'app/(frontend)/packs/page.tsx',
       renderer: 'redirect',
       expectedSnippet: "redirect('/pricing')"

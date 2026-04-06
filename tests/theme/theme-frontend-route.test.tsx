@@ -32,6 +32,20 @@ test('ThemeFrontendRoute renders active frontend route when registered', async (
   assert.doesNotMatch(html, /data-test-id="fallback"/);
 });
 
+test('ThemeFrontendRoute renders registered contact route for first frontend theme', async () => {
+  const rendered = await ThemeFrontendRoute({
+    path: '/contact-us',
+    themeId: 'theme.first.frontend',
+    fallback: <div data-test-id="fallback">fallback</div>,
+    children: <div data-test-id="contact-form">contact-form</div>
+  });
+  const html = renderToStaticMarkup(rendered);
+
+  assert.match(html, /data-theme-template="page.frontend.contact"/);
+  assert.match(html, /data-test-id="contact-form"/);
+  assert.doesNotMatch(html, /data-test-id="fallback"/);
+});
+
 test('ThemeFrontendRoute renders a custom registered frontend path', async () => {
   const themeId = 'theme.test.frontend.custom.outputs';
 
@@ -113,7 +127,7 @@ test('ThemeFrontendRoute logs standardized development error for missing route',
 
   try {
     const rendered = await ThemeFrontendRoute({
-      path: '/contact-us',
+      path: '/missing-theme-route',
       themeId: 'theme.first.frontend',
       fallback: <div data-test-id="fallback">fallback</div>
     });
@@ -123,7 +137,7 @@ test('ThemeFrontendRoute logs standardized development error for missing route',
     assert.equal(capturedErrors.length, 1);
     assert.match(capturedErrors[0] ?? '', /\[theme-frontend-route\] route_not_found/);
     assert.match(capturedErrors[0] ?? '', /reason="route_not_registered"/);
-    assert.match(capturedErrors[0] ?? '', /path="\/contact-us"/);
+    assert.match(capturedErrors[0] ?? '', /path="\/missing-theme-route"/);
     assert.match(capturedErrors[0] ?? '', /themeId="theme.first.frontend"/);
   } finally {
     PROCESS_ENV.NODE_ENV = previousNodeEnv;

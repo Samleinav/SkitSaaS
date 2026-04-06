@@ -3,6 +3,19 @@ import { FrontendModuleSlot } from '@/components/ui/frontend-module-slot';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 
 export default async function ContactUsPage() {
+  const slotContent = (
+    <FrontendModuleSlot
+      slotId="frontend.contact.form.primary"
+      moduleId="mod.contact"
+      route="/contact-us"
+      fallback={
+        <div className="marketing-panel rounded-2xl p-6 text-sm text-zinc-300">
+          Contact form unavailable right now.
+        </div>
+      }
+    />
+  );
+
   const fallbackPage = (
     <main className="relative mx-auto w-full max-w-4xl px-4 pb-16 pt-14 sm:px-6 lg:px-8">
       <section className="space-y-4">
@@ -15,18 +28,7 @@ export default async function ContactUsPage() {
         </p>
       </section>
 
-      <section className="mt-8">
-        <FrontendModuleSlot
-          slotId="frontend.contact.form.primary"
-          moduleId="mod.contact"
-          route="/contact-us"
-          fallback={
-            <div className="marketing-panel rounded-2xl p-6 text-sm text-zinc-300">
-              Contact form unavailable right now.
-            </div>
-          }
-        />
-      </section>
+      <section className="mt-8">{slotContent}</section>
     </main>
   );
 
@@ -39,7 +41,10 @@ export default async function ContactUsPage() {
     <ThemeFrontendRoute
       path="/contact-us"
       themeId={themeSelection.themeKey}
+      data={{}}
       fallback={fallbackPage}
-    />
+    >
+      {slotContent}
+    </ThemeFrontendRoute>
   );
 }
