@@ -1,7 +1,7 @@
 # mod.contact
 
-Minimal `source-host` contact module for the public `/contact-us` page and a
-small admin inbox.
+Minimal `source-host` contact module for the public `/contact-us` page and an
+operator-friendly admin inbox.
 
 ## Scope
 
@@ -48,8 +48,10 @@ Defined in `modules/mod.contact/db/schema.ts`:
   - validated contact form rendered through SDK `TemplateBuildForm`
   - stores `name`, `email`, `subject`, `message`, and source path
 - admin:
-  - read-only inbox-style list of recent submissions
-  - newest messages first
+  - local SDK `DataTable` inbox for recent submissions
+  - search + source filtering + paging
+  - side detail view with sender metadata, quick reply action, source page
+    link, and full message body
 
 ## Validation and verification
 

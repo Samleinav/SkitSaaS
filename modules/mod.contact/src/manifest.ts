@@ -14,7 +14,7 @@ const contactAdminPage = createModulePageRouter({
   routes: [
     {
       path: '/',
-      handler: () => renderContactAdminPage()
+      handler: ({ context }) => renderContactAdminPage(context.searchParams)
     }
   ]
 });

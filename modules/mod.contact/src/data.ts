@@ -1,16 +1,7 @@
 import { desc } from '@skitsaas/sdk/db';
 import { getAdminDb } from '@skitsaas/sdk/server';
 import { modContactSubmissions } from '../db/schema';
-
-export type ContactSubmissionRecord = {
-  id: number;
-  name: string;
-  email: string;
-  subject: string | null;
-  message: string;
-  sourcePath: string | null;
-  createdAt: Date;
-};
+import type { ContactSubmissionRecord } from './types';
 
 function getContactDb() {
   return getAdminDb<any>();

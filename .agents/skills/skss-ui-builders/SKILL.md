@@ -38,6 +38,18 @@ description: Use for BuildForm, BuildTable, validations, `ui.form`, `ui.table`, 
 - check CTC before assuming one fixed admin/dashboard UI renderer
 - when the task is a full CRUD flow, follow the playbook before improvising the
   file layout
+- for admin/dashboard work, bias the UI toward compact, technical, operational
+  surfaces rather than marketing/frontend presentation
+- prefer dense shadcn-style composition: tighter spacing, smaller controls,
+  clearer hierarchy, and more useful information above the fold
+- avoid default "Tailwind demo" inflation: oversized cards, generous empty
+  whitespace, large hero spacing, and decorative padding that reduces scanning
+  efficiency
+- for operator-facing admin/dashboard views, default to an operational UX:
+  `DataTable` for scan/filter/triage plus a detail panel or dedicated detail
+  view for the selected record
+- do not stop at "data is visible"; optimize for the actual admin task flow:
+  search, open, inspect, act, return to queue
 
 ## Watch For
 
@@ -45,3 +57,6 @@ description: Use for BuildForm, BuildTable, validations, `ui.form`, `ui.table`, 
 - teaching `source-package` modules to use host-only UI imports
 - forgetting preflight has its own security path
 - defaulting to legacy `ColumnDef[]` mode when SDK BuildTable is enough
+- shipping flat card walls for operational datasets when a queue/table pattern
+  is the better fit
+- reusing frontend/marketing spacing or visual rhythm in admin operations screens
