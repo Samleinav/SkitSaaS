@@ -113,7 +113,7 @@ That means the generic renderer can now:
 The current production rollout for that flow now covers:
 
 - `/admin/users` create-user plus `/admin/users/[userId]` profile, status, and delete flows
-- `/admin/app-config/general`
+- `/admin/app-config/subscriptions`
 - `/admin/app-config/email`
 - `/admin/app-config/payments-methods`
 - `/admin/subscriptions/user/[userId]/edit`

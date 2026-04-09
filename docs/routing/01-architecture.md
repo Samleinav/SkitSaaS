@@ -63,6 +63,7 @@ Module dispatchers:
 - `/admin/app-config`
 - `/admin/app-config/modules`
 - `/admin/app-config/general`
+- `/admin/app-config/subscriptions`
 - `/admin/app-config/payments-methods`
 - `/admin/app-config/email`
 - `/admin/billing` (compatibility redirect to `/admin/subscriptions`)

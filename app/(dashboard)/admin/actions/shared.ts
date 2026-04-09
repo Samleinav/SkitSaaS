@@ -50,6 +50,7 @@ export function revalidateAdminAppConfig() {
   revalidatePath('/admin');
   revalidatePath('/admin/app-config');
   revalidatePath('/admin/app-config/general');
+  revalidatePath('/admin/app-config/subscriptions');
   revalidatePath('/admin/app-config/payments-methods');
   revalidatePath('/admin/app-config/email');
   revalidatePath('/admin/app-config/modules');

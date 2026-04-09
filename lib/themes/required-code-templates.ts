@@ -23,6 +23,7 @@ const ADMIN_REQUIRED_CODE_TEMPLATE_IDS = [
   'page.admin.subscriptions.edit',
   'page.admin.app-config.home',
   'page.admin.app-config.general',
+  'page.admin.app-config.subscriptions',
   'page.admin.app-config.payment-methods',
   'page.admin.app-config.email',
   'page.admin.app-config.modules',

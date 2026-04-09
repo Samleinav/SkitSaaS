@@ -143,7 +143,7 @@ Admin capabilities include:
 - subscription and template management
 - payment and order administration
 - app-config management
-- signup/fallback policy management in `/admin/app-config/general`
+- signup/fallback policy management in `/admin/app-config/subscriptions`
 - runtime log inspection
 - module runtime control surfaces
 

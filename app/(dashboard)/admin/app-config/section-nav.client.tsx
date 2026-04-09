@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ArrowRight,
+  BadgeDollarSign,
   CreditCard,
   FileText,
   Mail,
@@ -16,7 +17,12 @@ import { ThemeTemplate } from '@/components/ui/theme-template';
 import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 
-type AppConfigSectionKey = 'general' | 'paymentMethods' | 'email' | 'modules';
+type AppConfigSectionKey =
+  | 'general'
+  | 'subscriptions'
+  | 'paymentMethods'
+  | 'email'
+  | 'modules';
 
 type AppConfigSectionItem = {
   href: string;
@@ -38,6 +44,11 @@ const SECTION_ITEMS: AppConfigSectionItem[] = [
     href: '/admin/app-config/general',
     icon: SlidersHorizontal,
     key: 'general'
+  },
+  {
+    href: '/admin/app-config/subscriptions',
+    icon: BadgeDollarSign,
+    key: 'subscriptions'
   },
   {
     href: '/admin/app-config/payments-methods',
@@ -120,6 +131,7 @@ export function AppConfigSectionNavClient({
             (item.key
               ? {
                   general: t('General'),
+                  subscriptions: t('Subscriptions'),
                   paymentMethods: t('Payment methods'),
                   email: t('Email'),
                   modules: t('Modules')
@@ -130,6 +142,9 @@ export function AppConfigSectionNavClient({
             (item.key
               ? {
                   general: t('Core organization settings and shared behavior.'),
+                  subscriptions: t(
+                    'Manage public signup defaults, public-free fallback, and lifecycle recovery policy.'
+                  ),
                   paymentMethods: t(
                     'Configure Stripe/PayPal runtime keys and provider options.'
                   ),

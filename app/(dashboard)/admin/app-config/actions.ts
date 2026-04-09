@@ -304,7 +304,7 @@ export const upsertSignupPolicyConfigAction = adminAction(
       actorUserId: user.id,
       actorEmail: user.email,
       actorRole: user.role,
-      source: '/admin/app-config/general'
+      source: '/admin/app-config/subscriptions'
     });
   },
   {

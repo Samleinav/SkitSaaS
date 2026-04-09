@@ -154,7 +154,7 @@ Notes:
 
 Notes:
 
-- These values fall back to DB-backed app config from `/admin/app-config/general` when env is empty.
+- These values fall back to DB-backed app config from `/admin/app-config/subscriptions` when env is empty.
 - Signup defaults must point to published, non-reserved templates that match the target scope.
 - Public-free fallback templates must also be zero-cost (`price_cents = 0`).
 - Reserved baseline templates (`subscription_templates.id = 1` and `2`) remain internal fallback templates and are not valid values for these settings.

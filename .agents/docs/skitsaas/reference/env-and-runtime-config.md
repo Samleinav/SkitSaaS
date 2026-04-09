@@ -146,7 +146,7 @@ Current rule:
 
 Practical rules:
 
-- these resolve from env first and then `/admin/app-config/general`
+- these resolve from env first and then `/admin/app-config/subscriptions`
 - signup defaults must point to published, non-reserved templates
 - public-free fallback templates must also be zero-cost
 - reserved baseline templates (`id=1`, `id=2`) are internal safety nets and are

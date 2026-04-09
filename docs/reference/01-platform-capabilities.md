@@ -148,6 +148,7 @@ Main route surfaces:
 - `/admin/payments`
 - `/admin/logs`
 - `/admin/app-config/*`
+- `/admin/app-config/subscriptions` exposes signup defaults, public-free fallback, and lifecycle recovery policy.
 - `/admin/app-config/modules` exposes module inventory, manifest-driven runtime BuildForms, and DB emergency enable/disable controls.
 
 Compatibility route:
@@ -270,7 +271,7 @@ Helpers:
 
 - `lib/config/app-config.ts`
 - `lib/config/app-config-writes.ts`
-- `/admin/app-config/general` manages signup defaults and lifecycle fallback policy
+- `/admin/app-config/subscriptions` manages signup defaults and lifecycle fallback policy
 - `@skitsaas/sdk` / `lib/modules/manifest.ts` can declare `runtimeConfig.fields`, which Core Admin renders in `/admin/app-config/modules` through `BuildForm`.
 
 ## 12) Email system

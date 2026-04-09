@@ -143,12 +143,23 @@ const CORE_SEARCH_ENTRIES: SearchStaticEntry[] = [
     id: 'core.admin.app-config.general',
     title: 'General settings',
     href: '/admin/app-config/general',
-    description: 'Project name and general application options.',
+    description: 'Shared runtime notes and deployment overview.',
     group: 'Configuration',
     icon: 'sliders-horizontal',
     areas: ['admin'],
     audience: 'admin',
     order: 61
+  },
+  {
+    id: 'core.admin.app-config.subscriptions',
+    title: 'Subscription settings',
+    href: '/admin/app-config/subscriptions',
+    description: 'Signup defaults, public-free fallback, and lifecycle recovery policy.',
+    group: 'Configuration',
+    icon: 'badge-dollar-sign',
+    areas: ['admin'],
+    audience: 'admin',
+    order: 62
   },
   {
     id: 'core.admin.app-config.email',
@@ -159,7 +170,7 @@ const CORE_SEARCH_ENTRIES: SearchStaticEntry[] = [
     icon: 'mail',
     areas: ['admin'],
     audience: 'admin',
-    order: 62
+    order: 63
   },
   {
     id: 'core.admin.app-config.theme',
@@ -170,7 +181,7 @@ const CORE_SEARCH_ENTRIES: SearchStaticEntry[] = [
     icon: 'palette',
     areas: ['admin'],
     audience: 'admin',
-    order: 63
+    order: 64
   },
   {
     id: 'core.admin.app-config.modules',
@@ -181,7 +192,7 @@ const CORE_SEARCH_ENTRIES: SearchStaticEntry[] = [
     icon: 'package',
     areas: ['admin'],
     audience: 'admin',
-    order: 64
+    order: 65
   },
   {
     id: 'core.dashboard.home',
