@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  getSubscriptionTemplateById,
+  getSelfServiceSubscriptionTemplateById,
   getTeamForUser,
   getUser
 } from '@/lib/db/queries';
@@ -130,9 +130,7 @@ export const POST = withApiRouteEntries(
         );
       }
 
-      template = await getSubscriptionTemplateById(templateId, {
-        publicationStatus: 'published'
-      });
+      template = await getSelfServiceSubscriptionTemplateById(templateId);
     }
 
     if (!template) {

@@ -59,7 +59,7 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
 
   const [user, templates, organizations] = await Promise.all([
     getAdminUserById(parsedUserId),
-    getUserSubscriptionTemplatesForAdmin(),
+    getUserSubscriptionTemplatesForAdmin({ includeReserved: true }),
     getAdminUserOrganizations(parsedUserId)
   ]);
 
@@ -114,7 +114,7 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
     createAdminUpdateUserSubscriptionBuildFormBase({
       copy: {
         templateLabel: t('User subscription template'),
-        noTemplate: t('Free (no template)')
+        noTemplate: t('System baseline')
       },
       templateOptions: templates.map((template) => ({
         id: template.id,

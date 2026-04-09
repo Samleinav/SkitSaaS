@@ -255,6 +255,64 @@ test('explicit user order/payment status changes activate and suspend user subsc
   });
 });
 
+test('failed organization lifecycle can use configured fallback assignment writer', async () => {
+  const { deps } = createHarness({
+    teams: [
+      {
+        id: 22,
+        name: 'Fallback Org'
+      }
+    ],
+    templates: [
+      {
+        id: 302,
+        name: 'Basic',
+        targetScope: 'organization'
+      }
+    ]
+  });
+  const fallbackCalls: Array<{
+    targetType: 'team' | 'user';
+    targetId: number;
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  }> = [];
+
+  const result = await runPaymentOrderSubscriptionLifecycle(
+    {
+      orderId: 9012,
+      provider: 'stripe',
+      status: 'failed',
+      eventType: 'test.order.failed',
+      orderSource: 'dashboard',
+      triggerSource: '/tests/payments/order-subscription-lifecycle.test.ts',
+      teamId: 22,
+      subscriptionTemplateId: 302,
+      planName: 'Basic',
+      providerPlanId: 'price_basic_123',
+      externalPaymentId: 'sub_basic_123'
+    },
+    {
+      ...deps,
+      suspendSubscriptionAssignment: undefined,
+      replaceWithFallbackSubscriptionAssignment: async (payload) => {
+        fallbackCalls.push(payload);
+      }
+    }
+  );
+
+  assert.equal(result.applied, true);
+  assert.equal(result.reason, 'team_suspended');
+  assert.deepEqual(fallbackCalls, [
+    {
+      targetType: 'team',
+      targetId: 22,
+      closeStatus: 'unpaid',
+      sourceOrderId: 9012
+    }
+  ]);
+});
+
 test('non-supported status like refunded does not mutate subscription state', async () => {
   const { assignmentActivations, assignmentSuspensions, logs, deps } =
     createHarness({

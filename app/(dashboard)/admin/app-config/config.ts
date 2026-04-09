@@ -1,8 +1,11 @@
 import {
+  getAllSubscriptionTemplatesForAdmin,
+  getAppConfigEntriesForAdmin,
   getPaymentProviderConfigsForAdmin
 } from '@/lib/db/queries.admin';
 import { getEmailConfigDefinitionsForAdmin } from '@/lib/email/config';
 import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';
+import { getSubscriptionSignupPolicyDefinitions } from '@/lib/payments/subscription-signup-policy';
 
 export type ConfigSource = 'env' | 'db' | 'default';
 
@@ -25,6 +28,34 @@ export type ConfigRow = {
 export type ProviderId = 'stripe' | 'paypal';
 
 export const PROVIDER_ORDER: ProviderId[] = ['stripe', 'paypal'];
+
+type SignupPolicyConfigDefinition = {
+  configKey: string;
+  envKey: string;
+  fallback?: string;
+};
+
+export type SignupPolicyConfigName = keyof ReturnType<
+  typeof getSubscriptionSignupPolicyDefinitions
+>;
+
+export type SignupPolicyConfigRow = {
+  configKey: string;
+  envKey: string;
+  value: string;
+  dbValue: string;
+  source: ConfigSource;
+};
+
+export type SignupPolicyTemplateOption = {
+  id: number;
+  name: string;
+  targetScope: string;
+  billingInterval: string;
+  priceCents: number;
+  currency: string;
+  label: string;
+};
 
 function resolveConfigRow({
   definition,
@@ -70,6 +101,63 @@ function resolveConfigRow({
   };
 }
 
+function resolveSignupPolicyConfigRow({
+  definition,
+  dbConfigMap
+}: {
+  definition: SignupPolicyConfigDefinition;
+  dbConfigMap: Map<string, string>;
+}): SignupPolicyConfigRow {
+  const envValue = process.env[definition.envKey]?.trim() || '';
+  const dbValue =
+    dbConfigMap.get(`signup.policy:${definition.configKey}`)?.trim() || '';
+
+  if (envValue) {
+    return {
+      configKey: definition.configKey,
+      envKey: definition.envKey,
+      value: envValue,
+      dbValue,
+      source: 'env'
+    };
+  }
+
+  if (dbValue) {
+    return {
+      configKey: definition.configKey,
+      envKey: definition.envKey,
+      value: dbValue,
+      dbValue,
+      source: 'db'
+    };
+  }
+
+  return {
+    configKey: definition.configKey,
+    envKey: definition.envKey,
+    value: definition.fallback ?? '',
+    dbValue: '',
+    source: 'default'
+  };
+}
+
+function formatTemplateOptionLabel({
+  name,
+  billingInterval,
+  priceCents,
+  currency,
+  id
+}: {
+  name: string;
+  billingInterval: string;
+  priceCents: number;
+  currency: string;
+  id: number;
+}) {
+  const amount = `${currency} ${(priceCents / 100).toFixed(2)}`;
+  return `${name} (#${id}) - ${billingInterval} - ${amount}`;
+}
+
 export async function getAdminAppConfigData() {
   const dbConfigs = await getPaymentProviderConfigsForAdmin();
   const paymentDefinitions = getPaymentConfigDefinitionsForAdmin();
@@ -109,5 +197,61 @@ export async function getAdminAppConfigData() {
   return {
     paymentRowsByProvider,
     emailRows
+  };
+}
+
+export async function getAdminSignupPolicyConfigData() {
+  const [appConfigEntries, publishedTemplates] = await Promise.all([
+    getAppConfigEntriesForAdmin(),
+    getAllSubscriptionTemplatesForAdmin({
+      publicationStatus: 'published'
+    })
+  ]);
+
+  const dbConfigMap = new Map(
+    appConfigEntries.map((config) => [
+      `${config.namespace}:${config.configKey}`,
+      config.configValue
+    ])
+  );
+
+  const definitions = getSubscriptionSignupPolicyDefinitions();
+  const signupPolicyRows = Object.fromEntries(
+    Object.entries(definitions).map(([name, definition]) => [
+      name,
+      resolveSignupPolicyConfigRow({
+        definition,
+        dbConfigMap
+      })
+    ])
+  ) as Record<SignupPolicyConfigName, SignupPolicyConfigRow>;
+
+  const templateOptions = publishedTemplates.map((template) => ({
+    id: template.id,
+    name: template.name,
+    targetScope: template.targetScope,
+    billingInterval: template.billingInterval,
+    priceCents: template.priceCents,
+    currency: template.currency,
+    label: formatTemplateOptionLabel(template)
+  }));
+
+  const organizationTemplateOptions = templateOptions.filter(
+    (template) => template.targetScope === 'organization'
+  );
+  const userTemplateOptions = templateOptions.filter(
+    (template) => template.targetScope === 'user'
+  );
+
+  return {
+    signupPolicyRows,
+    organizationTemplateOptions,
+    userTemplateOptions,
+    freeOrganizationTemplateOptions: organizationTemplateOptions.filter(
+      (template) => template.priceCents === 0
+    ),
+    freeUserTemplateOptions: userTemplateOptions.filter(
+      (template) => template.priceCents === 0
+    )
   };
 }

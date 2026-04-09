@@ -50,6 +50,20 @@ if (!hasModuleMock) {
             teamRole: string | null;
           }
         | null;
+      signupIntentAccess:
+        | {
+            checkoutOrder: {
+              id: number;
+              checkoutToken: string;
+              orderType: string;
+              status: string;
+              targetType: string | null;
+              teamId: number | null;
+              targetTeamId: number | null;
+              targetUserId: number | null;
+            };
+          }
+        | null;
       teamById: {
         id: number;
         name: string;
@@ -63,6 +77,7 @@ if (!hasModuleMock) {
     } = {
       user: null,
       checkoutAccess: null,
+      signupIntentAccess: null,
       teamById: null,
       startResult: {
         ok: true,
@@ -83,6 +98,12 @@ if (!hasModuleMock) {
     applyModuleMock('@/lib/payments/checkout-orders', {
       namedExports: {
         getCheckoutOrderByTokenForUser: async () => state.checkoutAccess
+      }
+    });
+
+    applyModuleMock('@/lib/payments/signup-intents', {
+      namedExports: {
+        getSignupIntentCheckoutAccessByToken: async () => state.signupIntentAccess
       }
     });
 
@@ -114,6 +135,7 @@ if (!hasModuleMock) {
     }
 
     state.user = null;
+    state.signupIntentAccess = null;
     let response = await callRoute();
     assert.equal(response.response.status, 401);
 
@@ -186,7 +208,27 @@ if (!hasModuleMock) {
     assert.equal(state.startCalls.length, 1);
     assert.equal(state.startCalls[0]?.team, null);
 
+    state.user = null;
+    state.checkoutAccess = null;
+    state.signupIntentAccess = {
+      checkoutOrder: {
+        id: 204,
+        checkoutToken: 'tok_123',
+        orderType: 'subscription',
+        status: 'ready',
+        targetType: null,
+        teamId: null,
+        targetTeamId: null,
+        targetUserId: null
+      }
+    };
+    state.startCalls.length = 0;
+    response = await callRoute();
+    assert.equal(response.response.status, 200);
+    assert.equal(state.startCalls.length, 1);
+    assert.equal(state.startCalls[0]?.user, null);
+    assert.equal(state.startCalls[0]?.team, null);
+
     mock.restoreAll();
   });
 }
-

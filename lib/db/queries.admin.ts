@@ -44,6 +44,10 @@ import {
   mapNamespaceToLegacyProvider
 } from '@/lib/config/app-config';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
+import {
+  isSubscriptionTemplateVisibleInAdminCatalog,
+  type SubscriptionTemplatePublicationStatus
+} from '@/lib/payments/subscription-default-templates';
 
 // ─── Internal types ────────────────────────────────────────────────────────────
 
@@ -436,8 +440,10 @@ export async function getAdminSubscriptionTargetIdsWithOrders() {
   return { teamIds: Array.from(teamIds), userIds: Array.from(userIds) };
 }
 
-export async function getUserSubscriptionTemplatesForAdmin() {
-  return adminDb
+export async function getUserSubscriptionTemplatesForAdmin(
+  options: Pick<AdminSubscriptionTemplateQueryOptions, 'includeReserved'> = {}
+) {
+  const templates = await adminDb
     .select({
       id: subscriptionTemplates.id,
       name: subscriptionTemplates.name,
@@ -448,7 +454,19 @@ export async function getUserSubscriptionTemplatesForAdmin() {
     .from(subscriptionTemplates)
     .where(eq(subscriptionTemplates.targetScope, 'user'))
     .orderBy(asc(subscriptionTemplates.name), asc(subscriptionTemplates.billingInterval));
+
+  return templates.filter((template) =>
+    options.includeReserved
+      ? true
+      : isSubscriptionTemplateVisibleInAdminCatalog(template.id)
+  );
 }
+
+type AdminSubscriptionTemplateQueryOptions = {
+  includeReserved?: boolean;
+  targetScope?: 'user' | 'organization';
+  publicationStatus?: SubscriptionTemplatePublicationStatus;
+};
 
 export async function getAdminUserById(userId: number) {
   if (!Number.isInteger(userId) || userId <= 0) return null;
@@ -644,8 +662,13 @@ export async function getAdminTeamById(teamId: number) {
   };
 }
 
-export async function getAllSubscriptionTemplatesForAdmin() {
-  const templates = await adminDb.select().from(subscriptionTemplates).orderBy(desc(subscriptionTemplates.createdAt));
+export async function getAllSubscriptionTemplatesForAdmin(
+  options: AdminSubscriptionTemplateQueryOptions = {}
+) {
+  const templates = await adminDb
+    .select()
+    .from(subscriptionTemplates)
+    .orderBy(desc(subscriptionTemplates.createdAt));
   if (templates.length === 0) return [];
 
   const features = await adminDb
@@ -654,7 +677,21 @@ export async function getAllSubscriptionTemplatesForAdmin() {
     .where(inArray(subscriptionTemplateFeatures.templateId, templates.map((t) => t.id)))
     .orderBy(desc(subscriptionTemplateFeatures.createdAt));
 
-  return templates.map((t) => ({ ...t, features: mapSubscriptionTemplateFeatures(features, t.id) }));
+  return templates
+    .map((t) => ({ ...t, features: mapSubscriptionTemplateFeatures(features, t.id) }))
+    .filter((template) =>
+      options.includeReserved
+        ? true
+        : isSubscriptionTemplateVisibleInAdminCatalog(template.id)
+    )
+    .filter((template) =>
+      options.targetScope ? template.targetScope === options.targetScope : true
+    )
+    .filter((template) =>
+      options.publicationStatus
+        ? template.publicationStatus === options.publicationStatus
+        : true
+    );
 }
 
 export async function getPaymentProviderConfigsForAdmin() {
@@ -939,7 +976,13 @@ export async function getPaymentOrderFormOptionsForAdmin() {
       .orderBy(asc(users.email))
   ]);
 
-  return { teams: teamOptions, templates: templateOptions, users: userOptions };
+  return {
+    teams: teamOptions,
+    templates: templateOptions.filter((template) =>
+      isSubscriptionTemplateVisibleInAdminCatalog(template.id)
+    ),
+    users: userOptions
+  };
 }
 
 export async function getSystemActivityLogsForAdmin(

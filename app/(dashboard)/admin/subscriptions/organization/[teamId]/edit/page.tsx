@@ -55,7 +55,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
 
   const [team, templates] = await Promise.all([
     getAdminTeamById(parsedTeamId),
-    getAllSubscriptionTemplatesForAdmin()
+    getAllSubscriptionTemplatesForAdmin({ includeReserved: true })
   ]);
 
   if (!team) {
@@ -107,7 +107,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
         providerLabel: t('Provider'),
         statusLabel: t('Status'),
         templateLabel: t('Template name'),
-        noTemplate: t('Free (no template)'),
+        noTemplate: t('System baseline'),
         providers: {
           none: t('none'),
           stripe: t('stripe'),
@@ -155,7 +155,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
         confirm: {
           title: t('Clear subscription for this team?'),
           description: t(
-            'This removes provider references and returns the team to the free plan.'
+            'This removes provider references and returns the team to the system baseline.'
           ),
           confirmLabel: t('Clear subscription'),
           cancelLabel: t('Cancel'),
@@ -232,12 +232,12 @@ export default async function AdminEditOrganizationSubscriptionPage({
               {t('Template')}
             </p>
             <p className="mt-2 text-sm font-semibold text-foreground">
-              {team.subscriptionTemplateName || t('Free (no template)')}
+              {team.subscriptionTemplateName || t('System baseline')}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {team.subscriptionTemplateId
                 ? `#${team.subscriptionTemplateId}`
-                : t('Free (no template)')}
+                : t('System baseline')}
             </p>
           </div>
           <div className="rounded-xl border border-border/70 bg-card/80 p-4">
@@ -332,7 +332,9 @@ export default async function AdminEditOrganizationSubscriptionPage({
               {t('Reset to free')}
             </p>
             <p className="text-xs text-red-700/80 dark:text-red-200/80">
-              {t('Use this only when provider references must be cleared and the team should return to the reserved free baseline.')}
+              {t(
+                'Use this only when provider references must be cleared and the team should return to the reserved system baseline.'
+              )}
             </p>
           </div>
           <TemplateBuildForm

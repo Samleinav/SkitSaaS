@@ -24,8 +24,8 @@ import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { SUBSCRIPTION_FEATURE_VALUE_TYPES } from '@/lib/payments/subscription-feature-types';
 import type { SubscriptionFeatureValueType } from '@/lib/payments/subscription-feature-types';
 import {
-  getReservedFreeTemplateRequiredFeatures,
-  isReservedFreeSubscriptionTemplateId
+  getReservedBaselineTemplateRequiredFeatures,
+  isReservedBaselineSubscriptionTemplateId
 } from '@/lib/payments/subscription-default-templates';
 import { createAdminSubscriptionTemplateFormCopy } from '../../../i18n';
 
@@ -47,17 +47,26 @@ export default async function AdminEditSubscriptionTemplatePage({
   if (!template) {
     notFound();
   }
-  const isReservedTemplate = isReservedFreeSubscriptionTemplateId(template.id);
+  const isReservedTemplate = isReservedBaselineSubscriptionTemplateId(template.id);
   const themeSelection = await getThemeSelectionForArea('admin');
   const lockedFeatureKeys = new Set(
-    getReservedFreeTemplateRequiredFeatures(template.id).map((feature) => feature.key)
+    getReservedBaselineTemplateRequiredFeatures(template.id).map(
+      (feature) => feature.key
+    )
   );
+  const scopeLabel =
+    template.targetScope === 'organization' ? t('Organization') : t('User');
+  const publicationStatusLabel =
+    template.publicationStatus === 'published' ? t('Published') : t('Draft');
 
   const featureRows =
     template.features.length > 0
       ? template.features.map((f) => ({
           id: String(f.id),
           removable: !lockedFeatureKeys.has(f.key),
+          lockedFields: lockedFeatureKeys.has(f.key)
+            ? ['featureKey', 'featureValueType']
+            : undefined,
           featureKey: f.key,
           featureLabel: f.label || f.key,
           featureValueType: SUBSCRIPTION_FEATURE_VALUE_TYPES.includes(
@@ -71,7 +80,7 @@ export default async function AdminEditSubscriptionTemplatePage({
         }))
       : null;
 
-  const editTemplateForm = composeRegisteredBuildFormDefinition(
+  const baseEditTemplateForm = composeRegisteredBuildFormDefinition(
     'admin-edit-subscription-template-form',
     createAdminEditSubscriptionTemplateBuildFormBase({
       copy: createAdminSubscriptionTemplateFormCopy(t)
@@ -103,6 +112,40 @@ export default async function AdminEditSubscriptionTemplatePage({
         : {})
     }
   );
+  const editTemplateForm = isReservedTemplate
+    ? {
+        ...baseEditTemplateForm,
+        sections: baseEditTemplateForm.sections?.map((section) => ({
+          ...section,
+          fields: section.fields.map((field) => {
+            if (field.kind !== 'select') {
+              return field;
+            }
+
+            if (field.name === 'targetScope') {
+              return {
+                ...field,
+                options: [{ value: template.targetScope, label: scopeLabel }]
+              };
+            }
+
+            if (field.name === 'publicationStatus') {
+              return {
+                ...field,
+                options: [
+                  {
+                    value: template.publicationStatus,
+                    label: `${publicationStatusLabel} (${t('Locked')})`
+                  }
+                ]
+              };
+            }
+
+            return field;
+          })
+        }))
+      }
+    : baseEditTemplateForm;
 
   const requestActiveUpdateForm = composeRegisteredBuildFormDefinition(
     'admin-request-template-active-update-form',
@@ -160,7 +203,7 @@ export default async function AdminEditSubscriptionTemplatePage({
         {isReservedTemplate ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             {t(
-              'This is a reserved core free template. You can edit it, but its scope stays locked, baseline features stay pinned, and the template cannot be deleted.'
+              'This is a reserved system baseline template. You can tune labels, values, and policy data, but scope stays locked, baseline feature keys/types stay pinned, and the template cannot be deleted or published.'
             )}
           </div>
         ) : null}
@@ -191,7 +234,9 @@ export default async function AdminEditSubscriptionTemplatePage({
         {isReservedTemplate ? null : (
           <div className="rounded-md border border-red-200 bg-red-50 p-4">
             <p className="mb-3 text-sm text-red-700">
-              {t('Deleting this template will move active targets back to the reserved free template.')}
+              {t(
+                'Deleting this template will move active targets back to the reserved system baseline.'
+              )}
             </p>
             <TemplateBuildForm
               definition={deleteTemplateForm}

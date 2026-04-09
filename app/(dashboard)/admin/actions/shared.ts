@@ -79,3 +79,8 @@ export function revalidateDashboard() {
 export function revalidatePricing() {
   revalidatePath('/pricing');
 }
+
+export function revalidateAuthPages() {
+  revalidatePath('/login');
+  revalidatePath('/sign-up');
+}

@@ -16,6 +16,7 @@ import {
 } from './orders';
 import {
   activateSubscriptionAssignment,
+  replaceWithConfiguredFallbackSubscriptionAssignment,
   replaceWithReservedFreeSubscriptionAssignment,
   type ActivateSubscriptionAssignmentInput,
   type SuspendSubscriptionAssignmentInput,
@@ -128,6 +129,14 @@ type PaymentOrderSubscriptionLifecycleDeps = {
       sourceOrderId?: number | null;
     }
   ) => Promise<unknown>;
+  replaceWithFallbackSubscriptionAssignment?: (
+    input: {
+      targetType: 'team' | 'user';
+      targetId: number;
+      closeStatus?: 'unpaid' | 'canceled';
+      sourceOrderId?: number | null;
+    }
+  ) => Promise<unknown>;
   consumeSubscriptionTrialUsage?: typeof consumeSubscriptionTrialUsage;
   createSysActivityLog: typeof createSysActivityLog;
   emitEventAsync?: typeof emitEventAsync;
@@ -184,6 +193,8 @@ const DEFAULT_PAYMENT_ORDER_SUBSCRIPTION_LIFECYCLE_DEPS: PaymentOrderSubscriptio
       return template || null;
     },
     activateSubscriptionAssignment,
+    replaceWithFallbackSubscriptionAssignment:
+      replaceWithConfiguredFallbackSubscriptionAssignment,
     replaceWithReservedFreeSubscriptionAssignment,
     consumeSubscriptionTrialUsage,
     createSysActivityLog,
@@ -342,7 +353,7 @@ export async function applySubscriptionAssignmentReplayPayload(
     });
   }
 
-  return replaceWithReservedFreeSubscriptionAssignment({
+  return replaceWithConfiguredFallbackSubscriptionAssignment({
     targetType: payload.targetType,
     targetId: payload.targetId,
     closeStatus: payload.status,
@@ -645,6 +656,9 @@ async function projectSubscriptionAssignment({
 }) {
   const activateWriter =
     deps.activateSubscriptionAssignment ?? activateSubscriptionAssignment;
+  const fallbackWriter =
+    deps.replaceWithFallbackSubscriptionAssignment ??
+    replaceWithConfiguredFallbackSubscriptionAssignment;
   const freeFallbackWriter =
     deps.replaceWithReservedFreeSubscriptionAssignment ??
     replaceWithReservedFreeSubscriptionAssignment;
@@ -670,6 +684,16 @@ async function projectSubscriptionAssignment({
       targetType: payload.targetType,
       targetId: payload.targetId,
       status: payload.status,
+      sourceOrderId: payload.sourceOrderId,
+    });
+    return;
+  }
+
+  if (fallbackWriter) {
+    await fallbackWriter({
+      targetType: payload.targetType,
+      targetId: payload.targetId,
+      closeStatus: payload.status,
       sourceOrderId: payload.sourceOrderId,
     });
     return;

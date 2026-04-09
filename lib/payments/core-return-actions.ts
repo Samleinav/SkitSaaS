@@ -38,13 +38,19 @@ import {
   getCheckoutOrderByProviderSession,
   getCheckoutOrderByToken,
   getCheckoutOrderByTokenForUser,
+  isCheckoutOrderSignupIntent,
   isCheckoutOrderPayable,
   markCheckoutOrderCompleted,
   markCheckoutOrderFailed,
   markCheckoutOrderProviderPending,
+  resolveCheckoutOrderEffectiveTargetType,
   type CheckoutOrderWithMetadata
 } from '@/lib/payments/checkout-orders';
 import { getStripeClient } from '@/lib/payments/stripe';
+import {
+  finalizeSignupIntentCheckout,
+  getSignupIntentCheckoutAccessByToken
+} from '@/lib/payments/signup-intents';
 import type { ModulePaymentMethodActionResult } from './payment-methods';
 
 type CoreCheckoutActionSuccess = {
@@ -97,6 +103,66 @@ function buildCheckoutReturnRedirectUrl(
   }
 
   return fallback;
+}
+
+async function finalizeSignupIntentReturnSession({
+  checkoutOrder,
+  paymentProvider,
+  providerReferenceId,
+  providerPlanId = null,
+  paymentMethod = null,
+  planName = null,
+  subscriptionStatus = null,
+  currentPeriodStart = null,
+  currentPeriodEnd = null,
+  trialEndsAt = null,
+  cancelAtPeriodEnd = null,
+  canceledAt = null,
+  source
+}: {
+  checkoutOrder: CheckoutOrderWithMetadata | null;
+  paymentProvider: 'stripe' | 'paypal';
+  providerReferenceId: string | null;
+  providerPlanId?: string | null;
+  paymentMethod?: string | null;
+  planName?: string | null;
+  subscriptionStatus?: string | null;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  trialEndsAt?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  canceledAt?: string | null;
+  source: string;
+}) {
+  if (!checkoutOrder || !isCheckoutOrderSignupIntent(checkoutOrder)) {
+    return null;
+  }
+
+  const finalized = await finalizeSignupIntentCheckout({
+    checkoutOrder,
+    paymentProvider,
+    providerReferenceId,
+    providerPlanId,
+    paymentMethod,
+    planName,
+    subscriptionStatus,
+    currentPeriodStart,
+    currentPeriodEnd,
+    trialEndsAt,
+    cancelAtPeriodEnd,
+    canceledAt,
+    source
+  });
+
+  if (finalized?.createdUser) {
+    await setSession(finalized.createdUser, {
+      metadata: {
+        authArea: 'dashboard'
+      }
+    });
+  }
+
+  return finalized;
 }
 
 export function canReuseCompletedPayPalOneTimeCheckoutReturn({
@@ -652,15 +718,16 @@ export async function executeStripeCheckoutReturnAction({
       typeof session.subscription === 'string'
         ? session.subscription
         : session.subscription?.id;
-
-    if (
+    const isSignupIntentCheckout = isCheckoutOrderSignupIntent(checkoutOrder);
+    const reusedCompletedSubscriptionCheckout =
       canReuseCompletedSubscriptionCheckoutReturn({
         checkoutOrder,
         provider: 'stripe',
         providerSessionId: sessionId,
         providerReferenceId: subscriptionId ?? sessionId
-      })
-    ) {
+      });
+
+    if (reusedCompletedSubscriptionCheckout && !isSignupIntentCheckout) {
       return {
         ok: true,
         result: {
@@ -740,6 +807,118 @@ export async function executeStripeCheckoutReturnAction({
     const trialEndsAt = toIsoDateFromUnix(subscription.trial_end ?? null);
     const canceledAt = toIsoDateFromUnix(subscription.canceled_at ?? null);
 
+    if (isSignupIntentCheckout) {
+      if (checkoutOrderId && !reusedCompletedSubscriptionCheckout) {
+        await markCheckoutOrderCompleted({
+          checkoutOrderId,
+          provider: 'stripe',
+          providerReferenceId: subscriptionId
+        });
+      }
+
+      const refreshedCompletedCheckoutOrder =
+        (await refreshCheckoutOrderByToken(checkoutOrder?.checkoutToken)) ??
+        checkoutOrder;
+      const finalizedSignup = await finalizeSignupIntentReturnSession({
+        checkoutOrder: refreshedCompletedCheckoutOrder,
+        paymentProvider: 'stripe',
+        providerReferenceId: subscriptionId,
+        providerPlanId,
+        paymentMethod: session.payment_method_types?.[0] || 'card',
+        planName: template?.name || productName || 'Stripe plan',
+        subscriptionStatus: subscription.status,
+        currentPeriodStart,
+        currentPeriodEnd,
+        trialEndsAt,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end ?? null,
+        canceledAt,
+        source
+      });
+      const signupTargetType =
+        finalizedSignup?.signupIntent?.targetScope === 'organization'
+          ? 'team'
+          : 'user';
+      const signupTargetTeamId =
+        signupTargetType === 'team' ? finalizedSignup?.teamId ?? null : null;
+      const signupTargetUserId =
+        signupTargetType === 'user' ? finalizedSignup?.createdUser?.id ?? null : null;
+
+      if (!reusedCompletedSubscriptionCheckout) {
+        await recordStripeCheckoutEvent({
+          orderType: 'subscription',
+          status: mapSubscriptionStatusToOrderStatus(subscription.status),
+          logStatus: 'success',
+          eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
+          source: 'checkout',
+          teamId: signupTargetTeamId,
+          targetType: signupTargetType,
+          targetTeamId: signupTargetTeamId,
+          targetUserId: signupTargetUserId,
+          subscriptionTemplateId: template?.id || null,
+          templateSnapshot,
+          paymentMethod: session.payment_method_types?.[0] || 'card',
+          planName: template?.name || productName || 'Stripe plan',
+          providerPlanId,
+          externalOrderId: sessionId,
+          externalPaymentId: subscriptionId,
+          amount: plan.unit_amount,
+          currency: plan.currency,
+          message: 'Stripe signup checkout session completed.',
+          metadata: {
+            templateId: template?.id || null,
+            checkoutOrderId: checkoutOrderId ?? null,
+            checkoutToken: checkoutToken ?? null,
+            signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+          },
+          providerMetadata: {
+            sessionId,
+            customerId,
+            productId,
+            subscriptionId,
+            currentPeriodStart,
+            currentPeriodEnd,
+            trialEndsAt,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end ?? null,
+            canceledAt
+          }
+        });
+      }
+
+      const finalizedCheckoutOrder =
+        (await refreshCheckoutOrderByToken(
+          refreshedCompletedCheckoutOrder?.checkoutToken
+        )) ?? refreshedCompletedCheckoutOrder;
+
+      return {
+        ok: true,
+        result: {
+          status: 'completed',
+          checkoutToken: finalizedCheckoutOrder?.checkoutToken ?? checkoutToken,
+          checkoutOrderId: finalizedCheckoutOrder?.id ?? checkoutOrderId,
+          redirectUrl: '/dashboard',
+          providerSessionId: sessionId,
+          providerReferenceId: subscriptionId,
+          externalOrderId: sessionId,
+          externalPaymentId: subscriptionId,
+          providerPlanId,
+          paymentMethod: session.payment_method_types?.[0] || 'card',
+          amount: plan.unit_amount,
+          currency: plan.currency,
+          message: reusedCompletedSubscriptionCheckout
+            ? 'Stripe signup subscription already confirmed.'
+            : 'Stripe signup checkout session completed.',
+          eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
+          metadata: {
+            subscriptionId,
+            customerId,
+            checkoutToken: finalizedCheckoutOrder?.checkoutToken ?? checkoutToken,
+            signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+          }
+        },
+        checkoutOrder: finalizedCheckoutOrder
+      };
+    }
+
     const userId = session.client_reference_id;
     if (!userId) {
       throw new Error("No user ID found in session's client_reference_id.");
@@ -756,7 +935,7 @@ export async function executeStripeCheckoutReturnAction({
     }
 
     const resolvedTargetType =
-      checkoutOrder?.targetType === 'user' ? 'user' : 'team';
+      resolveCheckoutOrderEffectiveTargetType(checkoutOrder) ?? 'team';
     const userTeam = await db
       .select({
         teamId: teamMembers.teamId
@@ -1033,15 +1212,6 @@ export async function executePayPalCheckoutReturnAction({
   }
 
   const user = await getUser();
-  if (!user) {
-    return {
-      ok: false,
-      statusCode: 401,
-      error: 'Authentication required.',
-      redirectUrl: '/login?redirect=pricing'
-    };
-  }
-
   const body = (await request.json().catch(() => ({}))) as CheckoutRequestBody;
   const subscriptionId =
     typeof body.subscriptionId === 'string' && body.subscriptionId.trim()
@@ -1057,13 +1227,19 @@ export async function executePayPalCheckoutReturnAction({
       ? body.checkoutToken.trim()
       : fallbackCheckoutToken;
   const changeModeFromBody = normalizeChangeMode(body.changeMode);
-  const checkoutAccess = checkoutToken
+  const checkoutAccess = checkoutToken && user
     ? await getCheckoutOrderByTokenForUser({
         checkoutToken,
         userId: user.id
       })
     : null;
-  const checkoutOrder = checkoutAccess?.checkoutOrder ?? null;
+  const signupIntentAccess =
+    checkoutToken && !checkoutAccess
+      ? await getSignupIntentCheckoutAccessByToken(checkoutToken)
+      : null;
+  const checkoutOrder =
+    checkoutAccess?.checkoutOrder ?? signupIntentAccess?.checkoutOrder ?? null;
+  const isSignupIntentCheckout = isCheckoutOrderSignupIntent(checkoutOrder);
   const returnedPayPalOrderMatchesCompletedCheckout =
     canReuseCompletedPayPalOneTimeCheckoutReturn({
       checkoutOrder,
@@ -1089,6 +1265,15 @@ export async function executePayPalCheckoutReturnAction({
         !returnedPayPalOrderMatchesCompletedCheckout &&
         !returnedPayPalSubscriptionMatchesCompletedCheckout))
   ) {
+    if (!user && !signupIntentAccess) {
+      return {
+        ok: false,
+        statusCode: 401,
+        error: 'Authentication required.',
+        redirectUrl: '/login?redirect=pricing'
+      };
+    }
+
     return {
       ok: false,
       statusCode: 404,
@@ -1108,9 +1293,10 @@ export async function executePayPalCheckoutReturnAction({
   }
 
   const resolvedTargetType =
-    checkoutOrder?.targetType === 'user' ? 'user' : 'team';
+    resolveCheckoutOrderEffectiveTargetType(checkoutOrder) ?? 'team';
   const fallbackTeam =
     resolvedTargetType === 'team' &&
+    !isSignupIntentCheckout &&
     !(checkoutOrder?.targetTeamId ?? checkoutOrder?.teamId)
       ? await getTeamForUser()
       : null;
@@ -1121,7 +1307,7 @@ export async function executePayPalCheckoutReturnAction({
         : fallbackTeam
       : null;
 
-  if (resolvedTargetType === 'team') {
+  if (resolvedTargetType === 'team' && !isSignupIntentCheckout) {
     if (!team) {
       return {
         ok: false,
@@ -1140,7 +1326,7 @@ export async function executePayPalCheckoutReturnAction({
 
     if (!checkoutAccess?.teamRole) {
       const membership = fallbackTeam?.teamMembers.find(
-        (member) => member.userId === user.id
+        (member) => member.userId === user?.id
       );
       if (!membership || membership.role !== 'owner') {
         return {
@@ -1225,7 +1411,9 @@ export async function executePayPalCheckoutReturnAction({
         targetType: resolvedTargetType,
         targetTeamId: resolvedTargetType === 'team' ? team?.id ?? null : null,
         targetUserId:
-          resolvedTargetType === 'user' ? checkoutOrder?.targetUserId ?? user.id : null,
+          resolvedTargetType === 'user'
+            ? checkoutOrder?.targetUserId ?? user?.id ?? null
+            : null,
         paymentMethod: 'paypal',
         planName: checkoutOrder.planName,
         externalOrderId: orderId,
@@ -1265,28 +1453,31 @@ export async function executePayPalCheckoutReturnAction({
       };
     }
 
-    return {
-      ok: true,
-      result: {
-        status: 'completed',
-        checkoutToken: checkoutOrder?.checkoutToken ?? checkoutToken ?? null,
-        checkoutOrderId: checkoutOrder?.id ?? null,
-        redirectUrl: '/dashboard',
-        providerSessionId: checkoutOrder?.providerSessionId ?? subscriptionId,
-        providerReferenceId: checkoutOrder?.providerReferenceId ?? subscriptionId,
-        externalPaymentId: checkoutOrder?.providerReferenceId ?? subscriptionId ?? null,
-        paymentMethod: 'paypal',
-        amount: checkoutOrder?.amount ?? null,
-        currency: checkoutOrder?.currency ?? null,
-        message: 'PayPal subscription already confirmed.',
-        eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
-        metadata: {
-          alreadyCompleted: true,
-          checkoutToken: checkoutOrder?.checkoutToken ?? checkoutToken ?? null
-        }
-      },
-      checkoutOrder
-    };
+    if (!isSignupIntentCheckout) {
+      return {
+        ok: true,
+        result: {
+          status: 'completed',
+          checkoutToken: checkoutOrder?.checkoutToken ?? checkoutToken ?? null,
+          checkoutOrderId: checkoutOrder?.id ?? null,
+          redirectUrl: '/dashboard',
+          providerSessionId: checkoutOrder?.providerSessionId ?? subscriptionId,
+          providerReferenceId: checkoutOrder?.providerReferenceId ?? subscriptionId,
+          externalPaymentId:
+            checkoutOrder?.providerReferenceId ?? subscriptionId ?? null,
+          paymentMethod: 'paypal',
+          amount: checkoutOrder?.amount ?? null,
+          currency: checkoutOrder?.currency ?? null,
+          message: 'PayPal subscription already confirmed.',
+          eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
+          metadata: {
+            alreadyCompleted: true,
+            checkoutToken: checkoutOrder?.checkoutToken ?? checkoutToken ?? null
+          }
+        },
+        checkoutOrder
+      };
+    }
   }
 
   const templateId = checkoutOrder?.subscriptionTemplateId ?? Number(body.templateId);
@@ -1332,10 +1523,111 @@ export async function executePayPalCheckoutReturnAction({
       subscriptionId,
       template
     });
+    if (isSignupIntentCheckout) {
+      if (checkoutOrder && !isCompletedPayPalSubscriptionCheckout) {
+        await markCheckoutOrderCompleted({
+          checkoutOrderId: checkoutOrder.id,
+          provider: 'paypal',
+          providerReferenceId: subscriptionId
+        });
+      }
+
+      const refreshedCompletedCheckoutOrder =
+        (await refreshCheckoutOrderByToken(checkoutOrder?.checkoutToken)) ?? checkoutOrder;
+      const finalizedSignup = await finalizeSignupIntentReturnSession({
+        checkoutOrder: refreshedCompletedCheckoutOrder,
+        paymentProvider: 'paypal',
+        providerReferenceId: subscriptionId,
+        providerPlanId: subscription.planId,
+        paymentMethod: 'paypal',
+        planName: subscription.planName || template.name,
+        subscriptionStatus: subscription.subscriptionStatus,
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        source
+      });
+      const signupTargetType =
+        finalizedSignup?.signupIntent?.targetScope === 'organization'
+          ? 'team'
+          : 'user';
+      const signupTargetTeamId =
+        signupTargetType === 'team' ? finalizedSignup?.teamId ?? null : null;
+      const signupTargetUserId =
+        signupTargetType === 'user' ? finalizedSignup?.createdUser?.id ?? null : null;
+
+      if (!isCompletedPayPalSubscriptionCheckout) {
+        await recordPayPalCheckoutEvent({
+          orderType: 'subscription',
+          status: mapSubscriptionStatusToOrderStatus(subscription.subscriptionStatus),
+          logStatus: 'success',
+          eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
+          source: 'checkout',
+          teamId: signupTargetTeamId,
+          targetType: signupTargetType,
+          targetTeamId: signupTargetTeamId,
+          targetUserId: signupTargetUserId,
+          subscriptionTemplateId: template.id,
+          templateSnapshot,
+          paymentMethod: 'paypal',
+          planName: subscription.planName || template.name,
+          providerPlanId: subscription.planId,
+          externalPaymentId: subscriptionId,
+          amount: template.priceCents,
+          currency: template.currency,
+          message: 'PayPal signup subscription confirmed.',
+          metadata: {
+            planName: subscription.planName,
+            templateId: template.id,
+            checkoutOrderId: checkoutOrder?.id ?? null,
+            checkoutToken: checkoutOrder?.checkoutToken ?? null,
+            signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+          },
+          providerMetadata: {
+            subscriptionId,
+            planId: subscription.planId,
+            currentPeriodStart: subscription.currentPeriodStart,
+            currentPeriodEnd: subscription.currentPeriodEnd
+          }
+        });
+      }
+
+      const finalizedCheckoutOrder =
+        (await refreshCheckoutOrderByToken(
+          refreshedCompletedCheckoutOrder?.checkoutToken
+        )) ?? refreshedCompletedCheckoutOrder;
+
+      return {
+        ok: true,
+        result: {
+          status: 'completed',
+          checkoutToken: finalizedCheckoutOrder?.checkoutToken ?? checkoutToken ?? null,
+          checkoutOrderId: finalizedCheckoutOrder?.id ?? checkoutOrder?.id ?? null,
+          redirectUrl: '/dashboard',
+          providerSessionId: subscriptionId,
+          providerReferenceId: subscriptionId,
+          externalPaymentId: subscriptionId,
+          providerPlanId: subscription.planId,
+          paymentMethod: 'paypal',
+          amount: template.priceCents,
+          currency: template.currency,
+          message: isCompletedPayPalSubscriptionCheckout
+            ? 'PayPal signup subscription already confirmed.'
+            : 'PayPal signup subscription confirmed.',
+          eventType: CHECKOUT_SYSTEM_EVENTS.checkoutCompleted,
+          metadata: {
+            subscription,
+            payPalCurrency: await getPayPalCurrency(),
+            signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+          }
+        },
+        checkoutOrder: finalizedCheckoutOrder
+      };
+    }
+
     const activeAssignment =
       resolvedTargetType === 'team'
         ? await getActiveTeamSubscriptionAssignment(team!.id)
-        : await getActiveUserSubscriptionAssignment(user.id);
+        : await getActiveUserSubscriptionAssignment(user!.id);
     let planRelation = normalizeSubscriptionPlanRelation(
       checkoutOrder?.parsedMetadata?.subscription?.planRelation
     );
@@ -1362,7 +1654,7 @@ export async function executePayPalCheckoutReturnAction({
           targetId:
             resolvedTargetType === 'team'
               ? team!.id
-              : checkoutOrder?.targetUserId ?? user.id,
+              : checkoutOrder?.targetUserId ?? user!.id,
           currentAssignmentId: activeAssignment?.id ?? null,
           currentTemplateId: activeAssignment?.subscriptionTemplateId ?? null,
           requestedTemplateId: template.id,
@@ -1393,20 +1685,20 @@ export async function executePayPalCheckoutReturnAction({
           teamId: resolvedTargetType === 'team' ? team!.id : null,
           targetUserId:
             resolvedTargetType === 'user'
-              ? checkoutOrder?.targetUserId ?? user.id
+              ? checkoutOrder?.targetUserId ?? user!.id
               : null,
           templateId: template.id,
           changeMode,
           effectiveAt: changeRequest.effectiveAt?.toISOString() ?? null
         },
         {
-          actorUserId: user.id,
-          actorEmail: user.email,
-          actorRole: user.role,
+          actorUserId: user!.id,
+          actorEmail: user!.email,
+          actorRole: user!.role,
           teamId: resolvedTargetType === 'team' ? team!.id : null,
           targetUserId:
             resolvedTargetType === 'user'
-              ? checkoutOrder?.targetUserId ?? user.id
+              ? checkoutOrder?.targetUserId ?? user!.id
               : null,
           source
         }
@@ -1423,7 +1715,7 @@ export async function executePayPalCheckoutReturnAction({
       targetType: resolvedTargetType,
       targetTeamId: resolvedTargetType === 'team' ? team!.id : null,
       targetUserId:
-        resolvedTargetType === 'user' ? checkoutOrder?.targetUserId ?? user.id : null,
+        resolvedTargetType === 'user' ? checkoutOrder?.targetUserId ?? user!.id : null,
       subscriptionTemplateId: template.id,
       templateSnapshot,
       paymentMethod: 'paypal',
@@ -1494,7 +1786,7 @@ export async function executePayPalCheckoutReturnAction({
       targetType: resolvedTargetType,
       targetTeamId: resolvedTargetType === 'team' ? team?.id ?? null : null,
       targetUserId:
-        resolvedTargetType === 'user' ? checkoutOrder?.targetUserId ?? user.id : null,
+        resolvedTargetType === 'user' ? checkoutOrder?.targetUserId ?? user?.id ?? null : null,
       subscriptionTemplateId: template.id,
       templateSnapshot: createCheckoutTemplateSnapshot(template),
       paymentMethod: 'paypal',

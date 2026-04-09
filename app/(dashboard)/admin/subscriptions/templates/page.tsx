@@ -5,6 +5,13 @@ import {
   AdminPageShell
 } from '../../admin-page-shell';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { ThemeCodeTemplate } from '@/components/theme/theme-code-template';
 import {
   getAllSubscriptionTemplatesForAdmin
@@ -24,14 +31,39 @@ import {
   getAdminSubscriptionIntervalLabels,
   getAdminSubscriptionScopeLabels
 } from '../i18n';
+import { isReservedBaselineSubscriptionTemplateId } from '@/lib/payments/subscription-default-templates';
+import {
+  AdminBaselineTemplatesDataTable,
+  type AdminBaselineTemplateRow
+} from './baseline-templates-data-table';
 
 export default async function AdminSubscriptionTemplatesPage() {
   const t = await getServerTranslator({ area: 'admin' });
   await requireAdminAccess();
-  const templates = await getAllSubscriptionTemplatesForAdmin();
+  const allTemplates = await getAllSubscriptionTemplatesForAdmin({
+    includeReserved: true
+  });
+  const templates = allTemplates.filter(
+    (template) => !isReservedBaselineSubscriptionTemplateId(template.id)
+  );
+  const baselineTemplates = allTemplates.filter((template) =>
+    isReservedBaselineSubscriptionTemplateId(template.id)
+  );
   const themeSelection = await getThemeSelectionForArea('admin');
   const scopeLabels = getAdminSubscriptionScopeLabels(t);
   const intervalLabels = getAdminSubscriptionIntervalLabels(t);
+  const baselineTemplateRows: AdminBaselineTemplateRow[] =
+    baselineTemplates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      scope:
+        template.targetScope === 'organization' ? 'organization' : 'user',
+      scopeLabel:
+        scopeLabels[template.targetScope as keyof typeof scopeLabels] ||
+        template.targetScope,
+      policyLabel: t('Internal baseline • draft only'),
+      editHref: `/admin/subscriptions/templates/${template.id}/edit`
+    }));
   const resolveTableCellSlot = ({
     slot,
     data,
@@ -111,7 +143,7 @@ export default async function AdminSubscriptionTemplatesPage() {
     <AdminPageShell
       title={t('Subscription Templates')}
       description={t(
-        'Create and manage reusable templates for pricing and billing operations.'
+        'Manage the commercial template catalog used by pricing, manual orders, and self-service checkout.'
       )}
       actions={
         <Button asChild size="sm" className="rounded-lg">
@@ -124,7 +156,7 @@ export default async function AdminSubscriptionTemplatesPage() {
     >
       {templates.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          {t('No templates created yet.')}
+          {t('No commercial templates created yet.')}
         </p>
       ) : (
         <TemplateTable area="admin" route="/admin/subscriptions/templates">
@@ -310,6 +342,45 @@ export default async function AdminSubscriptionTemplatesPage() {
           </TableBody>
         </TemplateTable>
       )}
+      {baselineTemplates.length > 0 ? (
+        <Card className="border-dashed border-border/70 bg-muted/10">
+          <CardHeader className="gap-2">
+            <CardTitle className="text-base">{t('System baseline')}</CardTitle>
+            <CardDescription>
+              {t(
+                'Reserved internal templates used for fallback and recovery access. They stay draft-only and are kept separate from the commercial catalog.'
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <AdminBaselineTemplatesDataTable
+              data={baselineTemplateRows}
+              copy={{
+                headers: {
+                  name: t('Name'),
+                  scope: t('Scope'),
+                  policy: t('Policy'),
+                  actions: t('Actions')
+                },
+                edit: t('Edit'),
+                noResults: t('No baseline templates found.'),
+                dataTable: {
+                  filterPlaceholder: t('Filter...'),
+                  columns: t('Columns'),
+                  noResults: t('No results.'),
+                  showingRows: t('Showing {shown} of {filtered} row(s).'),
+                  previous: t('Previous'),
+                  next: t('Next')
+                }
+              }}
+              tableTemplate={{
+                componentId: 'ui.table',
+                area: 'admin'
+              }}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
     </AdminPageShell>
   );
 
@@ -324,7 +395,7 @@ export default async function AdminSubscriptionTemplatesPage() {
       data={{
         title: t('Subscription Templates'),
         description: t(
-          'Create and manage reusable templates for pricing and billing operations.'
+          'Manage the commercial template catalog used by pricing, manual orders, and self-service checkout.'
         )
       }}
       fallback={fallbackPage}

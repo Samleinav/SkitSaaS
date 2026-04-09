@@ -235,6 +235,13 @@ function createEmptyRepeaterRow(field: BuildFormRepeaterFieldDefinition): BuildF
   return row;
 }
 
+function isRepeaterSubFieldLocked(
+  row: BuildFormRepeaterRow,
+  fieldName: string
+) {
+  return row.lockedFields?.includes(fieldName) === true;
+}
+
 function RepeaterField({
   field,
   definition,
@@ -314,6 +321,7 @@ function RepeaterField({
                 <input type="hidden" name={field.name} value={row.id} />
                 {field.subFields.map((sub) => {
                   const subValue = row[sub.name] ?? '';
+                  const isLocked = isRepeaterSubFieldLocked(row, sub.name);
                   const isDisabled =
                     sub.disableWhen !== undefined
                       ? String(row[sub.disableWhen.field]) ===
@@ -324,6 +332,13 @@ function RepeaterField({
                   if (sub.kind === 'checkbox') {
                     return (
                       <td key={sub.name} className="px-3 py-2 text-center">
+                        {isLocked ? (
+                          <input
+                            type="hidden"
+                            name={inputName}
+                            value={Boolean(subValue) ? (sub.checkedValue ?? 'on') : ''}
+                          />
+                        ) : null}
                         <input
                           type="checkbox"
                           name={inputName}
@@ -331,7 +346,7 @@ function RepeaterField({
                           onChange={(e) =>
                             updateRow(row.id, sub.name, e.target.checked)
                           }
-                          disabled={isDisabled}
+                          disabled={isDisabled || isLocked}
                           className="h-4 w-4 accent-primary"
                         />
                       </td>
@@ -344,14 +359,25 @@ function RepeaterField({
                       : (sub.options ?? []);
                     return (
                       <td key={sub.name} className="px-3 py-2">
+                        {isLocked ? (
+                          <input
+                            type="hidden"
+                            name={inputName}
+                            value={String(subValue)}
+                          />
+                        ) : null}
                         <select
                           name={inputName}
                           value={String(subValue)}
                           onChange={(e) =>
                             updateRow(row.id, sub.name, e.target.value)
                           }
-                          disabled={isDisabled}
-                          className={cn(BASE_SELECT_CLASS_NAME, 'min-w-[120px]')}
+                          disabled={isDisabled || isLocked}
+                          className={cn(
+                            BASE_SELECT_CLASS_NAME,
+                            'min-w-[120px]',
+                            isLocked && 'bg-muted/40 text-muted-foreground'
+                          )}
                         >
                           {opts.map((opt) => (
                             <option
@@ -379,10 +405,15 @@ function RepeaterField({
                         max={sub.kind === 'number' ? sub.max : undefined}
                         step={sub.kind === 'number' ? sub.step : undefined}
                         disabled={isDisabled}
+                        readOnly={isLocked}
                         onChange={(e) =>
                           updateRow(row.id, sub.name, e.target.value)
                         }
-                        className={cn(templatePayload?.inputClassName, 'min-w-[100px]')}
+                        className={cn(
+                          templatePayload?.inputClassName,
+                          'min-w-[100px]',
+                          isLocked && 'bg-muted/40 text-muted-foreground'
+                        )}
                       />
                     </td>
                   );

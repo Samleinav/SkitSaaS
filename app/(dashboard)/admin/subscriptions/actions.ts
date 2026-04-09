@@ -40,9 +40,11 @@ import {
 } from '@/lib/payments/checkout-system';
 import { isSubscriptionMutationBlocked } from '@/lib/payments/subscription-single-writer';
 import {
-  FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
-  FREE_USER_SUBSCRIPTION_TEMPLATE_ID,
-  getReservedFreeTemplateRequiredFeatures,
+  BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
+  BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID,
+  getReservedBaselineTemplateRequiredFeatures,
+  isReservedBaselineSubscriptionTemplateId,
+  isReservedBaselineSubscriptionTemplatePublicationLocked,
   normalizeSubscriptionTemplatePublicationStatus
 } from '@/lib/payments/subscription-default-templates';
 import {
@@ -167,11 +169,11 @@ function normalizeSource(input: string, fallback: string) {
 }
 
 function getReservedTemplateScope(templateId: number) {
-  if (templateId === FREE_USER_SUBSCRIPTION_TEMPLATE_ID) {
+  if (templateId === BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID) {
     return 'user' as const;
   }
 
-  if (templateId === FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID) {
+  if (templateId === BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID) {
     return 'organization' as const;
   }
 
@@ -225,7 +227,7 @@ function mapRequiredTemplateFeatures(
   templateId: number | null | undefined
 ) {
   return new Map<string, TemplateFeatureSeed>(
-    getReservedFreeTemplateRequiredFeatures(templateId).map((feature) => [
+    getReservedBaselineTemplateRequiredFeatures(templateId).map((feature) => [
       feature.key,
       {
         key: feature.key,
@@ -558,6 +560,12 @@ export const updateSubscriptionTemplateAction = adminAction(
       return false;
     }
 
+    const resolvedTargetScope = reservedTemplateScope ?? targetScope;
+    const resolvedPublicationStatus =
+      isReservedBaselineSubscriptionTemplatePublicationLocked(currentTemplate.id)
+        ? 'draft'
+        : publicationStatus;
+
     if (
       compareAtPriceRaw &&
       (compareAtPriceCents === null || compareAtPriceCents <= priceCents)
@@ -565,7 +573,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       return false;
     }
 
-    const parsedFeatures = parseTemplateFeatures(formData, targetScope, {
+    const parsedFeatures = parseTemplateFeatures(formData, resolvedTargetScope, {
       preservedFeaturesByKey: mapTemplateFeaturesByKey(currentTemplate.features),
       requiredFeaturesByKey: mapRequiredTemplateFeatures(templateId)
     });
@@ -579,8 +587,8 @@ export const updateSubscriptionTemplateAction = adminAction(
       .update(subscriptionTemplates)
       .set({
         name,
-        targetScope,
-        publicationStatus,
+        targetScope: resolvedTargetScope,
+        publicationStatus: resolvedPublicationStatus,
         categoryKey,
         hierarchyRank,
         billingInterval,
@@ -618,8 +626,8 @@ export const updateSubscriptionTemplateAction = adminAction(
     const updatedTemplate = {
       ...currentTemplate,
       name,
-      targetScope,
-      publicationStatus,
+      targetScope: resolvedTargetScope,
+      publicationStatus: resolvedPublicationStatus,
       categoryKey,
       hierarchyRank,
       billingInterval,
@@ -676,7 +684,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       {
         templateId,
         name,
-        targetScope,
+        targetScope: resolvedTargetScope,
         billingInterval,
         priceCents,
         currency
@@ -774,11 +782,11 @@ export const deleteSubscriptionTemplateAction = adminValidatedAction(
     }
 
     if (
-      templateId === FREE_USER_SUBSCRIPTION_TEMPLATE_ID ||
-      templateId === FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
+      templateId === BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID ||
+      templateId === BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
     ) {
       return invalid({
-        templateId: ['Reserved free templates cannot be deleted.']
+        templateId: ['Reserved baseline templates cannot be deleted.']
       });
     }
 

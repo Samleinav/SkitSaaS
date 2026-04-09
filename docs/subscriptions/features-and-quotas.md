@@ -108,21 +108,23 @@ const maxMembers = orgFeatures.int(
 Current subscription state comes from `subscription_assignments`. The controller helpers resolve the active
 assignment (user or team) and then apply the template features for that scope.
 
-Reserved core free templates:
+Reserved system baseline templates:
 
-- `subscription_templates.id = 1` -> free `user`
-- `subscription_templates.id = 2` -> free `organization`
+- `subscription_templates.id = 1` -> baseline `user`
+- `subscription_templates.id = 2` -> baseline `organization`
 
 New authenticated users and new teams are provisioned with those templates by
 default. As an operational safety net, host feature controllers and the SDK
-quota adapter also fall back to the reserved free template for the current
+quota adapter also fall back to the reserved baseline template for the current
 scope when an authenticated entity is missing an active assignment.
 
-For the reserved free templates, the managed core quota rows are treated as
+For the reserved baseline templates, the managed core quota rows are treated as
 required baseline data. Admin can edit their values, but those rows are not
 meant to disappear from templates `1` and `2`. The admin template editor now
 hides the repeater remove control for those protected rows instead of letting
-operators attempt an invalid delete.
+operators attempt an invalid delete. For those protected rows, the feature key
+and value type also stay locked in the UI; only label/value/public-facing fields
+remain editable.
 
 ## Publication status and pricing visibility
 
@@ -131,8 +133,22 @@ operators attempt an invalid delete.
 - `draft` -> editable in Admin, hidden from `/pricing` and self-service checkout
 - `published` -> eligible for `/pricing` and self-service checkout
 
-The reserved free templates are initialized as `draft` so they define the
-baseline feature set without automatically appearing on the public pricing page.
+Signup-default behavior uses the same publication rules:
+
+- published zero-cost templates can be assigned directly during password sign-up
+- published paid templates can also be used as signup defaults, but they are staged through `signup_intents` and checkout before the real account is created
+
+The reserved baseline templates are initialized as `draft`, kept out of the
+normal commercial catalog, and blocked from self-service checkout even if an
+operator later tries to treat them like public plans.
+
+Optional public free plans are a separate concern from the reserved baseline
+templates. If a SaaS wants a public free tier, that tier should be implemented
+with its own published zero-cost template, while templates `1` and `2` remain
+internal baseline safety nets. Lifecycle fallback can now be configured to land
+on one of those public free templates, but authenticated feature-controller
+fallback still treats the reserved baseline templates as the internal default
+when an active assignment is missing.
 
 ## Module Access via SDK
 

@@ -9,7 +9,7 @@ import {
   getTeamById,
   getTeamForUser,
   getUser,
-  getSubscriptionTemplateById
+  getSelfServiceSubscriptionTemplateById
 } from '@/lib/db/queries';
 import { recordPayPalCheckoutEvent } from './checkout-system';
 import {
@@ -18,6 +18,7 @@ import {
   isCheckoutOrderPayable
 } from './checkout-orders';
 import { startCheckoutPaymentByMethod } from './payment-methods';
+import { getSignupIntentCheckoutAccessByToken } from './signup-intents';
 import { isSubscriptionTemplateScopeCompatible } from './subscription-scope';
 import { supportsSelfServiceSubscriptionTemplateScope } from './subscription-scope';
 
@@ -70,7 +71,7 @@ async function startCheckoutPaymentFromAction({
     id: number;
     email: string;
     role: string;
-  };
+  } | null;
   paymentMethodIdOverride?: string | null;
 }) {
   const checkoutTokenValue = formData.get('checkoutToken');
@@ -86,15 +87,24 @@ async function startCheckoutPaymentFromAction({
     redirect(`/checkout/${encodeURIComponent(checkoutToken)}`);
   }
 
-  const checkoutAccess = await getCheckoutOrderByTokenForUser({
-    checkoutToken,
-    userId: user.id
-  });
-  if (!checkoutAccess) {
+  const checkoutAccess = user
+    ? await getCheckoutOrderByTokenForUser({
+        checkoutToken,
+        userId: user.id
+      })
+    : null;
+  const signupIntentAccess =
+    !checkoutAccess ? await getSignupIntentCheckoutAccessByToken(checkoutToken) : null;
+  if (!checkoutAccess && !signupIntentAccess) {
+    if (!user) {
+      redirect('/login');
+    }
+
     redirect(`/checkout/${encodeURIComponent(checkoutToken)}`);
   }
 
-  const checkoutOrder = checkoutAccess.checkoutOrder;
+  const checkoutOrder =
+    checkoutAccess?.checkoutOrder ?? signupIntentAccess?.checkoutOrder ?? null;
   if (!checkoutOrder || !isCheckoutOrderPayable(checkoutOrder)) {
     redirect(`/checkout/${encodeURIComponent(checkoutToken)}`);
   }
@@ -107,6 +117,10 @@ async function startCheckoutPaymentFromAction({
   } | null = null;
 
   if (checkoutOrder.targetType === 'team') {
+    if (!checkoutAccess) {
+      redirect(`/checkout/${encodeURIComponent(checkoutToken)}`);
+    }
+
     if (checkoutAccess.teamRole !== 'owner') {
       redirect('/dashboard');
     }
@@ -143,11 +157,13 @@ async function startCheckoutPaymentFromAction({
     paymentMethodId,
     checkoutOrder,
     request,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    },
+    user: user
+      ? {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
+      : null,
     team: teamContext
   });
 
@@ -173,9 +189,7 @@ export async function checkoutAction(formData: FormData) {
     redirect('/pricing');
   }
 
-  const template = await getSubscriptionTemplateById(templateId, {
-    publicationStatus: 'published'
-  });
+  const template = await getSelfServiceSubscriptionTemplateById(templateId);
   if (!template) {
     redirect('/pricing');
   }
@@ -240,17 +254,15 @@ export async function checkoutAction(formData: FormData) {
 
 export async function checkoutWithPaymentMethodAction(formData: FormData) {
   const user = await getUser();
-  if (!user) {
-    redirect('/login');
-  }
-
   await startCheckoutPaymentFromAction({
     formData,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    }
+    user: user
+      ? {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
+      : null
   });
 }
 

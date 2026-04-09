@@ -11,6 +11,7 @@ import {
   isCheckoutOrderPayable,
   listCheckoutOrderLineItems,
   markCheckoutOrderCanceled,
+  resolveCheckoutOrderEffectiveTargetType,
   resolveCheckoutOrderRestartPath
 } from '@/lib/payments/checkout-orders';
 import { getRequestLocale, getServerTranslator } from '@/lib/i18n/server';
@@ -30,6 +31,7 @@ import {
   supportsCheckoutPaymentMethodOrderType
 } from '@/lib/payments/payment-methods';
 import { createMarketingPricingCopy } from '../../pricing/i18n';
+import { getSignupIntentCheckoutAccessByToken } from '@/lib/payments/signup-intents';
 
 function interpolate(template: string, vars: Record<string, string | number>) {
   return Object.entries(vars).reduce(
@@ -114,32 +116,41 @@ export default async function CheckoutPage({
   const { pricing } = createMarketingPricingCopy(t);
   const dateLocale = getDateLocale(locale);
 
-  const user = await getUser();
-  if (!user) {
-    redirect('/login');
-  }
-
   const resolvedParams = await params;
   const checkoutToken = resolvedParams.checkoutToken?.trim();
   if (!checkoutToken) {
     notFound();
   }
 
-  const checkoutAccess = await getCheckoutOrderByTokenForUser({
-    checkoutToken,
-    userId: user.id
-  });
-  if (!checkoutAccess) {
+  const user = await getUser();
+  const checkoutAccess = user
+    ? await getCheckoutOrderByTokenForUser({
+        checkoutToken,
+        userId: user.id
+      })
+    : null;
+  const signupIntentAccess =
+    !checkoutAccess ? await getSignupIntentCheckoutAccessByToken(checkoutToken) : null;
+  if (!checkoutAccess && !signupIntentAccess) {
+    if (!user) {
+      redirect('/login');
+    }
+
     notFound();
   }
   if (
-    checkoutAccess.checkoutOrder.targetType === 'team' &&
+    checkoutAccess?.checkoutOrder.targetType === 'team' &&
     checkoutAccess.teamRole !== 'owner'
   ) {
     redirect('/dashboard');
   }
 
-  let checkoutOrder = checkoutAccess.checkoutOrder;
+  let checkoutOrder =
+    checkoutAccess?.checkoutOrder ?? signupIntentAccess?.checkoutOrder ?? null;
+  if (!checkoutOrder) {
+    notFound();
+  }
+  const effectiveTargetType = resolveCheckoutOrderEffectiveTargetType(checkoutOrder);
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const statusParam = Array.isArray(resolvedSearchParams?.status)
     ? resolvedSearchParams.status[0]
@@ -208,8 +219,12 @@ export default async function CheckoutPage({
     }
 
     if (
-      !supportsCheckoutPaymentMethodTargetType(method, checkoutOrder.targetType)
+      !supportsCheckoutPaymentMethodTargetType(method, effectiveTargetType)
     ) {
+      return false;
+    }
+
+    if (signupIntentAccess && method.ownerType !== 'core') {
       return false;
     }
 
@@ -368,8 +383,9 @@ export default async function CheckoutPage({
               <PayPalCheckoutButton
                 clientId={payPalClientId}
                 checkoutToken={checkoutOrder.checkoutToken}
-                orderType="one_time"
+                orderType={checkoutOrder.orderType as 'subscription' | 'one_time'}
                 currency={payPalCurrency}
+                allowGuestCheckout={Boolean(signupIntentAccess)}
               />
             </div>
           )

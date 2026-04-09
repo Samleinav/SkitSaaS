@@ -65,6 +65,18 @@ Important distinction:
 - `payment_logs`
   raw provider event audit
 
+### Signup Intent Finalizer
+
+Main file:
+
+- `lib/payments/signup-intents.ts`
+
+Purpose:
+
+- persist `signup_intents` for paid public signup before a real account exists
+- link that intent to a targetless subscription checkout order
+- finalize the real `user` / `team` only after return or webhook convergence
+
 ### Provider Adapters
 
 Main file:
@@ -102,9 +114,21 @@ Current default mental model:
 - `received`
   activate target subscription
 - `failed`
-  close the paid assignment and restore the reserved free template for that scope
+  close the paid assignment and move the target to the configured fallback for that scope
 - `canceled`
-  close the paid assignment and restore the reserved free template for that scope
+  close the paid assignment and move the target to the configured fallback for that scope
+
+Fallback policy:
+
+- `baseline`
+  reserved baseline template per scope
+- `public_free`
+  configured published zero-cost template per scope, otherwise baseline
+
+Important boundary:
+
+- failed or canceled `signup_intent` checkouts do not create fallback accounts
+- fallback modes apply only after a real target assignment exists
 
 The lifecycle layer is what turns order state into subscription state. Do not
 copy that logic into every provider or admin action.
@@ -143,6 +167,11 @@ Supported targets:
 
 - `team`
 - `user`
+
+Signup-intent note:
+
+- paid public signup orders can temporarily have no concrete target ids
+- effective scope is derived from the signup-intent metadata until finalization
 
 This is why order target columns and metadata must stay consistent.
 
@@ -192,10 +221,16 @@ Safe mental model:
 
 1. lifecycle executor sees `failed` or `canceled`
 2. active paid assignment is closed for the target
-3. a reserved free template is activated immediately after:
-   - `id=1` for `user`
-   - `id=2` for `organization`
+3. the configured fallback template is activated immediately after:
+   - `baseline` mode -> `id=1` for `user`, `id=2` for `organization`
+   - `public_free` mode -> configured published zero-cost template for that scope, otherwise baseline
 4. feature/quota reads continue from an explicit template instead of `null`
+
+For paid public signup:
+
+1. sign-up stores a `signup_intent` plus checkout order instead of creating a user/team immediately
+2. provider return or webhook finalizes the intent after successful payment
+3. only then are the real user/team and purchased assignment created
 
 ## Dashboard And Admin Surfaces
 

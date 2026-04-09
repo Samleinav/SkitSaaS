@@ -39,6 +39,7 @@ import {
 import {
   FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
   FREE_USER_SUBSCRIPTION_TEMPLATE_ID,
+  isSubscriptionTemplateSelfServiceEligible,
   type SubscriptionTemplatePublicationStatus
 } from '@/lib/payments/subscription-default-templates';
 import { areTeamsEnabled } from '@/lib/organizations/config';
@@ -853,6 +854,18 @@ export async function getSubscriptionTemplateById(
   return result.length > 0 ? result[0] : null;
 }
 
+export async function getSelfServiceSubscriptionTemplateById(templateId: number) {
+  const template = await getSubscriptionTemplateById(templateId, {
+    publicationStatus: 'published'
+  });
+
+  if (!template || !isSubscriptionTemplateSelfServiceEligible(template)) {
+    return null;
+  }
+
+  return template;
+}
+
 function mapSubscriptionTemplateFeatures(
   features: Array<typeof subscriptionTemplateFeatures.$inferSelect>,
   templateId: number
@@ -989,7 +1002,11 @@ export async function getAllSubscriptionTemplatesForPricing() {
     .from(subscriptionTemplates)
     .where(eq(subscriptionTemplates.publicationStatus, 'published'));
 
-  if (templates.length === 0) {
+  const visibleTemplates = templates.filter((template) =>
+    isSubscriptionTemplateSelfServiceEligible(template)
+  );
+
+  if (visibleTemplates.length === 0) {
     return [];
   }
 
@@ -999,12 +1016,12 @@ export async function getAllSubscriptionTemplatesForPricing() {
     .where(
       inArray(
         subscriptionTemplateFeatures.templateId,
-        templates.map((template) => template.id)
+        visibleTemplates.map((template) => template.id)
       )
     )
     .orderBy(desc(subscriptionTemplateFeatures.createdAt));
 
-  return templates
+  return visibleTemplates
     .map((template) => ({
       ...template,
       features: mapSubscriptionTemplateFeatures(features, template.id)

@@ -351,6 +351,57 @@ export const checkoutOrders = pgTable(
   })
 );
 
+export const signupIntents = pgTable(
+  'signup_intents',
+  {
+    id: serial('id').primaryKey(),
+    email: varchar('email', { length: 255 }).notNull(),
+    passwordHash: text('password_hash').notNull(),
+    status: varchar('status', { length: 30 }).notNull().default('pending'),
+    targetScope: varchar('target_scope', { length: 20 }).notNull(),
+    subscriptionTemplateId: integer('subscription_template_id')
+      .notNull()
+      .references(() => subscriptionTemplates.id),
+    checkoutOrderId: integer('checkout_order_id').references(() => checkoutOrders.id),
+    createdUserId: integer('created_user_id').references(() => users.id),
+    createdTeamId: integer('created_team_id').references(() => teams.id),
+    finalizedAt: timestamp('finalized_at'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    emailStatusIndex: index('signup_intents_email_status_idx').on(
+      table.email,
+      table.status
+    ),
+    checkoutOrderUnique: uniqueIndex('signup_intents_checkout_order_id_idx')
+      .on(table.checkoutOrderId)
+      .where(sql`${table.checkoutOrderId} is not null`),
+    createdUserIndex: index('signup_intents_created_user_id_idx').on(
+      table.createdUserId
+    ),
+    createdTeamIndex: index('signup_intents_created_team_id_idx').on(
+      table.createdTeamId
+    ),
+    templateIndex: index('signup_intents_template_id_idx').on(
+      table.subscriptionTemplateId
+    ),
+    statusExpiresAtIndex: index('signup_intents_status_expires_idx').on(
+      table.status,
+      table.expiresAt
+    ),
+    statusCheck: check(
+      'signup_intents_status_chk',
+      sql`${table.status} in ('pending', 'completed', 'failed', 'expired', 'canceled')`
+    ),
+    targetScopeCheck: check(
+      'signup_intents_target_scope_chk',
+      sql`${table.targetScope} in ('user', 'organization')`
+    ),
+  })
+);
+
 export const checkoutOrderItems = pgTable(
   'checkout_order_items',
   {

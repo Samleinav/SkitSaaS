@@ -504,6 +504,10 @@ composeRegisteredBuildFormDefinition('my-form', baseForm, {
     featureRowId: template.features.map((f) => ({
       id: String(f.id),
       removable: f.key !== 'dashboard.team.members.max',
+      lockedFields:
+        f.key === 'dashboard.team.members.max'
+          ? ['featureKey', 'featureValueType']
+          : undefined,
       featureKey: f.key,
       featureValueType: f.valueType,
       featureIsPublic: f.isPublic
@@ -514,7 +518,12 @@ composeRegisteredBuildFormDefinition('my-form', baseForm, {
 
 Set `removable: false` on preloaded rows that must remain visible and editable but
 should not expose a remove control. This is the pattern used by the reserved
-free subscription templates for their baseline managed feature rows.
+baseline subscription templates for their baseline managed feature rows.
+
+Set `lockedFields: [...]` when only specific sub-fields in a preloaded row must
+stay immutable. Locked repeater fields remain part of the submit payload, so
+the server still receives the preserved value even though the operator cannot
+edit that control in the UI.
 
 Helper: `withBuildFormRepeaterRows(definition, repeaterRows)` for manual composition.
 

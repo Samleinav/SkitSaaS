@@ -188,6 +188,9 @@ function createEmptyRepeaterRow(field) {
     }
     return row;
 }
+function isRepeaterSubFieldLocked(row, fieldName) {
+    return row.lockedFields?.includes(fieldName) === true;
+}
 function RepeaterField({ field, definition, columns, }) {
     const initialRows = React.useMemo(() => {
         const rows = definition.repeaterRows?.[field.name];
@@ -215,20 +218,21 @@ function RepeaterField({ field, definition, columns, }) {
     }
     return (_jsxs("div", { className: cx('space-y-3', field.className ?? undefined, colSpanCls), children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [field.label ? (_jsx("p", { className: "text-sm font-medium text-foreground", children: field.label })) : null, _jsx("button", { type: "button", onClick: addRow, className: "inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent", children: field.addLabel ?? 'Add row' })] }), field.description ? (_jsx("p", { className: descClass, children: field.description })) : null, _jsx("div", { className: "overflow-x-auto rounded-md border border-border/70", children: _jsxs("table", { className: "w-full text-sm", children: [_jsx("thead", { className: "bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground", children: _jsxs("tr", { children: [field.subFields.map((sub) => (_jsx("th", { className: "px-3 py-2 text-left", children: sub.label ?? sub.name }, sub.name))), _jsx("th", { className: "px-3 py-2 text-right" })] }) }), _jsx("tbody", { children: rows.map((row) => (_jsxs("tr", { className: "border-t border-border/70", children: [_jsx("input", { type: "hidden", name: field.name, value: row.id }), field.subFields.map((sub) => {
                                         const subValue = row[sub.name] ?? '';
+                                        const isLocked = isRepeaterSubFieldLocked(row, sub.name);
                                         const isDisabled = sub.disableWhen !== undefined
                                             ? String(row[sub.disableWhen.field]) === String(sub.disableWhen.equals)
                                             : false;
                                         const inputName = `${sub.name}_${row.id}`;
                                         if (sub.kind === 'checkbox') {
-                                            return (_jsx("td", { className: "px-3 py-2 text-center", children: _jsx("input", { type: "checkbox", name: inputName, checked: Boolean(subValue), onChange: (e) => updateRow(row.id, sub.name, e.target.checked), disabled: isDisabled, className: "h-4 w-4 accent-primary" }) }, sub.name));
+                                            return (_jsxs("td", { className: "px-3 py-2 text-center", children: [isLocked ? (_jsx("input", { type: "hidden", name: inputName, value: Boolean(subValue) ? (sub.checkedValue ?? 'on') : '' })) : null, _jsx("input", { type: "checkbox", name: inputName, checked: Boolean(subValue), onChange: (e) => updateRow(row.id, sub.name, e.target.checked), disabled: isDisabled || isLocked, className: "h-4 w-4 accent-primary" })] }, sub.name));
                                         }
                                         if (sub.kind === 'select') {
                                             const opts = sub.optionsKey
                                                 ? (definition.dynamicOptions?.[sub.optionsKey] ?? [])
                                                 : (sub.options ?? []);
-                                            return (_jsx("td", { className: "px-3 py-2", children: _jsx("select", { name: inputName, value: String(subValue), onChange: (e) => updateRow(row.id, sub.name, e.target.value), disabled: isDisabled, className: cx(selectClass, 'min-w-[120px]'), children: opts.map((opt) => (_jsx("option", { value: String(opt.value), disabled: opt.disabled, children: opt.label }, String(opt.value)))) }) }, sub.name));
+                                            return (_jsxs("td", { className: "px-3 py-2", children: [isLocked ? (_jsx("input", { type: "hidden", name: inputName, value: String(subValue) })) : null, _jsx("select", { name: inputName, value: String(subValue), onChange: (e) => updateRow(row.id, sub.name, e.target.value), disabled: isDisabled || isLocked, className: cx(selectClass, 'min-w-[120px]', isLocked ? 'bg-muted/40 text-muted-foreground' : undefined), children: opts.map((opt) => (_jsx("option", { value: String(opt.value), disabled: opt.disabled, children: opt.label }, String(opt.value)))) })] }, sub.name));
                                         }
-                                        return (_jsx("td", { className: "px-3 py-2", children: _jsx("input", { type: sub.kind === 'number' ? 'number' : 'text', name: inputName, value: String(subValue), placeholder: sub.placeholder, maxLength: sub.maxLength, min: sub.kind === 'number' ? sub.min : undefined, max: sub.kind === 'number' ? sub.max : undefined, step: sub.kind === 'number' ? sub.step : undefined, disabled: isDisabled, onChange: (e) => updateRow(row.id, sub.name, e.target.value), className: cx(inputClass, 'min-w-[100px]') }) }, sub.name));
+                                        return (_jsx("td", { className: "px-3 py-2", children: _jsx("input", { type: sub.kind === 'number' ? 'number' : 'text', name: inputName, value: String(subValue), placeholder: sub.placeholder, maxLength: sub.maxLength, min: sub.kind === 'number' ? sub.min : undefined, max: sub.kind === 'number' ? sub.max : undefined, step: sub.kind === 'number' ? sub.step : undefined, disabled: isDisabled, readOnly: isLocked, onChange: (e) => updateRow(row.id, sub.name, e.target.value), className: cx(inputClass, 'min-w-[100px]', isLocked ? 'bg-muted/40 text-muted-foreground' : undefined) }) }, sub.name));
                                     }), _jsx("td", { className: "px-3 py-2 text-right", children: row.removable === false ? null : (_jsx("button", { type: "button", disabled: rows.length <= minRows, onClick: () => removeRow(row.id), className: "inline-flex h-7 items-center justify-center rounded-md px-2 text-sm text-muted-foreground hover:bg-accent disabled:pointer-events-none disabled:opacity-40", children: field.removeLabel ?? 'Remove' })) })] }, row.id))) })] }) })] }));
 }
 function Field({ definition, field, formId, columns, errorMessage }) {

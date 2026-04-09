@@ -1,7 +1,9 @@
 import Stripe from 'stripe';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
+import { getSubscriptionTemplateById } from '@/lib/db/queries';
 import {
+  createCheckoutTemplateSnapshot,
   recordPayPalCheckoutEvent,
   recordStripeCheckoutEvent
 } from '@/lib/payments/checkout-system';
@@ -10,6 +12,7 @@ import { createPaymentLog } from '@/lib/payments/logs';
 import { mapSubscriptionStatusToOrderStatus } from '@/lib/payments/orders';
 import {
   buildPayPalCheckoutTargetCustomId,
+  confirmPayPalSubscriptionForTeam,
   getPayPalAccessToken,
   getPayPalApiBaseUrl,
   handlePayPalWebhookEvent,
@@ -20,6 +23,7 @@ import {
 import {
   getCheckoutOrderByProviderSession,
   getCheckoutOrderByToken,
+  isCheckoutOrderSignupIntent,
   markCheckoutOrderCompleted,
   markCheckoutOrderFailed,
   markCheckoutOrderProviderPending,
@@ -29,6 +33,11 @@ import {
   getStripeClient,
   handleSubscriptionChange
 } from '@/lib/payments/stripe';
+import {
+  finalizeSignupIntentCheckout,
+  getSignupIntentCheckoutAccessByToken,
+  parsePayPalSignupIntentCustomId
+} from '@/lib/payments/signup-intents';
 import type { ModulePaymentMethodActionResult } from './payment-methods';
 
 type CoreCheckoutWebhookActionSuccess = {
@@ -291,27 +300,180 @@ export async function executeStripeCheckoutWebhookAction({
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== 'payment') {
-          return buildWebhookActionSuccess({
-            paymentMethod: 'stripe',
-            checkoutOrder,
-            checkoutToken: fallbackCheckoutToken,
-            status: 'ignored',
-            eventType: event.type,
-            externalOrderId: event.id,
-            message: 'Stripe checkout session event ignored.',
-            metadata: {
-              received: true,
-              handled: false
-            }
-          });
-        }
-
         const checkoutToken =
           normalizeCheckoutToken(session.metadata?.checkout_token) ||
           normalizeCheckoutToken(fallbackCheckoutToken);
         checkoutOrder =
           (await refreshCheckoutOrderByToken(checkoutToken)) ?? checkoutOrder;
+
+        if (session.mode !== 'payment') {
+          if (!checkoutOrder || !isCheckoutOrderSignupIntent(checkoutOrder)) {
+            return buildWebhookActionSuccess({
+              paymentMethod: 'stripe',
+              checkoutOrder,
+              checkoutToken: fallbackCheckoutToken,
+              status: 'ignored',
+              eventType: event.type,
+              externalOrderId: event.id,
+              message: 'Stripe checkout session event ignored.',
+              metadata: {
+                received: true,
+                handled: false
+              }
+            });
+          }
+
+          const subscriptionId =
+            typeof session.subscription === 'string'
+              ? session.subscription
+              : session.subscription?.id ?? null;
+          if (!subscriptionId) {
+            return buildWebhookActionSuccess({
+              paymentMethod: 'stripe',
+              checkoutOrder,
+              checkoutToken,
+              status: 'ignored',
+              eventType: event.type,
+              externalOrderId: event.id,
+              message: 'Stripe signup checkout session is missing a subscription.',
+              metadata: {
+                received: true,
+                handled: false
+              }
+            });
+          }
+
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ['items.data.price.product']
+          });
+          const subscriptionItem = subscription.items.data[0];
+          const plan = subscriptionItem?.price;
+          const stripeProduct = plan?.product;
+          const productId =
+            typeof stripeProduct === 'string' ? stripeProduct : stripeProduct?.id ?? null;
+          const productName =
+            typeof stripeProduct !== 'string' && stripeProduct && 'name' in stripeProduct
+              ? stripeProduct.name
+              : null;
+          const providerPlanId = plan?.id ?? null;
+          const currentPeriodStart = toIsoDateFromUnix(
+            subscriptionItem?.current_period_start
+          );
+          const currentPeriodEnd = toIsoDateFromUnix(
+            subscriptionItem?.current_period_end
+          );
+          const trialEndsAt = toIsoDateFromUnix(subscription.trial_end ?? null);
+          const canceledAt = toIsoDateFromUnix(subscription.canceled_at ?? null);
+          const template = checkoutOrder.subscriptionTemplateId
+            ? await getSubscriptionTemplateById(checkoutOrder.subscriptionTemplateId)
+            : null;
+          const templateSnapshot = template
+            ? createCheckoutTemplateSnapshot(template)
+            : null;
+
+          if (checkoutOrder.id) {
+            await markCheckoutOrderCompleted({
+              checkoutOrderId: checkoutOrder.id,
+              provider: 'stripe',
+              providerReferenceId: subscriptionId
+            });
+            checkoutOrder =
+              (await refreshCheckoutOrderByToken(checkoutToken)) ?? checkoutOrder;
+          }
+
+          const finalizedSignup = await finalizeSignupIntentCheckout({
+            checkoutOrder,
+            paymentProvider: 'stripe',
+            providerReferenceId: subscriptionId,
+            providerPlanId,
+            paymentMethod: session.payment_method_types?.[0] || 'card',
+            planName: template?.name || productName || checkoutOrder.planName,
+            subscriptionStatus: subscription.status,
+            currentPeriodStart,
+            currentPeriodEnd,
+            trialEndsAt,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end ?? null,
+            canceledAt,
+            source
+          });
+          const signupTargetType =
+            finalizedSignup?.signupIntent?.targetScope === 'organization'
+              ? 'team'
+              : 'user';
+          const signupTargetTeamId =
+            signupTargetType === 'team' ? finalizedSignup?.teamId ?? null : null;
+          const signupTargetUserId =
+            signupTargetType === 'user'
+              ? finalizedSignup?.createdUser?.id ?? null
+              : null;
+
+          await recordStripeCheckoutEvent({
+            orderType: 'subscription',
+            status: mapSubscriptionStatusToOrderStatus(subscription.status),
+            logStatus: 'success',
+            eventType: event.type,
+            source: 'webhook',
+            teamId: signupTargetTeamId,
+            targetType: signupTargetType,
+            targetTeamId: signupTargetTeamId,
+            targetUserId: signupTargetUserId,
+            subscriptionTemplateId: template?.id ?? checkoutOrder.subscriptionTemplateId,
+            templateSnapshot,
+            paymentMethod: session.payment_method_types?.[0] || 'card',
+            planName: template?.name || productName || checkoutOrder.planName,
+            providerPlanId,
+            externalOrderId: event.id,
+            externalPaymentId: subscriptionId,
+            externalLogId: event.id,
+            amount: plan?.unit_amount ?? checkoutOrder.amount ?? null,
+            currency: plan?.currency ?? checkoutOrder.currency ?? null,
+            message: 'Stripe signup checkout webhook processed.',
+            metadata: {
+              handled: true,
+              checkoutToken,
+              signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+            },
+            providerMetadata: {
+              sessionId: session.id,
+              customerId:
+                typeof session.customer === 'string'
+                  ? session.customer
+                  : session.customer?.id ?? null,
+              productId,
+              subscriptionId,
+              webhookEventId: event.id,
+              currentPeriodStart,
+              currentPeriodEnd,
+              trialEndsAt,
+              cancelAtPeriodEnd: subscription.cancel_at_period_end ?? null,
+              canceledAt
+            }
+          });
+
+          await emitEventAsync(
+            EVENT_HOOKS.checkoutWebhookProcessed,
+            { provider: 'stripe', eventType: event.type, eventId: event.id },
+            { source }
+          );
+
+          return buildWebhookActionSuccess({
+            paymentMethod: 'stripe',
+            checkoutOrder,
+            checkoutToken,
+            status: 'completed',
+            eventType: event.type,
+            providerReferenceId: subscriptionId,
+            externalOrderId: event.id,
+            externalPaymentId: subscriptionId,
+            providerPlanId,
+            message: 'Stripe signup checkout webhook processed.',
+            metadata: {
+              received: true,
+              handled: true,
+              subscriptionStatus: subscription.status
+            }
+          });
+        }
 
         if (!checkoutOrder || checkoutOrder.orderType !== 'one_time') {
           return buildWebhookActionSuccess({
@@ -883,6 +1045,127 @@ export async function executePayPalCheckoutWebhookAction({
           paymentStatus: oneTimeDetails.status
         }
       });
+    }
+
+    const signupIntentCustomId = parsePayPalSignupIntentCustomId(
+      event.resource?.custom_id ?? null
+    );
+    if (signupIntentCustomId) {
+      const signupIntentAccess = await getSignupIntentCheckoutAccessByToken(
+        signupIntentCustomId.checkoutToken
+      );
+      checkoutOrder = signupIntentAccess?.checkoutOrder ?? checkoutOrder;
+
+      if (
+        checkoutOrder &&
+        isCheckoutOrderSignupIntent(checkoutOrder) &&
+        event.resource?.id
+      ) {
+        const template = checkoutOrder.subscriptionTemplateId
+          ? await getSubscriptionTemplateById(checkoutOrder.subscriptionTemplateId)
+          : null;
+        const confirmedSubscription = await confirmPayPalSubscriptionForTeam({
+          teamId: 0,
+          subscriptionId: event.resource.id,
+          template
+        });
+
+        if (checkoutOrder.id) {
+          await markCheckoutOrderCompleted({
+            checkoutOrderId: checkoutOrder.id,
+            provider: 'paypal',
+            providerReferenceId: event.resource.id
+          });
+          checkoutOrder =
+            (await refreshCheckoutOrderByToken(signupIntentCustomId.checkoutToken)) ??
+            checkoutOrder;
+        }
+
+        const finalizedSignup = await finalizeSignupIntentCheckout({
+          checkoutOrder,
+          paymentProvider: 'paypal',
+          providerReferenceId: event.resource.id,
+          providerPlanId: confirmedSubscription.planId,
+          paymentMethod: 'paypal',
+          planName: confirmedSubscription.planName || template?.name || checkoutOrder.planName,
+          subscriptionStatus: confirmedSubscription.subscriptionStatus,
+          currentPeriodStart: confirmedSubscription.currentPeriodStart,
+          currentPeriodEnd: confirmedSubscription.currentPeriodEnd,
+          source
+        });
+        const signupTargetType =
+          finalizedSignup?.signupIntent?.targetScope === 'organization'
+            ? 'team'
+            : 'user';
+        const signupTargetTeamId =
+          signupTargetType === 'team' ? finalizedSignup?.teamId ?? null : null;
+        const signupTargetUserId =
+          signupTargetType === 'user' ? finalizedSignup?.createdUser?.id ?? null : null;
+
+        await recordPayPalCheckoutEvent({
+          orderType: 'subscription',
+          status: mapSubscriptionStatusToOrderStatus(
+            confirmedSubscription.subscriptionStatus
+          ),
+          logStatus: 'success',
+          persistOrder: true,
+          eventType: event.event_type || 'webhook.event',
+          source: 'webhook',
+          teamId: signupTargetTeamId,
+          targetType: signupTargetType,
+          targetTeamId: signupTargetTeamId,
+          targetUserId: signupTargetUserId,
+          subscriptionTemplateId: template?.id ?? checkoutOrder.subscriptionTemplateId,
+          templateSnapshot: template
+            ? createCheckoutTemplateSnapshot(template)
+            : null,
+          paymentMethod: 'paypal',
+          planName: confirmedSubscription.planName ?? template?.name ?? null,
+          providerPlanId: confirmedSubscription.planId,
+          externalPaymentId: event.resource.id,
+          externalLogId: request.headers.get('paypal-transmission-id'),
+          message: 'PayPal signup webhook event processed.',
+          metadata: {
+            subscriptionStatus: confirmedSubscription.subscriptionStatus,
+            handled: true,
+            signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
+          },
+          providerMetadata: {
+            subscriptionId: event.resource.id,
+            planId: confirmedSubscription.planId,
+            webhookEventId: request.headers.get('paypal-transmission-id'),
+            currentPeriodStart: confirmedSubscription.currentPeriodStart,
+            currentPeriodEnd: confirmedSubscription.currentPeriodEnd
+          }
+        });
+
+        await emitEventAsync(
+          EVENT_HOOKS.checkoutWebhookProcessed,
+          {
+            provider: 'paypal',
+            eventType: event.event_type || null,
+            eventId: request.headers.get('paypal-transmission-id')
+          },
+          { source }
+        );
+
+        return buildWebhookActionSuccess({
+          paymentMethod: 'paypal',
+          checkoutOrder,
+          checkoutToken: signupIntentCustomId.checkoutToken,
+          status: 'completed',
+          eventType: event.event_type || 'webhook.event',
+          providerReferenceId: event.resource.id,
+          externalPaymentId: event.resource.id,
+          providerPlanId: confirmedSubscription.planId,
+          message: 'PayPal signup webhook event processed.',
+          metadata: {
+            received: true,
+            handled: true,
+            subscriptionStatus: confirmedSubscription.subscriptionStatus
+          }
+        });
+      }
     }
 
     const result = await handlePayPalWebhookEvent(event);

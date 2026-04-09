@@ -73,7 +73,7 @@ export default async function AdminUserDetailsPage({
       getAdminUserById(parsedUserId),
       getAdminUserOrganizations(parsedUserId),
       getAdminTransferCandidatesForUser(parsedUserId),
-      getUserSubscriptionTemplatesForAdmin()
+      getUserSubscriptionTemplatesForAdmin({ includeReserved: true })
     ]);
 
   if (!user) {

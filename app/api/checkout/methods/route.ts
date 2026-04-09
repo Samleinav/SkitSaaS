@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
-import { getCheckoutOrderByTokenForUser } from '@/lib/payments/checkout-orders';
+import {
+  getCheckoutOrderByTokenForUser,
+  resolveCheckoutOrderEffectiveTargetType
+} from '@/lib/payments/checkout-orders';
 import {
   getCheckoutPaymentMethodRegistry,
   supportsCheckoutPaymentMethodOrderType,
   supportsCheckoutPaymentMethodTargetType
 } from '@/lib/payments/payment-methods';
 import { getPayPalClientId, isPayPalConfigured } from '@/lib/payments/paypal';
+import { getSignupIntentCheckoutAccessByToken } from '@/lib/payments/signup-intents';
 import { isStripeConfigured } from '@/lib/payments/stripe';
 import { CoreApiRoutes } from '@/core/api-routes';
 import { withApiRouteEntries } from '@/lib/routing/with-api-route';
@@ -14,24 +18,36 @@ import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 export const GET = withApiRouteEntries(
   CoreApiRoutes.checkout.methods.handler(async (request: Request) => {
     const user = await getUser();
-    if (!user) {
+    const searchParams = new URL(request.url).searchParams;
+    const checkoutToken = searchParams.get('checkoutToken')?.trim();
+    if (!user && !checkoutToken) {
       return NextResponse.json(
         { error: 'Authentication required.' },
         { status: 401 }
       );
     }
 
-    const searchParams = new URL(request.url).searchParams;
-    const checkoutToken = searchParams.get('checkoutToken')?.trim();
-    const checkoutAccess = checkoutToken
+    const checkoutAccess = checkoutToken && user
       ? await getCheckoutOrderByTokenForUser({
           checkoutToken,
           userId: user.id
         })
       : null;
-    const checkoutOrder = checkoutAccess?.checkoutOrder ?? null;
+    const signupIntentAccess =
+      checkoutToken && !checkoutAccess
+        ? await getSignupIntentCheckoutAccessByToken(checkoutToken)
+      : null;
+    const checkoutOrder =
+      checkoutAccess?.checkoutOrder ?? signupIntentAccess?.checkoutOrder ?? null;
 
     if (checkoutToken && !checkoutOrder) {
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required.' },
+          { status: 401 }
+        );
+      }
+
       return NextResponse.json({ error: 'Checkout order not found.' }, { status: 404 });
     }
 
@@ -58,8 +74,14 @@ export const GET = withApiRouteEntries(
       )
       .filter((method) =>
         checkoutOrder
-          ? supportsCheckoutPaymentMethodTargetType(method, checkoutOrder.targetType)
+          ? supportsCheckoutPaymentMethodTargetType(
+              method,
+              resolveCheckoutOrderEffectiveTargetType(checkoutOrder)
+            )
           : true
+      )
+      .filter((method) =>
+        signupIntentAccess ? method.ownerType === 'core' : true
       )
       .filter((method) => {
         if (method.ownerType !== 'core') {

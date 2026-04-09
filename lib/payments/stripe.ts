@@ -264,9 +264,23 @@ function normalizeIdempotencyKey(value: string | null | undefined) {
   return normalized.slice(0, 255);
 }
 
+function normalizeText(value: string | null | undefined, maxLength: number) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, maxLength);
+}
+
 export async function createCheckoutSession({
   team,
   user,
+  customerEmail,
   targetType,
   targetTeamId,
   targetUserId,
@@ -285,6 +299,7 @@ export async function createCheckoutSession({
 }: {
   team: Pick<Team, 'id' | 'stripeCustomerId' | 'stripeProductId'> | null;
   user?: Pick<User, 'id'> | null;
+  customerEmail?: string | null;
   targetType?: 'team' | 'user' | null;
   targetTeamId?: number | null;
   targetUserId?: number | null;
@@ -312,13 +327,19 @@ export async function createCheckoutSession({
   }
 
   const resolvedUser = user ?? (await getUser());
+  const normalizedCustomerEmail = normalizeText(customerEmail, 255);
   const resolvedTargetType = targetType === 'user' ? 'user' : 'team';
   const resolvedTargetTeamId =
     resolvedTargetType === 'team' ? targetTeamId ?? team?.id ?? null : null;
   const resolvedTargetUserId =
     resolvedTargetType === 'user' ? targetUserId ?? resolvedUser?.id ?? null : null;
 
-  if (!resolvedUser || (resolvedTargetType === 'team' && !team)) {
+  const requiresAuthenticatedSignup =
+    !resolvedUser && !normalizedCustomerEmail;
+  const requiresTeamContext =
+    resolvedTargetType === 'team' && !team && !normalizedCustomerEmail;
+
+  if (requiresAuthenticatedSignup || requiresTeamContext) {
     redirect(
       `/sign-up?redirect=checkout&templateId=${encodeURIComponent(
         String(template.id)
@@ -388,7 +409,7 @@ export async function createCheckoutSession({
       provider: 'stripe',
       templateId: template.id,
       teamId: resolvedTargetTeamId,
-      userId: resolvedUser.id,
+      userId: resolvedUser?.id ?? null,
       targetType: resolvedTargetType,
       targetUserId: resolvedTargetUserId,
       changeMode: resolvedChangeMode,
@@ -411,7 +432,10 @@ export async function createCheckoutSession({
       cancel_url: `${baseUrl}${resolvedCancelPath}`,
       customer:
         resolvedTargetType === 'team' ? team?.stripeCustomerId || undefined : undefined,
-      client_reference_id: resolvedUser.id.toString(),
+      customer_email: normalizedCustomerEmail ?? undefined,
+      client_reference_id: resolvedUser?.id
+        ? resolvedUser.id.toString()
+        : undefined,
       allow_promotion_codes: true,
       metadata: subscriptionMetadata,
       subscription_data: subscriptionData
@@ -426,7 +450,7 @@ export async function createCheckoutSession({
       sessionId: session.id,
       templateId: template.id,
       teamId: resolvedTargetTeamId,
-      userId: resolvedUser.id,
+      userId: resolvedUser?.id ?? null,
       targetType: resolvedTargetType,
       targetUserId: resolvedTargetUserId,
       checkoutOrderId: checkoutOrderId ?? null

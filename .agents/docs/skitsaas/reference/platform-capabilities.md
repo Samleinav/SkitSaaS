@@ -16,6 +16,7 @@ Current host capabilities:
 - separate login surfaces for `/login` and `/admin/login`
 - break-glass auth policy through env-backed restrictions
 - provider handoff routes for module-owned auth providers
+- paid signup can stage `signup_intents` and create the real account only after checkout succeeds
 
 Main routes:
 
@@ -59,6 +60,7 @@ Current billing capabilities:
 - change requests for scheduled transitions
 - trial eligibility and consumption tracking
 - team- and user-targeted subscription flows
+- env/DB-driven signup defaults and lifecycle fallback policy
 
 Source-of-truth tables:
 
@@ -73,6 +75,7 @@ Main files:
 - `lib/features/subscription.ts`
 - `lib/payments/subscription-policy.ts`
 - `lib/payments/order-subscription-events.ts`
+- `lib/payments/subscription-signup-policy.ts`
 
 ## Features And Quotas
 
@@ -118,6 +121,12 @@ Canonical API surface:
 - `GET|POST /api/checkout/methods/[paymentMethodId]/return`
 - `POST /api/checkout/methods/[paymentMethodId]/webhook`
 
+Current paid-signup checkout model:
+
+- `lib/payments/signup-intents.ts` links public signup to a targetless checkout order
+- guest checkout access is allowed only for tokens tied to a `signup_intent`
+- return/webhook finalization creates the real user/team and purchased assignment
+
 Main files:
 
 - `lib/payments/checkout-system.ts`
@@ -134,6 +143,7 @@ Admin capabilities include:
 - subscription and template management
 - payment and order administration
 - app-config management
+- signup/fallback policy management in `/admin/app-config/general`
 - runtime log inspection
 - module runtime control surfaces
 

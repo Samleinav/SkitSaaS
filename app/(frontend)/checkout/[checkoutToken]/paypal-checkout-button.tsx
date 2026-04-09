@@ -9,6 +9,7 @@ type PayPalCheckoutButtonProps = {
   checkoutToken: string;
   orderType: 'subscription' | 'one_time';
   currency: string;
+  allowGuestCheckout?: boolean;
 };
 
 type CheckoutResponse = {
@@ -53,7 +54,8 @@ export function PayPalCheckoutButton({
   clientId,
   checkoutToken,
   orderType,
-  currency
+  currency,
+  allowGuestCheckout = false
 }: PayPalCheckoutButtonProps) {
   const t = useI18n({ area: 'global' });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,6 +91,11 @@ export function PayPalCheckoutButton({
             shape: 'pill'
           },
           onClick: async (_: unknown, actions: PayPalClickActions) => {
+            if (allowGuestCheckout) {
+              setError(null);
+              return actions.resolve();
+            }
+
             const currentUserResponse = await fetch('/api/user', {
               cache: 'no-store'
             });
@@ -281,7 +288,7 @@ export function PayPalCheckoutButton({
         void closeButtons();
       }
     };
-  }, [checkoutToken, clientId, currency, orderType, t]);
+  }, [allowGuestCheckout, checkoutToken, clientId, currency, orderType, t]);
 
   return (
     <div className="space-y-2">

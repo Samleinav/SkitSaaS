@@ -12,6 +12,7 @@ This document maps current platform capabilities to implementation files and dat
 
 - Email/password auth with server sessions.
 - Entry routes: `app/(login)/*` (`/login`, `/admin/login`, `/sign-up`, legacy `/sign-in`).
+- Paid signup can stage a pre-account `signup_intents` record and finish account/team creation only after checkout succeeds.
 - Local bootstrap includes a seed user with role `admin`. In shared/prod environments, rotate or replace default credentials.
 - Guards:
   - Admin: `app/(dashboard)/admin/guards.ts` (`requireAdminAccess`)
@@ -44,6 +45,10 @@ This document maps current platform capabilities to implementation files and dat
   - `lib/payments/subscription-policy.ts`
   - classifies `same_template`, `upgrade`, `downgrade`, `lateral_change`, `new_purchase`
   - resolves trial eligibility/consumption by target scope (`team`/`user`)
+- Public signup + fallback policy:
+  - `lib/payments/subscription-signup-policy.ts`
+  - resolves configurable signup defaults from env/`app_configs`
+  - resolves configurable lifecycle fallback mode (`baseline` or `public_free`)
 
 ## 4) Features and Quotas
 
@@ -102,6 +107,13 @@ Current self-service scope policy:
 - `/pricing` self-service checkout currently provisions `organization`-scoped templates only.
 - `/pricing` only renders self-service eligible templates; `user`-scoped templates stay available through lifecycle, policy, and admin/manual assignment flows, not public self-service checkout.
 - `user`-scoped templates are still supported by lifecycle/policy and admin/manual assignment flows.
+
+Pre-account paid signup checkout:
+
+- `lib/payments/signup-intents.ts` links a public signup request to a targetless subscription checkout order.
+- Guest checkout access is only allowed for checkout tokens tied to a live `signup_intent`.
+- Browser return finalizes the `signup_intent`, creates the real user/team, activates the purchased assignment, and sets a dashboard session.
+- Provider webhooks converge idempotently against the same `signup_intent` when settlement arrives before the browser return.
 
 Compatibility API surface (kept for migration):
 
@@ -251,12 +263,14 @@ Used by:
 - payment provider config
 - email config
 - organization policy
+- signup subscription policy
 - theme policy
 
 Helpers:
 
 - `lib/config/app-config.ts`
 - `lib/config/app-config-writes.ts`
+- `/admin/app-config/general` manages signup defaults and lifecycle fallback policy
 - `@skitsaas/sdk` / `lib/modules/manifest.ts` can declare `runtimeConfig.fields`, which Core Admin renders in `/admin/app-config/modules` through `BuildForm`.
 
 ## 12) Email system

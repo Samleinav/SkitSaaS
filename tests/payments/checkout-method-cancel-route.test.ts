@@ -44,6 +44,11 @@ if (!hasModuleMock) {
         checkoutOrder: { id: number; targetType: string };
         teamRole: string | null;
       } | null;
+      signupIntentAccess:
+        | {
+            checkoutOrder: { id: number; targetType: string | null };
+          }
+        | null;
       dispatchResult:
         | {
             ok: true;
@@ -62,6 +67,7 @@ if (!hasModuleMock) {
       user: null,
       team: null,
       checkoutAccess: null,
+      signupIntentAccess: null,
       dispatchResult: {
         ok: true,
         result: {
@@ -130,6 +136,12 @@ if (!hasModuleMock) {
       }
     });
 
+    applyModuleMock('@/lib/payments/signup-intents', {
+      namedExports: {
+        getSignupIntentCheckoutAccessByToken: async () => state.signupIntentAccess
+      }
+    });
+
     const { POST } = await import(
       '../../app/api/checkout/methods/[paymentMethodId]/cancel/route'
     );
@@ -168,6 +180,7 @@ if (!hasModuleMock) {
     state.methodOwner = 'core';
     state.user = null;
     state.team = null;
+    state.signupIntentAccess = null;
     state.dispatchCalls.length = 0;
     const coreNoAuth = await callRoute({
       methodId: 'paypal',
@@ -231,6 +244,19 @@ if (!hasModuleMock) {
       url: 'http://localhost/api/checkout/methods/paypal/cancel?checkoutToken=abc'
     });
     assert.equal(coreUserTargetOk.response.status, 200);
+    assert.equal(state.dispatchCalls.length, 1);
+
+    state.user = null;
+    state.checkoutAccess = null;
+    state.signupIntentAccess = {
+      checkoutOrder: { id: 104, targetType: null }
+    };
+    state.dispatchCalls.length = 0;
+    const guestSignupCancelOk = await callRoute({
+      methodId: 'paypal',
+      url: 'http://localhost/api/checkout/methods/paypal/cancel?checkoutToken=abc'
+    });
+    assert.equal(guestSignupCancelOk.response.status, 200);
     assert.equal(state.dispatchCalls.length, 1);
 
     mock.restoreAll();

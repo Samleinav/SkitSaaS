@@ -68,6 +68,8 @@ Important behavior:
   automatically
 - `repeaterRows` can preload row metadata such as `removable: false` when a row
   must stay visible/editable but should not expose a remove affordance
+- `repeaterRows` can also preload `lockedFields: string[]` when selected
+  sub-fields must render as immutable while still being submitted with the form
 
 ## Validation Layers
 

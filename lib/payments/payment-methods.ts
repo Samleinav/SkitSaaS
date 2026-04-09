@@ -39,6 +39,7 @@ import {
 import {
   getCheckoutOrderByToken,
   listCheckoutOrderLineItems,
+  resolveCheckoutOrderEffectiveTargetType,
   type CheckoutOrderPaymentProvider,
   type CheckoutOrderWithMetadata,
   isCheckoutOrderPayable,
@@ -47,6 +48,10 @@ import {
   markCheckoutOrderFailed,
   markCheckoutOrderProviderPending
 } from './checkout-orders';
+import {
+  buildPayPalSignupIntentCustomId,
+  syncSignupIntentClosureStatus
+} from './signup-intents';
 import { isSubscriptionTemplateScopeCompatible } from './subscription-scope';
 import {
   isSubscriptionTemplateTrialEligible,
@@ -915,6 +920,13 @@ async function applyCheckoutPaymentMethodTransition({
       checkoutOrderId: checkoutOrder.id,
       provider
     });
+    const refreshedCheckoutOrder =
+      (await getCheckoutOrderByToken(checkoutOrder.checkoutToken)) ?? checkoutOrder;
+    if (refreshedCheckoutOrder) {
+      await syncSignupIntentClosureStatus({
+        checkoutOrder: refreshedCheckoutOrder
+      });
+    }
   } else if (actionResult.status === 'failed') {
     await markCheckoutOrderFailed({
       checkoutOrderId: checkoutOrder.id,
@@ -1125,10 +1137,10 @@ async function startStripeCheckoutPayment({
     stripeCustomerId: string | null;
     stripeProductId: string | null;
   } | null;
-  user: Pick<User, 'id'>;
+  user: Pick<User, 'id' | 'email'> | null;
 }): Promise<CheckoutPaymentStartResult> {
-  const targetType = checkoutOrder.targetType;
-  if (targetType !== 'team' && targetType !== 'user') {
+  const targetType = resolveCheckoutOrderEffectiveTargetType(checkoutOrder);
+  if (!targetType) {
     return {
       ok: false,
       statusCode: 400,
@@ -1202,7 +1214,7 @@ async function startStripeCheckoutPayment({
 
     if (
       !isSubscriptionTemplateScopeCompatible({
-        checkoutTargetType: checkoutOrder.targetType,
+        checkoutTargetType: targetType,
         templateTargetScope: template.targetScope
       })
     ) {
@@ -1230,6 +1242,7 @@ async function startStripeCheckoutPayment({
       targetType,
       targetTeamId: resolvedTargetTeamId,
       targetUserId: resolvedTargetUserId,
+      customerEmail: checkoutOrder.parsedMetadata?.signupIntent?.email ?? user?.email ?? null,
       template,
       changeMode:
         subscriptionMetadata?.changeMode === 'immediate' ||
@@ -1309,8 +1322,8 @@ async function startPayPalCheckoutPayment({
 }: {
   checkoutOrder: CheckoutOrderWithMetadata;
 }): Promise<CheckoutPaymentStartResult> {
-  const targetType = checkoutOrder.targetType;
-  if (targetType !== 'team' && targetType !== 'user') {
+  const targetType = resolveCheckoutOrderEffectiveTargetType(checkoutOrder);
+  if (!targetType) {
     return {
       ok: false,
       statusCode: 400,
@@ -1318,11 +1331,20 @@ async function startPayPalCheckoutPayment({
     };
   }
 
-  const customId = buildPayPalCheckoutTargetCustomId({
-    targetType,
-    targetTeamId: targetType === 'team' ? checkoutOrder.targetTeamId ?? checkoutOrder.teamId : null,
-    targetUserId: targetType === 'user' ? checkoutOrder.targetUserId : null
-  });
+  const customId =
+    checkoutOrder.parsedMetadata?.signupIntent?.intentId
+      ? buildPayPalSignupIntentCustomId({
+          signupIntentId: checkoutOrder.parsedMetadata.signupIntent.intentId,
+          checkoutToken: checkoutOrder.checkoutToken
+        })
+      : buildPayPalCheckoutTargetCustomId({
+          targetType,
+          targetTeamId:
+            targetType === 'team'
+              ? checkoutOrder.targetTeamId ?? checkoutOrder.teamId
+              : null,
+          targetUserId: targetType === 'user' ? checkoutOrder.targetUserId : null
+        });
 
   if (checkoutOrder.orderType === 'one_time') {
     const payPalCurrency = await getPayPalCurrency();
@@ -1392,7 +1414,7 @@ async function startPayPalCheckoutPayment({
 
   if (
     !isSubscriptionTemplateScopeCompatible({
-      checkoutTargetType: checkoutOrder.targetType,
+      checkoutTargetType: targetType,
       templateTargetScope: template.targetScope
     })
   ) {
@@ -1442,7 +1464,7 @@ async function startModuleCheckoutPayment({
     id: number;
     email: string;
     role: string;
-  };
+  } | null;
   team: {
     id: number;
     name: string;
@@ -1453,6 +1475,14 @@ async function startModuleCheckoutPayment({
       ok: false,
       statusCode: 400,
       error: 'Payment method is not module-owned.'
+    };
+  }
+
+  if (!user) {
+    return {
+      ok: false,
+      statusCode: 401,
+      error: 'Authentication required for module payment methods.'
     };
   }
 
@@ -1640,7 +1670,7 @@ export async function startCheckoutPaymentByMethod({
     id: number;
     email: string;
     role: string;
-  };
+  } | null;
   team: {
     id: number;
     name: string;
@@ -1741,7 +1771,7 @@ export async function startCheckoutPaymentByMethod({
   if (
     !supportsCheckoutPaymentMethodTargetType(
       resolved.method,
-      checkoutOrder.targetType
+      resolveCheckoutOrderEffectiveTargetType(checkoutOrder)
     )
   ) {
     await logCheckoutPaymentAttempt({

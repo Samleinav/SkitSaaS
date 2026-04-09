@@ -6,6 +6,7 @@ import { EVENT_HOOKS } from '@/lib/events/catalog';
 import {
   getReservedFreeSubscriptionTemplateIdForTargetType
 } from '@/lib/payments/subscription-default-templates';
+import { resolveSubscriptionFailureFallbackTemplateIdForTargetType } from '@/lib/payments/subscription-signup-policy';
 
 export type SubscriptionAssignmentTarget = {
   targetType: 'team' | 'user';
@@ -406,8 +407,11 @@ export async function activateReservedFreeSubscriptionAssignment(
   );
 }
 
-export async function replaceWithReservedFreeSubscriptionAssignment(
+export async function replaceWithSubscriptionTemplateAssignment(
   input: SubscriptionAssignmentTarget & {
+    subscriptionTemplateId: number;
+    status?: 'free' | 'trialing' | 'active' | 'unpaid' | 'canceled';
+    planName?: string | null;
     closeStatus?: 'unpaid' | 'canceled';
     sourceOrderId?: number | null;
   },
@@ -415,14 +419,13 @@ export async function replaceWithReservedFreeSubscriptionAssignment(
 ) {
   const executor = options.executor ?? db;
   const active = await getActiveSubscriptionAssignment(executor, input);
-  const reservedTemplateId = getReservedFreeSubscriptionTemplateIdForTargetType(
-    input.targetType
-  );
+  const nextTemplateId = normalizePositiveInt(input.subscriptionTemplateId);
 
-  if (
-    active &&
-    active.subscriptionTemplateId !== reservedTemplateId
-  ) {
+  if (!nextTemplateId) {
+    return 'skipped';
+  }
+
+  if (active && active.subscriptionTemplateId !== nextTemplateId) {
     await suspendSubscriptionAssignment(
       {
         targetType: input.targetType,
@@ -434,10 +437,72 @@ export async function replaceWithReservedFreeSubscriptionAssignment(
     );
   }
 
-  return activateReservedFreeSubscriptionAssignment(
+  return activateSubscriptionAssignment(
     {
       targetType: input.targetType,
       targetId: input.targetId,
+      subscriptionTemplateId: nextTemplateId,
+      paymentProvider: null,
+      providerReferenceId: null,
+      providerPlanId: null,
+      status: input.status ?? 'free',
+      planName: input.planName ?? null,
+      sourceOrderId: input.sourceOrderId ?? null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+      canceledAt: null
+    },
+    options
+  );
+}
+
+export async function replaceWithReservedFreeSubscriptionAssignment(
+  input: SubscriptionAssignmentTarget & {
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  },
+  options: SubscriptionAssignmentWriteOptions = {}
+) {
+  const reservedTemplateId = getReservedFreeSubscriptionTemplateIdForTargetType(
+    input.targetType
+  );
+
+  return replaceWithSubscriptionTemplateAssignment(
+    {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      subscriptionTemplateId: reservedTemplateId,
+      status: 'free',
+      planName: null,
+      closeStatus: input.closeStatus ?? 'canceled',
+      sourceOrderId: input.sourceOrderId ?? null
+    },
+    options
+  );
+}
+
+export async function replaceWithConfiguredFallbackSubscriptionAssignment(
+  input: SubscriptionAssignmentTarget & {
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  },
+  options: SubscriptionAssignmentWriteOptions = {}
+) {
+  const fallbackTemplateId =
+    await resolveSubscriptionFailureFallbackTemplateIdForTargetType(
+      input.targetType
+    );
+
+  return replaceWithSubscriptionTemplateAssignment(
+    {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      subscriptionTemplateId: fallbackTemplateId,
+      status: 'free',
+      planName: null,
+      closeStatus: input.closeStatus ?? 'canceled',
       sourceOrderId: input.sourceOrderId ?? null
     },
     options

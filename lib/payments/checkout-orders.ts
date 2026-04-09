@@ -59,6 +59,12 @@ export type CheckoutOrderSubscriptionMetadata = {
   trialEligible?: boolean | null;
 };
 
+export type CheckoutOrderSignupIntentMetadata = {
+  intentId: number;
+  targetScope: 'user' | 'organization';
+  email?: string | null;
+};
+
 export type CheckoutOrderOneTimeMetadata = {
   moduleId: string | null;
   intentId: number | null;
@@ -75,6 +81,7 @@ export type CheckoutOrderOneTimeMetadata = {
 
 export type CheckoutOrderMetadata = CheckoutOrderMetadataBase & {
   subscription?: CheckoutOrderSubscriptionMetadata;
+  signupIntent?: CheckoutOrderSignupIntentMetadata;
   oneTime?: CheckoutOrderOneTimeMetadata;
   [key: string]: unknown;
 };
@@ -224,6 +231,40 @@ export function buildCheckoutOrderPath(checkoutToken: string) {
   return `/checkout/${encodeURIComponent(normalizedToken)}`;
 }
 
+export function resolveCheckoutOrderSignupIntentId(
+  checkoutOrder: CheckoutOrderWithMetadata | null | undefined
+) {
+  return normalizePositiveInt(checkoutOrder?.parsedMetadata?.signupIntent?.intentId ?? null);
+}
+
+export function isCheckoutOrderSignupIntent(
+  checkoutOrder: CheckoutOrderWithMetadata | null | undefined
+) {
+  return Boolean(resolveCheckoutOrderSignupIntentId(checkoutOrder));
+}
+
+export function resolveCheckoutOrderEffectiveTargetType(
+  checkoutOrder: CheckoutOrderWithMetadata | null | undefined
+) {
+  const explicitTargetType = normalizeTargetType(checkoutOrder?.targetType ?? null);
+  if (explicitTargetType) {
+    return explicitTargetType;
+  }
+
+  const targetScope = normalizeTargetScope(
+    checkoutOrder?.parsedMetadata?.signupIntent?.targetScope ?? null
+  );
+  if (targetScope === 'organization') {
+    return 'team' as const;
+  }
+
+  if (targetScope === 'user') {
+    return 'user' as const;
+  }
+
+  return null;
+}
+
 export function buildCheckoutOrderUrl({
   checkoutToken,
   origin = null
@@ -353,6 +394,35 @@ function normalizeCheckoutOrderOneTimeMetadata(
   return hasValues ? normalized : undefined;
 }
 
+function normalizeCheckoutOrderSignupIntentMetadata(
+  value: unknown
+): CheckoutOrderSignupIntentMetadata | undefined {
+  const signupIntent = toMetadataRecord(value);
+  if (!signupIntent) {
+    return undefined;
+  }
+
+  const intentId = normalizePositiveInt(
+    typeof signupIntent.intentId === 'number' ? signupIntent.intentId : null
+  );
+  const targetScope =
+    signupIntent.targetScope === 'user' || signupIntent.targetScope === 'organization'
+      ? signupIntent.targetScope
+      : null;
+  if (!intentId || !targetScope) {
+    return undefined;
+  }
+
+  return {
+    intentId,
+    targetScope,
+    email: normalizeText(
+      typeof signupIntent.email === 'string' ? signupIntent.email : null,
+      255
+    )
+  };
+}
+
 export function parseCheckoutOrderMetadata(
   metadata: string | null | undefined
 ): CheckoutOrderMetadata | null {
@@ -373,6 +443,15 @@ export function parseCheckoutOrderMetadata(
         metadataRecord.schemaVersion
       )
     };
+
+    const normalizedSignupIntent = normalizeCheckoutOrderSignupIntentMetadata(
+      metadataRecord.signupIntent
+    );
+    if (normalizedSignupIntent) {
+      normalized.signupIntent = normalizedSignupIntent;
+    } else {
+      delete normalized.signupIntent;
+    }
 
     const normalizedOneTime = normalizeCheckoutOrderOneTimeMetadata(
       metadataRecord.oneTime
@@ -399,6 +478,14 @@ function normalizeScheduledStartTime(value: string | null | undefined) {
 
 function normalizeTargetType(value: string | null | undefined) {
   if (value === 'team' || value === 'user') {
+    return value;
+  }
+
+  return null;
+}
+
+function normalizeTargetScope(value: string | null | undefined) {
+  if (value === 'user' || value === 'organization') {
     return value;
   }
 
@@ -1422,6 +1509,123 @@ export async function createUserSubscriptionCheckoutOrder({
   return null;
 }
 
+export async function createSignupIntentSubscriptionCheckoutOrder({
+  signupIntentId,
+  email,
+  targetScope,
+  template,
+  source = 'sign_up',
+  expiresInMs = DEFAULT_CHECKOUT_ORDER_EXPIRES_IN_MS
+}: {
+  signupIntentId: number;
+  email: string;
+  targetScope: 'user' | 'organization';
+  template: SubscriptionTemplate;
+  source?: string;
+  expiresInMs?: number;
+}): Promise<CheckoutOrderWithMetadata | null> {
+  const normalizedSignupIntentId = normalizePositiveInt(signupIntentId);
+  const normalizedTargetScope = normalizeTargetScope(targetScope);
+  const normalizedEmail = normalizeText(email, 255);
+  if (!normalizedSignupIntentId || !normalizedTargetScope || !normalizedEmail) {
+    return null;
+  }
+
+  const checkoutTargetType =
+    normalizedTargetScope === 'organization' ? 'team' : 'user';
+  if (
+    !isSubscriptionTemplateScopeCompatible({
+      checkoutTargetType,
+      templateTargetScope: template.targetScope
+    })
+  ) {
+    return null;
+  }
+
+  const metadata: CheckoutOrderMetadata = {
+    schemaVersion: CHECKOUT_ORDER_METADATA_VERSION,
+    subscription: {
+      templateSnapshot: createCheckoutTemplateSnapshot(template),
+      changeMode: null,
+      currentAssignmentId: null,
+      currentTemplateId: null,
+      scheduledStartTime: null,
+      categoryKey: template.categoryKey,
+      hierarchyRank: template.hierarchyRank,
+      planRelation: null,
+      trialEligible: template.trialPeriodDays > 0
+    },
+    signupIntent: {
+      intentId: normalizedSignupIntentId,
+      targetScope: normalizedTargetScope,
+      email: normalizedEmail
+    }
+  };
+
+  const serializedMetadata = serializeCheckoutOrderMetadata(metadata);
+  if (!serializedMetadata) {
+    return null;
+  }
+
+  const normalizedSource = normalizeText(source, 30) || 'sign_up';
+  const normalizedIdempotencyKey = `signup-intent:${normalizedSignupIntentId}:subscription`;
+  const existing = await getCheckoutOrderByIdempotencyKey(normalizedIdempotencyKey);
+  if (existing) {
+    return existing;
+  }
+
+  const expiresAt = new Date(Date.now() + Math.max(5 * 60 * 1000, expiresInMs));
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const checkoutToken = buildCheckoutOrderToken();
+
+    try {
+      const [created] = await db
+        .insert(checkoutOrders)
+        .values({
+          checkoutToken,
+          idempotencyKey: normalizedIdempotencyKey,
+          orderType: 'subscription',
+          status: 'ready',
+          source: normalizedSource,
+          teamId: null,
+          targetType: null,
+          targetTeamId: null,
+          targetUserId: null,
+          subscriptionTemplateId: template.id,
+          selectedProvider: null,
+          selectedPaymentMethod: null,
+          providerSessionId: null,
+          providerReferenceId: null,
+          amount: normalizeAmount(template.priceCents),
+          currency: normalizeText(template.currency, 10)?.toUpperCase() ?? null,
+          planName: normalizeText(template.name, 100),
+          metadata: serializedMetadata,
+          expiresAt,
+          completedAt: null,
+          canceledAt: null,
+          failedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return created ? toCheckoutOrderWithMetadata(created) : null;
+    } catch (error) {
+      const reused = await getCheckoutOrderByIdempotencyKey(normalizedIdempotencyKey);
+      if (reused) {
+        return reused;
+      }
+
+      if (attempt === 4) {
+        console.error('Unable to create signup intent checkout order:', error);
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function createOneTimeCheckoutOrder({
   moduleId,
   source = 'module',
@@ -1796,7 +2000,14 @@ export async function markCheckoutOrderCompleted({
     .where(
       and(
         eq(checkoutOrders.id, normalizedCheckoutOrderId),
-        inArray(checkoutOrders.status, ['ready', 'provider_pending', 'completed'])
+        inArray(checkoutOrders.status, [
+          'ready',
+          'provider_pending',
+          'completed',
+          'failed',
+          'canceled',
+          'expired'
+        ])
       )
     )
     .returning();

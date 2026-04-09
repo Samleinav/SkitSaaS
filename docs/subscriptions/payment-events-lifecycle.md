@@ -73,6 +73,14 @@ Operational review:
 - `/admin/payments` now includes a recent checkout callback summary backed by `checkout_payment_attempt_logs`, so admins can distinguish replayed, provider-pending, failed, ignored, and succeeded callbacks without inspecting raw metadata first.
 - `/admin/logs?tab=checkout` now exposes the same callback-attempt source as a dedicated searchable/filterable admin log table when operators want the full trace list instead of the compact payments summary.
 
+### 1.75) Signup intent finalizer
+
+File: `lib/payments/signup-intents.ts`
+
+- Persists `signup_intents` for paid public signup before a real account exists.
+- Links a public signup request to a targetless subscription `checkout_order`.
+- Finalizes the purchased subscription into a real `user` / `team` only after checkout converges through a provider return or webhook.
+
 ### 2) Provider adapters
 
 File: `lib/payments/checkout-system.ts`
@@ -99,8 +107,18 @@ File: `lib/payments/order-subscription-events.ts`
 
 - `pending` -> no lifecycle mutation
 - `received` -> activate target subscription
-- `failed` -> close the current paid assignment and move the target back to the reserved free template for its scope
-- `canceled` -> close the current paid assignment and move the target back to the reserved free template for its scope
+- `failed` -> close the current paid assignment and move the target to the configured fallback template for its scope
+- `canceled` -> close the current paid assignment and move the target to the configured fallback template for its scope
+
+Fallback policy:
+
+- `baseline` (default) -> use the reserved baseline template for the scope
+- `public_free` -> use the configured published zero-cost public template for the scope when valid, otherwise fall back to the reserved baseline template
+
+Important boundary:
+
+- Failed or canceled `signup_intent` checkouts do not create fallback users/teams.
+- Fallback modes apply only after a real target assignment exists.
 
 ## Scheduled subscription changes (carryover + immediate)
 
@@ -133,6 +151,11 @@ Supported targets:
 
 - `team` (organization scope)
 - `user` (user scope, metadata-targeted flows)
+
+Signup-intent note:
+
+- Paid public signup checkouts temporarily have no concrete `teamId` / `userId`.
+- Their effective scope comes from `metadata.signupIntent.targetScope` until finalization creates the real target.
 
 ## Metadata envelope (`checkoutContext`)
 
@@ -187,6 +210,7 @@ Notes:
 - For `subscription` checkout:
   - Stripe and PayPal now also reuse an already completed local checkout order when the browser return is replayed with matching provider identifiers.
   - A mismatched PayPal subscription callback against an already completed checkout order now returns a conflict instead of silently re-projecting the order.
+  - For `signup_intent` subscription checkout, guest browser return is allowed for the matching checkout token and finalizes the real user/team plus dashboard session after payment success.
 - Legacy routes:
   - `/api/stripe/checkout`
   - `/api/paypal/checkout`
@@ -208,6 +232,7 @@ Notes:
 - PayPal one-time browser return is idempotent against a webhook-first completion: if the webhook already marked the checkout order as completed, the return path reuses that result instead of failing the checkout.
 - One-time core webhook handlers now also short-circuit when the local `checkout_order` is already converged in the same provider state (`provider_pending`, `completed`, or `failed`) for the same provider session/reference ids. That keeps webhook retries auditable through `checkout.webhook.received` and `payment_logs`, but avoids repeating order transitions and checkout event projection.
 - `CHECKOUT.ORDER.APPROVED` is intentionally not auto-captured from webhook yet; capture still happens from the canonical return flow to avoid racing the browser return until that path is fully normalized.
+- Paid signup `signup_intent` subscription checkouts can also be finalized from the webhook path when settlement arrives before the browser return. The later browser return then reuses the already-converged local result and only restores session state.
 - Legacy routes:
   - `/api/stripe/webhook`
   - `/api/paypal/webhook`
@@ -229,10 +254,14 @@ Notes:
 ### Example D: Order becomes `failed` or `canceled`
 
 Lifecycle executor closes the active paid assignment and immediately activates
-the reserved free template for the same scope:
+the configured fallback template for the same scope:
 
-- team -> reserved free `organization` template (`subscription_templates.id = 2`)
-- user -> reserved free `user` template (`subscription_templates.id = 1`)
+- fallback mode `baseline`:
+  - team -> reserved baseline `organization` template (`subscription_templates.id = 2`)
+  - user -> reserved baseline `user` template (`subscription_templates.id = 1`)
+- fallback mode `public_free`:
+  - team -> configured published zero-cost organization template, otherwise baseline `organization`
+  - user -> configured published zero-cost user template, otherwise baseline `user`
 
 ## Admin subscriptions visibility
 

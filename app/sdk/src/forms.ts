@@ -139,7 +139,8 @@ export type BuildFormRepeaterSubFieldDefinition = {
 export type BuildFormRepeaterRow = {
   id: string;
   removable?: boolean;
-  [key: string]: BuildFormValue | undefined;
+  lockedFields?: string[];
+  [key: string]: BuildFormValue | string[] | undefined;
 };
 
 export type BuildFormRepeaterFieldDefinition = {

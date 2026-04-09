@@ -41,10 +41,13 @@ import { isPasswordLoginAllowedForArea } from '@/lib/auth/login-policy';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createCheckoutSession } from '@/lib/payments/stripe';
-import { activateReservedFreeSubscriptionAssignment } from '@/lib/payments/subscription-assignments';
+import {
+  activateReservedFreeSubscriptionAssignment,
+  activateSubscriptionAssignment
+} from '@/lib/payments/subscription-assignments';
 import { sendTeamInvitationEmail } from '@/lib/email/invitations';
 import {
-  getSubscriptionTemplateById,
+  getSelfServiceSubscriptionTemplateById,
   getUser,
   getUserWithTeam
 } from '@/lib/db/queries';
@@ -61,7 +64,10 @@ import {
   canAddTeamMemberBySubscription,
   getTeamMemberLimitBySubscriptionFeatureController
 } from '@/lib/organizations/subscription-limit-values';
+import { buildDefaultTeamNameFromEmail } from '@/lib/organizations/default-team-name';
 import { FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID } from '@/lib/payments/subscription-default-templates';
+import { getSubscriptionSignupFlowForScope } from '@/lib/payments/subscription-signup-policy';
+import { createSignupIntentCheckout } from '@/lib/payments/signup-intents';
 
 async function getTeamMemberLimitForSignUpInvitation({
   executor,
@@ -120,6 +126,57 @@ async function logActivity(
   };
   const executor = options?.executor ?? db;
   await executor.insert(activityLogs).values(newActivity);
+}
+
+async function activateInitialSignupSubscriptionAssignment({
+  executor,
+  targetType,
+  targetId,
+  template
+}: {
+  executor: Pick<typeof db, 'select' | 'insert' | 'update'>;
+  targetType: 'team' | 'user';
+  targetId: number;
+  template: {
+    id: number;
+    name: string;
+  } | null;
+}) {
+  if (!template) {
+    return activateReservedFreeSubscriptionAssignment(
+      {
+        targetType,
+        targetId
+      },
+      {
+        executor,
+        emitEvents: false
+      }
+    );
+  }
+
+  return activateSubscriptionAssignment(
+    {
+      targetType,
+      targetId,
+      subscriptionTemplateId: template.id,
+      paymentProvider: null,
+      providerReferenceId: null,
+      providerPlanId: null,
+      status: 'free',
+      planName: template.name,
+      sourceOrderId: null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      trialEndsAt: null,
+      cancelAtPeriodEnd: false,
+      canceledAt: null
+    },
+    {
+      executor,
+      emitEvents: false
+    }
+  );
 }
 
 type AuthArea = 'admin' | 'dashboard';
@@ -635,9 +692,7 @@ async function signInByArea(
       redirect('/pricing');
     }
 
-    const template = await getSubscriptionTemplateById(templateId, {
-      publicationStatus: 'published'
-    });
+    const template = await getSelfServiceSubscriptionTemplateById(templateId);
     if (!template) {
       redirect('/pricing');
     }
@@ -669,6 +724,13 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const { email, password, inviteId } = data;
   const teamsEnabled = areTeamsEnabled();
   const t = await getActionTranslator();
+  const redirectTo = formData.get('redirect') as string | null;
+  const requestedTemplateId = Number(formData.get('templateId'));
+  const primarySignupScope = teamsEnabled ? 'organization' : 'user';
+  let signupDefaultUserTemplate: { id: number; name: string } | null = null;
+  let signupDefaultOrganizationTemplate: { id: number; name: string } | null =
+    null;
+  let skipCheckoutRedirectAfterSignUp = false;
 
   if (!isPasswordLoginAllowedForArea('dashboard')) {
     await emitEventAsync(
@@ -722,6 +784,98 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   }
 
   const passwordHash = await hashPassword(password);
+
+  if (!inviteId) {
+    const requestedTemplate =
+      redirectTo === 'checkout' &&
+      Number.isInteger(requestedTemplateId) &&
+      requestedTemplateId > 0
+        ? await getSelfServiceSubscriptionTemplateById(requestedTemplateId)
+        : null;
+    const primaryRequestedTemplate =
+      requestedTemplate?.targetScope === primarySignupScope ? requestedTemplate : null;
+
+    if (primaryRequestedTemplate) {
+      if (primaryRequestedTemplate.priceCents > 0) {
+        const startedCheckout = await createSignupIntentCheckout({
+          email,
+          passwordHash,
+          targetScope: primarySignupScope,
+          template: primaryRequestedTemplate,
+          source: '/sign-up'
+        });
+        if (!startedCheckout) {
+          await emitEventAsync(
+            EVENT_HOOKS.authSignUpFailed,
+            { email, reason: 'signup_paid_intent_create_failed' },
+            { source: '/sign-up' }
+          );
+          return {
+            error: t('Unable to prepare checkout. Please try again.'),
+            email,
+            password
+          };
+        }
+
+        redirect(
+          `/checkout/${encodeURIComponent(startedCheckout.checkoutOrder.checkoutToken)}`
+        );
+      }
+
+      const selectedTemplate = {
+        id: primaryRequestedTemplate.id,
+        name: primaryRequestedTemplate.name
+      };
+      if (teamsEnabled) {
+        signupDefaultOrganizationTemplate = selectedTemplate;
+      } else {
+        signupDefaultUserTemplate = selectedTemplate;
+      }
+      skipCheckoutRedirectAfterSignUp = true;
+    } else {
+      const signupFlow = await getSubscriptionSignupFlowForScope(primarySignupScope);
+
+      if (signupFlow.mode === 'paid_checkout_required' && signupFlow.template) {
+        const startedCheckout = await createSignupIntentCheckout({
+          email,
+          passwordHash,
+          targetScope: primarySignupScope,
+          template: signupFlow.template,
+          source: '/sign-up'
+        });
+        if (!startedCheckout) {
+          await emitEventAsync(
+            EVENT_HOOKS.authSignUpFailed,
+            { email, reason: 'signup_default_checkout_create_failed' },
+            { source: '/sign-up' }
+          );
+          return {
+            error: t('Unable to prepare checkout. Please try again.'),
+            email,
+            password
+          };
+        }
+
+        redirect(
+          `/checkout/${encodeURIComponent(startedCheckout.checkoutOrder.checkoutToken)}`
+        );
+      }
+
+      if (signupFlow.mode === 'direct' && signupFlow.template) {
+        if (teamsEnabled) {
+          signupDefaultOrganizationTemplate = {
+            id: signupFlow.template.id,
+            name: signupFlow.template.name
+          };
+        } else {
+          signupDefaultUserTemplate = {
+            id: signupFlow.template.id,
+            name: signupFlow.template.name
+          };
+        }
+      }
+    }
+  }
 
   const SIGN_UP_FAILURE = {
     invalidInvite: 'invalid_invite',
@@ -785,20 +939,18 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         throw new Error(SIGN_UP_FAILURE.userCreateFailed);
       }
 
-      await activateReservedFreeSubscriptionAssignment(
-        {
-          targetType: 'user',
-          targetId: insertedUser.id
-        },
+      await activateInitialSignupSubscriptionAssignment(
         {
           executor: tx,
-          emitEvents: false
-        }
+          targetType: 'user',
+          targetId: insertedUser.id,
+          template: signupDefaultUserTemplate
+        },
       );
 
       if (!invitationRecord && teamsEnabled) {
         const newTeam: NewTeam = {
-          name: `${email}'s Team`
+          name: buildDefaultTeamNameFromEmail(email)
         };
 
         [resolvedTeam] = await tx.insert(teams).values(newTeam).returning();
@@ -810,15 +962,13 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         resolvedUserRole = 'owner';
         createdNewTeam = true;
 
-        await activateReservedFreeSubscriptionAssignment(
-          {
-            targetType: 'team',
-            targetId: resolvedTeam.id
-          },
+        await activateInitialSignupSubscriptionAssignment(
           {
             executor: tx,
-            emitEvents: false
-          }
+            targetType: 'team',
+            targetId: resolvedTeam.id,
+            template: signupDefaultOrganizationTemplate
+          },
         );
       }
 
@@ -1013,16 +1163,13 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
     }
   );
 
-  const redirectTo = formData.get('redirect') as string | null;
-  if (redirectTo === 'checkout') {
+  if (redirectTo === 'checkout' && !skipCheckoutRedirectAfterSignUp) {
     const templateId = Number(formData.get('templateId'));
     if (!Number.isInteger(templateId) || templateId <= 0) {
       redirect('/pricing');
     }
 
-    const template = await getSubscriptionTemplateById(templateId, {
-      publicationStatus: 'published'
-    });
+    const template = await getSelfServiceSubscriptionTemplateById(templateId);
     if (!template) {
       redirect('/pricing');
     }

@@ -5,6 +5,7 @@ import {
   executeCheckoutPaymentMethodAction,
   getCheckoutPaymentMethodById
 } from '@/lib/payments/payment-methods';
+import { getSignupIntentCheckoutAccessByToken } from '@/lib/payments/signup-intents';
 import { CoreApiRoutes } from '@/core/api-routes';
 import { withApiRouteEntries } from '@/lib/routing/with-api-route';
 
@@ -45,13 +46,6 @@ async function handleCancel(request: Request, params: Record<string, string>) {
 
   if (resolvedPaymentMethod.method.ownerType === 'core') {
     const user = await getUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required.', redirectUrl: '/login?redirect=pricing' },
-        { status: 401 }
-      );
-    }
-
     if (!fallbackCheckoutToken) {
       return NextResponse.json(
         { error: 'checkoutToken is required for core payment method cancel.' },
@@ -59,11 +53,24 @@ async function handleCancel(request: Request, params: Record<string, string>) {
       );
     }
 
-    const checkoutAccess = await getCheckoutOrderByTokenForUser({
-      checkoutToken: fallbackCheckoutToken,
-      userId: user.id
-    });
-    if (!checkoutAccess) {
+    const checkoutAccess = user
+      ? await getCheckoutOrderByTokenForUser({
+          checkoutToken: fallbackCheckoutToken,
+          userId: user.id
+        })
+      : null;
+    const signupIntentAccess =
+      !checkoutAccess
+        ? await getSignupIntentCheckoutAccessByToken(fallbackCheckoutToken)
+        : null;
+    if (!checkoutAccess && !signupIntentAccess) {
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required.', redirectUrl: '/login?redirect=pricing' },
+          { status: 401 }
+        );
+      }
+
       return NextResponse.json(
         { error: 'Checkout order not found.' },
         { status: 404 }
@@ -71,7 +78,7 @@ async function handleCancel(request: Request, params: Record<string, string>) {
     }
 
     if (
-      checkoutAccess.checkoutOrder.targetType === 'team' &&
+      checkoutAccess?.checkoutOrder.targetType === 'team' &&
       checkoutAccess.teamRole !== 'owner'
     ) {
       return NextResponse.json(
