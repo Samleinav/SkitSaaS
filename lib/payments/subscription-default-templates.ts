@@ -4,28 +4,40 @@ import {
 } from '@/lib/features/catalog';
 import type { SubscriptionTargetScope } from '@/lib/payments/subscription-scopes';
 
-export const BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID = 1;
-export const BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID = 2;
-export const BASELINE_USER_SUBSCRIPTION_TEMPLATE_NAME = 'Free User';
-export const BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME =
+export const DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID = 1;
+export const DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID = 2;
+export const DEFAULT_USER_SUBSCRIPTION_TEMPLATE_NAME = 'Free User';
+export const DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME =
   'Free Organization';
 
-// Backward-compatible aliases while the runtime/docs move from "free" wording
-// to "baseline" semantics for the reserved internal templates.
+// Backward-compatible aliases while callers migrate from older "free" and
+// "baseline" naming to reserved default-tier semantics.
+export const BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID =
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID;
+export const BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID =
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
+export const BASELINE_USER_SUBSCRIPTION_TEMPLATE_NAME =
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_NAME;
+export const BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME =
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME;
 export const FREE_USER_SUBSCRIPTION_TEMPLATE_ID =
-  BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID;
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID;
 export const FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID =
-  BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
 export const FREE_USER_SUBSCRIPTION_TEMPLATE_NAME =
-  BASELINE_USER_SUBSCRIPTION_TEMPLATE_NAME;
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_NAME;
 export const FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME =
-  BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME;
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME;
 export const FREE_USER_MAX_ORGANIZATIONS = 3;
 export const FREE_ORGANIZATION_MAX_TEAM_MEMBERS = 3;
 export const FREE_ORGANIZATION_INVITES_ENABLED = true;
+export const RESERVED_DEFAULT_SUBSCRIPTION_TEMPLATE_IDS = [
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID,
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
+] as const;
 export const RESERVED_BASELINE_SUBSCRIPTION_TEMPLATE_IDS = [
-  BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID,
-  BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
+  DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID,
+  DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
 ] as const;
 
 export const SUBSCRIPTION_TEMPLATE_PUBLICATION_STATUSES = [
@@ -71,28 +83,28 @@ export function normalizeSubscriptionTemplatePublicationStatus(
 export function isReservedFreeSubscriptionTemplateId(
   templateId: number | null | undefined
 ) {
-  return isReservedBaselineSubscriptionTemplateId(templateId);
+  return isReservedDefaultSubscriptionTemplateId(templateId);
 }
 
 export function isReservedBaselineSubscriptionTemplateId(
   templateId: number | null | undefined
 ) {
-  return (
-    templateId === BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID ||
-    templateId === BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
-  );
+  return isReservedDefaultSubscriptionTemplateId(templateId);
 }
 
-export function isReservedBaselineSubscriptionTemplatePublicationLocked(
+export function isReservedDefaultSubscriptionTemplateId(
   templateId: number | null | undefined
 ) {
-  return isReservedBaselineSubscriptionTemplateId(templateId);
+  return (
+    templateId === DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID ||
+    templateId === DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
+  );
 }
 
 export function isSubscriptionTemplateVisibleInAdminCatalog(
   templateId: number | null | undefined
 ) {
-  return !isReservedBaselineSubscriptionTemplateId(templateId);
+  return !isReservedDefaultSubscriptionTemplateId(templateId);
 }
 
 export function isSubscriptionTemplateSelfServiceEligible(template: {
@@ -100,9 +112,16 @@ export function isSubscriptionTemplateSelfServiceEligible(template: {
   publicationStatus?: string | null;
 }) {
   return (
-    template.publicationStatus === 'published' &&
-    !isReservedBaselineSubscriptionTemplateId(template.id)
+    typeof template.id === 'number' &&
+    template.id > 0 &&
+    template.publicationStatus === 'published'
   );
+}
+
+export function resolveDefaultTierFallbackAssignmentStatus(template: {
+  priceCents?: number | null;
+} | null | undefined): 'free' | 'unpaid' {
+  return template?.priceCents === 0 ? 'free' : 'unpaid';
 }
 
 export function getReservedFreeSubscriptionTemplateIdForScope(
@@ -114,9 +133,15 @@ export function getReservedFreeSubscriptionTemplateIdForScope(
 export function getReservedBaselineSubscriptionTemplateIdForScope(
   targetScope: SubscriptionTargetScope
 ) {
+  return getReservedDefaultSubscriptionTemplateIdForScope(targetScope);
+}
+
+export function getReservedDefaultSubscriptionTemplateIdForScope(
+  targetScope: SubscriptionTargetScope
+) {
   return targetScope === 'user'
-    ? BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID
-    : BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
+    ? DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID
+    : DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
 }
 
 export function getReservedFreeSubscriptionTemplateIdForTargetType(
@@ -128,9 +153,15 @@ export function getReservedFreeSubscriptionTemplateIdForTargetType(
 export function getReservedBaselineSubscriptionTemplateIdForTargetType(
   targetType: 'user' | 'team'
 ) {
+  return getReservedDefaultSubscriptionTemplateIdForTargetType(targetType);
+}
+
+export function getReservedDefaultSubscriptionTemplateIdForTargetType(
+  targetType: 'user' | 'team'
+) {
   return targetType === 'user'
-    ? BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID
-    : BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
+    ? DEFAULT_USER_SUBSCRIPTION_TEMPLATE_ID
+    : DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID;
 }
 
 export function getReservedFreeSubscriptionTemplateNameForTargetType(
@@ -142,9 +173,15 @@ export function getReservedFreeSubscriptionTemplateNameForTargetType(
 export function getReservedBaselineSubscriptionTemplateNameForTargetType(
   targetType: 'user' | 'team'
 ) {
+  return getReservedDefaultSubscriptionTemplateNameForTargetType(targetType);
+}
+
+export function getReservedDefaultSubscriptionTemplateNameForTargetType(
+  targetType: 'user' | 'team'
+) {
   return targetType === 'user'
-    ? BASELINE_USER_SUBSCRIPTION_TEMPLATE_NAME
-    : BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME;
+    ? DEFAULT_USER_SUBSCRIPTION_TEMPLATE_NAME
+    : DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME;
 }
 
 export function isReservedFreeTemplateScopeLocked({
@@ -154,7 +191,7 @@ export function isReservedFreeTemplateScopeLocked({
   templateId: number;
   targetScope: SubscriptionTargetScope;
 }) {
-  return templateId === getReservedBaselineSubscriptionTemplateIdForScope(targetScope);
+  return templateId === getReservedDefaultSubscriptionTemplateIdForScope(targetScope);
 }
 
 export function getReservedFreeTemplateDefinitionById(
@@ -193,7 +230,7 @@ export function getReservedBaselineTemplateDefinitions(): ReservedFreeTemplateDe
   return [
     {
       id: BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID,
-      name: BASELINE_USER_SUBSCRIPTION_TEMPLATE_NAME,
+      name: DEFAULT_USER_SUBSCRIPTION_TEMPLATE_NAME,
       targetScope: 'user',
       categoryKey: 'free.user',
       hierarchyRank: 0,
@@ -216,7 +253,7 @@ export function getReservedBaselineTemplateDefinitions(): ReservedFreeTemplateDe
     },
     {
       id: BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID,
-      name: BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME,
+      name: DEFAULT_ORGANIZATION_SUBSCRIPTION_TEMPLATE_NAME,
       targetScope: 'organization',
       categoryKey: 'free.organization',
       hierarchyRank: 0,

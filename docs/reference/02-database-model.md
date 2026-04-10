@@ -87,7 +87,7 @@ Financial settlement flow:
 ## Notes
 
 - Subscription state is **not** stored on `teams` or `users`. It is read from `subscription_assignments`.
-- The normal authenticated baseline is no longer "no assignment = free". New users and new teams are provisioned with reserved baseline templates (`subscription_templates.id=1` for `user`, `id=2` for `organization`), and legacy records without an active assignment are backfilled to those templates.
+- The normal authenticated default is no longer "no assignment = free". New users and new teams are provisioned with reserved default-tier templates (`subscription_templates.id=1` for `user`, `id=2` for `organization`), and legacy records without an active assignment are backfilled to those templates.
 - Paid signup defaults do not pre-create `users` or `teams`. They stage intent in `signup_intents` plus a targetless `checkout_order`, then create the real account and assignment only after a successful provider return/webhook finalizes that intent.
 - Checkout, operational payment lifecycle, and settled transactions are separate by design:
   - `checkout_orders` / `checkout_order_items` hold the pre-payment checkout context

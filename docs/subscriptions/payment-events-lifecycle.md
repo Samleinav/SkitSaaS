@@ -107,18 +107,18 @@ File: `lib/payments/order-subscription-events.ts`
 
 - `pending` -> no lifecycle mutation
 - `received` -> activate target subscription
-- `failed` -> close the current paid assignment and move the target to the configured fallback template for its scope
-- `canceled` -> close the current paid assignment and move the target to the configured fallback template for its scope
+- `failed` -> close the current paid assignment and move the target to the reserved default tier for its scope
+- `canceled` -> close the current paid assignment and move the target to the reserved default tier for its scope
 
 Fallback policy:
 
-- `baseline` (default) -> use the reserved baseline template for the scope
-- `public_free` -> use the configured published zero-cost public template for the scope when valid, otherwise fall back to the reserved baseline template
+- `user` target -> reserved default `user` template (`subscription_templates.id = 1`)
+- `team` target -> reserved default `organization` template (`subscription_templates.id = 2`)
 
 Important boundary:
 
 - Failed or canceled `signup_intent` checkouts do not create fallback users/teams.
-- Fallback modes apply only after a real target assignment exists.
+- Fallback applies only after a real target assignment exists.
 
 ## Scheduled subscription changes (carryover + immediate)
 
@@ -254,14 +254,16 @@ Notes:
 ### Example D: Order becomes `failed` or `canceled`
 
 Lifecycle executor closes the active paid assignment and immediately activates
-the configured fallback template for the same scope:
+the reserved default tier for the same scope:
 
-- fallback mode `baseline`:
-  - team -> reserved baseline `organization` template (`subscription_templates.id = 2`)
-  - user -> reserved baseline `user` template (`subscription_templates.id = 1`)
-- fallback mode `public_free`:
-  - team -> configured published zero-cost organization template, otherwise baseline `organization`
-  - user -> configured published zero-cost user template, otherwise baseline `user`
+- team -> default `organization` template (`subscription_templates.id = 2`)
+- user -> default `user` template (`subscription_templates.id = 1`)
+
+Those default tiers can be public pricing plans when published. If the default
+tier is `published` and `price_cents = 0`, it is also the public free tier for
+that scope. If it is `draft`, it remains an internal fallback only. Fallback
+assignments use status `free` only for zero-cost default tiers; paid default
+tiers are assigned as `unpaid` recovery/default access.
 
 ## Admin subscriptions visibility
 

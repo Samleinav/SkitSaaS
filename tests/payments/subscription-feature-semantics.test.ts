@@ -3,7 +3,8 @@ import test from 'node:test';
 import {
   DASHBOARD_SUBSCRIPTION_FEATURES,
   USER_SUBSCRIPTION_FEATURES,
-  isManagedSubscriptionFeatureInputValid
+  isManagedSubscriptionFeatureInputValid,
+  normalizeManagedSubscriptionFeature
 } from '../../lib/features/catalog';
 import { createFeatureController } from '../../lib/features/controller';
 import {
@@ -41,6 +42,21 @@ test('managed core count quotas accept -1 and reject 0 as form input', () => {
     ),
     false
   );
+});
+
+test('managed feature normalization preserves operator labels', () => {
+  const normalized = normalizeManagedSubscriptionFeature({
+    featureKey: DASHBOARD_SUBSCRIPTION_FEATURES.teamMembersMax.key,
+    featureLabel: 'Seats included',
+    valueType: 'number',
+    featureValue: '5',
+    valueLabel: '5 seats',
+    isPublic: true
+  }, { targetScope: 'organization' });
+
+  assert.equal(normalized?.featureLabel, 'Seats included');
+  assert.equal(normalized?.valueType, 'number');
+  assert.equal(normalized?.featureValue, '5');
 });
 
 test('count quota helpers normalize -1 to unlimited and repair invalid 0 safely', () => {

@@ -60,7 +60,7 @@ test('invalid target types or scopes are rejected', () => {
   );
 });
 
-test('self-service checkout supports organization templates only', () => {
+test('self-service checkout supports organization templates when teams are enabled', () => {
   assert.equal(
     supportsSelfServiceSubscriptionTemplateScope('organization', {
       teamsEnabled: true
@@ -81,12 +81,18 @@ test('self-service checkout supports organization templates only', () => {
   );
 });
 
-test('self-service organization checkout is disabled when teams are disabled', () => {
+test('self-service checkout supports user templates when teams are disabled', () => {
   assert.equal(
     supportsSelfServiceSubscriptionTemplateScope('organization', {
       teamsEnabled: false
     }),
     false
+  );
+  assert.equal(
+    supportsSelfServiceSubscriptionTemplateScope('user', {
+      teamsEnabled: false
+    }),
+    true
   );
 });
 
@@ -106,6 +112,6 @@ test('filterSelfServiceSubscriptionTemplates keeps only self-service eligible sc
   );
   assert.deepEqual(
     filterSelfServiceSubscriptionTemplates(templates, { teamsEnabled: false }),
-    []
+    [{ id: 2, targetScope: 'user' }]
   );
 });

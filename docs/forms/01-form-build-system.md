@@ -518,7 +518,7 @@ composeRegisteredBuildFormDefinition('my-form', baseForm, {
 
 Set `removable: false` on preloaded rows that must remain visible and editable but
 should not expose a remove control. This is the pattern used by the reserved
-baseline subscription templates for their baseline managed feature rows.
+default-tier subscription templates for their required managed feature rows.
 
 Set `lockedFields: [...]` when only specific sub-fields in a preloaded row must
 stay immutable. Locked repeater fields remain part of the submit payload, so

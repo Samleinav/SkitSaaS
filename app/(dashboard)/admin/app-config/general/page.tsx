@@ -65,7 +65,7 @@ export default async function AdminAppConfigGeneralPage() {
           <CardTitle>{t('Subscriptions')}</CardTitle>
           <CardDescription>
             {t(
-              'Public signup defaults, public-free fallback, and lifecycle recovery policy live in their own App Config section.'
+              'Public signup defaults live in their own App Config section. Payment fallback is driven by default tiers per scope.'
             )}
           </CardDescription>
         </CardHeader>

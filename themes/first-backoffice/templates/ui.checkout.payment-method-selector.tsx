@@ -1,6 +1,6 @@
 'use client';
 
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import {
   CircleDollarSign,
@@ -9,8 +9,22 @@ import {
   QrCode,
   Wallet
 } from 'lucide-react';
-import type { UiCheckoutPaymentMethodSelectorTemplateData } from '@/lib/themes/template-data-contract';
 import type { TemplateProps } from './template-types';
+
+type UiCheckoutPaymentMethodSelectorOption = {
+  id: string;
+  label: string;
+  description?: string | null;
+  badge?: string | null;
+  iconKey?: string | null;
+  content: ReactNode;
+};
+
+type UiCheckoutPaymentMethodSelectorTemplateData = {
+  label: string;
+  options: UiCheckoutPaymentMethodSelectorOption[];
+  defaultMethod?: string | null;
+};
 
 function resolveIcon(iconKey?: string | null): ComponentType<{ className?: string }> {
   const normalized = String(iconKey ?? '').trim().toLowerCase();

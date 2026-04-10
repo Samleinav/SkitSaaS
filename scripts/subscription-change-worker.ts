@@ -9,6 +9,7 @@ import {
   activateSubscriptionAssignment,
   suspendSubscriptionAssignment
 } from '@/lib/payments/subscription-assignments';
+import { resolveDefaultTierFallbackAssignmentStatus } from '@/lib/payments/subscription-default-templates';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 
@@ -176,18 +177,16 @@ async function run() {
         await updateRequestStatus(request.id, 'processing', effectiveAt);
       }
 
-      const template =
-        request.requestedPlanName
-          ? null
-          : await db
-              .select({
-                id: subscriptionTemplates.id,
-                name: subscriptionTemplates.name
-              })
-              .from(subscriptionTemplates)
-              .where(eq(subscriptionTemplates.id, request.requestedTemplateId))
-              .limit(1)
-              .then((rows) => rows[0] ?? null);
+      const template = await db
+        .select({
+          id: subscriptionTemplates.id,
+          name: subscriptionTemplates.name,
+          priceCents: subscriptionTemplates.priceCents
+        })
+        .from(subscriptionTemplates)
+        .where(eq(subscriptionTemplates.id, request.requestedTemplateId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
 
       if (!dryRun) {
         await suspendSubscriptionAssignment({
@@ -205,7 +204,10 @@ async function run() {
           paymentProvider: request.requestedProvider ?? null,
           providerReferenceId: providerReferenceId,
           providerPlanId: request.requestedProviderPlanId ?? null,
-          status: 'active',
+          status:
+            request.requestedProvider || request.requestedProviderPlanId
+              ? 'active'
+              : resolveDefaultTierFallbackAssignmentStatus(template),
           planName:
             request.requestedPlanName ??
             template?.name ??

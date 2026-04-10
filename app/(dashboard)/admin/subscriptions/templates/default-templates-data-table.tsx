@@ -14,20 +14,26 @@ import {
 } from '@skitsaas/sdk/datatables';
 import { AdminTableSlotTemplate } from '../../table-slot-template';
 
-export type AdminBaselineTemplateRow = {
+export type AdminDefaultTemplateRow = {
   id: number;
   name: string;
   scope: 'organization' | 'user';
   scopeLabel: string;
-  policyLabel: string;
+  statusLabel: string;
+  priceLabel: string;
+  visibilityLabel: string;
+  fallbackLabel: string;
   editHref: string;
 };
 
-type AdminBaselineTemplatesDataTableCopy = {
+type AdminDefaultTemplatesDataTableCopy = {
   headers: {
     name: string;
     scope: string;
-    policy: string;
+    status: string;
+    price: string;
+    visibility: string;
+    fallback: string;
     actions: string;
   };
   edit: string;
@@ -35,23 +41,23 @@ type AdminBaselineTemplatesDataTableCopy = {
   dataTable: DataTableLabels;
 };
 
-type AdminBaselineTemplatesDataTableProps = {
-  data: AdminBaselineTemplateRow[];
-  copy: AdminBaselineTemplatesDataTableCopy;
+type AdminDefaultTemplatesDataTableProps = {
+  data: AdminDefaultTemplateRow[];
+  copy: AdminDefaultTemplatesDataTableCopy;
   tableTemplate?: DataTableThemeTemplate;
 };
 
-function getBaselineTemplatesTableDefinition({
+function getDefaultTemplatesTableDefinition({
   data,
   copy
 }: {
-  data: AdminBaselineTemplateRow[];
-  copy: AdminBaselineTemplatesDataTableCopy;
-}): BuildTableDefinition<AdminBaselineTemplateRow> {
-  const definition: BuildTableDefinition<AdminBaselineTemplateRow> = {
+  data: AdminDefaultTemplateRow[];
+  copy: AdminDefaultTemplatesDataTableCopy;
+}): BuildTableDefinition<AdminDefaultTemplateRow> {
+  const definition: BuildTableDefinition<AdminDefaultTemplateRow> = {
     data,
     columns: [
-      buildTableColumn.text<AdminBaselineTemplateRow>({
+      buildTableColumn.text<AdminDefaultTemplateRow>({
         key: 'name',
         header: (
           <AdminTableSlotTemplate
@@ -78,7 +84,7 @@ function getBaselineTemplatesTableDefinition({
           </AdminTableSlotTemplate>
         )
       }),
-      buildTableColumn.text<AdminBaselineTemplateRow>({
+      buildTableColumn.text<AdminDefaultTemplateRow>({
         key: 'scope',
         header: (
           <AdminTableSlotTemplate
@@ -102,29 +108,98 @@ function getBaselineTemplatesTableDefinition({
           </AdminTableSlotTemplate>
         )
       }),
-      buildTableColumn.text<AdminBaselineTemplateRow>({
-        key: 'policyLabel',
+      buildTableColumn.text<AdminDefaultTemplateRow>({
+        key: 'statusLabel',
         header: (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.templates.cell"
-            slot="header.policy"
+            slot="header.status"
           >
-            <span>{copy.headers.policy}</span>
+            <span>{copy.headers.status}</span>
+          </AdminTableSlotTemplate>
+        ),
+        sortable: true,
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="cell.status"
+            data={{
+              templateId: row.id
+            }}
+          >
+            <span className="text-xs text-muted-foreground">{row.statusLabel}</span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminDefaultTemplateRow>({
+        key: 'priceLabel',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="header.price"
+          >
+            <span>{copy.headers.price}</span>
           </AdminTableSlotTemplate>
         ),
         cell: (row) => (
           <AdminTableSlotTemplate
             templateId="section.admin.table.subscriptions.templates.cell"
-            slot="cell.policy"
+            slot="cell.price"
             data={{
               templateId: row.id
             }}
           >
-            <span className="text-xs text-muted-foreground">{row.policyLabel}</span>
+            <span className="text-xs text-muted-foreground">{row.priceLabel}</span>
           </AdminTableSlotTemplate>
         )
       }),
-      buildTableColumn.custom<AdminBaselineTemplateRow>({
+      buildTableColumn.text<AdminDefaultTemplateRow>({
+        key: 'visibilityLabel',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="header.visibility"
+          >
+            <span>{copy.headers.visibility}</span>
+          </AdminTableSlotTemplate>
+        ),
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="cell.visibility"
+            data={{
+              templateId: row.id
+            }}
+          >
+            <span className="text-xs text-muted-foreground">
+              {row.visibilityLabel}
+            </span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.text<AdminDefaultTemplateRow>({
+        key: 'fallbackLabel',
+        header: (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="header.fallback"
+          >
+            <span>{copy.headers.fallback}</span>
+          </AdminTableSlotTemplate>
+        ),
+        cell: (row) => (
+          <AdminTableSlotTemplate
+            templateId="section.admin.table.subscriptions.templates.cell"
+            slot="cell.fallback"
+            data={{
+              templateId: row.id
+            }}
+          >
+            <span className="text-xs text-muted-foreground">{row.fallbackLabel}</span>
+          </AdminTableSlotTemplate>
+        )
+      }),
+      buildTableColumn.custom<AdminDefaultTemplateRow>({
         key: 'actions',
         header: (
           <AdminTableSlotTemplate
@@ -160,25 +235,25 @@ function getBaselineTemplatesTableDefinition({
   };
 
   return defineBuildTable<
-    AdminBaselineTemplateRow,
-    BuildTableDefinition<AdminBaselineTemplateRow>
+    AdminDefaultTemplateRow,
+    BuildTableDefinition<AdminDefaultTemplateRow>
   >(definition);
 }
 
-export function AdminBaselineTemplatesDataTable({
+export function AdminDefaultTemplatesDataTable({
   data,
   copy,
   tableTemplate
-}: AdminBaselineTemplatesDataTableProps) {
+}: AdminDefaultTemplatesDataTableProps) {
   return (
     <DataTable
-      definition={getBaselineTemplatesTableDefinition({
+      definition={getDefaultTemplatesTableDefinition({
         data,
         copy
       })}
       labels={copy.dataTable}
       template={tableTemplate}
-      tableClassName="min-w-[720px]"
+      tableClassName="min-w-[920px]"
     />
   );
 }

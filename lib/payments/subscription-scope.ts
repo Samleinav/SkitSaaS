@@ -3,10 +3,6 @@ import { areTeamsEnabled } from '@/lib/organizations/config';
 export type SubscriptionCheckoutTargetType = 'team' | 'user';
 export type SubscriptionTemplateTargetScope = 'organization' | 'user';
 
-const SELF_SERVICE_SUBSCRIPTION_TEMPLATE_SCOPE_SET = new Set<
-  SubscriptionTemplateTargetScope
->(['organization']);
-
 function normalizeCheckoutTargetType(
   value: string | null | undefined
 ): SubscriptionCheckoutTargetType | null {
@@ -45,7 +41,11 @@ export function supportsSelfServiceSubscriptionTemplateScope(
     return false;
   }
 
-  return SELF_SERVICE_SUBSCRIPTION_TEMPLATE_SCOPE_SET.has(normalizedTemplateScope);
+  if (normalizedTemplateScope === 'user') {
+    return (options?.teamsEnabled ?? areTeamsEnabled()) === false;
+  }
+
+  return normalizedTemplateScope === 'organization';
 }
 
 export function filterSelfServiceSubscriptionTemplates<

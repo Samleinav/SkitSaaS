@@ -143,7 +143,7 @@ export function AppConfigSectionNavClient({
               ? {
                   general: t('Core organization settings and shared behavior.'),
                   subscriptions: t(
-                    'Manage public signup defaults, public-free fallback, and lifecycle recovery policy.'
+                    'Manage public signup defaults and default-tier subscription behavior.'
                   ),
                   paymentMethods: t(
                     'Configure Stripe/PayPal runtime keys and provider options.'

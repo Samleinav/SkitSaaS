@@ -1,10 +1,12 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
+import { getSubscriptionTemplateById } from '@/lib/db/queries';
 import { subscriptionAssignments } from '@/lib/db/schema';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import {
-  getReservedFreeSubscriptionTemplateIdForTargetType
+  getReservedFreeSubscriptionTemplateIdForTargetType,
+  resolveDefaultTierFallbackAssignmentStatus
 } from '@/lib/payments/subscription-default-templates';
 import { resolveSubscriptionFailureFallbackTemplateIdForTargetType } from '@/lib/payments/subscription-signup-policy';
 
@@ -468,14 +470,42 @@ export async function replaceWithReservedFreeSubscriptionAssignment(
   const reservedTemplateId = getReservedFreeSubscriptionTemplateIdForTargetType(
     input.targetType
   );
+  const reservedTemplate = await getSubscriptionTemplateById(reservedTemplateId);
 
   return replaceWithSubscriptionTemplateAssignment(
     {
       targetType: input.targetType,
       targetId: input.targetId,
       subscriptionTemplateId: reservedTemplateId,
-      status: 'free',
-      planName: null,
+      status: resolveDefaultTierFallbackAssignmentStatus(reservedTemplate),
+      planName: reservedTemplate?.name ?? null,
+      closeStatus: input.closeStatus ?? 'canceled',
+      sourceOrderId: input.sourceOrderId ?? null
+    },
+    options
+  );
+}
+
+export async function replaceWithDefaultTierSubscriptionAssignment(
+  input: SubscriptionAssignmentTarget & {
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  },
+  options: SubscriptionAssignmentWriteOptions = {}
+) {
+  const fallbackTemplateId =
+    await resolveSubscriptionFailureFallbackTemplateIdForTargetType(
+      input.targetType
+    );
+  const fallbackTemplate = await getSubscriptionTemplateById(fallbackTemplateId);
+
+  return replaceWithSubscriptionTemplateAssignment(
+    {
+      targetType: input.targetType,
+      targetId: input.targetId,
+      subscriptionTemplateId: fallbackTemplateId,
+      status: resolveDefaultTierFallbackAssignmentStatus(fallbackTemplate),
+      planName: fallbackTemplate?.name ?? null,
       closeStatus: input.closeStatus ?? 'canceled',
       sourceOrderId: input.sourceOrderId ?? null
     },
@@ -490,21 +520,5 @@ export async function replaceWithConfiguredFallbackSubscriptionAssignment(
   },
   options: SubscriptionAssignmentWriteOptions = {}
 ) {
-  const fallbackTemplateId =
-    await resolveSubscriptionFailureFallbackTemplateIdForTargetType(
-      input.targetType
-    );
-
-  return replaceWithSubscriptionTemplateAssignment(
-    {
-      targetType: input.targetType,
-      targetId: input.targetId,
-      subscriptionTemplateId: fallbackTemplateId,
-      status: 'free',
-      planName: null,
-      closeStatus: input.closeStatus ?? 'canceled',
-      sourceOrderId: input.sourceOrderId ?? null
-    },
-    options
-  );
+  return replaceWithDefaultTierSubscriptionAssignment(input, options);
 }

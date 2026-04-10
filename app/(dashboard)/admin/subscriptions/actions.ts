@@ -44,7 +44,6 @@ import {
   BASELINE_USER_SUBSCRIPTION_TEMPLATE_ID,
   getReservedBaselineTemplateRequiredFeatures,
   isReservedBaselineSubscriptionTemplateId,
-  isReservedBaselineSubscriptionTemplatePublicationLocked,
   normalizeSubscriptionTemplatePublicationStatus
 } from '@/lib/payments/subscription-default-templates';
 import {
@@ -561,10 +560,6 @@ export const updateSubscriptionTemplateAction = adminAction(
     }
 
     const resolvedTargetScope = reservedTemplateScope ?? targetScope;
-    const resolvedPublicationStatus =
-      isReservedBaselineSubscriptionTemplatePublicationLocked(currentTemplate.id)
-        ? 'draft'
-        : publicationStatus;
 
     if (
       compareAtPriceRaw &&
@@ -588,7 +583,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       .set({
         name,
         targetScope: resolvedTargetScope,
-        publicationStatus: resolvedPublicationStatus,
+        publicationStatus,
         categoryKey,
         hierarchyRank,
         billingInterval,
@@ -627,7 +622,7 @@ export const updateSubscriptionTemplateAction = adminAction(
       ...currentTemplate,
       name,
       targetScope: resolvedTargetScope,
-      publicationStatus: resolvedPublicationStatus,
+      publicationStatus,
       categoryKey,
       hierarchyRank,
       billingInterval,
@@ -786,7 +781,7 @@ export const deleteSubscriptionTemplateAction = adminValidatedAction(
       templateId === BASELINE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID
     ) {
       return invalid({
-        templateId: ['Reserved baseline templates cannot be deleted.']
+        templateId: ['Reserved default tiers cannot be deleted.']
       });
     }
 

@@ -56,9 +56,6 @@ export default async function AdminEditSubscriptionTemplatePage({
   );
   const scopeLabel =
     template.targetScope === 'organization' ? t('Organization') : t('User');
-  const publicationStatusLabel =
-    template.publicationStatus === 'published' ? t('Published') : t('Draft');
-
   const featureRows =
     template.features.length > 0
       ? template.features.map((f) => ({
@@ -129,18 +126,6 @@ export default async function AdminEditSubscriptionTemplatePage({
               };
             }
 
-            if (field.name === 'publicationStatus') {
-              return {
-                ...field,
-                options: [
-                  {
-                    value: template.publicationStatus,
-                    label: `${publicationStatusLabel} (${t('Locked')})`
-                  }
-                ]
-              };
-            }
-
             return field;
           })
         }))
@@ -203,7 +188,7 @@ export default async function AdminEditSubscriptionTemplatePage({
         {isReservedTemplate ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             {t(
-              'This is a reserved system baseline template. You can tune labels, values, and policy data, but scope stays locked, baseline feature keys/types stay pinned, and the template cannot be deleted or published.'
+              'This is a reserved default tier. Scope stays locked, required feature keys/types stay pinned, and the template cannot be deleted. If it is published with price 0, it appears as the public free tier for its scope.'
             )}
           </div>
         ) : null}
@@ -235,7 +220,7 @@ export default async function AdminEditSubscriptionTemplatePage({
           <div className="rounded-md border border-red-200 bg-red-50 p-4">
             <p className="mb-3 text-sm text-red-700">
               {t(
-                'Deleting this template will move active targets back to the reserved system baseline.'
+                'Deleting this template will move active targets back to the default tier for their scope.'
               )}
             </p>
             <TemplateBuildForm

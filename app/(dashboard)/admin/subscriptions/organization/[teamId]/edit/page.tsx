@@ -107,7 +107,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
         providerLabel: t('Provider'),
         statusLabel: t('Status'),
         templateLabel: t('Template name'),
-        noTemplate: t('System baseline'),
+        noTemplate: t('Default tier'),
         providers: {
           none: t('none'),
           stripe: t('stripe'),
@@ -155,7 +155,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
         confirm: {
           title: t('Clear subscription for this team?'),
           description: t(
-            'This removes provider references and returns the team to the system baseline.'
+            'This removes provider references and returns the team to the default organization tier.'
           ),
           confirmLabel: t('Clear subscription'),
           cancelLabel: t('Cancel'),
@@ -232,12 +232,12 @@ export default async function AdminEditOrganizationSubscriptionPage({
               {t('Template')}
             </p>
             <p className="mt-2 text-sm font-semibold text-foreground">
-              {team.subscriptionTemplateName || t('System baseline')}
+              {team.subscriptionTemplateName || t('Default tier')}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {team.subscriptionTemplateId
                 ? `#${team.subscriptionTemplateId}`
-                : t('System baseline')}
+                : t('Default tier')}
             </p>
           </div>
           <div className="rounded-xl border border-border/70 bg-card/80 p-4">
@@ -333,7 +333,7 @@ export default async function AdminEditOrganizationSubscriptionPage({
             </p>
             <p className="text-xs text-red-700/80 dark:text-red-200/80">
               {t(
-                'Use this only when provider references must be cleared and the team should return to the reserved system baseline.'
+                'Use this only when provider references must be cleared and the team should return to the default organization tier.'
               )}
             </p>
           </div>

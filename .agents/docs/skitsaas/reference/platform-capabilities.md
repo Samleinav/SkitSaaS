@@ -60,7 +60,8 @@ Current billing capabilities:
 - change requests for scheduled transitions
 - trial eligibility and consumption tracking
 - team- and user-targeted subscription flows
-- env/DB-driven signup defaults and lifecycle fallback policy
+- env/DB-driven signup defaults
+- scope-based lifecycle fallback to reserved default tiers
 
 Source-of-truth tables:
 
@@ -127,6 +128,13 @@ Current paid-signup checkout model:
 - guest checkout access is allowed only for tokens tied to a `signup_intent`
 - return/webhook finalization creates the real user/team and purchased assignment
 
+Self-service pricing scope:
+
+- with `TEAMS_ENABLED=true`, `/pricing` renders organization templates and
+  checkout targets the current team
+- with `TEAMS_ENABLED=false`, `/pricing` renders user templates and checkout
+  targets the current user
+
 Main files:
 
 - `lib/payments/checkout-system.ts`
@@ -143,7 +151,7 @@ Admin capabilities include:
 - subscription and template management
 - payment and order administration
 - app-config management
-- signup/fallback policy management in `/admin/app-config/subscriptions`
+- signup default management in `/admin/app-config/subscriptions`
 - runtime log inspection
 - module runtime control surfaces
 

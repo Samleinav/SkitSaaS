@@ -11,8 +11,10 @@ import { getDateLocale } from '@/lib/i18n/formatting';
 import { getThemeSelectionForArea } from '@/lib/theme-runtime';
 import { cn } from '@/lib/utils';
 import {
+  getActiveUserSubscriptionAssignment,
   getAllSubscriptionTemplatesForPricing,
-  getTeamForUser
+  getTeamForUser,
+  getUser
 } from '@/lib/db/queries';
 import {
   classifySubscriptionPlanRelation,
@@ -245,20 +247,30 @@ export default async function PricingPage({
   const dateLocale = getDateLocale(locale);
   const teamsEnabled = areTeamsEnabled();
 
-  const [templates, paymentConfig, team] = await Promise.all([
+  const [templates, paymentConfig, team, userAssignment] = await Promise.all([
     getPricingTemplates(),
     getPricingPaymentConfig(),
-    teamsEnabled ? getTeamForUser() : Promise.resolve(null)
+    teamsEnabled ? getTeamForUser() : Promise.resolve(null),
+    teamsEnabled ? Promise.resolve(null) : getCurrentUserSubscriptionAssignment()
   ]);
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const changeModeParam = Array.isArray(resolvedSearchParams?.changeMode)
     ? resolvedSearchParams.changeMode[0]
     : resolvedSearchParams?.changeMode;
   const requestedChangeMode = normalizeChangeMode(changeModeParam);
+  const currentSubscriptionTemplateId = teamsEnabled
+    ? team?.subscriptionTemplateId ?? null
+    : userAssignment?.subscriptionTemplateId ?? null;
+  const currentSubscriptionPeriodEnd = teamsEnabled
+    ? team?.subscriptionCurrentPeriodEnd ?? null
+    : userAssignment?.currentPeriodEnd ?? null;
+  const currentSubscriptionTrialEndsAt = teamsEnabled
+    ? team?.subscriptionTrialEndsAt ?? null
+    : userAssignment?.trialEndsAt ?? null;
   const scheduledStartTime =
     requestedChangeMode === 'period_end'
-      ? team?.subscriptionCurrentPeriodEnd?.toISOString() ??
-        team?.subscriptionTrialEndsAt?.toISOString() ??
+      ? currentSubscriptionPeriodEnd?.toISOString() ??
+        currentSubscriptionTrialEndsAt?.toISOString() ??
         null
       : null;
   const changeMode =
@@ -269,7 +281,7 @@ export default async function PricingPage({
   const scheduledStartDate = scheduledStartTime
     ? new Date(scheduledStartTime)
     : null;
-  const showChangeMode = teamsEnabled && Boolean(team?.subscriptionTemplateId);
+  const showChangeMode = Boolean(currentSubscriptionTemplateId);
   const themeSelection = await getThemeSelectionForArea('frontend');
   const selfServiceTemplates = filterSelfServiceSubscriptionTemplates(templates, {
     teamsEnabled
@@ -277,16 +289,30 @@ export default async function PricingPage({
   const organizationTemplates = selfServiceTemplates.filter(
     (template) => template.targetScope === 'organization'
   );
+  const userTemplates = selfServiceTemplates.filter(
+    (template) => template.targetScope === 'user'
+  );
   const currentOrganizationTemplate =
-    teamsEnabled && team?.subscriptionTemplateId
+    teamsEnabled && currentSubscriptionTemplateId
       ? templates.find(
           (template) =>
-            template.id === team.subscriptionTemplateId &&
+            template.id === currentSubscriptionTemplateId &&
             template.targetScope === 'organization'
         ) || null
       : null;
-  const hasAnyTemplate = organizationTemplates.length > 0;
-  const pricingSummary = pricing.organizationPlansDescription;
+  const currentUserTemplate =
+    !teamsEnabled && currentSubscriptionTemplateId
+      ? templates.find(
+          (template) =>
+            template.id === currentSubscriptionTemplateId &&
+            template.targetScope === 'user'
+        ) || null
+      : null;
+  const hasAnyTemplate =
+    organizationTemplates.length > 0 || userTemplates.length > 0;
+  const pricingSummary = teamsEnabled
+    ? pricing.organizationPlansDescription
+    : pricing.userPlansDescription;
   const changeModeOptions = [
     {
       value: 'immediate' as const,
@@ -321,7 +347,12 @@ export default async function PricingPage({
             value: formatCountValue(organizationTemplates.length),
           }
         ]
-      : []),
+      : [
+          {
+            id: 'user-plans',
+            value: formatCountValue(userTemplates.length),
+          }
+        ]),
     {
       id: 'payment-methods',
       methods: enabledPaymentMethods
@@ -338,6 +369,9 @@ export default async function PricingPage({
   const sectionLinks = [
     ...(teamsEnabled && organizationTemplates.length > 0
       ? [{ href: '#organization-plans', id: 'organization-plans' }]
+      : []),
+    ...(!teamsEnabled && userTemplates.length > 0
+      ? [{ href: '#user-plans', id: 'user-plans' }]
       : [])
   ];
   const pricingBody = (
@@ -418,6 +452,21 @@ export default async function PricingPage({
             themeId={themeSelection?.themeKey ?? null}
           />
         ) : null}
+        {!teamsEnabled ? (
+          <PricingSection
+            sectionId="user-plans"
+            title={pricing.userPlansTitle}
+            description={pricing.userPlansDescription}
+            emptyLabel={pricing.noUserPlansConfigured}
+            templates={userTemplates}
+            pricing={pricing}
+            enabledPaymentMethods={enabledPaymentMethods}
+            dateLocale={dateLocale}
+            changeMode={changeMode}
+            currentTemplate={currentUserTemplate}
+            themeId={themeSelection?.themeKey ?? null}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -476,6 +525,15 @@ async function getPricingPaymentConfig() {
     stripeEnabled,
     payPalEnabled
   };
+}
+
+async function getCurrentUserSubscriptionAssignment() {
+  const user = await getUser();
+  if (!user) {
+    return null;
+  }
+
+  return getActiveUserSubscriptionAssignment(user.id);
 }
 
 function PricingSection({
@@ -596,6 +654,7 @@ function PricingSection({
                     .filter(isDefinedFeature)
                 }
                 templateId={template.id}
+                priceCents={template.priceCents}
                 enabledPaymentMethods={enabledPaymentMethods}
                 noPaymentConfiguredLabel={pricing.noPaymentConfigured}
                 noFeaturesLabel={pricing.noFeatures}
@@ -626,6 +685,7 @@ function PricingCard({
   billingLabel,
   features,
   templateId,
+  priceCents,
   enabledPaymentMethods,
   noPaymentConfiguredLabel,
   noFeaturesLabel,
@@ -647,6 +707,7 @@ function PricingCard({
   billingLabel: string;
   features: string[];
   templateId: number;
+  priceCents: number;
   enabledPaymentMethods: string[];
   noPaymentConfiguredLabel: string;
   noFeaturesLabel: string;
@@ -657,7 +718,8 @@ function PricingCard({
   planRelationLabel: string | null;
   selfServiceEnabled: boolean;
 }) {
-  const checkoutEnabled = enabledPaymentMethods.length > 0;
+  const isZeroCost = priceCents === 0;
+  const checkoutEnabled = isZeroCost || enabledPaymentMethods.length > 0;
   const isCurrentTemplate = planRelation === 'same_template';
   const featureItems = features.length > 0 ? features : [noFeaturesLabel];
   const hasPublicFeatures = features.length > 0;

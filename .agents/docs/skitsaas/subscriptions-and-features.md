@@ -66,34 +66,37 @@ Examples:
 - `dashboard.user.organizations.max`
 - `dashboard.team.members.max`
 
-Reserved baseline templates:
+Reserved default-tier templates:
 
 - `subscription_templates.id = 1`
-  baseline `user`
+  default tier for `user`
 - `subscription_templates.id = 2`
-  baseline `organization`
+  default tier for `organization`
 
 Operational rule:
 
 - authenticated user/team paths should assume those reserved templates define
-  the baseline internal behavior, not `null` assignment
-- feature controllers and the quota adapter now use the reserved baseline template
-  as the fallback for authenticated scopes when assignment data is missing
-- the managed core rows inside templates `1` and `2` are baseline data that
+  the default behavior, not `null` assignment
+- feature controllers and the quota adapter use the reserved default tier as the
+  fallback for authenticated scopes when assignment data is missing
+- the managed core rows inside templates `1` and `2` are default-tier data that
   should be preserved even when admins edit those templates
-- admin template UI should keep those baseline rows editable but non-removable;
+- admin template UI should keep those required rows editable but non-removable;
   use BuildForm repeater rows with `removable: false` instead of showing a
   remove button that later fails on submit
 - for those same protected rows, lock `featureKey` and `featureValueType` with
   repeater `lockedFields` so operators can still edit label/value metadata
   without changing the managed feature identity
-- public free plans are separate published zero-cost templates; they are not the
-  same thing as the reserved baseline templates
+- templates `1` and `2` can be published; if one is `published` with
+  `price_cents = 0`, it is the public free tier for that scope
+- published zero-cost templates must be assignable from pricing without Stripe
+  or PayPal being configured
 - published paid templates can still be the public signup default, but they must
   go through `signup_intents` + checkout before the real account is created
-- if lifecycle fallback mode is `public_free`, paid failures/cancellations may
-  land on one of those public free templates, but missing-assignment runtime
-  fallback still treats the reserved baseline templates as the internal default
+- paid failures/cancellations fall back by target scope to the reserved default
+  tier (`id=1` user, `id=2` organization)
+- fallback assignment status is `free` only when that default tier has
+  `price_cents = 0`; otherwise use `unpaid`
 
 ## Module Consumption Through SDK
 

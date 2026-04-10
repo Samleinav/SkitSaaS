@@ -387,7 +387,7 @@ export function normalizeManagedSubscriptionFeature(
 
   return {
     featureKey: definition.key,
-    featureLabel: definition.label || normalizeLabel(feature.featureLabel),
+    featureLabel: normalizeLabel(feature.featureLabel) || definition.label,
     valueType: definition.valueType as SubscriptionFeatureValueType,
     featureValue,
     valueLabel,

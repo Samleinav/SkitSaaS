@@ -140,22 +140,21 @@ Current rule:
 |---|---|---|
 | `SIGNUP_DEFAULT_ORGANIZATION_TEMPLATE_ID` | published organization template for public signup when `TEAMS_ENABLED=true` | empty |
 | `SIGNUP_DEFAULT_USER_TEMPLATE_ID` | published user template for public signup when `TEAMS_ENABLED=false` | empty |
-| `SIGNUP_PUBLIC_FREE_ORGANIZATION_TEMPLATE_ID` | optional published zero-cost organization fallback when lifecycle mode is `public_free` | empty |
-| `SIGNUP_PUBLIC_FREE_USER_TEMPLATE_ID` | optional published zero-cost user fallback when lifecycle mode is `public_free` | empty |
-| `SIGNUP_FAILURE_FALLBACK_MODE` | `baseline` or `public_free` | `baseline` |
 
 Practical rules:
 
 - these resolve from env first and then `/admin/app-config/subscriptions`
-- signup defaults must point to published, non-reserved templates
-- public-free fallback templates must also be zero-cost
-- reserved baseline templates (`id=1`, `id=2`) are internal safety nets and are
-  not valid values for the signup policy fields
+- signup defaults must point to published templates for the matching scope
+- reserved default tiers (`id=1`, `id=2`) are valid signup defaults when published
+- when no explicit signup default is configured, a published default tier for
+  the active signup scope can be used
 - zero-cost signup defaults can provision directly during password sign-up
 - paid signup defaults create a pre-account `signup_intent` plus checkout order
   before the real account exists
 - the real user/team is created only after provider return or webhook
   finalization succeeds for that `signup_intent`
+- paid failure/cancel fallback is no longer configured here; lifecycle resolves
+  the reserved default tier by target scope
 
 ## Theme Selection
 

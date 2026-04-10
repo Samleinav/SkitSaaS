@@ -114,21 +114,23 @@ Current default mental model:
 - `received`
   activate target subscription
 - `failed`
-  close the paid assignment and move the target to the configured fallback for that scope
+  close the paid assignment and move the target to the reserved default tier for that scope
 - `canceled`
-  close the paid assignment and move the target to the configured fallback for that scope
+  close the paid assignment and move the target to the reserved default tier for that scope
 
 Fallback policy:
 
-- `baseline`
-  reserved baseline template per scope
-- `public_free`
-  configured published zero-cost template per scope, otherwise baseline
+- `user`
+  reserved default user tier (`subscription_templates.id = 1`)
+- `team`
+  reserved default organization tier (`subscription_templates.id = 2`)
+- fallback status is `free` only when the reserved default tier price is `0`;
+  otherwise the replacement assignment is `unpaid`
 
 Important boundary:
 
 - failed or canceled `signup_intent` checkouts do not create fallback accounts
-- fallback modes apply only after a real target assignment exists
+- fallback applies only after a real target assignment exists
 
 The lifecycle layer is what turns order state into subscription state. Do not
 copy that logic into every provider or admin action.
@@ -221,9 +223,9 @@ Safe mental model:
 
 1. lifecycle executor sees `failed` or `canceled`
 2. active paid assignment is closed for the target
-3. the configured fallback template is activated immediately after:
-   - `baseline` mode -> `id=1` for `user`, `id=2` for `organization`
-   - `public_free` mode -> configured published zero-cost template for that scope, otherwise baseline
+3. the reserved default tier for the same scope is activated immediately after:
+   - `id=1` for `user`
+   - `id=2` for `organization`
 4. feature/quota reads continue from an explicit template instead of `null`
 
 For paid public signup:

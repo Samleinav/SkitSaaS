@@ -108,18 +108,18 @@ const maxMembers = orgFeatures.int(
 Current subscription state comes from `subscription_assignments`. The controller helpers resolve the active
 assignment (user or team) and then apply the template features for that scope.
 
-Reserved system baseline templates:
+Reserved default-tier templates:
 
-- `subscription_templates.id = 1` -> baseline `user`
-- `subscription_templates.id = 2` -> baseline `organization`
+- `subscription_templates.id = 1` -> default tier for `user`
+- `subscription_templates.id = 2` -> default tier for `organization`
 
 New authenticated users and new teams are provisioned with those templates by
 default. As an operational safety net, host feature controllers and the SDK
-quota adapter also fall back to the reserved baseline template for the current
+quota adapter also fall back to the reserved default tier for the current
 scope when an authenticated entity is missing an active assignment.
 
-For the reserved baseline templates, the managed core quota rows are treated as
-required baseline data. Admin can edit their values, but those rows are not
+For the reserved default tiers, the managed core quota rows are treated as
+required default data. Admin can edit their values, but those rows are not
 meant to disappear from templates `1` and `2`. The admin template editor now
 hides the repeater remove control for those protected rows instead of letting
 operators attempt an invalid delete. For those protected rows, the feature key
@@ -136,19 +136,23 @@ remain editable.
 Signup-default behavior uses the same publication rules:
 
 - published zero-cost templates can be assigned directly during password sign-up
+- published zero-cost templates can also be activated from `/pricing` without a
+  configured payment provider
 - published paid templates can also be used as signup defaults, but they are staged through `signup_intents` and checkout before the real account is created
+- when no explicit signup default is configured, a published default tier for
+  the active signup scope can be used as the signup target
 
-The reserved baseline templates are initialized as `draft`, kept out of the
-normal commercial catalog, and blocked from self-service checkout even if an
-operator later tries to treat them like public plans.
+The reserved default tiers are initialized as `draft`, but they are allowed to
+be published. If one is `published` with `price_cents = 0`, it is the public
+free tier for that scope. If it stays `draft`, it remains an internal fallback
+only and does not appear in pricing.
 
-Optional public free plans are a separate concern from the reserved baseline
-templates. If a SaaS wants a public free tier, that tier should be implemented
-with its own published zero-cost template, while templates `1` and `2` remain
-internal baseline safety nets. Lifecycle fallback can now be configured to land
-on one of those public free templates, but authenticated feature-controller
-fallback still treats the reserved baseline templates as the internal default
-when an active assignment is missing.
+Lifecycle fallback is deterministic by scope: failed or canceled user
+subscriptions fall back to template `1`; failed or canceled organization
+subscriptions fall back to template `2`. There is no separate manual
+public-free fallback selector. The fallback assignment status is `free` only
+when the default tier price is `0`; a paid default tier is marked `unpaid` so
+operators can distinguish recovery/default access from a real free tier.
 
 ## Module Access via SDK
 

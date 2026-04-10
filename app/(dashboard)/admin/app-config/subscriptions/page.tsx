@@ -22,9 +22,7 @@ export default async function AdminAppConfigSubscriptionsPage() {
   const {
     signupPolicyRows,
     organizationTemplateOptions,
-    userTemplateOptions,
-    freeOrganizationTemplateOptions,
-    freeUserTemplateOptions
+    userTemplateOptions
   } = await getAdminSignupPolicyConfigData();
   const savingLabel = `${t('Save')}...`;
   const signupPolicyForm = composeBuildFormDefinition(
@@ -33,8 +31,6 @@ export default async function AdminAppConfigSubscriptionsPage() {
       rows: signupPolicyRows,
       organizationTemplateOptions,
       userTemplateOptions,
-      freeOrganizationTemplateOptions,
-      freeUserTemplateOptions,
       copy: {
         envPrefix: t('ENV'),
         sourcePrefix: t('Value source'),
@@ -50,24 +46,6 @@ export default async function AdminAppConfigSubscriptionsPage() {
         signupDefaultUserTemplateDescription: t(
           'Used for standalone sign-up when TEAMS_ENABLED=false.'
         ),
-        publicFreeOrganizationTemplateLabel: t(
-          'Public free organization fallback'
-        ),
-        publicFreeUserTemplateLabel: t('Public free user fallback'),
-        publicFreeOrganizationTemplateDescription: t(
-          'Optional published zero-cost organization template used when lifecycle fallback mode is public_free.'
-        ),
-        publicFreeUserTemplateDescription: t(
-          'Optional published zero-cost user template used when lifecycle fallback mode is public_free.'
-        ),
-        subscriptionFailureFallbackModeLabel: t(
-          'Subscription failure fallback mode'
-        ),
-        subscriptionFailureFallbackModeDescription: t(
-          'Controls where failed or canceled paid subscriptions land after lifecycle projection.'
-        ),
-        fallbackModeBaselineLabel: t('System baseline'),
-        fallbackModePublicFreeLabel: t('Public free template'),
         noneTemplateLabel: t('None configured')
       }
     }),
@@ -93,7 +71,7 @@ export default async function AdminAppConfigSubscriptionsPage() {
           <CardTitle>{t('Subscriptions')}</CardTitle>
           <CardDescription>
             {t(
-              'Manage public signup defaults, free fallback templates, and lifecycle recovery policy.'
+              'Manage public signup defaults. Payment failures fall back to the default tier for the affected scope.'
             )}
           </CardDescription>
         </CardHeader>
@@ -119,10 +97,10 @@ export default async function AdminAppConfigSubscriptionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('Signup and recovery policy')}</CardTitle>
+          <CardTitle>{t('Signup defaults')}</CardTitle>
           <CardDescription>
             {t(
-              'Choose which published templates drive public sign-up and where failed paid subscriptions should fall back.'
+              'Choose an explicit published template only when sign-up should start on a plan different from the default tier.'
             )}
           </CardDescription>
         </CardHeader>
@@ -141,7 +119,7 @@ export default async function AdminAppConfigSubscriptionsPage() {
           <CardTitle>{t('Operational notes')}</CardTitle>
           <CardDescription>
             {t(
-              'Keep commercial signup templates published and keep baseline templates reserved for internal fallback behavior.'
+              'Default tiers are configured in subscription templates. Publish a default tier with price 0 to expose it as a public free tier.'
             )}
           </CardDescription>
         </CardHeader>
@@ -172,7 +150,7 @@ export default async function AdminAppConfigSubscriptionsPage() {
       data={{
         title: t('Subscriptions'),
         description: t(
-          'Manage public signup defaults, free fallback templates, and lifecycle recovery policy.'
+          'Manage public signup defaults. Payment failures fall back to the default tier for the affected scope.'
         )
       }}
       fallback={fallbackPage}

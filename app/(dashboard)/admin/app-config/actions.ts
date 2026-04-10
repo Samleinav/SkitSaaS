@@ -11,9 +11,7 @@ import { getEmailConfigDefinitionsForAdmin } from '@/lib/email/config';
 import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';
 import {
   getSubscriptionSignupPolicyDefinitions,
-  isSubscriptionPublicFreeFallbackTemplateCandidate,
   isSubscriptionSignupDefaultTemplateCandidate,
-  normalizeSubscriptionFailureFallbackMode,
   SUBSCRIPTION_SIGNUP_POLICY_NAMESPACE
 } from '@/lib/payments/subscription-signup-policy';
 import { emitEventAsync } from '@/lib/events/bus';
@@ -231,19 +229,6 @@ export const upsertSignupPolicyConfigAction = adminAction(
         rawValue: form.string('signupDefaultUserTemplateId'),
         validate: (template: Awaited<ReturnType<typeof getSubscriptionTemplateById>>) =>
           isSubscriptionSignupDefaultTemplateCandidate(template, 'user')
-      },
-      {
-        definition:
-          subscriptionSignupPolicyDefinitions.publicFreeOrganizationTemplateId,
-        rawValue: form.string('publicFreeOrganizationTemplateId'),
-        validate: (template: Awaited<ReturnType<typeof getSubscriptionTemplateById>>) =>
-          isSubscriptionPublicFreeFallbackTemplateCandidate(template, 'organization')
-      },
-      {
-        definition: subscriptionSignupPolicyDefinitions.publicFreeUserTemplateId,
-        rawValue: form.string('publicFreeUserTemplateId'),
-        validate: (template: Awaited<ReturnType<typeof getSubscriptionTemplateById>>) =>
-          isSubscriptionPublicFreeFallbackTemplateCandidate(template, 'user')
       }
     ] as const;
 
@@ -270,17 +255,6 @@ export const upsertSignupPolicyConfigAction = adminAction(
       });
     }
 
-    const fallbackMode = normalizeSubscriptionFailureFallbackMode(
-      form.string('subscriptionFailureFallbackMode')
-    );
-    await upsertAppConfigEntry({
-      namespace: SUBSCRIPTION_SIGNUP_POLICY_NAMESPACE,
-      configKey:
-        subscriptionSignupPolicyDefinitions.subscriptionFailureFallbackMode.configKey,
-      configValue: fallbackMode,
-      isSecret: false
-    });
-
     const payload = {
       namespace: SUBSCRIPTION_SIGNUP_POLICY_NAMESPACE,
       settings: {
@@ -289,14 +263,7 @@ export const upsertSignupPolicyConfigAction = adminAction(
         ),
         signupDefaultUserTemplateId: parsePositiveIntOrNull(
           form.string('signupDefaultUserTemplateId')
-        ),
-        publicFreeOrganizationTemplateId: parsePositiveIntOrNull(
-          form.string('publicFreeOrganizationTemplateId')
-        ),
-        publicFreeUserTemplateId: parsePositiveIntOrNull(
-          form.string('publicFreeUserTemplateId')
-        ),
-        subscriptionFailureFallbackMode: fallbackMode
+        )
       }
     };
 

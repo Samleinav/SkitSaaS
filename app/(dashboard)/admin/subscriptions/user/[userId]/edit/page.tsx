@@ -114,7 +114,7 @@ export default async function AdminEditUserSubscriptionPage({ params }: PageProp
     createAdminUpdateUserSubscriptionBuildFormBase({
       copy: {
         templateLabel: t('User subscription template'),
-        noTemplate: t('System baseline')
+        noTemplate: t('Default tier')
       },
       templateOptions: templates.map((template) => ({
         id: template.id,

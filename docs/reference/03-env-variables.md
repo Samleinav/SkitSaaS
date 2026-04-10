@@ -148,19 +148,19 @@ Notes:
 | --- | --- | --- |
 | `SIGNUP_DEFAULT_ORGANIZATION_TEMPLATE_ID` | Published organization template used as public signup default when `TEAMS_ENABLED=true` | empty |
 | `SIGNUP_DEFAULT_USER_TEMPLATE_ID` | Published user template used as public signup default when `TEAMS_ENABLED=false` | empty |
-| `SIGNUP_PUBLIC_FREE_ORGANIZATION_TEMPLATE_ID` | Optional published zero-cost organization template used when lifecycle fallback mode is `public_free` | empty |
-| `SIGNUP_PUBLIC_FREE_USER_TEMPLATE_ID` | Optional published zero-cost user template used when lifecycle fallback mode is `public_free` | empty |
-| `SIGNUP_FAILURE_FALLBACK_MODE` | Subscription failure fallback mode (`baseline` or `public_free`) | `baseline` |
 
 Notes:
 
 - These values fall back to DB-backed app config from `/admin/app-config/subscriptions` when env is empty.
-- Signup defaults must point to published, non-reserved templates that match the target scope.
-- Public-free fallback templates must also be zero-cost (`price_cents = 0`).
-- Reserved baseline templates (`subscription_templates.id = 1` and `2`) remain internal fallback templates and are not valid values for these settings.
+- Signup defaults must point to published templates that match the target scope.
+- Reserved default tiers (`subscription_templates.id = 1` and `2`) are valid signup defaults when published.
+- If no explicit signup default is configured, a published default tier for the active signup scope can be used.
 - Zero-cost signup defaults are provisioned immediately during password sign-up.
 - Paid signup defaults create a pre-account `signup_intent` and redirect the browser into `/checkout/[checkoutToken]` before the real user/team exists.
 - The real user/team is created only after a successful provider return or converged webhook finalizes that `signup_intent`.
+- Failed or canceled paid subscriptions always fall back by scope to the
+  reserved default tier; there is no active env/App Config selector for a
+  separate public free fallback template.
 
 ## Theme selection (build-time target)
 

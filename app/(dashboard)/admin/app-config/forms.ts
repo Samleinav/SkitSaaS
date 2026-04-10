@@ -144,14 +144,6 @@ export type AdminSignupPolicyBuildFormCopy = {
   signupDefaultUserTemplateLabel: string;
   signupDefaultOrganizationTemplateDescription: string;
   signupDefaultUserTemplateDescription: string;
-  publicFreeOrganizationTemplateLabel: string;
-  publicFreeUserTemplateLabel: string;
-  publicFreeOrganizationTemplateDescription: string;
-  publicFreeUserTemplateDescription: string;
-  subscriptionFailureFallbackModeLabel: string;
-  subscriptionFailureFallbackModeDescription: string;
-  fallbackModeBaselineLabel: string;
-  fallbackModePublicFreeLabel: string;
   noneTemplateLabel: string;
 };
 
@@ -197,22 +189,15 @@ export function createAdminSignupPolicyBuildFormBase({
   rows,
   organizationTemplateOptions,
   userTemplateOptions,
-  freeOrganizationTemplateOptions,
-  freeUserTemplateOptions,
   copy
 }: {
   formId: string;
   rows: {
     signupDefaultOrganizationTemplateId: SignupPolicyConfigRow;
     signupDefaultUserTemplateId: SignupPolicyConfigRow;
-    publicFreeOrganizationTemplateId: SignupPolicyConfigRow;
-    publicFreeUserTemplateId: SignupPolicyConfigRow;
-    subscriptionFailureFallbackMode: SignupPolicyConfigRow;
   };
   organizationTemplateOptions: SignupPolicyTemplateOption[];
   userTemplateOptions: SignupPolicyTemplateOption[];
-  freeOrganizationTemplateOptions: SignupPolicyTemplateOption[];
-  freeUserTemplateOptions: SignupPolicyTemplateOption[];
   copy: AdminSignupPolicyBuildFormCopy;
 }) {
   return defineBuildForm({
@@ -253,63 +238,6 @@ export function createAdminSignupPolicyBuildFormBase({
         options: createTemplateSelectOptions({
           noneLabel: copy.noneTemplateLabel,
           templates: userTemplateOptions
-        })
-      }),
-      buildFormField.select({
-        name: 'subscriptionFailureFallbackMode',
-        label: copy.subscriptionFailureFallbackModeLabel,
-        description: formatSignupPolicyMetaDescription({
-          base: copy.subscriptionFailureFallbackModeDescription,
-          envKey: rows.subscriptionFailureFallbackMode.envKey,
-          source: rows.subscriptionFailureFallbackMode.source,
-          copy
-        }),
-        defaultValue: resolveSignupPolicyDefaultValue(
-          rows.subscriptionFailureFallbackMode
-        ),
-        options: [
-          {
-            value: 'baseline',
-            label: copy.fallbackModeBaselineLabel
-          },
-          {
-            value: 'public_free',
-            label: copy.fallbackModePublicFreeLabel
-          }
-        ]
-      }),
-      buildFormField.select({
-        name: 'publicFreeOrganizationTemplateId',
-        label: copy.publicFreeOrganizationTemplateLabel,
-        description: formatSignupPolicyMetaDescription({
-          base: copy.publicFreeOrganizationTemplateDescription,
-          envKey: rows.publicFreeOrganizationTemplateId.envKey,
-          source: rows.publicFreeOrganizationTemplateId.source,
-          copy
-        }),
-        defaultValue: resolveSignupPolicyDefaultValue(
-          rows.publicFreeOrganizationTemplateId
-        ),
-        options: createTemplateSelectOptions({
-          noneLabel: copy.noneTemplateLabel,
-          templates: freeOrganizationTemplateOptions
-        })
-      }),
-      buildFormField.select({
-        name: 'publicFreeUserTemplateId',
-        label: copy.publicFreeUserTemplateLabel,
-        description: formatSignupPolicyMetaDescription({
-          base: copy.publicFreeUserTemplateDescription,
-          envKey: rows.publicFreeUserTemplateId.envKey,
-          source: rows.publicFreeUserTemplateId.source,
-          copy
-        }),
-        defaultValue: resolveSignupPolicyDefaultValue(
-          rows.publicFreeUserTemplateId
-        ),
-        options: createTemplateSelectOptions({
-          noneLabel: copy.noneTemplateLabel,
-          templates: freeUserTemplateOptions
         })
       })
     ]

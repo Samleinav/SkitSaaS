@@ -33,9 +33,9 @@ import {
 } from '../i18n';
 import { isReservedBaselineSubscriptionTemplateId } from '@/lib/payments/subscription-default-templates';
 import {
-  AdminBaselineTemplatesDataTable,
-  type AdminBaselineTemplateRow
-} from './baseline-templates-data-table';
+  AdminDefaultTemplatesDataTable,
+  type AdminDefaultTemplateRow
+} from './default-templates-data-table';
 
 export default async function AdminSubscriptionTemplatesPage() {
   const t = await getServerTranslator({ area: 'admin' });
@@ -46,24 +46,35 @@ export default async function AdminSubscriptionTemplatesPage() {
   const templates = allTemplates.filter(
     (template) => !isReservedBaselineSubscriptionTemplateId(template.id)
   );
-  const baselineTemplates = allTemplates.filter((template) =>
+  const defaultTemplates = allTemplates.filter((template) =>
     isReservedBaselineSubscriptionTemplateId(template.id)
   );
   const themeSelection = await getThemeSelectionForArea('admin');
   const scopeLabels = getAdminSubscriptionScopeLabels(t);
   const intervalLabels = getAdminSubscriptionIntervalLabels(t);
-  const baselineTemplateRows: AdminBaselineTemplateRow[] =
-    baselineTemplates.map((template) => ({
-      id: template.id,
-      name: template.name,
-      scope:
-        template.targetScope === 'organization' ? 'organization' : 'user',
-      scopeLabel:
-        scopeLabels[template.targetScope as keyof typeof scopeLabels] ||
-        template.targetScope,
-      policyLabel: t('Internal baseline • draft only'),
-      editHref: `/admin/subscriptions/templates/${template.id}/edit`
-    }));
+  const defaultTemplateRows: AdminDefaultTemplateRow[] =
+    defaultTemplates.map((template) => {
+      const isPublished = template.publicationStatus === 'published';
+      const isFree = template.priceCents === 0;
+      return {
+        id: template.id,
+        name: template.name,
+        scope:
+          template.targetScope === 'organization' ? 'organization' : 'user',
+        scopeLabel:
+          scopeLabels[template.targetScope as keyof typeof scopeLabels] ||
+          template.targetScope,
+        statusLabel: isPublished ? t('Published') : t('Draft'),
+        priceLabel: `${template.currency} ${(template.priceCents / 100).toFixed(2)}`,
+        visibilityLabel: isPublished
+          ? isFree
+            ? t('Pricing: free tier')
+            : t('Pricing: paid tier')
+          : t('Internal fallback only'),
+        fallbackLabel: t('Fallback for this scope'),
+        editHref: `/admin/subscriptions/templates/${template.id}/edit`
+      };
+    });
   const resolveTableCellSlot = ({
     slot,
     data,
@@ -342,28 +353,31 @@ export default async function AdminSubscriptionTemplatesPage() {
           </TableBody>
         </TemplateTable>
       )}
-      {baselineTemplates.length > 0 ? (
+      {defaultTemplates.length > 0 ? (
         <Card className="border-dashed border-border/70 bg-muted/10">
           <CardHeader className="gap-2">
-            <CardTitle className="text-base">{t('System baseline')}</CardTitle>
+            <CardTitle className="text-base">{t('Default tiers')}</CardTitle>
             <CardDescription>
               {t(
-                'Reserved internal templates used for fallback and recovery access. They stay draft-only and are kept separate from the commercial catalog.'
+                'Reserved default templates used for scope fallback. Publish one with price 0 to expose a public free tier in pricing.'
               )}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <AdminBaselineTemplatesDataTable
-              data={baselineTemplateRows}
+            <AdminDefaultTemplatesDataTable
+              data={defaultTemplateRows}
               copy={{
                 headers: {
                   name: t('Name'),
                   scope: t('Scope'),
-                  policy: t('Policy'),
+                  status: t('Status'),
+                  price: t('Price'),
+                  visibility: t('Visibility'),
+                  fallback: t('Fallback'),
                   actions: t('Actions')
                 },
                 edit: t('Edit'),
-                noResults: t('No baseline templates found.'),
+                noResults: t('No default tiers found.'),
                 dataTable: {
                   filterPlaceholder: t('Filter...'),
                   columns: t('Columns'),

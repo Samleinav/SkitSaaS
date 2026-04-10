@@ -9,7 +9,7 @@ export default function PageAdminAppConfigSubscriptionsTemplate({
   const title = toStringOrFallback(data?.title, 'Subscriptions');
   const description = toStringOrFallback(
     data?.description,
-    'Public signup defaults, free fallback, and lifecycle recovery policy.'
+    'Public signup defaults and default-tier subscription behavior.'
   );
 
   return (

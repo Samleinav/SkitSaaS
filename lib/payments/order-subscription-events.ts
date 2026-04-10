@@ -16,10 +16,9 @@ import {
 } from './orders';
 import {
   activateSubscriptionAssignment,
-  replaceWithConfiguredFallbackSubscriptionAssignment,
+  replaceWithDefaultTierSubscriptionAssignment,
   replaceWithReservedFreeSubscriptionAssignment,
-  type ActivateSubscriptionAssignmentInput,
-  type SuspendSubscriptionAssignmentInput,
+  type ActivateSubscriptionAssignmentInput
 } from './subscription-assignments';
 import {
   consumeSubscriptionTrialUsage,
@@ -118,9 +117,6 @@ type PaymentOrderSubscriptionLifecycleDeps = {
   activateSubscriptionAssignment?: (
     input: ActivateSubscriptionAssignmentInput
   ) => Promise<unknown>;
-  suspendSubscriptionAssignment?: (
-    input: SuspendSubscriptionAssignmentInput
-  ) => Promise<unknown>;
   replaceWithReservedFreeSubscriptionAssignment?: (
     input: {
       targetType: 'team' | 'user';
@@ -194,7 +190,7 @@ const DEFAULT_PAYMENT_ORDER_SUBSCRIPTION_LIFECYCLE_DEPS: PaymentOrderSubscriptio
     },
     activateSubscriptionAssignment,
     replaceWithFallbackSubscriptionAssignment:
-      replaceWithConfiguredFallbackSubscriptionAssignment,
+      replaceWithDefaultTierSubscriptionAssignment,
     replaceWithReservedFreeSubscriptionAssignment,
     consumeSubscriptionTrialUsage,
     createSysActivityLog,
@@ -353,7 +349,7 @@ export async function applySubscriptionAssignmentReplayPayload(
     });
   }
 
-  return replaceWithConfiguredFallbackSubscriptionAssignment({
+  return replaceWithDefaultTierSubscriptionAssignment({
     targetType: payload.targetType,
     targetId: payload.targetId,
     closeStatus: payload.status,
@@ -658,11 +654,10 @@ async function projectSubscriptionAssignment({
     deps.activateSubscriptionAssignment ?? activateSubscriptionAssignment;
   const fallbackWriter =
     deps.replaceWithFallbackSubscriptionAssignment ??
-    replaceWithConfiguredFallbackSubscriptionAssignment;
+    replaceWithDefaultTierSubscriptionAssignment;
   const freeFallbackWriter =
     deps.replaceWithReservedFreeSubscriptionAssignment ??
     replaceWithReservedFreeSubscriptionAssignment;
-  const suspendWriter = deps.suspendSubscriptionAssignment ?? null;
 
   if (payload.operation === 'activate') {
     await activateWriter({
@@ -674,16 +669,6 @@ async function projectSubscriptionAssignment({
       providerPlanId: payload.providerPlanId,
       status: payload.status,
       planName: payload.planName,
-      sourceOrderId: payload.sourceOrderId,
-    });
-    return;
-  }
-
-  if (suspendWriter) {
-    await suspendWriter({
-      targetType: payload.targetType,
-      targetId: payload.targetId,
-      status: payload.status,
       sourceOrderId: payload.sourceOrderId,
     });
     return;

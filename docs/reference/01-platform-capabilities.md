@@ -45,10 +45,10 @@ This document maps current platform capabilities to implementation files and dat
   - `lib/payments/subscription-policy.ts`
   - classifies `same_template`, `upgrade`, `downgrade`, `lateral_change`, `new_purchase`
   - resolves trial eligibility/consumption by target scope (`team`/`user`)
-- Public signup + fallback policy:
+- Public signup policy:
   - `lib/payments/subscription-signup-policy.ts`
   - resolves configurable signup defaults from env/`app_configs`
-  - resolves configurable lifecycle fallback mode (`baseline` or `public_free`)
+  - payment failure fallback is scope-based and resolves to the reserved default tier (`id=1` user, `id=2` organization)
 
 ## 4) Features and Quotas
 
@@ -104,9 +104,9 @@ Checkout target model:
 
 Current self-service scope policy:
 
-- `/pricing` self-service checkout currently provisions `organization`-scoped templates only.
-- `/pricing` only renders self-service eligible templates; `user`-scoped templates stay available through lifecycle, policy, and admin/manual assignment flows, not public self-service checkout.
-- `user`-scoped templates are still supported by lifecycle/policy and admin/manual assignment flows.
+- With `TEAMS_ENABLED=true`, `/pricing` renders organization-scoped templates and checkout targets the current team.
+- With `TEAMS_ENABLED=false`, `/pricing` renders user-scoped templates and checkout targets the current user.
+- Published reserved default tiers follow the same visibility rules as other templates for their scope.
 
 Pre-account paid signup checkout:
 
@@ -148,7 +148,7 @@ Main route surfaces:
 - `/admin/payments`
 - `/admin/logs`
 - `/admin/app-config/*`
-- `/admin/app-config/subscriptions` exposes signup defaults, public-free fallback, and lifecycle recovery policy.
+- `/admin/app-config/subscriptions` exposes signup defaults and explains default-tier fallback behavior.
 - `/admin/app-config/modules` exposes module inventory, manifest-driven runtime BuildForms, and DB emergency enable/disable controls.
 
 Compatibility route:
@@ -271,7 +271,7 @@ Helpers:
 
 - `lib/config/app-config.ts`
 - `lib/config/app-config-writes.ts`
-- `/admin/app-config/subscriptions` manages signup defaults and lifecycle fallback policy
+- `/admin/app-config/subscriptions` manages signup defaults; lifecycle fallback is handled by reserved default tiers per scope
 - `@skitsaas/sdk` / `lib/modules/manifest.ts` can declare `runtimeConfig.fields`, which Core Admin renders in `/admin/app-config/modules` through `BuildForm`.
 
 ## 12) Email system

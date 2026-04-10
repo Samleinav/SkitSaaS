@@ -91,7 +91,7 @@ export function createAdminSubscriptionsCopy(
       totalUsers: t('Users'),
       usersWithSubscription: t('Managed user plans'),
       activeUsers: t('Active accounts'),
-      withoutSubscription: t('System baseline')
+      withoutSubscription: t('Default tier')
     },
     organizationMetrics: {
       payingTeams: t('Paying teams'),
@@ -111,7 +111,7 @@ export function createAdminSubscriptionsCopy(
       createdLabel: t('Created'),
       none: t('none'),
       free: t('Free'),
-      noTemplate: t('System baseline'),
+      noTemplate: t('Default tier'),
       stripe: t('stripe'),
       paypal: t('paypal'),
       trialing: t('trialing'),

@@ -154,7 +154,7 @@ const CORE_SEARCH_ENTRIES: SearchStaticEntry[] = [
     id: 'core.admin.app-config.subscriptions',
     title: 'Subscription settings',
     href: '/admin/app-config/subscriptions',
-    description: 'Signup defaults, public-free fallback, and lifecycle recovery policy.',
+    description: 'Signup defaults and default-tier subscription behavior.',
     group: 'Configuration',
     icon: 'badge-dollar-sign',
     areas: ['admin'],

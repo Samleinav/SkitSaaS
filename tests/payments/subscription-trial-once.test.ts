@@ -35,7 +35,7 @@ function createHarness({
     getUser: async () => null,
     getTemplate: async (templateId: number) => templateMap.get(templateId) || null,
     activateSubscriptionAssignment: async () => null,
-    suspendSubscriptionAssignment: async () => null,
+    replaceWithFallbackSubscriptionAssignment: async () => null,
     consumeSubscriptionTrialUsage: async (input: {
       template: {
         id: number;

@@ -3,8 +3,7 @@ import test from 'node:test';
 import { runPaymentOrderSubscriptionLifecycle } from '../../lib/payments/order-subscription-events';
 import type { PaymentOrderStatus } from '../../lib/payments/orders';
 import type {
-  ActivateSubscriptionAssignmentInput,
-  SuspendSubscriptionAssignmentInput
+  ActivateSubscriptionAssignmentInput
 } from '../../lib/payments/subscription-assignments';
 
 type TeamState = {
@@ -56,7 +55,12 @@ function createHarness({
     ])
   );
   const assignmentActivations: ActivateSubscriptionAssignmentInput[] = [];
-  const assignmentSuspensions: SuspendSubscriptionAssignmentInput[] = [];
+  const fallbackAssignments: Array<{
+    targetType: 'team' | 'user';
+    targetId: number;
+    closeStatus?: 'unpaid' | 'canceled';
+    sourceOrderId?: number | null;
+  }> = [];
   const logs: Array<Record<string, unknown>> = [];
   const emittedEvents: string[] = [];
 
@@ -69,10 +73,13 @@ function createHarness({
     ) => {
       assignmentActivations.push(payload);
     },
-    suspendSubscriptionAssignment: async (
-      payload: SuspendSubscriptionAssignmentInput
-    ) => {
-      assignmentSuspensions.push(payload);
+    replaceWithFallbackSubscriptionAssignment: async (payload: {
+      targetType: 'team' | 'user';
+      targetId: number;
+      closeStatus?: 'unpaid' | 'canceled';
+      sourceOrderId?: number | null;
+    }) => {
+      fallbackAssignments.push(payload);
     },
     createSysActivityLog: async (payload: Record<string, unknown>) => {
       logs.push(payload);
@@ -89,7 +96,7 @@ function createHarness({
 
   return {
     assignmentActivations,
-    assignmentSuspensions,
+    fallbackAssignments,
     logs,
     emittedEvents,
     deps
@@ -97,7 +104,12 @@ function createHarness({
 }
 
 test('order/payment status changes trigger correct lifecycle events for organization target', async () => {
-  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+  const {
+    assignmentActivations,
+    fallbackAssignments,
+    logs,
+    deps
+  } =
     createHarness({
       teams: [
         {
@@ -137,7 +149,7 @@ test('order/payment status changes trigger correct lifecycle events for organiza
   assert.equal(pendingResult.reason, 'status_not_actionable');
   assert.equal(logs.length, 0);
   assert.equal(assignmentActivations.length, 0);
-  assert.equal(assignmentSuspensions.length, 0);
+  assert.equal(fallbackAssignments.length, 0);
 
   const receivedResult = await applyOrderStatus('received');
   assert.equal(receivedResult.applied, true);
@@ -160,11 +172,11 @@ test('order/payment status changes trigger correct lifecycle events for organiza
   assert.equal(failedResult.applied, true);
   assert.equal(failedResult.reason, 'team_suspended');
   assert.equal(logs.length, 2);
-  assert.equal(assignmentSuspensions.length, 1);
-  assert.deepEqual(assignmentSuspensions[0], {
+  assert.equal(fallbackAssignments.length, 1);
+  assert.deepEqual(fallbackAssignments[0], {
     targetType: 'team',
     targetId: 10,
-    status: 'unpaid',
+    closeStatus: 'unpaid',
     sourceOrderId: 9001
   });
 
@@ -172,17 +184,22 @@ test('order/payment status changes trigger correct lifecycle events for organiza
   assert.equal(canceledResult.applied, true);
   assert.equal(canceledResult.reason, 'team_suspended');
   assert.equal(logs.length, 3);
-  assert.equal(assignmentSuspensions.length, 2);
-  assert.deepEqual(assignmentSuspensions[1], {
+  assert.equal(fallbackAssignments.length, 2);
+  assert.deepEqual(fallbackAssignments[1], {
     targetType: 'team',
     targetId: 10,
-    status: 'canceled',
+    closeStatus: 'canceled',
     sourceOrderId: 9001
   });
 });
 
-test('explicit user order/payment status changes activate and suspend user subscription', async () => {
-  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+test('explicit user order/payment status changes activate and fall back user subscription', async () => {
+  const {
+    assignmentActivations,
+    fallbackAssignments,
+    logs,
+    deps
+  } =
     createHarness({
       users: [
         {
@@ -246,16 +263,16 @@ test('explicit user order/payment status changes activate and suspend user subsc
   assert.equal(failedResult.applied, true);
   assert.equal(failedResult.reason, 'user_suspended');
   assert.equal(logs.length, 2);
-  assert.equal(assignmentSuspensions.length, 1);
-  assert.deepEqual(assignmentSuspensions[0], {
+  assert.equal(fallbackAssignments.length, 1);
+  assert.deepEqual(fallbackAssignments[0], {
     targetType: 'user',
     targetId: 77,
-    status: 'unpaid',
+    closeStatus: 'unpaid',
     sourceOrderId: 7007
   });
 });
 
-test('failed organization lifecycle can use configured fallback assignment writer', async () => {
+test('failed organization lifecycle can use fallback assignment writer', async () => {
   const { deps } = createHarness({
     teams: [
       {
@@ -294,7 +311,6 @@ test('failed organization lifecycle can use configured fallback assignment write
     },
     {
       ...deps,
-      suspendSubscriptionAssignment: undefined,
       replaceWithFallbackSubscriptionAssignment: async (payload) => {
         fallbackCalls.push(payload);
       }
@@ -314,7 +330,7 @@ test('failed organization lifecycle can use configured fallback assignment write
 });
 
 test('non-supported status like refunded does not mutate subscription state', async () => {
-  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+  const { assignmentActivations, fallbackAssignments, logs, deps } =
     createHarness({
       teams: [
         {
@@ -349,11 +365,11 @@ test('non-supported status like refunded does not mutate subscription state', as
   assert.equal(refundedResult.reason, 'status_not_actionable');
   assert.equal(logs.length, 0);
   assert.equal(assignmentActivations.length, 0);
-  assert.equal(assignmentSuspensions.length, 0);
+  assert.equal(fallbackAssignments.length, 0);
 });
 
 test('one_time order type never triggers subscription lifecycle projection', async () => {
-  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+  const { assignmentActivations, fallbackAssignments, logs, deps } =
     createHarness({
       teams: [
         {
@@ -389,11 +405,11 @@ test('one_time order type never triggers subscription lifecycle projection', asy
   assert.equal(result.reason, 'order_type_not_subscription');
   assert.equal(logs.length, 0);
   assert.equal(assignmentActivations.length, 0);
-  assert.equal(assignmentSuspensions.length, 0);
+  assert.equal(fallbackAssignments.length, 0);
 });
 
 test('scheduled change requests skip immediate activation', async () => {
-  const { assignmentActivations, assignmentSuspensions, logs, deps } =
+  const { assignmentActivations, fallbackAssignments, logs, deps } =
     createHarness({
       teams: [
         {
@@ -434,6 +450,6 @@ test('scheduled change requests skip immediate activation', async () => {
   assert.equal(result.applied, false);
   assert.equal(result.reason, 'change_scheduled');
   assert.equal(assignmentActivations.length, 0);
-  assert.equal(assignmentSuspensions.length, 0);
+  assert.equal(fallbackAssignments.length, 0);
   assert.equal(logs.length, 1);
 });

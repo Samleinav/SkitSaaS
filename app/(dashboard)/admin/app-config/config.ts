@@ -5,7 +5,10 @@ import {
 } from '@/lib/db/queries.admin';
 import { getEmailConfigDefinitionsForAdmin } from '@/lib/email/config';
 import { getPaymentConfigDefinitionsForAdmin } from '@/lib/payments/config';
-import { getSubscriptionSignupPolicyDefinitions } from '@/lib/payments/subscription-signup-policy';
+import {
+  getSubscriptionSignupPolicyDefinitions,
+  isSubscriptionSignupDefaultTemplateCandidate
+} from '@/lib/payments/subscription-signup-policy';
 
 export type ConfigSource = 'env' | 'db' | 'default';
 
@@ -51,6 +54,7 @@ export type SignupPolicyTemplateOption = {
   id: number;
   name: string;
   targetScope: string;
+  publicationStatus: string;
   billingInterval: string;
   priceCents: number;
   currency: string;
@@ -204,6 +208,7 @@ export async function getAdminSignupPolicyConfigData() {
   const [appConfigEntries, publishedTemplates] = await Promise.all([
     getAppConfigEntriesForAdmin(),
     getAllSubscriptionTemplatesForAdmin({
+      includeReserved: true,
       publicationStatus: 'published'
     })
   ]);
@@ -230,6 +235,7 @@ export async function getAdminSignupPolicyConfigData() {
     id: template.id,
     name: template.name,
     targetScope: template.targetScope,
+    publicationStatus: template.publicationStatus,
     billingInterval: template.billingInterval,
     priceCents: template.priceCents,
     currency: template.currency,
@@ -237,21 +243,20 @@ export async function getAdminSignupPolicyConfigData() {
   }));
 
   const organizationTemplateOptions = templateOptions.filter(
-    (template) => template.targetScope === 'organization'
+    (template) =>
+      isSubscriptionSignupDefaultTemplateCandidate(
+        template,
+        'organization'
+      )
   );
   const userTemplateOptions = templateOptions.filter(
-    (template) => template.targetScope === 'user'
+    (template) =>
+      isSubscriptionSignupDefaultTemplateCandidate(template, 'user')
   );
 
   return {
     signupPolicyRows,
     organizationTemplateOptions,
-    userTemplateOptions,
-    freeOrganizationTemplateOptions: organizationTemplateOptions.filter(
-      (template) => template.priceCents === 0
-    ),
-    freeUserTemplateOptions: userTemplateOptions.filter(
-      (template) => template.priceCents === 0
-    )
+    userTemplateOptions
   };
 }
