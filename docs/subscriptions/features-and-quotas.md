@@ -94,6 +94,9 @@ const maxMembers = orgFeatures.int(
 - applies value type rules
 - applies minimum/maximum constraints
 - ignores managed features that do not match the template `targetScope`
+- stores `display_order` per feature so operators can control the order shown
+  on `/pricing`; lower numbers render first, and blank order values are assigned
+  from the submitted row order in steps of `10`
 
 ## Useful helpers
 
@@ -124,7 +127,7 @@ meant to disappear from templates `1` and `2`. The admin template editor now
 hides the repeater remove control for those protected rows instead of letting
 operators attempt an invalid delete. For those protected rows, the feature key
 and value type also stay locked in the UI; only label/value/public-facing fields
-remain editable.
+and presentation order remain editable.
 
 ## Publication status and pricing visibility
 

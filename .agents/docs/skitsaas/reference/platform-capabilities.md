@@ -56,6 +56,7 @@ Main files:
 Current billing capabilities:
 
 - subscription templates and feature definitions
+- operator-controlled feature display order for pricing/admin presentation
 - assignment-based subscription state
 - change requests for scheduled transitions
 - trial eligibility and consumption tracking

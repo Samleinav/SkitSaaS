@@ -36,6 +36,7 @@ This document maps current platform capabilities to implementation files and dat
   - `subscription_templates`
     - hierarchy fields: `category_key`, `hierarchy_rank`
   - `subscription_template_features`
+    - feature presentation field: `display_order`
 - Read helpers:
   - `lib/features/subscription.ts`
   - `lib/db/queries.ts`

@@ -65,6 +65,7 @@ export default async function AdminEditSubscriptionTemplatePage({
             ? ['featureKey', 'featureValueType']
             : undefined,
           featureKey: f.key,
+          featureDisplayOrder: f.displayOrder,
           featureLabel: f.label || f.key,
           featureValueType: SUBSCRIPTION_FEATURE_VALUE_TYPES.includes(
             f.valueType as SubscriptionFeatureValueType

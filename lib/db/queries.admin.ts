@@ -305,7 +305,8 @@ function mapSubscriptionTemplateFeatures(
       valueType: f.valueType,
       value: f.featureValue,
       valueLabel: f.valueLabel,
-      isPublic: Boolean(f.isPublic)
+      isPublic: Boolean(f.isPublic),
+      displayOrder: f.displayOrder
     }));
 }
 
@@ -675,7 +676,12 @@ export async function getAllSubscriptionTemplatesForAdmin(
     .select()
     .from(subscriptionTemplateFeatures)
     .where(inArray(subscriptionTemplateFeatures.templateId, templates.map((t) => t.id)))
-    .orderBy(desc(subscriptionTemplateFeatures.createdAt));
+    .orderBy(
+      asc(subscriptionTemplateFeatures.templateId),
+      asc(subscriptionTemplateFeatures.displayOrder),
+      asc(subscriptionTemplateFeatures.createdAt),
+      asc(subscriptionTemplateFeatures.id)
+    );
 
   return templates
     .map((t) => ({ ...t, features: mapSubscriptionTemplateFeatures(features, t.id) }))

@@ -107,6 +107,7 @@ export const subscriptionTemplateFeatures = pgTable(
     featureValue: text('feature_value'),
     valueLabel: text('value_label'),
     isPublic: boolean('is_public').notNull().default(false),
+    displayOrder: integer('display_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -114,6 +115,13 @@ export const subscriptionTemplateFeatures = pgTable(
     templateKeyUnique: uniqueIndex(
       'subscription_template_features_template_key_idx'
     ).on(table.templateId, table.featureKey),
+    templateDisplayOrderIndex: index(
+      'subscription_template_features_display_order_idx'
+    ).on(table.templateId, table.displayOrder, table.id),
+    displayOrderCheck: check(
+      'subscription_template_features_display_order_chk',
+      sql`${table.displayOrder} >= 0`
+    ),
   })
 );
 

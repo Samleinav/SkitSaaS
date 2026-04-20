@@ -50,6 +50,7 @@ type PricingTemplate = {
     value: string | null;
     valueLabel: string | null;
     isPublic: boolean;
+    displayOrder: number;
   }>;
 };
 

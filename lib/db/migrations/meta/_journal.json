@@ -225,6 +225,13 @@
       "when": 1775606400000,
       "tag": "0031_signup_intents",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775846833002,
+      "tag": "0032_subscription_feature_display_order",
+      "breakpoints": true
     }
   ]
 }

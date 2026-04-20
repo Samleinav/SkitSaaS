@@ -50,6 +50,10 @@ import {
   activateSubscriptionAssignment,
   replaceWithReservedFreeSubscriptionAssignment,
 } from '@/lib/payments/subscription-assignments';
+import {
+  getSubscriptionTemplateFeatureDefaultDisplayOrder,
+  normalizeSubscriptionTemplateFeatureDisplayOrder
+} from '@/lib/payments/subscription-template-features';
 import { createSysActivityLog } from '@/lib/system/activity-logs';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
@@ -186,6 +190,7 @@ type ParsedTemplateFeature = {
   featureValue: string | null;
   valueLabel: string | null;
   isPublic: boolean;
+  displayOrder: number;
 };
 
 type TemplateFeatureSeed = {
@@ -195,6 +200,7 @@ type TemplateFeatureSeed = {
   value: string | null;
   valueLabel: string | null;
   isPublic: boolean;
+  displayOrder: number;
 };
 
 function mapTemplateFeaturesByKey(
@@ -205,6 +211,7 @@ function mapTemplateFeaturesByKey(
     value: string | null;
     valueLabel: string | null;
     isPublic: boolean;
+    displayOrder: number;
   }>
 ) {
   return new Map<string, TemplateFeatureSeed>(
@@ -216,7 +223,8 @@ function mapTemplateFeaturesByKey(
         valueType: feature.valueType,
         value: feature.value,
         valueLabel: feature.valueLabel,
-        isPublic: feature.isPublic
+        isPublic: feature.isPublic,
+        displayOrder: feature.displayOrder
       }
     ])
   );
@@ -226,7 +234,7 @@ function mapRequiredTemplateFeatures(
   templateId: number | null | undefined
 ) {
   return new Map<string, TemplateFeatureSeed>(
-    getReservedBaselineTemplateRequiredFeatures(templateId).map((feature) => [
+    getReservedBaselineTemplateRequiredFeatures(templateId).map((feature, index) => [
       feature.key,
       {
         key: feature.key,
@@ -234,7 +242,8 @@ function mapRequiredTemplateFeatures(
         valueType: feature.valueType,
         value: feature.value,
         valueLabel: feature.valueLabel,
-        isPublic: feature.isPublic
+        isPublic: feature.isPublic,
+        displayOrder: getSubscriptionTemplateFeatureDefaultDisplayOrder(index)
       }
     ])
   );
@@ -247,7 +256,8 @@ function toParsedTemplateFeature(feature: TemplateFeatureSeed): ParsedTemplateFe
     valueType: feature.valueType,
     featureValue: feature.value,
     valueLabel: feature.valueLabel,
-    isPublic: feature.isPublic
+    isPublic: feature.isPublic,
+    displayOrder: feature.displayOrder
   };
 }
 
@@ -268,10 +278,15 @@ function parseTemplateFeatures(
 
   const featuresMap = new Map<string, ParsedTemplateFeature>();
   let hasInvalidManagedFeatureInput = false;
+  let hasInvalidDisplayOrderInput = false;
 
-  for (const rowId of uniqueRowIds) {
+  for (const [rowIndex, rowId] of uniqueRowIds.entries()) {
     const featureKey = String(formData.get(`featureKey_${rowId}`) || '').trim();
     const featureLabel = String(formData.get(`featureLabel_${rowId}`) || '').trim();
+    const displayOrder = normalizeSubscriptionTemplateFeatureDisplayOrder(
+      formData.get(`featureDisplayOrder_${rowId}`)?.toString(),
+      rowIndex
+    );
     const valueTypeInput = String(formData.get(`featureValueType_${rowId}`) || '')
       .trim()
       .toLowerCase();
@@ -283,6 +298,11 @@ function parseTemplateFeatures(
     const isPublic = formData.get(`featureIsPublic_${rowId}`) === 'on';
 
     if (!featureKey) {
+      continue;
+    }
+
+    if (displayOrder === null) {
+      hasInvalidDisplayOrderInput = true;
       continue;
     }
 
@@ -334,7 +354,10 @@ function parseTemplateFeatures(
         continue;
       }
 
-      featuresMap.set(managedFeature.featureKey, managedFeature);
+      featuresMap.set(managedFeature.featureKey, {
+        ...managedFeature,
+        displayOrder
+      });
       continue;
     }
 
@@ -354,7 +377,8 @@ function parseTemplateFeatures(
         valueType,
         featureValue: null,
         valueLabel: null,
-        isPublic
+        isPublic,
+        displayOrder
       });
       continue;
     }
@@ -372,7 +396,8 @@ function parseTemplateFeatures(
       valueType,
       featureValue,
       valueLabel,
-      isPublic
+      isPublic,
+      displayOrder
     });
   }
 
@@ -392,7 +417,8 @@ function parseTemplateFeatures(
 
   return {
     features: Array.from(featuresMap.values()),
-    hasInvalidManagedFeatureInput
+    hasInvalidManagedFeatureInput,
+    hasInvalidDisplayOrderInput
   };
 }
 
@@ -450,7 +476,10 @@ export const createSubscriptionTemplateAction = adminAction(
     }
 
     const parsedFeatures = parseTemplateFeatures(formData, targetScope);
-    if (parsedFeatures.hasInvalidManagedFeatureInput) {
+    if (
+      parsedFeatures.hasInvalidManagedFeatureInput ||
+      parsedFeatures.hasInvalidDisplayOrderInput
+    ) {
       return false;
     }
 
@@ -485,6 +514,7 @@ export const createSubscriptionTemplateAction = adminAction(
           featureValue: feature.featureValue,
           valueLabel: feature.valueLabel,
           isPublic: feature.isPublic,
+          displayOrder: feature.displayOrder,
           updatedAt: new Date()
         }))
       );
@@ -572,7 +602,10 @@ export const updateSubscriptionTemplateAction = adminAction(
       preservedFeaturesByKey: mapTemplateFeaturesByKey(currentTemplate.features),
       requiredFeaturesByKey: mapRequiredTemplateFeatures(templateId)
     });
-    if (parsedFeatures.hasInvalidManagedFeatureInput) {
+    if (
+      parsedFeatures.hasInvalidManagedFeatureInput ||
+      parsedFeatures.hasInvalidDisplayOrderInput
+    ) {
       return false;
     }
 
@@ -613,6 +646,7 @@ export const updateSubscriptionTemplateAction = adminAction(
           featureValue: feature.featureValue,
           valueLabel: feature.valueLabel,
           isPublic: feature.isPublic,
+          displayOrder: feature.displayOrder,
           updatedAt: new Date()
         }))
       );

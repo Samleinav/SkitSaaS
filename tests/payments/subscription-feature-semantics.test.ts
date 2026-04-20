@@ -12,6 +12,10 @@ import {
   resolveTeamMemberLimitBySubscription,
   resolveUserOrganizationLimitBySubscription
 } from '../../lib/organizations/subscription-limit-values';
+import {
+  getSubscriptionTemplateFeatureDefaultDisplayOrder,
+  normalizeSubscriptionTemplateFeatureDisplayOrder
+} from '../../lib/payments/subscription-template-features';
 
 test('managed core count quotas accept -1 and reject 0 as form input', () => {
   assert.equal(
@@ -95,4 +99,12 @@ test('team invites gate is controlled only by dashboard.team.invites.enabled', (
   assert.equal(areTeamInvitesEnabledBySubscription(disabledController), false);
   assert.equal(areTeamInvitesEnabledBySubscription(enabledController), true);
   assert.equal(areTeamInvitesEnabledBySubscription(missingController), false);
+});
+
+test('subscription feature display order normalizes operator input safely', () => {
+  assert.equal(getSubscriptionTemplateFeatureDefaultDisplayOrder(3), 30);
+  assert.equal(normalizeSubscriptionTemplateFeatureDisplayOrder('', 2), 20);
+  assert.equal(normalizeSubscriptionTemplateFeatureDisplayOrder('15', 0), 15);
+  assert.equal(normalizeSubscriptionTemplateFeatureDisplayOrder('-1', 0), null);
+  assert.equal(normalizeSubscriptionTemplateFeatureDisplayOrder('1.5', 0), null);
 });

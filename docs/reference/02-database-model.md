@@ -38,7 +38,8 @@ This document covers core tables only. Each installed module owns its own tables
   - includes PayPal plan metadata (`paypal_product_id`, `paypal_plan_id`, `paypal_plan_fingerprint`)
   - includes optional PayPal no-trial plan metadata (`paypal_plan_id_no_trial`, `paypal_plan_fingerprint_no_trial`)
   - reserves `id=1` for the core free `user` template and `id=2` for the core free `organization` template
-- `subscription_template_features` - features/quota values per template
+- `subscription_template_features` - features/quota values per template,
+  including `display_order` for the public pricing/admin presentation order
 - `quota_usage` - per-scope (`team`/`user`), per-feature usage ledger for quota enforcement windows
 - `subscription_trial_usage` - one-time trial consumption ledger per target (`team`/`user`) and category
 - `subscription_assignments` - active subscription per target (team/user) + billing period tracking

@@ -38,12 +38,14 @@ export type SubscriptionTemplateFormCopy = {
   featuresSectionTitle: string;
   featuresSectionHint: string;
   featureKeyLabel: string;
+  featureOrderLabel: string;
   featureLabelLabel: string;
   featureTypeLabel: string;
   featureValueLabel: string;
   featureValueLabelLabel: string;
   featurePublicLabel: string;
   featureKeyPlaceholder: string;
+  featureOrderPlaceholder: string;
   featureLabelPlaceholder: string;
   featureValuePlaceholder: string;
   featureValueLabelPlaceholder: string;
@@ -84,12 +86,14 @@ export const DEFAULT_SUBSCRIPTION_TEMPLATE_FORM_COPY: SubscriptionTemplateFormCo
   featuresSectionTitle: 'Features',
   featuresSectionHint: 'Define plan features. Rows with an empty key are ignored.',
   featureKeyLabel: 'Key',
+  featureOrderLabel: 'Order',
   featureLabelLabel: 'Label',
   featureTypeLabel: 'Type',
   featureValueLabel: 'Value',
   featureValueLabelLabel: 'Value label',
   featurePublicLabel: 'Public',
   featureKeyPlaceholder: 'e.g. seats',
+  featureOrderPlaceholder: '10',
   featureLabelPlaceholder: 'e.g. Team seats',
   featureValuePlaceholder: 'e.g. 10',
   featureValueLabelPlaceholder: 'e.g. 10 seats',
@@ -216,6 +220,14 @@ function buildSubscriptionTemplateSections(copy: SubscriptionTemplateFormCopy) {
               kind: 'text',
               placeholder: copy.featureKeyPlaceholder,
               maxLength: 120
+            },
+            {
+              name: 'featureDisplayOrder',
+              label: copy.featureOrderLabel,
+              kind: 'number',
+              placeholder: copy.featureOrderPlaceholder,
+              min: 0,
+              step: 1
             },
             {
               name: 'featureLabel',

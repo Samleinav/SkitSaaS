@@ -87,6 +87,9 @@ Operational rule:
 - for those same protected rows, lock `featureKey` and `featureValueType` with
   repeater `lockedFields` so operators can still edit label/value metadata
   without changing the managed feature identity
+- feature rows have `display_order`; admin can edit it and public pricing
+  renders public features by ascending `display_order` with stable fallback
+  ordering
 - templates `1` and `2` can be published; if one is `published` with
   `price_cents = 0`, it is the public free tier for that scope
 - published zero-cost templates must be assignable from pricing without Stripe

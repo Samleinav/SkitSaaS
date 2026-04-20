@@ -879,7 +879,8 @@ function mapSubscriptionTemplateFeatures(
       valueType: feature.valueType,
       value: feature.featureValue,
       valueLabel: feature.valueLabel,
-      isPublic: Boolean(feature.isPublic)
+      isPublic: Boolean(feature.isPublic),
+      displayOrder: feature.displayOrder
     }));
 }
 
@@ -893,7 +894,11 @@ export async function getSubscriptionTemplateWithFeaturesById(templateId: number
     .select()
     .from(subscriptionTemplateFeatures)
     .where(eq(subscriptionTemplateFeatures.templateId, templateId))
-    .orderBy(desc(subscriptionTemplateFeatures.createdAt));
+    .orderBy(
+      asc(subscriptionTemplateFeatures.displayOrder),
+      asc(subscriptionTemplateFeatures.createdAt),
+      asc(subscriptionTemplateFeatures.id)
+    );
 
   return {
     ...template,
@@ -1019,7 +1024,12 @@ export async function getAllSubscriptionTemplatesForPricing() {
         visibleTemplates.map((template) => template.id)
       )
     )
-    .orderBy(desc(subscriptionTemplateFeatures.createdAt));
+    .orderBy(
+      asc(subscriptionTemplateFeatures.templateId),
+      asc(subscriptionTemplateFeatures.displayOrder),
+      asc(subscriptionTemplateFeatures.createdAt),
+      asc(subscriptionTemplateFeatures.id)
+    );
 
   return visibleTemplates
     .map((template) => ({

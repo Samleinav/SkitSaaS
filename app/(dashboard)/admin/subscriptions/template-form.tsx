@@ -36,6 +36,7 @@ type EditableSubscriptionTemplate = {
     value: string | null;
     valueLabel: string | null;
     isPublic: boolean;
+    displayOrder: number;
   }>;
 };
 
@@ -47,6 +48,7 @@ type FeatureRow = {
   value: string;
   valueLabel: string;
   isPublic: boolean;
+  displayOrder: number;
 };
 
 type SubscriptionTemplateFormProps = {
@@ -58,7 +60,7 @@ function nextFeatureRowId() {
   return `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
 }
 
-function createEmptyFeatureRow(): FeatureRow {
+function createEmptyFeatureRow(displayOrder = 0): FeatureRow {
   return {
     id: nextFeatureRowId(),
     key: '',
@@ -66,7 +68,8 @@ function createEmptyFeatureRow(): FeatureRow {
     valueType: 'text',
     value: '',
     valueLabel: '',
-    isPublic: true
+    isPublic: true,
+    displayOrder
   };
 }
 
@@ -79,6 +82,7 @@ function toFeatureRows(template?: EditableSubscriptionTemplate): FeatureRow[] {
     id: String(feature.id),
     key: feature.key,
     label: feature.label || feature.key,
+    displayOrder: feature.displayOrder,
     valueType: SUBSCRIPTION_FEATURE_VALUE_TYPES.includes(
       feature.valueType as SubscriptionFeatureValueType
     )
@@ -283,7 +287,9 @@ export function SubscriptionTemplateForm({
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => setRows((prev) => [...prev, createEmptyFeatureRow()])}
+            onClick={() =>
+              setRows((prev) => [...prev, createEmptyFeatureRow(prev.length * 10)])
+            }
           >
             {t('Add feature')}
           </Button>
@@ -297,6 +303,7 @@ export function SubscriptionTemplateForm({
             <thead className="bg-muted/50 text-xs tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-3 py-2 text-left">{t('Key')}</th>
+                <th className="px-3 py-2 text-left">{t('Order')}</th>
                 <th className="px-3 py-2 text-left">{t('Label')}</th>
                 <th className="px-3 py-2 text-left">{t('Value type')}</th>
                 <th className="px-3 py-2 text-left">{t('Value')}</th>
@@ -322,6 +329,28 @@ export function SubscriptionTemplateForm({
                             prev.map((item) =>
                               item.id === row.id
                                 ? { ...item, key: event.target.value }
+                                : item
+                            )
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input
+                        name={`featureDisplayOrder_${row.id}`}
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={row.displayOrder}
+                        placeholder={t('10')}
+                        onChange={(event) =>
+                          setRows((prev) =>
+                            prev.map((item) =>
+                              item.id === row.id
+                                ? {
+                                    ...item,
+                                    displayOrder: Number(event.target.value || 0)
+                                  }
                                 : item
                             )
                           )
