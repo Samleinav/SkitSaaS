@@ -41,14 +41,15 @@ export const updateAccount = dashboardValidatedAction(
 
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await Promise.all([
-      db.update(users).set({ name, email }).where(eq(users.id, user.id)),
-      createDashboardActivityLog({
+    await db.transaction(async (tx) => {
+      await tx.update(users).set({ name, email }).where(eq(users.id, user.id))
+      await createDashboardActivityLog({
         teamId: userWithTeam?.teamId,
         userId: user.id,
-        action: ActivityType.UPDATE_ACCOUNT
+        action: ActivityType.UPDATE_ACCOUNT,
+        executor: tx
       })
-    ]);
+    })
 
     await emitEventAsync(
       EVENT_HOOKS.dashboardAccountUpdated,

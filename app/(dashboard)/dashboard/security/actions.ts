@@ -7,6 +7,7 @@ import { comparePasswords, hashPassword, clearSession } from '@/lib/auth/session
 import { db } from '@/lib/db/drizzle';
 import { getUserWithTeam } from '@/lib/db/queries';
 import { ActivityType, teamMembers, users } from '@/lib/db/schema';
+import { buildSoftDeletedEmailSql } from '@/lib/db/user-soft-delete';
 import { emitEventAsync } from '@/lib/events/bus';
 import { EVENT_HOOKS } from '@/lib/events/catalog';
 import { createDashboardActivityLog } from '../account-activity';
@@ -64,17 +65,18 @@ export const updatePassword = dashboardValidatedAction(
     const newPasswordHash = await hashPassword(newPassword);
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await Promise.all([
-      db
+    await db.transaction(async (tx) => {
+      await tx
         .update(users)
         .set({ passwordHash: newPasswordHash })
-        .where(eq(users.id, user.id)),
-      createDashboardActivityLog({
+        .where(eq(users.id, user.id))
+      await createDashboardActivityLog({
         teamId: userWithTeam?.teamId,
         userId: user.id,
-        action: ActivityType.UPDATE_PASSWORD
+        action: ActivityType.UPDATE_PASSWORD,
+        executor: tx
       })
-    ]);
+    })
 
     await emitEventAsync(
       EVENT_HOOKS.dashboardAccountPasswordUpdated,
@@ -110,30 +112,33 @@ export const deleteAccount = dashboardValidatedAction(
 
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await createDashboardActivityLog({
-      teamId: userWithTeam?.teamId,
-      userId: user.id,
-      action: ActivityType.DELETE_ACCOUNT
-    });
-
-    await db
-      .update(users)
-      .set({
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        email: sql`CONCAT(email, '-', id, '-deleted')`
+    await db.transaction(async (tx) => {
+      await createDashboardActivityLog({
+        teamId: userWithTeam?.teamId,
+        userId: user.id,
+        action: ActivityType.DELETE_ACCOUNT,
+        executor: tx
       })
-      .where(eq(users.id, user.id));
 
-    if (userWithTeam?.teamId) {
-      await db
-        .delete(teamMembers)
-        .where(
-          and(
-            eq(teamMembers.userId, user.id),
-            eq(teamMembers.teamId, userWithTeam.teamId)
+      await tx
+        .update(users)
+        .set({
+          deletedAt: sql`CURRENT_TIMESTAMP`,
+          email: buildSoftDeletedEmailSql()
+        })
+        .where(eq(users.id, user.id))
+
+      if (userWithTeam?.teamId) {
+        await tx
+          .delete(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.userId, user.id),
+              eq(teamMembers.teamId, userWithTeam.teamId)
+            )
           )
-        );
-    }
+      }
+    })
 
     await clearSession({ reason: 'account_deleted' });
 

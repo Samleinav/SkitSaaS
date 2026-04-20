@@ -33,6 +33,9 @@ To add a new admin dashboard widget:
 `recentActivity` should be treated as a governance summary, not a replacement
 for `/admin/logs`. The detailed review surface now relies on canonical
 `eventCategory`, `eventType`, and `requestId` fields from `sys_activity_logs`.
+The home summary aggregates current subscription assignments across both
+organization and user scopes, while `recentActivity` should only load the small
+latest slice rendered on the page.
 
 Current ownership model:
 

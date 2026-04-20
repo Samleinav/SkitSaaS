@@ -1148,7 +1148,7 @@ export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary>
           sql<number>`cast(count(case when ${subscriptionAssignments.status} in ('unpaid', 'canceled') then 1 end) as int)`
       })
       .from(subscriptionAssignments)
-      .where(and(eq(subscriptionAssignments.targetType, 'team'), isNull(subscriptionAssignments.effectiveTo)))
+      .where(isNull(subscriptionAssignments.effectiveTo))
       .then((rows) => rows[0]),
     adminDb
       .select({

@@ -65,8 +65,13 @@ The admin home page loads:
 - summary metrics from `getAdminDashboardSummary()`
 - recent log rows from `getSystemActivityLogsForAdmin(...)`
 
+`getAdminDashboardSummary()` should be treated as a current-state aggregate
+across open subscription assignments, regardless of whether they target
+organizations or users.
+
 The recent activity widget is intentionally a short governance summary. It is
-not the replacement for the full review surface under `/admin/logs`.
+not the replacement for the full review surface under `/admin/logs`, and it
+should only request the small visible slice shown on the admin home screen.
 
 ## Visibility Controls
 

@@ -49,7 +49,7 @@ export default async function AdminPage() {
 
     const [summary, activityLogs] = await Promise.all([
       getAdminDashboardSummary(),
-      getSystemActivityLogsForAdmin(120)
+      getSystemActivityLogsForAdmin(RECENT_ACTIVITY_LIMIT)
     ]);
     perfTrace.step('loadAdminDashboardData', {
       activityLogs: activityLogs.length

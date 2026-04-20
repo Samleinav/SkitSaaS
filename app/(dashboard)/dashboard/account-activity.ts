@@ -5,18 +5,22 @@ export async function createDashboardActivityLog({
   teamId,
   userId,
   action,
-  ipAddress = ''
+  ipAddress = '',
+  executor
 }: {
   teamId: number | null | undefined;
   userId: number;
   action: ActivityType;
   ipAddress?: string;
+  executor?: Pick<typeof db, 'insert'>;
 }) {
   if (teamId === null || teamId === undefined) {
     return;
   }
 
-  await db.insert(activityLogs).values({
+  const targetExecutor = executor ?? db;
+
+  await targetExecutor.insert(activityLogs).values({
     teamId,
     userId,
     action,

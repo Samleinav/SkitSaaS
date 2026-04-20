@@ -68,6 +68,7 @@ import { buildDefaultTeamNameFromEmail } from '@/lib/organizations/default-team-
 import { FREE_ORGANIZATION_SUBSCRIPTION_TEMPLATE_ID } from '@/lib/payments/subscription-default-templates';
 import { getSubscriptionSignupFlowForScope } from '@/lib/payments/subscription-signup-policy';
 import { createSignupIntentCheckout } from '@/lib/payments/signup-intents';
+import { buildSoftDeletedEmailSql } from '@/lib/db/user-soft-delete';
 
 async function getTeamMemberLimitForSignUpInvitation({
   executor,
@@ -1252,13 +1253,19 @@ export const updatePassword = validatedActionWithUser(
     const newPasswordHash = await hashPassword(newPassword);
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await Promise.all([
-      db
+    await db.transaction(async (tx) => {
+      await tx
         .update(users)
         .set({ passwordHash: newPasswordHash })
-        .where(eq(users.id, user.id)),
-      logActivity(userWithTeam?.teamId, user.id, ActivityType.UPDATE_PASSWORD)
-    ]);
+        .where(eq(users.id, user.id))
+      await logActivity(
+        userWithTeam?.teamId,
+        user.id,
+        ActivityType.UPDATE_PASSWORD,
+        undefined,
+        { executor: tx }
+      )
+    })
 
     await emitEventAsync(
       EVENT_HOOKS.dashboardAccountPasswordUpdated,
@@ -1297,31 +1304,34 @@ export const deleteAccount = validatedActionWithUser(
 
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await logActivity(
-      userWithTeam?.teamId,
-      user.id,
-      ActivityType.DELETE_ACCOUNT
-    );
+    await db.transaction(async (tx) => {
+      await logActivity(
+        userWithTeam?.teamId,
+        user.id,
+        ActivityType.DELETE_ACCOUNT,
+        undefined,
+        { executor: tx }
+      )
 
-    // Soft delete
-    await db
-      .update(users)
-      .set({
-        deletedAt: sql`CURRENT_TIMESTAMP`,
-        email: sql`CONCAT(email, '-', id, '-deleted')` // Ensure email uniqueness
-      })
-      .where(eq(users.id, user.id));
+      await tx
+        .update(users)
+        .set({
+          deletedAt: sql`CURRENT_TIMESTAMP`,
+          email: buildSoftDeletedEmailSql()
+        })
+        .where(eq(users.id, user.id))
 
-    if (userWithTeam?.teamId) {
-      await db
-        .delete(teamMembers)
-        .where(
-          and(
-            eq(teamMembers.userId, user.id),
-            eq(teamMembers.teamId, userWithTeam.teamId)
+      if (userWithTeam?.teamId) {
+        await tx
+          .delete(teamMembers)
+          .where(
+            and(
+              eq(teamMembers.userId, user.id),
+              eq(teamMembers.teamId, userWithTeam.teamId)
+            )
           )
-        );
-    }
+      }
+    })
 
     await clearSession({ reason: 'account_deleted' });
 
@@ -1351,10 +1361,16 @@ export const updateAccount = validatedActionWithUser(
     const { name, email } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
-    await Promise.all([
-      db.update(users).set({ name, email }).where(eq(users.id, user.id)),
-      logActivity(userWithTeam?.teamId, user.id, ActivityType.UPDATE_ACCOUNT)
-    ]);
+    await db.transaction(async (tx) => {
+      await tx.update(users).set({ name, email }).where(eq(users.id, user.id))
+      await logActivity(
+        userWithTeam?.teamId,
+        user.id,
+        ActivityType.UPDATE_ACCOUNT,
+        undefined,
+        { executor: tx }
+      )
+    })
 
     await emitEventAsync(
       EVENT_HOOKS.dashboardAccountUpdated,
