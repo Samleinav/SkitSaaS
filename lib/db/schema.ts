@@ -903,17 +903,27 @@ export const sysActivityLogs = pgTable(
   })
 );
 
-export const teamMembers = pgTable('team_members', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id')
-    .notNull()
-    .references(() => users.id),
-  teamId: integer('team_id')
-    .notNull()
-    .references(() => teams.id),
-  role: varchar('role', { length: 50 }).notNull(),
-  joinedAt: timestamp('joined_at').notNull().defaultNow(),
-});
+export const teamMembers = pgTable(
+  'team_members',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    teamId: integer('team_id')
+      .notNull()
+      .references(() => teams.id),
+    role: varchar('role', { length: 50 }).notNull(),
+    joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userTeamUnique: uniqueIndex('team_members_user_team_idx').on(
+      table.userId,
+      table.teamId
+    ),
+    teamIdIndex: index('team_members_team_id_idx').on(table.teamId),
+  })
+);
 
 export const activityLogs = pgTable('activity_logs', {
   id: serial('id').primaryKey(),

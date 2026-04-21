@@ -21,6 +21,7 @@ import {
   teams,
   users
 } from './schema';
+import { getPrimaryTeamMembershipForUserId } from './team-memberships';
 import { cookies } from 'next/headers';
 import {
   isSessionExpired,
@@ -176,20 +177,21 @@ export async function getTeamForUser() {
     return null;
   }
 
-  const result = await db.query.teamMembers.findFirst({
-    where: eq(teamMembers.userId, user.id),
+  const membership = await getPrimaryTeamMembershipForUserId(user.id);
+  if (!membership) {
+    return null;
+  }
+
+  const team = await db.query.teams.findFirst({
+    where: eq(teams.id, membership.teamId),
     with: {
-      team: {
+      teamMembers: {
         with: {
-          teamMembers: {
-            with: {
-              user: {
-                columns: {
-                  id: true,
-                  name: true,
-                  email: true
-                }
-              }
+          user: {
+            columns: {
+              id: true,
+              name: true,
+              email: true
             }
           }
         }
@@ -197,7 +199,6 @@ export async function getTeamForUser() {
     }
   });
 
-  const team = result?.team;
   if (!team) {
     return null;
   }

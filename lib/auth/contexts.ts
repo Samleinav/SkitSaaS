@@ -1,9 +1,8 @@
-import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { getUser } from '@/lib/db/queries';
-import { db } from '@/lib/db/drizzle';
-import { teamMembers, type User } from '@/lib/db/schema';
+import { type User } from '@/lib/db/schema';
+import { getPrimaryTeamMembershipForUserId } from '@/lib/db/team-memberships';
 import { areTeamsEnabled } from '@/lib/organizations/config';
 import { enrichUser } from '@skitsaas/sdk';
 import type { RoleContextAffinity } from '@/lib/runtime-config/types';
@@ -23,13 +22,7 @@ type StandaloneDashboardContext = Extract<UserContext, { type: 'standalone' }>;
 
 export const authContextInternals = {
   async getTeamMembership(userId: number) {
-    return db.query.teamMembers.findFirst({
-      columns: {
-        teamId: true,
-        role: true
-      },
-      where: eq(teamMembers.userId, userId)
-    });
+    return getPrimaryTeamMembershipForUserId(userId);
   }
 };
 

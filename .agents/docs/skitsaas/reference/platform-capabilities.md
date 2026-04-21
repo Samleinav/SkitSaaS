@@ -38,6 +38,9 @@ Core organizational capabilities:
 - invitation workflow
 - team-aware dashboard behavior
 - optional standalone mode when teams are disabled
+- deterministic "current team" resolution for helpers that need one team without
+  an explicit selector: owner memberships first, then earliest `joined_at`,
+  then lowest `team_id`
 
 Main tables:
 
@@ -135,6 +138,8 @@ Self-service pricing scope:
   checkout targets the current team
 - with `TEAMS_ENABLED=false`, `/pricing` renders user templates and checkout
   targets the current user
+- until the product has an explicit active-organization selector, "current
+  team" follows the deterministic membership ordering above
 
 Main files:
 

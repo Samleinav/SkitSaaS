@@ -33,3 +33,16 @@ SDK contract changes should continue to be recorded in
   `display_order`, then stable creation/id fallback.
 - Synced docs and tests for the new subscription feature presentation ordering
   behavior.
+
+## 2026-04-20 - team-membership-hardening
+
+- Added deterministic "current team" resolution helpers so auth, pricing,
+  checkout, and dashboard fallbacks stop depending on unordered
+  `team_members.findFirst()` behavior.
+- Added a migration that removes duplicate `team_members` rows before creating
+  a real unique index on (`user_id`, `team_id`), plus a supporting `team_id`
+  lookup index.
+- Aligned admin user deletion with the shared soft-delete email helper and moved
+  user subscription cancellation into the transactional delete flow.
+- Added focused tests and synced human/agent reference docs for the new team
+  membership guarantees.

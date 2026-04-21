@@ -31,6 +31,8 @@ Important semantics:
 - `auth_sessions` is revocation-friendly and audit-friendly
 - `teams` and `team_members` own organization membership, not subscription
   state
+- `team_members` must be unique per (`user_id`, `team_id`); treat duplicate
+  membership rows as data drift to clean before stricter write paths land
 
 ## Module-Owned Extension Tables
 

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import {
   buildFormValidationMessage,
   normalizeEmail,
@@ -9,6 +9,7 @@ import {
 } from '@skitsaas/sdk';
 import { hashPassword } from '@/lib/auth/session';
 import { db } from '@/lib/db/drizzle';
+import { buildSoftDeletedEmailSql } from '@/lib/db/user-soft-delete';
 import {
   getActiveUserSubscriptionAssignment,
   getSubscriptionTemplateById
@@ -558,6 +559,8 @@ export const deleteUserAction = adminValidatedAction(
       }
     }
 
+    let canceledSubscriptionAssignment = false;
+
     await db.transaction(async (tx) => {
       if (transferUserId) {
         for (const ownedTeam of ownedTeams) {
@@ -588,14 +591,36 @@ export const deleteUserAction = adminValidatedAction(
             continue;
           }
 
-          await tx.insert(teamMembers).values({
-            userId: transferUserId,
-            teamId: ownedTeam.teamId,
-            role: 'owner',
-            joinedAt: new Date()
-          });
+          await tx
+            .insert(teamMembers)
+            .values({
+              userId: transferUserId,
+              teamId: ownedTeam.teamId,
+              role: 'owner',
+              joinedAt: new Date()
+            })
+            .onConflictDoUpdate({
+              target: [teamMembers.userId, teamMembers.teamId],
+              set: {
+                role: 'owner'
+              }
+            });
         }
       }
+
+      const suspensionResult = await suspendSubscriptionAssignment(
+        {
+          targetType: 'user',
+          targetId: userId,
+          status: 'canceled',
+          sourceOrderId: null
+        },
+        {
+          executor: tx,
+          emitEvents: false
+        }
+      );
+      canceledSubscriptionAssignment = suspensionResult === 'closed';
 
       await tx.delete(teamMembers).where(eq(teamMembers.userId, userId));
 
@@ -605,20 +630,28 @@ export const deleteUserAction = adminValidatedAction(
           deletedAt: new Date(),
           accountStatus: 'banned',
           statusReason: statusReason || 'Deleted by admin',
-          email: sql`CONCAT(${users.email}, '-', ${users.id}, '-deleted')`,
+          email: buildSoftDeletedEmailSql(),
           updatedAt: new Date()
         })
         .where(eq(users.id, userId));
     });
 
-    const currentAssignment = await getActiveUserSubscriptionAssignment(userId);
-    if (currentAssignment) {
-      await suspendSubscriptionAssignment({
-        targetType: 'user',
-        targetId: userId,
-        status: 'canceled',
-        sourceOrderId: null
-      });
+    if (canceledSubscriptionAssignment) {
+      await emitEventAsync(
+        EVENT_HOOKS.subscriptionAssignmentCanceled,
+        {
+          targetType: 'user',
+          targetId: userId,
+          status: 'canceled'
+        },
+        {
+          actorUserId: currentUser.id,
+          actorEmail: currentUser.email,
+          actorRole: currentUser.role,
+          targetUserId: userId,
+          source: `/admin/users/${userId}`
+        }
+      );
     }
 
     await createSysActivityLog({

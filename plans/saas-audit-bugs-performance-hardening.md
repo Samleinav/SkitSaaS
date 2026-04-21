@@ -2,7 +2,7 @@
 
 Status: In progress
 Start date: 2026-04-20
-Current phase: P0 batch 1 validated
+Current phase: P0 batch 2 in progress
 Last review: 2026-04-20
 
 ## Objective
@@ -53,6 +53,10 @@ Estado confirmado en la auditoría:
   `targetType='user'`
 - el borrado de cuenta usa una estrategia de renombrado de email que puede
   fallar con correos cercanos al límite de `varchar(255)`
+- la resolución de "current team" es ambigua para usuarios con varias
+  membresías porque no existe un orden estable compartido
+- `team_members` no garantizaba unicidad por (`user_id`, `team_id`), dejando
+  espacio para drift e incoherencias de contexto
 
 ## Priority Order
 
@@ -234,6 +238,16 @@ La primera tanda de implementación ya aterrizó en este batch:
 ### Batch 2 target
 
 La siguiente tanda debería cubrir:
+
+- integridad de `team_members` con migración de deduplicación + constraint real
+- resolución determinística de `current team` compartida entre auth, dashboard,
+  pricing y checkout
+- paridad del soft delete admin con el helper seguro y cancelación de
+  suscripción dentro del flujo transaccional
+
+### Batch 3 target
+
+La tanda posterior debería cubrir:
 
 - RLS runtime readiness
 - revisión de `getUser()` y `auth_sessions`

@@ -24,6 +24,8 @@ This doc summarizes the core tables and their responsibilities.
 - A successful login creates one `auth_sessions` record with `status='active'`.
 - Sign-out/account delete revokes the current session record (`status='revoked'`, `revoked_at`, `revoked_reason`).
 - Request authentication validates both JWT signature/expiry and the persisted `auth_sessions` state.
+- `team_members` is unique per (`user_id`, `team_id`); duplicate legacy rows
+  should be normalized before adding stricter membership flows.
 - Retention policy recommendation: keep revoked/expired sessions for audit, then purge with a scheduled cleanup job (for example after 30-90 days, based on compliance needs).
 
 ## Module-owned extension tables

@@ -23,6 +23,9 @@ This document maps current platform capabilities to implementation files and dat
 - Tables: `teams`, `team_members`, `invitations`.
 - Core queries: `lib/db/queries.ts`.
 - User team settings routes: `app/(dashboard)/dashboard/*`.
+- "Current team" resolution is deterministic across dashboard/pricing/checkout
+  helpers: owner memberships win first, then earliest `joined_at`, then lowest
+  `team_id`.
 
 ## 3) Subscriptions (Current State)
 
@@ -107,6 +110,8 @@ Current self-service scope policy:
 
 - With `TEAMS_ENABLED=true`, `/pricing` renders organization-scoped templates and checkout targets the current team.
 - With `TEAMS_ENABLED=false`, `/pricing` renders user-scoped templates and checkout targets the current user.
+- Until the product exposes an explicit active-organization selector, the
+  current team follows the deterministic membership ordering above.
 - Published reserved default tiers follow the same visibility rules as other templates for their scope.
 
 Pre-account paid signup checkout:
