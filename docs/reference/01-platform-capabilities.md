@@ -125,6 +125,9 @@ Compatibility API surface (kept for migration):
 
 - Stripe: `/api/stripe/*`
 - PayPal: `/api/paypal/*`
+- the legacy `POST /api/paypal/checkout/cancel` wrapper now reuses the same
+  cancel-access rules as the canonical PayPal cancel route, including
+  user-scope orders and guest `signup_intent` access
 
 Checkout method discovery and UI:
 

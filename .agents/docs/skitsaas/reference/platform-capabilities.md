@@ -125,6 +125,9 @@ Canonical API surface:
 - `POST /api/checkout/methods/[paymentMethodId]/cancel`
 - `GET|POST /api/checkout/methods/[paymentMethodId]/return`
 - `POST /api/checkout/methods/[paymentMethodId]/webhook`
+- legacy `POST /api/paypal/checkout/cancel` now mirrors the canonical PayPal
+  cancel-access model, so user-scope orders and guest `signup_intent` cancel
+  flows do not depend on the old team-owner-only wrapper logic
 
 Current paid-signup checkout model:
 

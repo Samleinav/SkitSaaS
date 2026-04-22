@@ -78,3 +78,13 @@ SDK contract changes should continue to be recorded in
   fallback dispatch.
 - Documented the normalized-vs-raw callback bridge behavior in the platform and
   module runtime docs.
+
+## 2026-04-22 - legacy-paypal-cancel-alignment
+
+- Extracted a shared core checkout-cancel access helper so canonical and legacy
+  PayPal cancel routes use the same authorization rules.
+- Updated `POST /api/paypal/checkout/cancel` to support the canonical access
+  model for team owner checkout, user-scope checkout, and guest
+  `signup_intent` cancel flows instead of the old team-owner-only behavior.
+- Added focused coverage for the shared cancel-access decision matrix and
+  documented the compatibility-route alignment.

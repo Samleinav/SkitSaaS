@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { getCheckoutOrderByTokenForUser } from '@/lib/payments/checkout-orders';
+import { resolveCoreCheckoutCancelAccess } from '@/lib/payments/checkout-cancel-access';
 import {
   executeCheckoutPaymentMethodAction,
   getCheckoutPaymentMethodById
@@ -63,27 +64,18 @@ async function handleCancel(request: Request, params: Record<string, string>) {
       !checkoutAccess
         ? await getSignupIntentCheckoutAccessByToken(fallbackCheckoutToken)
         : null;
-    if (!checkoutAccess && !signupIntentAccess) {
-      if (!user) {
-        return NextResponse.json(
-          { error: 'Authentication required.', redirectUrl: '/login?redirect=pricing' },
-          { status: 401 }
-        );
-      }
-
+    const accessResult = resolveCoreCheckoutCancelAccess({
+      user,
+      checkoutAccess,
+      signupIntentAccess
+    });
+    if (!accessResult.ok) {
       return NextResponse.json(
-        { error: 'Checkout order not found.' },
-        { status: 404 }
-      );
-    }
-
-    if (
-      checkoutAccess?.checkoutOrder.targetType === 'team' &&
-      checkoutAccess.teamRole !== 'owner'
-    ) {
-      return NextResponse.json(
-        { error: 'Only owners can manage team checkout.' },
-        { status: 403 }
+        {
+          error: accessResult.error,
+          redirectUrl: accessResult.redirectUrl ?? undefined
+        },
+        { status: accessResult.statusCode }
       );
     }
   }
