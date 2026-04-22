@@ -151,6 +151,13 @@ Notes:
 - `checkoutUi` is intentionally presentational only; payment execution still runs
   through `paymentMethodId` and the configured routes.
 - the canonical list of methods remains `GET /api/checkout/methods`
+- `routes.startPath` is invoked as a normalized internal `POST` action payload.
+- callback routes (`cancelPath`, `returnPath`, `webhookPath`) are attempted
+  first through that same normalized `POST` bridge, including `action`,
+  `payload`, `query`, `rawBody`, and `fallbackCheckoutToken`.
+- when a module callback only exposes a typed `GET` return/cancel route, the
+  host now falls back to the original callback request method and query string
+  if no normalized `POST` handler is registered for that path.
 - host/theme checkout UIs can use `displayName`, `description`, and `checkoutUi`
   to render fully host-owned selectors without exposing provider internals to the user
 

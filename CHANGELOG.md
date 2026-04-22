@@ -68,3 +68,13 @@ SDK contract changes should continue to be recorded in
   target.
 - Updated tests and SDK docs to reflect `/login` as the main dashboard auth
   route.
+
+## 2026-04-22 - module-checkout-callback-fallback
+
+- Kept normalized internal `POST` dispatch for module-owned checkout actions,
+  but added a compatibility fallback for `GET` return/cancel callbacks when a
+  module only exposes a typed route instead of the normalized POST handler.
+- Added a focused regression test covering module payment-method return
+  fallback dispatch.
+- Documented the normalized-vs-raw callback bridge behavior in the platform and
+  module runtime docs.

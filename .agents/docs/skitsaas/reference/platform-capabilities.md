@@ -134,6 +134,10 @@ Current paid-signup checkout model:
   enforce guest access through that live signup-intent token check instead of a
   blanket session proxy
 - return/webhook finalization creates the real user/team and purchased assignment
+- module payment methods receive `startPath` through a normalized internal
+  `POST` dispatch; callback routes try that normalized bridge first and then
+  fall back to the original `GET` callback request when the module only exposes
+  a typed return/cancel handler
 
 Self-service pricing scope:
 

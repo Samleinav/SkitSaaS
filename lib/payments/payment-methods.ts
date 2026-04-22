@@ -806,7 +806,51 @@ export function resolveCoreCheckoutLegacyActionPath({
   return null;
 }
 
-async function invokeModulePaymentMethodRoute({
+function buildModulePaymentMethodRequestUrl({
+  moduleId,
+  path,
+  request
+}: {
+  moduleId: string;
+  path: string;
+  request: Request;
+}) {
+  const moduleRequestUrl = new URL(request.url);
+  const moduleSlug = splitModuleApiPath(path);
+  const encodedSlug = moduleSlug.map((segment) => encodeURIComponent(segment));
+  const modulePath = ['/api/modules', encodeURIComponent(moduleId), ...encodedSlug].join(
+    '/'
+  );
+  moduleRequestUrl.pathname = modulePath;
+
+  return {
+    moduleRequestUrl,
+    moduleSlug
+  };
+}
+
+function createModulePaymentMethodHeaders({
+  request,
+  moduleId,
+  action,
+  dispatchFormat
+}: {
+  request: Request;
+  moduleId: string;
+  action: 'start' | 'cancel' | 'return' | 'webhook';
+  dispatchFormat: 'normalized-json' | 'raw-request';
+}) {
+  const headers = new Headers(request.headers);
+  headers.delete('content-length');
+  headers.delete('host');
+  headers.set('x-checkout-method-dispatch', action);
+  headers.set('x-checkout-method-module-id', moduleId);
+  headers.set('x-checkout-method-dispatch-format', dispatchFormat);
+
+  return headers;
+}
+
+export function buildModulePaymentMethodDispatchRequests({
   moduleId,
   path,
   action,
@@ -819,34 +863,57 @@ async function invokeModulePaymentMethodRoute({
   request: Request;
   payload: Record<string, unknown>;
 }) {
+  const requests: Array<{
+    dispatchFormat: 'normalized-json' | 'raw-request';
+    slug: string[];
+    request: Request;
+  }> = [];
   const body = JSON.stringify(payload);
-  const headers = new Headers(request.headers);
-  headers.delete('content-length');
-  headers.delete('host');
-  headers.set('content-type', 'application/json');
-  headers.set('x-checkout-method-dispatch', action);
-  headers.set('x-checkout-method-module-id', moduleId);
-
-  const moduleRequestUrl = new URL(request.url);
-  const moduleSlug = splitModuleApiPath(path);
-  const encodedSlug = moduleSlug.map((segment) => encodeURIComponent(segment));
-  const modulePath = ['/api/modules', encodeURIComponent(moduleId), ...encodedSlug].join(
-    '/'
-  );
-  moduleRequestUrl.pathname = modulePath;
-
-  const forwardedRequest = new Request(moduleRequestUrl.toString(), {
-    method: 'POST',
-    headers,
-    body
-  });
-
-  const response = await resolveModuleApiHandler({
+  const normalizedHeaders = createModulePaymentMethodHeaders({
+    request,
     moduleId,
-    slug: splitModuleApiPath(path),
-    request: forwardedRequest
+    action,
+    dispatchFormat: 'normalized-json'
+  });
+  normalizedHeaders.set('content-type', 'application/json');
+
+  const { moduleRequestUrl, moduleSlug } = buildModulePaymentMethodRequestUrl({
+    moduleId,
+    path,
+    request
   });
 
+  requests.push({
+    dispatchFormat: 'normalized-json',
+    slug: moduleSlug,
+    request: new Request(moduleRequestUrl.toString(), {
+      method: 'POST',
+      headers: normalizedHeaders,
+      body
+    })
+  });
+
+  if (action !== 'start' && request.method.toUpperCase() === 'GET') {
+    const rawHeaders = createModulePaymentMethodHeaders({
+      request,
+      moduleId,
+      action,
+      dispatchFormat: 'raw-request'
+    });
+    requests.push({
+      dispatchFormat: 'raw-request' as const,
+      slug: moduleSlug,
+      request: new Request(moduleRequestUrl.toString(), {
+        method: 'GET',
+        headers: rawHeaders
+      })
+    });
+  }
+
+  return requests;
+}
+
+async function finalizeModulePaymentMethodRouteResponse(response: Response | null) {
   if (!response) {
     return {
       ok: false,
@@ -876,6 +943,39 @@ async function invokeModulePaymentMethodRoute({
     ok: true,
     result
   } as const;
+}
+
+async function invokeModulePaymentMethodRoute({
+  moduleId,
+  path,
+  action,
+  request,
+  payload
+}: {
+  moduleId: string;
+  path: string;
+  action: 'start' | 'cancel' | 'return' | 'webhook';
+  request: Request;
+  payload: Record<string, unknown>;
+}) {
+  for (const dispatchRequest of buildModulePaymentMethodDispatchRequests({
+    moduleId,
+    path,
+    action,
+    request,
+    payload
+  })) {
+    const response = await resolveModuleApiHandler({
+      moduleId,
+      slug: dispatchRequest.slug,
+      request: dispatchRequest.request
+    });
+    if (response) {
+      return finalizeModulePaymentMethodRouteResponse(response);
+    }
+  }
+
+  return finalizeModulePaymentMethodRouteResponse(null);
 }
 
 async function applyCheckoutPaymentMethodTransition({

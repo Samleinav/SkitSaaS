@@ -139,6 +139,10 @@ Checkout method discovery and UI:
 - current frontend checkout uses that model for the selection list, while still
   allowing provider-specific execution renderers where required (for example,
   embedded PayPal buttons)
+- module payment methods receive `startPath` through a normalized internal
+  `POST` dispatch, and callback routes first try the same normalized bridge
+  before falling back to the original `GET` callback request when the module
+  only exposes a typed return/cancel route
 
 ## 6) Admin area capabilities
 
