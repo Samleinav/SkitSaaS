@@ -280,7 +280,7 @@ type RouteProxyFn = (request: NextRequest) => Promise<NextResponse | null>
 | Proxy | Use | Auth failure |
 |-------|-----|--------------|
 | `proxyAdmin` | Page routes needing an admin session (`adminAreaRoles`) | Redirect `/admin/login` |
-| `proxyAuth` | Page routes needing any active session | Redirect `/sign-in` |
+| `proxyAuth` | Page routes needing any active session | Redirect `/login` |
 | `proxyApiAdmin` | API routes needing an admin session (`adminAreaRoles`) | `403 Forbidden` JSON |
 | `proxyApiAuth` | API routes needing any active session | `401 Unauthorized` JSON |
 

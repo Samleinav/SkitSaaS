@@ -48,12 +48,12 @@ test('admin routes redirect to admin login when unauthenticated', async () => {
 });
 
 test(
-  'dashboard routes redirect to legacy sign-in when unauthenticated',
+  'dashboard routes redirect to login when unauthenticated',
   async () => {
     const { resolveUnauthenticatedRedirect } = await loadProxyGuards();
 
-    assert.equal(resolveUnauthenticatedRedirect('/dashboard'), '/sign-in');
-    assert.equal(resolveUnauthenticatedRedirect('/dashboard/general'), '/sign-in');
+    assert.equal(resolveUnauthenticatedRedirect('/dashboard'), '/login');
+    assert.equal(resolveUnauthenticatedRedirect('/dashboard/general'), '/login');
   }
 );
 

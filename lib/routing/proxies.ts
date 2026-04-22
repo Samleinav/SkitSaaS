@@ -18,7 +18,7 @@ import {
 
 const SESSION_COOKIE = 'session';
 const ADMIN_LOGIN = '/admin/login';
-const SIGN_IN = '/sign-in';
+const LOGIN = '/login';
 
 // ---------------------------------------------------------------------------
 // Session helpers
@@ -222,13 +222,13 @@ export const proxyAdmin: RouteProxyFn = async (request: NextRequest) => {
 /**
  * Requires an active session (any role).
  * Also verifies the session has not been revoked in auth_sessions (JTI check).
- * Redirects to /sign-in on failure.
+ * Redirects to /login on failure.
  */
 export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
   const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
 
   if (!cookieValue) {
-    return NextResponse.redirect(new URL(SIGN_IN, request.url));
+    return NextResponse.redirect(new URL(LOGIN, request.url));
   }
 
   const session = await verifySessionCookie(cookieValue);
@@ -239,7 +239,7 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
       status: 'warning',
       message: 'Dashboard proxy rejected an invalid or unverifiable session cookie.'
     });
-    const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+    const res = NextResponse.redirect(new URL(LOGIN, request.url));
     res.cookies.delete(SESSION_COOKIE);
     return res;
   }
@@ -258,7 +258,7 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
         actorUserId: session.userId,
         message: 'Dashboard proxy rejected a session whose user account is unavailable.'
       });
-      const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+      const res = NextResponse.redirect(new URL(LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
     }
@@ -272,13 +272,13 @@ export const proxyAuth: RouteProxyFn = async (request: NextRequest) => {
         actorUserId: session.userId,
         message: 'Dashboard proxy rejected a revoked or expired persisted session.'
       });
-      const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+      const res = NextResponse.redirect(new URL(LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
     }
   } catch (error) {
     console.error('[proxyAuth] DB lookup failed:', error);
-    const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+    const res = NextResponse.redirect(new URL(LOGIN, request.url));
     res.cookies.delete(SESSION_COOKIE);
     return res;
   }
@@ -550,7 +550,7 @@ export function proxyRateLimit(config: RateLimitConfig): ApiRouteProxyFn {
 /**
  * Restricts page access to users whose role is in the allowlist.
  * The role is read from the DB to prevent stale-JWT role spoofing.
- * Unauthenticated requests are redirected to /sign-in.
+ * Unauthenticated requests are redirected to /login.
  * Authenticated users with the wrong role are redirected to /dashboard.
  *
  * Typically used with proxyAuth in a portal proxy chain:
@@ -565,12 +565,12 @@ export function proxyRoles(allowedRoles: string[]): RouteProxyFn {
   return async (request: NextRequest) => {
     const cookieValue = request.cookies.get(SESSION_COOKIE)?.value;
     if (!cookieValue) {
-      return NextResponse.redirect(new URL(SIGN_IN, request.url));
+      return NextResponse.redirect(new URL(LOGIN, request.url));
     }
 
     const session = await verifySessionCookie(cookieValue);
     if (!session || !session.jti) {
-      const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+      const res = NextResponse.redirect(new URL(LOGIN, request.url));
       res.cookies.delete(SESSION_COOKIE);
       return res;
     }
@@ -578,7 +578,7 @@ export function proxyRoles(allowedRoles: string[]): RouteProxyFn {
     try {
       const account = await lookupUser(session.userId);
       if (account.length === 0) {
-        const res = NextResponse.redirect(new URL(SIGN_IN, request.url));
+        const res = NextResponse.redirect(new URL(LOGIN, request.url));
         res.cookies.delete(SESSION_COOKIE);
         return res;
       }
@@ -589,7 +589,7 @@ export function proxyRoles(allowedRoles: string[]): RouteProxyFn {
       }
     } catch (error) {
       console.error('[proxyRoles] DB lookup failed:', error);
-      return NextResponse.redirect(new URL(SIGN_IN, request.url));
+      return NextResponse.redirect(new URL(LOGIN, request.url));
     }
 
     return null; // role allowed — continue chain

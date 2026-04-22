@@ -12,7 +12,7 @@ export type { RichUser };
  *
  * @example
  * const user = await getCurrentUser();
- * if (!user) redirect('/sign-in');
+ * if (!user) redirect('/login');
  * if (user.isAdmin()) { ... }
  * const ctx = await user.getContext(); // → UserContext
  */
@@ -22,11 +22,11 @@ export async function getCurrentUser(): Promise<RichUser<User> | null> {
 }
 
 /**
- * Like getCurrentUser() but redirects to /sign-in if not authenticated.
+ * Like getCurrentUser() but redirects to /login if not authenticated.
  * Use in server components and server actions that require a logged-in user.
  */
 export async function requireCurrentUser(): Promise<RichUser<User>> {
   const user = await getCurrentUser();
-  if (!user) redirect('/sign-in');
+  if (!user) redirect('/login');
   return user;
 }

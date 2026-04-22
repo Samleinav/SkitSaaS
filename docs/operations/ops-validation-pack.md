@@ -56,7 +56,7 @@ handoff, or governance logging changed:
 Minimum evidence expectations:
 
 - `/admin*` redirects to `/admin/login` when anonymous
-- `/dashboard*` redirects to `/sign-in` when anonymous
+- `/dashboard*` redirects to `/login` when anonymous
 - `/admin*` renders for an admin session
 - `/dashboard*` renders for an authenticated non-admin user
 - public allowlisted endpoints remain explicitly allowlisted by test
@@ -190,6 +190,6 @@ Related env vars:
 Behavior note:
 
 - anonymous `/admin*` redirects to `/admin/login`
-- anonymous `/dashboard*` redirects to `/sign-in`
+- anonymous `/dashboard*` redirects to `/login`
 - authenticated smoke still expects `2xx` responses unless a route is
   intentionally inaccessible for that session

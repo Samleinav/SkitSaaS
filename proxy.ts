@@ -27,7 +27,7 @@ const PORTAL_INTERNAL_PREFIX = '/portal-internal';
 
 const DASHBOARD_ROOT = '/dashboard';
 const ADMIN_ROOT = '/admin';
-const LEGACY_SIGN_IN = '/sign-in';
+const LOGIN_ROUTE = '/login';
 const ADMIN_LOGIN = '/admin/login';
 const PUBLIC_AUTH_ROUTES = new Set(['/login', '/sign-in', '/sign-up', ADMIN_LOGIN]);
 
@@ -60,7 +60,7 @@ export function resolveUnauthenticatedRedirect(pathname: string) {
   }
 
   if (matchesAreaRoute(pathname, DASHBOARD_ROOT)) {
-    return LEGACY_SIGN_IN;
+    return LOGIN_ROUTE;
   }
 
   return null;

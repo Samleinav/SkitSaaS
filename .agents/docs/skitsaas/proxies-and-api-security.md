@@ -27,6 +27,12 @@ Current area defaults are injected in `lib/routing/area-setup.ts`:
 - admin -> `proxyAdmin`
 - dashboard -> `proxyAuth`
 
+Current redirect behavior for page auth failures:
+
+- admin pages -> `/admin/login`
+- dashboard pages -> `/login`
+- `/sign-in` remains a public legacy alias that redirects to `/login`
+
 Key files:
 
 - `proxy.ts`

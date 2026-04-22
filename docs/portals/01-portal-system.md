@@ -323,7 +323,7 @@ consistently to each declared route, or wrap `SchoolRoute(path)` in a small
 module-local helper that adds the guard before `.name()`.
 
 Redirect behaviour:
-- No session → `/sign-in`
+- No session → `/login`
 - Session but wrong role → `/dashboard`
 
 ### 2. Post-login redirect — `redirectRoles` / `isDefaultPortal` in `portal-init.ts`
@@ -500,7 +500,7 @@ pnpm dev                       # navigate to /<portalName>
 
 Manual checks:
 - [ ] `/<portalName>` (standalone) or `/dashboard/<portalName>` (dashboard area) renders without area chrome
-- [ ] Unauthenticated access to protected routes → redirect to `/sign-in`
+- [ ] Unauthenticated access to protected routes → redirect to `/login`
 - [ ] Authenticated user with wrong role → redirect to `/dashboard`
 - [ ] Authenticated user with correct role → page renders
 - [ ] `/portal-internal/*` direct access returns 404

@@ -793,7 +793,7 @@ const ADMIN_ROLES = new Set(['admin']);
 async function requireDashboardUser() {
   const user = await getUser();
   if (!user) {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   return user;

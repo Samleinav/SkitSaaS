@@ -21,7 +21,7 @@ All protected routes run through a composable proxy chain. There are four built-
 | Proxy | Use case | Auth failure response |
 |-------|----------|-----------------------|
 | `proxyAdmin` | Page routes requiring admin session (per `adminAreaRoles`) | Redirect → `/admin/login` |
-| `proxyAuth` | Page routes requiring any active session | Redirect → `/sign-in` |
+| `proxyAuth` | Page routes requiring any active session | Redirect → `/login` |
 | `proxyApiAdmin` | API route handlers requiring admin session (per `adminAreaRoles`) | `403 Forbidden` JSON |
 | `proxyApiAuth` | API route handlers requiring any active session | `401 Unauthorized` JSON |
 | `proxyApiRoles(roles)` | Factory: API routes restricted to specific role allowlist | `403 Forbidden` JSON |

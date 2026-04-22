@@ -58,3 +58,13 @@ SDK contract changes should continue to be recorded in
   handling still work when `preDispatch` short-circuits a request before the
   typed dispatcher runs.
 - Synced routing/security docs with the token-aware guest checkout model.
+
+## 2026-04-22 - login-route-canonicalization
+
+- Switched dashboard unauthenticated redirects in `proxy.ts`, page proxies, and
+  `requireCurrentUser()` to use `/login` as the canonical destination.
+- Kept `/sign-in` available as a public legacy alias for compatibility and
+  dashboard-theme resolution, instead of using it as the primary redirect
+  target.
+- Updated tests and SDK docs to reflect `/login` as the main dashboard auth
+  route.
