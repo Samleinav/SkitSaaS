@@ -1,6 +1,7 @@
 import '@/lib/routing/area-setup';
 import {
   dispatchApiRoutes,
+  getApiCorsConfig,
   type ApiRouteEntry,
   type ApiRouteProxyFn,
 } from '@skitsaas/sdk';
@@ -19,6 +20,50 @@ type ApiRouteDispatchOptions = {
   onNotFound?: (request: Request, context?: unknown) => Response | Promise<Response>;
 };
 
+function buildCorsHeaders(request: Request): Record<string, string> {
+  const requestOrigin = request.headers.get('Origin');
+  const corsConfig = getApiCorsConfig();
+  if (!corsConfig.allowedOrigins.length) {
+    return {};
+  }
+
+  const isWildcard = corsConfig.allowedOrigins.includes('*');
+  const originAllowed =
+    isWildcard ||
+    (requestOrigin !== null && corsConfig.allowedOrigins.includes(requestOrigin));
+
+  if (!originAllowed) {
+    return {};
+  }
+
+  return {
+    'Access-Control-Allow-Origin': isWildcard ? '*' : (requestOrigin as string),
+    'Access-Control-Allow-Headers': corsConfig.allowedHeaders.join(', '),
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    ...(isWildcard ? {} : { Vary: 'Origin' })
+  };
+}
+
+function withCorsHeaders(
+  response: Response,
+  corsHeaders: Record<string, string>
+): Response {
+  if (Object.keys(corsHeaders).length === 0) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    headers.set(key, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 /**
  * Wrap one or more typed ApiRoute entries as a Next.js route handler.
  *
@@ -33,10 +78,23 @@ export function withApiRouteEntries(
   const entries = Array.isArray(routes) ? routes : [routes];
 
   return async (request: Request, context?: unknown) => {
+    const corsHeaders = buildCorsHeaders(request);
+    const corsConfig = getApiCorsConfig();
+
+    if (request.method.toUpperCase() === 'OPTIONS' && Object.keys(corsHeaders).length > 0) {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Max-Age': String(corsConfig.maxAge)
+        }
+      });
+    }
+
     for (const proxy of options.preDispatch ?? []) {
       const result = await proxy(request);
       if (result !== null) {
-        return result;
+        return withCorsHeaders(result, corsHeaders);
       }
     }
 
@@ -46,9 +104,12 @@ export function withApiRouteEntries(
     }
 
     if (options.onNotFound) {
-      return options.onNotFound(request, context);
+      return withCorsHeaders(await options.onNotFound(request, context), corsHeaders);
     }
 
-    return Response.json({ error: 'Not Found' }, { status: 404 });
+    return withCorsHeaders(
+      Response.json({ error: 'Not Found' }, { status: 404 }),
+      corsHeaders
+    );
   };
 }

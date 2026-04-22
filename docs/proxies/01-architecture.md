@@ -178,6 +178,15 @@ The allowlist is now enforced by test coverage in:
 - `/api/forms/validate`
   - not behind `proxy.ts`
   - protected by same-origin and conditional access checks
+- `/api/checkout/methods`
+  - supports authenticated self-service requests
+  - also allows guest access only for a live `signup_intent` checkout token
+- `/api/checkout/[checkoutToken]/pay/[paymentMethodId]`
+  - supports authenticated self-service requests
+  - also allows guest access only for a live `signup_intent` checkout token
+- `/api/paypal/checkout`
+  - legacy compatibility return route
+  - allows guest browser return only for a live `signup_intent` checkout token
 - `/api/sfiles/serve/[...path]`
   - public only when the file record visibility is `public`
   - otherwise actor and permission checks apply
@@ -202,10 +211,7 @@ These surfaces should never rely on “security by not being linked”:
 - `/api/user`
 - `/api/team`
 - `/api/notifications/*`
-- `/api/checkout/[checkoutToken]/pay/[paymentMethodId]`
-- `/api/checkout/methods`
 - `/api/paypal/plan`
-- `/api/paypal/checkout`
 - `/api/paypal/checkout/cancel`
 - `/api/sfiles*` except the public-file branch of `serve`
 

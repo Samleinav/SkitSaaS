@@ -97,6 +97,15 @@ model, for example:
 
 Public does not mean unguarded. It means the guard is not session-only.
 
+Checkout-specific nuance:
+
+- `/api/checkout/methods`
+- `/api/checkout/[checkoutToken]/pay/[paymentMethodId]`
+- legacy `/api/paypal/checkout`
+
+These routes can be sessionless only for a live `signup_intent` checkout token.
+Treat them as token-aware guarded routes, not as generally public APIs.
+
 ## Server Action Rule
 
 Page access is not enough for mutations.

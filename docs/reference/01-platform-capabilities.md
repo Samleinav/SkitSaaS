@@ -130,6 +130,9 @@ Checkout method discovery and UI:
 
 - `GET /api/checkout/methods?checkoutToken=...` returns the filtered method list
   for the current checkout context
+- the canonical method-discovery and payment-start endpoints allow guest access
+  only when the checkout token belongs to a live `signup_intent`; otherwise
+  they still require an authenticated user context
 - returned method metadata now includes presentation hints (`checkoutUi`) so
   host- or theme-owned checkout pages can render method cards/selectors without
   exposing provider ids or provider-specific routing choices to the end user

@@ -130,6 +130,9 @@ Current paid-signup checkout model:
 
 - `lib/payments/signup-intents.ts` links public signup to a targetless checkout order
 - guest checkout access is allowed only for tokens tied to a `signup_intent`
+- the canonical method-discovery/start routes and the legacy PayPal return route
+  enforce guest access through that live signup-intent token check instead of a
+  blanket session proxy
 - return/webhook finalization creates the real user/team and purchased assignment
 
 Self-service pricing scope:

@@ -65,9 +65,22 @@ export const CoreApiRoutes = {
 
   // ─── Checkout ──────────────────────────────────────────────────────────────
   checkout: {
-    methods: RouteApi('/checkout/methods').GET().auth('user').name('api.checkout.methods'),
+    /**
+     * Session auth is conditional here:
+     * - authenticated self-service calls are allowed
+     * - guest access is allowed only for live signup-intent checkout tokens
+     */
+    methods: RouteApi('/checkout/methods')
+      .GET()
+      .rateLimit({ limit: 30, windowSeconds: 60 })
+      .name('api.checkout.methods'),
+    /**
+     * Session auth is conditional here:
+     * - authenticated self-service calls are allowed
+     * - guest access is allowed only for live signup-intent checkout tokens
+     */
     pay: RouteApi('/checkout/{checkoutToken}/pay/{paymentMethodId}')
-      .POST().auth('user')
+      .POST()
       .rateLimit({ limit: 5, windowSeconds: 60 })
       .name('api.checkout.pay'),
     /** cancel.get / cancel.post — auth is conditional on payment method owner type */
@@ -109,7 +122,14 @@ export const CoreApiRoutes = {
   // ─── PayPal (legacy compatibility) ─────────────────────────────────────────
   paypal: {
     plan: RouteApi('/paypal/plan').POST().auth('user').name('api.paypal.plan'),
-    checkout: RouteApi('/paypal/checkout').POST().auth('user').name('api.paypal.checkout'),
+    /**
+     * Legacy return wrapper. Kept sessionless so guest signup-intent browser
+     * returns can still converge through the compatibility path.
+     */
+    checkout: RouteApi('/paypal/checkout')
+      .POST()
+      .rateLimit({ limit: 30, windowSeconds: 60 })
+      .name('api.paypal.checkout'),
     cancel: RouteApi('/paypal/checkout/cancel').POST().auth('user').name('api.paypal.cancel'),
     /** webhook — no session auth; signature verification in handler */
     webhook: RouteApi('/paypal/webhook').POST()

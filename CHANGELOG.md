@@ -46,3 +46,15 @@ SDK contract changes should continue to be recorded in
   user subscription cancellation into the transactional delete flow.
 - Added focused tests and synced human/agent reference docs for the new team
   membership guarantees.
+
+## 2026-04-21 - checkout-route-guest-hardening
+
+- Fixed the canonical checkout route metadata so guest paid-signup flows are no
+  longer blocked by blanket API session auth before `signup_intent` access
+  checks run.
+- Added explicit rate limits for guest-capable checkout method discovery and
+  the legacy PayPal return compatibility route.
+- Updated `withApiRouteEntries()` so CORS headers and `OPTIONS` preflight
+  handling still work when `preDispatch` short-circuits a request before the
+  typed dispatcher runs.
+- Synced routing/security docs with the token-aware guest checkout model.
