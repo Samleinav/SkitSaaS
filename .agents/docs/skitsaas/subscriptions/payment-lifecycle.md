@@ -195,6 +195,9 @@ Practical rule:
 
 - if metadata shape changes, lifecycle, provider adapters, and order parsers
   must stay aligned
+- provider period metadata (`currentPeriodStart`, `currentPeriodEnd`,
+  `trialEndsAt`, `cancelAtPeriodEnd`, `canceledAt`) must be preserved into
+  subscription assignments when present
 
 ## Flow Examples
 
@@ -207,6 +210,17 @@ Safe mental model:
 3. `recordCheckoutEvent(...)` persists order/log state
 4. lifecycle executor projects subscription changes when the order status is
    actionable
+
+Security rules:
+
+- existing-user Stripe subscription returns require an authenticated user whose
+  id matches Stripe `client_reference_id`; do not mint sessions from those
+  callbacks
+- only paid `signup_intent` finalizers may create the new dashboard session
+  after successful checkout
+- PayPal webhooks require `PAYPAL_WEBHOOK_ID` signature verification in
+  production-like runtimes or when `PAYPAL_ENVIRONMENT` is `production`/`live`;
+  unsigned processing is only for sandbox/local diagnostics
 
 ### Admin Manual Subscription Order
 

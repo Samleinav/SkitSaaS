@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canReuseCompletedSubscriptionCheckoutReturn } from '../../lib/payments/core-return-actions';
+import {
+  canReuseCompletedSubscriptionCheckoutReturn,
+  resolveStripeExistingUserReturnAccess
+} from '../../lib/payments/core-return-actions';
 import type { CheckoutOrderWithMetadata } from '../../lib/payments/checkout-orders';
 
 function createCheckoutOrder(
@@ -93,5 +96,54 @@ test('canReuseCompletedSubscriptionCheckoutReturn rejects mismatched provider, i
       providerSessionId: 'SESSION-123'
     }),
     false
+  );
+});
+
+test('resolveStripeExistingUserReturnAccess requires a matching active user session', () => {
+  assert.deepEqual(
+    resolveStripeExistingUserReturnAccess({
+      currentUserId: 42,
+      sessionUserId: 42
+    }),
+    { ok: true }
+  );
+
+  assert.deepEqual(
+    resolveStripeExistingUserReturnAccess({
+      currentUserId: null,
+      sessionUserId: 42
+    }),
+    {
+      ok: false,
+      statusCode: 401,
+      error: 'Authentication required.',
+      redirectUrl: '/login?redirect=pricing'
+    }
+  );
+
+  assert.deepEqual(
+    resolveStripeExistingUserReturnAccess({
+      currentUserId: 99,
+      sessionUserId: 42
+    }),
+    {
+      ok: false,
+      statusCode: 403,
+      error: 'Stripe checkout session does not belong to the current user.',
+      redirectUrl: '/error'
+    }
+  );
+
+  assert.deepEqual(
+    resolveStripeExistingUserReturnAccess({
+      currentUserId: 42,
+      sessionUserId: 0
+    }),
+    {
+      ok: false,
+      statusCode: 403,
+      error: 'Stripe checkout session user is invalid.',
+      redirectUrl: '/error'
+    }
   );
 });

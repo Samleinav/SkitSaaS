@@ -139,7 +139,20 @@ test('order/payment status changes trigger correct lifecycle events for organiza
         subscriptionTemplateId: 101,
         planName: 'Pro',
         providerPlanId: 'price_test_123',
-        externalPaymentId: 'sub_test_123'
+        externalPaymentId: 'sub_test_123',
+        metadata: {
+          checkoutContext: {
+            providerMetadata: {
+              stripe: {
+                currentPeriodStart: '2026-02-01T00:00:00.000Z',
+                currentPeriodEnd: '2026-03-01T00:00:00.000Z',
+                trialEndsAt: '2026-02-08T00:00:00.000Z',
+                cancelAtPeriodEnd: true,
+                canceledAt: '2026-02-15T00:00:00.000Z'
+              }
+            }
+          }
+        }
       },
       deps
     );
@@ -165,6 +178,11 @@ test('order/payment status changes trigger correct lifecycle events for organiza
     providerPlanId: 'price_test_123',
     status: 'active',
     planName: 'Pro',
+    currentPeriodStart: new Date('2026-02-01T00:00:00.000Z'),
+    currentPeriodEnd: new Date('2026-03-01T00:00:00.000Z'),
+    trialEndsAt: new Date('2026-02-08T00:00:00.000Z'),
+    cancelAtPeriodEnd: true,
+    canceledAt: new Date('2026-02-15T00:00:00.000Z'),
     sourceOrderId: 9001
   });
 
@@ -256,6 +274,11 @@ test('explicit user order/payment status changes activate and fall back user sub
     providerPlanId: null,
     status: 'active',
     planName: 'Solo Pro',
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    trialEndsAt: null,
+    cancelAtPeriodEnd: null,
+    canceledAt: null,
     sourceOrderId: 7007
   });
 

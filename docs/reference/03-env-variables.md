@@ -129,6 +129,10 @@ Notes:
 
 - If `STRIPE_ENABLED` / `PAYPAL_ENABLED` are unset or empty, runtime reads DB values from `/admin/app-config/payments-methods`.
 - If those env vars are set, env wins over DB.
+- `PAYPAL_WEBHOOK_ID` is required for webhook processing when the runtime is
+  production-like (`NODE_ENV=production`, `VERCEL_ENV=production`, or
+  `APP_ENV=production`) or `PAYPAL_ENVIRONMENT` is `production`/`live`.
+  Sandbox/local diagnostics may omit it.
 - PayPal plans are generated from subscription templates and persisted for reuse.
 
 ## Organization runtime toggle

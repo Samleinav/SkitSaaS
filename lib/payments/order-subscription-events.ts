@@ -669,6 +669,11 @@ async function projectSubscriptionAssignment({
       providerPlanId: payload.providerPlanId,
       status: payload.status,
       planName: payload.planName,
+      currentPeriodStart: payload.currentPeriodStart ?? null,
+      currentPeriodEnd: payload.currentPeriodEnd ?? null,
+      trialEndsAt: payload.trialEndsAt ?? null,
+      cancelAtPeriodEnd: payload.cancelAtPeriodEnd ?? null,
+      canceledAt: payload.canceledAt ?? null,
       sourceOrderId: payload.sourceOrderId,
     });
     return;

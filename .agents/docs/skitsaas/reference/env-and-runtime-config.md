@@ -122,6 +122,10 @@ Practical rule:
 
 - when payment env flags are unset, runtime can fall back to DB-backed payment
   method config
+- `PAYPAL_WEBHOOK_ID` is mandatory for PayPal webhook processing in
+  production-like runtimes (`NODE_ENV=production`, `VERCEL_ENV=production`, or
+  `APP_ENV=production`) and when `PAYPAL_ENVIRONMENT` is `production`/`live`;
+  omit it only for sandbox/local diagnostics
 
 ## Organization Runtime Toggle
 

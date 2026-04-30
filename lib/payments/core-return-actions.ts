@@ -252,6 +252,61 @@ export function canReuseCompletedSubscriptionCheckoutReturn({
   );
 }
 
+export type StripeExistingUserReturnAccessResult =
+  | { ok: true }
+  | {
+      ok: false;
+      statusCode: 401 | 403;
+      error: string;
+      redirectUrl: string;
+    };
+
+function normalizePositiveUserId(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : null;
+}
+
+export function resolveStripeExistingUserReturnAccess({
+  currentUserId,
+  sessionUserId
+}: {
+  currentUserId: number | null | undefined;
+  sessionUserId: number | null | undefined;
+}): StripeExistingUserReturnAccessResult {
+  const currentId = normalizePositiveUserId(currentUserId);
+  const checkoutUserId = normalizePositiveUserId(sessionUserId);
+
+  if (!checkoutUserId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error: 'Stripe checkout session user is invalid.',
+      redirectUrl: '/error'
+    };
+  }
+
+  if (!currentId) {
+    return {
+      ok: false,
+      statusCode: 401,
+      error: 'Authentication required.',
+      redirectUrl: '/login?redirect=pricing'
+    };
+  }
+
+  if (currentId !== checkoutUserId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error: 'Stripe checkout session does not belong to the current user.',
+      redirectUrl: '/error'
+    };
+  }
+
+  return { ok: true };
+}
+
 async function handleStripeOneTimeCheckoutReturn({
   session,
   checkoutOrder,
@@ -726,6 +781,30 @@ export async function executeStripeCheckoutReturnAction({
         providerSessionId: sessionId,
         providerReferenceId: subscriptionId ?? sessionId
       });
+    let existingSessionUserId: number | null = null;
+
+    if (!isSignupIntentCheckout) {
+      const sessionClientReferenceId = session.client_reference_id;
+      existingSessionUserId = Number(sessionClientReferenceId);
+
+      if (
+        !sessionClientReferenceId ||
+        !Number.isInteger(existingSessionUserId) ||
+        existingSessionUserId <= 0
+      ) {
+        throw new Error("Invalid user ID in session's client_reference_id.");
+      }
+
+      const currentUser = await getUser();
+      const accessResult = resolveStripeExistingUserReturnAccess({
+        currentUserId: currentUser?.id ?? null,
+        sessionUserId: existingSessionUserId
+      });
+
+      if (!accessResult.ok) {
+        return accessResult;
+      }
+    }
 
     if (reusedCompletedSubscriptionCheckout && !isSignupIntentCheckout) {
       return {
@@ -919,15 +998,14 @@ export async function executeStripeCheckoutReturnAction({
       };
     }
 
-    const userId = session.client_reference_id;
-    if (!userId) {
+    if (!existingSessionUserId) {
       throw new Error("No user ID found in session's client_reference_id.");
     }
 
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.id, Number(userId)))
+      .where(eq(users.id, existingSessionUserId))
       .limit(1);
 
     if (user.length === 0) {
@@ -1098,7 +1176,6 @@ export async function executeStripeCheckoutReturnAction({
       });
     }
 
-    await setSession(user[0]);
     const refreshedCheckoutOrder =
       (await refreshCheckoutOrderByToken(checkoutOrder?.checkoutToken)) ?? checkoutOrder;
 

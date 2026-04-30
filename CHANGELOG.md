@@ -5,6 +5,19 @@ Repo-level change log for non-SDK implementation batches.
 SDK contract changes should continue to be recorded in
 `docs/reference/05-sdk-changelog.md`.
 
+## 2026-04-30 - payment-security-hardening
+
+- Hardened existing-user Stripe subscription returns so the active browser
+  session must match the Stripe `client_reference_id`; only paid
+  `signup_intent` finalization can create a new dashboard session after
+  checkout.
+- Required PayPal webhook signature verification in production-like or
+  PayPal live runtimes, while preserving unsigned sandbox/local diagnostics.
+- Fixed subscription lifecycle projection so provider period, trial, and
+  cancel metadata is persisted into active subscription assignments.
+- Added focused regression coverage and synced payment lifecycle/env docs for
+  the updated security guarantees.
+
 ## 2026-04-20 - audit-hardening-batch-1
 
 - Added a tracked implementation plan for the SaaS audit hardening work in

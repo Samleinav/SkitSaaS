@@ -83,6 +83,63 @@ function normalizeCheckoutToken(value: string | null | undefined) {
   return normalized.slice(0, 120);
 }
 
+function normalizeRuntimeValue(value: string | null | undefined) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+export function isProductionLikePaymentRuntime({
+  nodeEnv = process.env.NODE_ENV,
+  vercelEnv = process.env.VERCEL_ENV,
+  appEnv = process.env.APP_ENV,
+  paypalEnvironment = null
+}: {
+  nodeEnv?: string | null;
+  vercelEnv?: string | null;
+  appEnv?: string | null;
+  paypalEnvironment?: string | null;
+} = {}) {
+  const normalizedNodeEnv = normalizeRuntimeValue(nodeEnv);
+  const normalizedVercelEnv = normalizeRuntimeValue(vercelEnv);
+  const normalizedAppEnv = normalizeRuntimeValue(appEnv);
+  const normalizedPayPalEnvironment = normalizeRuntimeValue(paypalEnvironment);
+
+  return (
+    normalizedNodeEnv === 'production' ||
+    normalizedVercelEnv === 'production' ||
+    normalizedAppEnv === 'production' ||
+    normalizedPayPalEnvironment === 'production' ||
+    normalizedPayPalEnvironment === 'live'
+  );
+}
+
+export function resolvePayPalWebhookSignatureRequirement({
+  webhookId,
+  paypalEnvironment = null,
+  nodeEnv = process.env.NODE_ENV,
+  vercelEnv = process.env.VERCEL_ENV,
+  appEnv = process.env.APP_ENV
+}: {
+  webhookId: string | null | undefined;
+  paypalEnvironment?: string | null;
+  nodeEnv?: string | null;
+  vercelEnv?: string | null;
+  appEnv?: string | null;
+}) {
+  const normalizedWebhookId =
+    typeof webhookId === 'string' ? webhookId.trim() : '';
+
+  return {
+    configured: Boolean(normalizedWebhookId),
+    required: isProductionLikePaymentRuntime({
+      nodeEnv,
+      vercelEnv,
+      appEnv,
+      paypalEnvironment
+    }),
+    webhookId: normalizedWebhookId || null
+  };
+}
+
 export function canReuseConvergedOneTimeCheckoutWebhook({
   checkoutOrder,
   provider,
@@ -785,12 +842,45 @@ export async function executePayPalCheckoutWebhookAction({
     };
   }
 
-  const webhookId = await getPaymentConfigValue('paypalWebhookId');
-  if (webhookId) {
+  const [webhookId, paypalEnvironment] = await Promise.all([
+    getPaymentConfigValue('paypalWebhookId'),
+    getPaymentConfigValue('paypalEnvironment')
+  ]);
+  const signatureRequirement = resolvePayPalWebhookSignatureRequirement({
+    webhookId,
+    paypalEnvironment
+  });
+
+  if (!signatureRequirement.configured && signatureRequirement.required) {
+    await emitEventAsync(
+      EVENT_HOOKS.checkoutWebhookFailed,
+      {
+        provider: 'paypal',
+        eventType: event.event_type || null,
+        eventId: request.headers.get('paypal-transmission-id'),
+        reason: 'signature_verification_not_configured'
+      },
+      { source }
+    );
+    await createPaymentLog({
+      provider: 'paypal',
+      eventType: event.event_type || 'webhook.signature_not_configured',
+      status: 'failed',
+      externalId: event.resource?.id || null,
+      message: 'PayPal webhook signature verification is not configured.'
+    });
+    return {
+      ok: false,
+      statusCode: 503,
+      error: 'PayPal webhook signature verification is not configured.'
+    };
+  }
+
+  if (signatureRequirement.webhookId) {
     const isValid = await verifyPayPalWebhookSignature(
       request,
       event,
-      webhookId
+      signatureRequirement.webhookId
     );
     if (!isValid) {
       await emitEventAsync(

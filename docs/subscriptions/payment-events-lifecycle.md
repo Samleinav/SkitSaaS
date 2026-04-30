@@ -187,6 +187,10 @@ All checkout events normalize metadata and persist a shared context:
 Notes:
 
 - `paymentMethod` on each order captures the provider-specific method (e.g. `card`, `paypal`).
+- Provider period metadata (`currentPeriodStart`, `currentPeriodEnd`,
+  `trialEndsAt`, `cancelAtPeriodEnd`, `canceledAt`) is projected into active
+  subscription assignments when present, so billing-cycle state remains visible
+  after checkout return, webhook, and admin-order lifecycle runs.
 
 ## Flow examples
 
@@ -210,6 +214,10 @@ Notes:
 - For `subscription` checkout:
   - Stripe and PayPal now also reuse an already completed local checkout order when the browser return is replayed with matching provider identifiers.
   - A mismatched PayPal subscription callback against an already completed checkout order now returns a conflict instead of silently re-projecting the order.
+  - Existing-user Stripe subscription returns require an authenticated user
+    whose id matches the Stripe session `client_reference_id`. These returns do
+    not create or replace browser sessions; only paid `signup_intent` finalizers
+    create the new dashboard session after payment success.
   - For `signup_intent` subscription checkout, guest browser return is allowed for the matching checkout token and finalizes the real user/team plus dashboard session after payment success.
 - Legacy routes:
   - `/api/stripe/checkout`
@@ -221,6 +229,12 @@ Notes:
 - `POST /api/checkout/methods/[paymentMethodId]/webhook` now executes the core provider webhook action directly from the dispatcher runtime.
 - In practice, Stripe and PayPal both resolve through that same dispatcher path with their own `paymentMethodId`.
 - Core webhook handlers now promote provider webhook ids into `externalLogId` when available, so retries can be audited and settlement dedupe has a stable provider event identifier.
+- PayPal webhook signature verification is required when the runtime is
+  production-like (`NODE_ENV=production`, `VERCEL_ENV=production`, or
+  `APP_ENV=production`) or when `PAYPAL_ENVIRONMENT` is `production`/`live`.
+  Configure `PAYPAL_WEBHOOK_ID` before enabling PayPal webhooks in those
+  environments. Missing webhook ids are allowed only for sandbox/local
+  diagnostics.
 - Settlement webhook replays are now short-circuited by `provider + externalLogId` against `payment_transactions.provider_event_id`:
   - repeated deliveries still append a `payment_logs` audit row
   - duplicate material effects are skipped (`checkoutBeforeCreateOrder`, order status hooks, lifecycle projection, settlement transaction event)
