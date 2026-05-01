@@ -118,6 +118,16 @@ Current default mental model:
 - `canceled`
   close the paid assignment and move the target to the reserved default tier for that scope
 
+Provider status preservation:
+
+- provider `trialing` subscription status is actionable and maps to a
+  `received` order
+- lifecycle projection preserves provider `trialing` as a `trialing`
+  subscription assignment
+- Stripe and PayPal subscription event metadata should carry
+  `subscriptionStatus` so return-first and webhook-first paths converge the
+  same way
+
 Fallback policy:
 
 - `user`
@@ -216,6 +226,12 @@ Security rules:
 - existing-user Stripe subscription returns require an authenticated user whose
   id matches Stripe `client_reference_id`; do not mint sessions from those
   callbacks
+- existing-user PayPal user-scope subscription returns require the authenticated
+  user id to match the checkout target user
+- PayPal subscription returns must validate provider `custom_id` against the
+  expected checkout target/signup-intent custom id and validate provider plan id
+  against the local template plan ids before marking the checkout order
+  provider-pending or completed
 - only paid `signup_intent` finalizers may create the new dashboard session
   after successful checkout
 - PayPal webhooks require `PAYPAL_WEBHOOK_ID` signature verification in

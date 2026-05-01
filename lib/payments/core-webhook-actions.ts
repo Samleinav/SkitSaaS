@@ -486,6 +486,7 @@ export async function executeStripeCheckoutWebhookAction({
             currency: plan?.currency ?? checkoutOrder.currency ?? null,
             message: 'Stripe signup checkout webhook processed.',
             metadata: {
+              subscriptionStatus: subscription.status,
               handled: true,
               checkoutToken,
               signupIntentFinalized: Boolean(finalizedSignup?.createdUser)
@@ -498,6 +499,7 @@ export async function executeStripeCheckoutWebhookAction({
                   : session.customer?.id ?? null,
               productId,
               subscriptionId,
+              subscriptionStatus: subscription.status,
               webhookEventId: event.id,
               currentPeriodStart,
               currentPeriodEnd,
@@ -711,6 +713,7 @@ export async function executeStripeCheckoutWebhookAction({
           },
           providerMetadata: {
             subscriptionId: subscription.id,
+            subscriptionStatus: result.subscriptionStatus,
             webhookEventId: event.id,
             currentPeriodStart,
             currentPeriodEnd,
@@ -1223,6 +1226,8 @@ export async function executePayPalCheckoutWebhookAction({
           providerMetadata: {
             subscriptionId: event.resource.id,
             planId: confirmedSubscription.planId,
+            customId: confirmedSubscription.customId,
+            subscriptionStatus: confirmedSubscription.subscriptionStatus,
             webhookEventId: request.headers.get('paypal-transmission-id'),
             currentPeriodStart: confirmedSubscription.currentPeriodStart,
             currentPeriodEnd: confirmedSubscription.currentPeriodEnd
@@ -1288,6 +1293,8 @@ export async function executePayPalCheckoutWebhookAction({
       providerMetadata: {
         subscriptionId: event.resource?.id || null,
         planId: event.resource?.plan_id || null,
+        customId: event.resource?.custom_id || null,
+        subscriptionStatus: result.subscriptionStatus,
         webhookEventId: request.headers.get('paypal-transmission-id'),
         currentPeriodStart: result.currentPeriodStart,
         currentPeriodEnd: result.currentPeriodEnd

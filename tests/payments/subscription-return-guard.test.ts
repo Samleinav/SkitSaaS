@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   canReuseCompletedSubscriptionCheckoutReturn,
-  resolveStripeExistingUserReturnAccess
+  resolvePayPalUserReturnAccess,
+  resolveStripeExistingUserReturnAccess,
+  validatePayPalSubscriptionReturn
 } from '../../lib/payments/core-return-actions';
 import type { CheckoutOrderWithMetadata } from '../../lib/payments/checkout-orders';
 
@@ -143,6 +145,99 @@ test('resolveStripeExistingUserReturnAccess requires a matching active user sess
       ok: false,
       statusCode: 403,
       error: 'Stripe checkout session user is invalid.',
+      redirectUrl: '/error'
+    }
+  );
+});
+
+test('resolvePayPalUserReturnAccess requires current user to own user-scope checkout', () => {
+  assert.deepEqual(
+    resolvePayPalUserReturnAccess({
+      currentUserId: 15,
+      checkoutTargetUserId: 15
+    }),
+    { ok: true }
+  );
+
+  assert.deepEqual(
+    resolvePayPalUserReturnAccess({
+      currentUserId: null,
+      checkoutTargetUserId: 15
+    }),
+    {
+      ok: false,
+      statusCode: 401,
+      error: 'Authentication required.',
+      redirectUrl: '/login?redirect=pricing'
+    }
+  );
+
+  assert.deepEqual(
+    resolvePayPalUserReturnAccess({
+      currentUserId: 99,
+      checkoutTargetUserId: 15
+    }),
+    {
+      ok: false,
+      statusCode: 403,
+      error: 'PayPal checkout does not belong to the current user.',
+      redirectUrl: '/error'
+    }
+  );
+});
+
+test('validatePayPalSubscriptionReturn enforces target custom id and expected plan', () => {
+  assert.deepEqual(
+    validatePayPalSubscriptionReturn({
+      subscriptionCustomId: 'team:10',
+      expectedCustomId: 'team:10',
+      subscriptionPlanId: 'P-EXPECTED',
+      expectedPlanIds: ['P-EXPECTED', 'P-EXPECTED-NOTRIAL']
+    }),
+    { ok: true }
+  );
+
+  assert.deepEqual(
+    validatePayPalSubscriptionReturn({
+      subscriptionCustomId: 'team:11',
+      expectedCustomId: 'team:10',
+      subscriptionPlanId: 'P-EXPECTED',
+      expectedPlanIds: ['P-EXPECTED']
+    }),
+    {
+      ok: false,
+      statusCode: 409,
+      error: 'PayPal subscription target does not match checkout order.',
+      redirectUrl: '/error'
+    }
+  );
+
+  assert.deepEqual(
+    validatePayPalSubscriptionReturn({
+      subscriptionCustomId: 'team:10',
+      expectedCustomId: 'team:10',
+      subscriptionPlanId: 'P-CHEAPER',
+      expectedPlanIds: ['P-EXPECTED']
+    }),
+    {
+      ok: false,
+      statusCode: 409,
+      error: 'PayPal subscription plan does not match checkout template.',
+      redirectUrl: '/error'
+    }
+  );
+
+  assert.deepEqual(
+    validatePayPalSubscriptionReturn({
+      subscriptionCustomId: 'team:10',
+      expectedCustomId: 'team:10',
+      subscriptionPlanId: 'P-EXPECTED',
+      expectedPlanIds: []
+    }),
+    {
+      ok: false,
+      statusCode: 409,
+      error: 'PayPal subscription plan does not match checkout template.',
       redirectUrl: '/error'
     }
   );

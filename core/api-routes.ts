@@ -130,7 +130,10 @@ export const CoreApiRoutes = {
       .POST()
       .rateLimit({ limit: 30, windowSeconds: 60 })
       .name('api.paypal.checkout'),
-    cancel: RouteApi('/paypal/checkout/cancel').POST().auth('user').name('api.paypal.cancel'),
+    cancel: RouteApi('/paypal/checkout/cancel')
+      .POST()
+      .rateLimit({ limit: 30, windowSeconds: 60 })
+      .name('api.paypal.cancel'),
     /** webhook — no session auth; signature verification in handler */
     webhook: RouteApi('/paypal/webhook').POST()
       .rateLimit({ limit: 200, windowSeconds: 60 })

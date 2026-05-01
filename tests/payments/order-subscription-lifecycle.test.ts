@@ -5,6 +5,10 @@ import type { PaymentOrderStatus } from '../../lib/payments/orders';
 import type {
   ActivateSubscriptionAssignmentInput
 } from '../../lib/payments/subscription-assignments';
+import type {
+  SubscriptionTrialTemplateLike,
+  SubscriptionTrialUsageTarget
+} from '../../lib/payments/subscription-policy';
 
 type TeamState = {
   id: number;
@@ -61,6 +65,12 @@ function createHarness({
     closeStatus?: 'unpaid' | 'canceled';
     sourceOrderId?: number | null;
   }> = [];
+  const trialUsageConsumptions: Array<{
+    templateId: number;
+    targetType: 'team' | 'user' | null;
+    categoryKey: string | null;
+    firstOrderId: number | null;
+  }> = [];
   const logs: Array<Record<string, unknown>> = [];
   const emittedEvents: string[] = [];
 
@@ -81,6 +91,28 @@ function createHarness({
     }) => {
       fallbackAssignments.push(payload);
     },
+    consumeSubscriptionTrialUsage: async ({
+      template,
+      target,
+      firstOrderId = null
+    }: {
+      template: SubscriptionTrialTemplateLike;
+      target: SubscriptionTrialUsageTarget | null;
+      firstOrderId?: number | null;
+    }) => {
+      trialUsageConsumptions.push({
+        templateId: template.id,
+        targetType: target?.targetType ?? null,
+        categoryKey: template.categoryKey,
+        firstOrderId
+      });
+
+      return {
+        consumed: true,
+        categoryKey: template.categoryKey,
+        reason: 'inserted' as const
+      };
+    },
     createSysActivityLog: async (payload: Record<string, unknown>) => {
       logs.push(payload);
     },
@@ -97,6 +129,7 @@ function createHarness({
   return {
     assignmentActivations,
     fallbackAssignments,
+    trialUsageConsumptions,
     logs,
     emittedEvents,
     deps
@@ -293,6 +326,61 @@ test('explicit user order/payment status changes activate and fall back user sub
     closeStatus: 'unpaid',
     sourceOrderId: 7007
   });
+});
+
+test('trialing provider subscriptions activate trialing assignments', async () => {
+  const { assignmentActivations, deps } = createHarness({
+    users: [
+      {
+        id: 31,
+        email: 'trial-user@test.com',
+        deletedAt: null
+      }
+    ],
+    templates: [
+      {
+        id: 311,
+        name: 'Trial Solo',
+        targetScope: 'user',
+        trialPeriodDays: 14
+      }
+    ]
+  });
+
+  const result = await runPaymentOrderSubscriptionLifecycle(
+    {
+      orderId: 3110,
+      provider: 'stripe',
+      status: 'received',
+      eventType: 'checkout.completed',
+      orderSource: 'checkout',
+      targetType: 'user',
+      targetUserId: 31,
+      subscriptionTemplateId: 311,
+      externalPaymentId: 'sub_trialing_311',
+      metadata: {
+        subscriptionStatus: 'trialing',
+        checkoutContext: {
+          providerMetadata: {
+            stripe: {
+              subscriptionStatus: 'trialing',
+              trialEndsAt: '2026-04-14T00:00:00.000Z'
+            }
+          }
+        }
+      }
+    },
+    deps
+  );
+
+  assert.equal(result.applied, true);
+  assert.equal(result.reason, 'user_activated');
+  assert.equal(assignmentActivations.length, 1);
+  assert.equal(assignmentActivations[0].status, 'trialing');
+  assert.deepEqual(
+    assignmentActivations[0].trialEndsAt,
+    new Date('2026-04-14T00:00:00.000Z')
+  );
 });
 
 test('failed organization lifecycle can use fallback assignment writer', async () => {

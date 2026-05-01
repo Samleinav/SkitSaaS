@@ -318,6 +318,21 @@ function normalizeAssignmentStatus(value: unknown): AssignmentStatus {
   return 'active';
 }
 
+function normalizeProviderAssignmentStatus(value: unknown): AssignmentStatus | null {
+  const normalized = normalizeText(value, 20)?.toLowerCase();
+  if (
+    normalized === 'free' ||
+    normalized === 'trialing' ||
+    normalized === 'active' ||
+    normalized === 'unpaid' ||
+    normalized === 'canceled'
+  ) {
+    return normalized;
+  }
+
+  return null;
+}
+
 function normalizeSuspendAssignmentStatus(value: unknown): 'unpaid' | 'canceled' {
   const normalized = normalizeAssignmentStatus(value);
   if (normalized === 'unpaid' || normalized === 'canceled') {
@@ -467,6 +482,36 @@ function resolvePeriodMetadata({
     cancelAtPeriodEnd: parseMetadataBoolean(source.cancelAtPeriodEnd),
     canceledAt: parseMetadataDate(source.canceledAt)
   };
+}
+
+function resolveActivationAssignmentStatus({
+  orderStatus,
+  metadata,
+  stripeProviderMetadata,
+  paypalProviderMetadata,
+  systemProviderMetadata
+}: {
+  orderStatus: PaymentOrderStatus;
+  metadata: Record<string, unknown> | null;
+  stripeProviderMetadata: Record<string, unknown> | null;
+  paypalProviderMetadata: Record<string, unknown> | null;
+  systemProviderMetadata: Record<string, unknown> | null;
+}) {
+  const providerStatus =
+    normalizeProviderAssignmentStatus(metadata?.subscriptionStatus) ??
+    normalizeProviderAssignmentStatus(stripeProviderMetadata?.subscriptionStatus) ??
+    normalizeProviderAssignmentStatus(paypalProviderMetadata?.subscriptionStatus) ??
+    normalizeProviderAssignmentStatus(systemProviderMetadata?.subscriptionStatus);
+
+  if (
+    providerStatus === 'free' ||
+    providerStatus === 'trialing' ||
+    providerStatus === 'active'
+  ) {
+    return providerStatus;
+  }
+
+  return normalizeAssignmentStatus(mapOrderStatusToSubscriptionStatus(orderStatus));
 }
 
 function resolveTarget({
@@ -988,9 +1033,13 @@ export async function runPaymentOrderSubscriptionLifecycle(
             paymentProvider: provider ?? null,
             providerReferenceId: normalizedExternalPaymentId,
             providerPlanId: normalizedProviderPlanId,
-            status: normalizeAssignmentStatus(
-              mapOrderStatusToSubscriptionStatus(input.status)
-            ),
+            status: resolveActivationAssignmentStatus({
+              orderStatus: input.status,
+              metadata,
+              stripeProviderMetadata,
+              paypalProviderMetadata,
+              systemProviderMetadata
+            }),
             planName: normalizedPlanName || template?.name || 'Subscription',
             currentPeriodStart: periodMetadata.currentPeriodStart,
             currentPeriodEnd: periodMetadata.currentPeriodEnd,
@@ -1183,9 +1232,13 @@ export async function runPaymentOrderSubscriptionLifecycle(
         paymentProvider: normalizeBillingProvider(input.provider),
         providerReferenceId: normalizedExternalPaymentId,
         providerPlanId: normalizedProviderPlanId,
-        status: normalizeAssignmentStatus(
-          mapOrderStatusToSubscriptionStatus(input.status)
-        ),
+        status: resolveActivationAssignmentStatus({
+          orderStatus: input.status,
+          metadata,
+          stripeProviderMetadata,
+          paypalProviderMetadata,
+          systemProviderMetadata
+        }),
         planName: normalizedPlanName || template.name || null,
         currentPeriodStart: periodMetadata.currentPeriodStart,
         currentPeriodEnd: periodMetadata.currentPeriodEnd,

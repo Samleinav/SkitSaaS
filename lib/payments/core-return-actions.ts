@@ -49,6 +49,7 @@ import {
 import { getStripeClient } from '@/lib/payments/stripe';
 import {
   finalizeSignupIntentCheckout,
+  buildPayPalSignupIntentCustomId,
   getSignupIntentCheckoutAccessByToken
 } from '@/lib/payments/signup-intents';
 import type { ModulePaymentMethodActionResult } from './payment-methods';
@@ -267,6 +268,19 @@ function normalizePositiveUserId(value: number | null | undefined) {
     : null;
 }
 
+function normalizeIdentifier(value: string | null | undefined, maxLength = 255) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, maxLength);
+}
+
 export function resolveStripeExistingUserReturnAccess({
   currentUserId,
   sessionUserId
@@ -300,6 +314,97 @@ export function resolveStripeExistingUserReturnAccess({
       ok: false,
       statusCode: 403,
       error: 'Stripe checkout session does not belong to the current user.',
+      redirectUrl: '/error'
+    };
+  }
+
+  return { ok: true };
+}
+
+export function resolvePayPalUserReturnAccess({
+  currentUserId,
+  checkoutTargetUserId
+}: {
+  currentUserId: number | null | undefined;
+  checkoutTargetUserId: number | null | undefined;
+}): StripeExistingUserReturnAccessResult {
+  const currentId = normalizePositiveUserId(currentUserId);
+  const targetUserId = normalizePositiveUserId(checkoutTargetUserId);
+
+  if (!targetUserId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error: 'PayPal checkout target user is invalid.',
+      redirectUrl: '/error'
+    };
+  }
+
+  if (!currentId) {
+    return {
+      ok: false,
+      statusCode: 401,
+      error: 'Authentication required.',
+      redirectUrl: '/login?redirect=pricing'
+    };
+  }
+
+  if (currentId !== targetUserId) {
+    return {
+      ok: false,
+      statusCode: 403,
+      error: 'PayPal checkout does not belong to the current user.',
+      redirectUrl: '/error'
+    };
+  }
+
+  return { ok: true };
+}
+
+export type PayPalSubscriptionReturnValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      statusCode: 409;
+      error: string;
+      redirectUrl: string;
+    };
+
+export function validatePayPalSubscriptionReturn({
+  subscriptionCustomId,
+  expectedCustomId,
+  subscriptionPlanId,
+  expectedPlanIds
+}: {
+  subscriptionCustomId: string | null | undefined;
+  expectedCustomId: string | null | undefined;
+  subscriptionPlanId: string | null | undefined;
+  expectedPlanIds: Array<string | null | undefined>;
+}): PayPalSubscriptionReturnValidationResult {
+  const actualCustomId = normalizeIdentifier(subscriptionCustomId);
+  const requiredCustomId = normalizeIdentifier(expectedCustomId);
+
+  if (!actualCustomId || !requiredCustomId || actualCustomId !== requiredCustomId) {
+    return {
+      ok: false,
+      statusCode: 409,
+      error: 'PayPal subscription target does not match checkout order.',
+      redirectUrl: '/error'
+    };
+  }
+
+  const actualPlanId = normalizeIdentifier(subscriptionPlanId);
+  const allowedPlanIds = new Set(
+    expectedPlanIds
+      .map((value) => normalizeIdentifier(value))
+      .filter((value): value is string => Boolean(value))
+  );
+
+  if (!actualPlanId || allowedPlanIds.size === 0 || !allowedPlanIds.has(actualPlanId)) {
+    return {
+      ok: false,
+      statusCode: 409,
+      error: 'PayPal subscription plan does not match checkout template.',
       redirectUrl: '/error'
     };
   }
@@ -944,6 +1049,7 @@ export async function executeStripeCheckoutReturnAction({
           currency: plan.currency,
           message: 'Stripe signup checkout session completed.',
           metadata: {
+            subscriptionStatus: subscription.status,
             templateId: template?.id || null,
             checkoutOrderId: checkoutOrderId ?? null,
             checkoutToken: checkoutToken ?? null,
@@ -954,6 +1060,7 @@ export async function executeStripeCheckoutReturnAction({
             customerId,
             productId,
             subscriptionId,
+            subscriptionStatus: subscription.status,
             currentPeriodStart,
             currentPeriodEnd,
             trialEndsAt,
@@ -1149,6 +1256,7 @@ export async function executeStripeCheckoutReturnAction({
       currency: plan.currency,
       message: 'Stripe checkout session completed.',
       metadata: {
+        subscriptionStatus: subscription.status,
         templateId: template?.id || null,
         checkoutOrderId: checkoutOrderId ?? null,
         checkoutToken: checkoutToken ?? null,
@@ -1161,6 +1269,7 @@ export async function executeStripeCheckoutReturnAction({
         customerId,
         productId,
         subscriptionId,
+        subscriptionStatus: subscription.status,
         currentPeriodStart,
         currentPeriodEnd,
         trialEndsAt,
@@ -1270,6 +1379,32 @@ type CheckoutRequestBody = {
   checkoutToken?: unknown;
   changeMode?: unknown;
 };
+
+function buildExpectedPayPalSubscriptionCustomId({
+  checkoutOrder,
+  resolvedTargetType,
+  targetTeamId,
+  targetUserId
+}: {
+  checkoutOrder: CheckoutOrderWithMetadata | null;
+  resolvedTargetType: 'team' | 'user';
+  targetTeamId: number | null;
+  targetUserId: number | null;
+}) {
+  const signupIntentId = checkoutOrder?.parsedMetadata?.signupIntent?.intentId;
+  if (signupIntentId && checkoutOrder?.checkoutToken) {
+    return buildPayPalSignupIntentCustomId({
+      signupIntentId,
+      checkoutToken: checkoutOrder.checkoutToken
+    });
+  }
+
+  return buildPayPalCheckoutTargetCustomId({
+    targetType: resolvedTargetType,
+    targetTeamId,
+    targetUserId
+  });
+}
 
 export async function executePayPalCheckoutReturnAction({
   request,
@@ -1412,6 +1547,17 @@ export async function executePayPalCheckoutReturnAction({
           error: 'Only owners can start checkout.'
         };
       }
+    }
+  }
+
+  if (resolvedTargetType === 'user' && !isSignupIntentCheckout) {
+    const accessResult = resolvePayPalUserReturnAccess({
+      currentUserId: user?.id ?? null,
+      checkoutTargetUserId: checkoutOrder?.targetUserId ?? null
+    });
+
+    if (!accessResult.ok) {
+      return accessResult;
     }
   }
 
@@ -1584,14 +1730,6 @@ export async function executePayPalCheckoutReturnAction({
   const changeMode =
     changeModeFromBody ??
     normalizeChangeMode(checkoutOrder?.parsedMetadata?.subscription?.changeMode);
-  if (checkoutOrder) {
-    await markCheckoutOrderProviderPending({
-      checkoutOrderId: checkoutOrder.id,
-      provider: 'paypal',
-      paymentMethod: 'paypal',
-      providerSessionId: subscriptionId
-    });
-  }
 
   try {
     const templateSnapshot = createCheckoutTemplateSnapshot(template);
@@ -1600,6 +1738,35 @@ export async function executePayPalCheckoutReturnAction({
       subscriptionId,
       template
     });
+    const expectedCustomId = buildExpectedPayPalSubscriptionCustomId({
+      checkoutOrder,
+      resolvedTargetType,
+      targetTeamId: resolvedTargetType === 'team' ? team?.id ?? null : null,
+      targetUserId:
+        resolvedTargetType === 'user'
+          ? checkoutOrder?.targetUserId ?? user?.id ?? null
+          : null
+    });
+    const validationResult = validatePayPalSubscriptionReturn({
+      subscriptionCustomId: subscription.customId,
+      expectedCustomId,
+      subscriptionPlanId: subscription.planId,
+      expectedPlanIds: [template.paypalPlanId, template.paypalPlanIdNoTrial]
+    });
+
+    if (!validationResult.ok) {
+      return validationResult;
+    }
+
+    if (checkoutOrder) {
+      await markCheckoutOrderProviderPending({
+        checkoutOrderId: checkoutOrder.id,
+        provider: 'paypal',
+        paymentMethod: 'paypal',
+        providerSessionId: subscriptionId
+      });
+    }
+
     if (isSignupIntentCheckout) {
       if (checkoutOrder && !isCompletedPayPalSubscriptionCheckout) {
         await markCheckoutOrderCompleted({
@@ -1653,6 +1820,7 @@ export async function executePayPalCheckoutReturnAction({
           currency: template.currency,
           message: 'PayPal signup subscription confirmed.',
           metadata: {
+            subscriptionStatus: subscription.subscriptionStatus,
             planName: subscription.planName,
             templateId: template.id,
             checkoutOrderId: checkoutOrder?.id ?? null,
@@ -1662,6 +1830,8 @@ export async function executePayPalCheckoutReturnAction({
           providerMetadata: {
             subscriptionId,
             planId: subscription.planId,
+            customId: subscription.customId,
+            subscriptionStatus: subscription.subscriptionStatus,
             currentPeriodStart: subscription.currentPeriodStart,
             currentPeriodEnd: subscription.currentPeriodEnd
           }
@@ -1803,6 +1973,7 @@ export async function executePayPalCheckoutReturnAction({
       currency: template.currency,
       message: 'PayPal subscription confirmed.',
       metadata: {
+        subscriptionStatus: subscription.subscriptionStatus,
         planName: subscription.planName,
         templateId: template.id,
         checkoutOrderId: checkoutOrder?.id ?? null,
@@ -1814,6 +1985,8 @@ export async function executePayPalCheckoutReturnAction({
       providerMetadata: {
         subscriptionId,
         planId: subscription.planId,
+        customId: subscription.customId,
+        subscriptionStatus: subscription.subscriptionStatus,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd
       }

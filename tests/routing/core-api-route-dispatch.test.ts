@@ -174,10 +174,14 @@ test('checkout api route metadata allows guest signup-intent checkout flows', ()
   const legacyPayPalReturnEntry = CoreApiRoutes.paypal.checkout.handler(async () =>
     Response.json({ ok: true })
   );
+  const legacyPayPalCancelEntry = CoreApiRoutes.paypal.cancel.handler(async () =>
+    Response.json({ ok: true })
+  );
 
   assert.equal(methodsEntry.authLevel, 'none');
   assert.equal(payEntry.authLevel, 'none');
   assert.equal(legacyPayPalReturnEntry.authLevel, 'none');
+  assert.equal(legacyPayPalCancelEntry.authLevel, 'none');
 });
 
 test('withApiRouteEntries fails closed when api role guard is not configured', async () => {

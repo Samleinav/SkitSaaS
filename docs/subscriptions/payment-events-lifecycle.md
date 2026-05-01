@@ -110,6 +110,14 @@ File: `lib/payments/order-subscription-events.ts`
 - `failed` -> close the current paid assignment and move the target to the reserved default tier for its scope
 - `canceled` -> close the current paid assignment and move the target to the reserved default tier for its scope
 
+Provider status preservation:
+
+- Provider `trialing` subscription status maps to an actionable `received`
+  order and is preserved as a `trialing` subscription assignment.
+- Provider metadata stores `subscriptionStatus` for Stripe and PayPal
+  subscription events so lifecycle projection can distinguish `trialing` from
+  plain active purchases.
+
 Fallback policy:
 
 - `user` target -> reserved default `user` template (`subscription_templates.id = 1`)
@@ -218,6 +226,12 @@ Notes:
     whose id matches the Stripe session `client_reference_id`. These returns do
     not create or replace browser sessions; only paid `signup_intent` finalizers
     create the new dashboard session after payment success.
+  - Existing-user PayPal user-scope subscription returns require an
+    authenticated user whose id matches the checkout target user.
+  - PayPal subscription returns validate the provider subscription `custom_id`
+    against the checkout target or signup-intent custom id and validate the
+    provider plan id against the local template plan ids before mutating local
+    checkout order state.
   - For `signup_intent` subscription checkout, guest browser return is allowed for the matching checkout token and finalizes the real user/team plus dashboard session after payment success.
 - Legacy routes:
   - `/api/stripe/checkout`
@@ -229,6 +243,9 @@ Notes:
 - `POST /api/checkout/methods/[paymentMethodId]/webhook` now executes the core provider webhook action directly from the dispatcher runtime.
 - In practice, Stripe and PayPal both resolve through that same dispatcher path with their own `paymentMethodId`.
 - Core webhook handlers now promote provider webhook ids into `externalLogId` when available, so retries can be audited and settlement dedupe has a stable provider event identifier.
+- Core webhook handlers persist provider subscription status into checkout
+  metadata so webhook-first `trialing` subscriptions project the same
+  assignment state as browser-return-first flows.
 - PayPal webhook signature verification is required when the runtime is
   production-like (`NODE_ENV=production`, `VERCEL_ENV=production`, or
   `APP_ENV=production`) or when `PAYPAL_ENVIRONMENT` is `production`/`live`.

@@ -5,6 +5,21 @@ Repo-level change log for non-SDK implementation batches.
 SDK contract changes should continue to be recorded in
 `docs/reference/05-sdk-changelog.md`.
 
+## 2026-05-01 - payment-return-lifecycle-hardening
+
+- Hardened PayPal subscription returns so provider `custom_id` must match the
+  checkout target/signup intent and the provider plan id must match the local
+  subscription template before the checkout order is marked provider-pending or
+  completed.
+- Added user-scope PayPal return ownership checks so non-signup callbacks
+  require the authenticated user to match the checkout target user.
+- Preserved provider subscription status in checkout metadata and lifecycle
+  projection so `trialing` subscriptions activate as `trialing` assignments
+  instead of being downgraded to pending/active ambiguity.
+- Aligned the legacy PayPal cancel route metadata with its guest-capable
+  signup-intent handler and added focused regression coverage for the new
+  return, routing, and lifecycle rules.
+
 ## 2026-04-30 - payment-security-hardening
 
 - Hardened existing-user Stripe subscription returns so the active browser

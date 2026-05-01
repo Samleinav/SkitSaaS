@@ -904,6 +904,7 @@ export async function confirmPayPalSubscriptionForTeam({
   const planId =
     subscriptionResponse.result.planId ??
     getSubscriptionFieldFromBody(subscriptionResponse.body, 'plan_id');
+  const customId = getSubscriptionCustomId(subscriptionResponse);
   const billingInfo = subscriptionResponse.result as Subscription & {
     billingInfo?: { nextBillingTime?: string; lastPayment?: { time?: string } };
     billing_info?: { next_billing_time?: string; last_payment?: { time?: string } };
@@ -928,6 +929,7 @@ export async function confirmPayPalSubscriptionForTeam({
     planName,
     subscriptionStatus,
     templateId: matchedTemplate?.id ?? null,
+    customId,
     currentPeriodStart,
     currentPeriodEnd
   };
@@ -1072,6 +1074,26 @@ function getSubscriptionFieldFromBody(
   } catch {
     return null;
   }
+}
+
+function getSubscriptionCustomId(subscriptionResponse: ApiResponse<Subscription>) {
+  const result = subscriptionResponse.result as Subscription & {
+    customId?: unknown;
+    custom_id?: unknown;
+  };
+
+  if (typeof result.customId === 'string') {
+    return normalizeText(result.customId, 255);
+  }
+
+  if (typeof result.custom_id === 'string') {
+    return normalizeText(result.custom_id, 255);
+  }
+
+  return normalizeText(
+    getSubscriptionFieldFromBody(subscriptionResponse.body, 'custom_id'),
+    255
+  );
 }
 
 async function getPayPalPlanNameFromPlanId(planId: string | null) {

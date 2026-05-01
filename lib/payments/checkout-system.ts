@@ -336,6 +336,7 @@ export type StripeCheckoutProviderMetadata = {
   customerId?: string | null;
   productId?: string | null;
   subscriptionId?: string | null;
+  subscriptionStatus?: string | null;
   webhookEventId?: string | null;
   paymentIntentId?: string | null;
   currentPeriodStart?: string | null;
@@ -349,6 +350,8 @@ export type PayPalCheckoutProviderMetadata = {
   subscriptionId?: string | null;
   orderId?: string | null;
   planId?: string | null;
+  customId?: string | null;
+  subscriptionStatus?: string | null;
   webhookEventId?: string | null;
   payerId?: string | null;
   currentPeriodStart?: string | null;
@@ -378,6 +381,7 @@ function normalizeStripeCheckoutProviderMetadata(
     customerId: providerMetadata?.customerId,
     productId: providerMetadata?.productId,
     subscriptionId: providerMetadata?.subscriptionId,
+    subscriptionStatus: providerMetadata?.subscriptionStatus,
     webhookEventId: providerMetadata?.webhookEventId,
     paymentIntentId: providerMetadata?.paymentIntentId,
     currentPeriodStart: providerMetadata?.currentPeriodStart,
@@ -395,6 +399,8 @@ function normalizePayPalCheckoutProviderMetadata(
     subscriptionId: providerMetadata?.subscriptionId,
     orderId: providerMetadata?.orderId,
     planId: providerMetadata?.planId,
+    customId: providerMetadata?.customId,
+    subscriptionStatus: providerMetadata?.subscriptionStatus,
     webhookEventId: providerMetadata?.webhookEventId,
     payerId: providerMetadata?.payerId,
     currentPeriodStart: providerMetadata?.currentPeriodStart,

@@ -168,7 +168,7 @@ export function mapSubscriptionStatusToOrderStatus(
   }
 
   if (normalized === 'trialing') {
-    return 'pending';
+    return 'received';
   }
 
   if (normalized === 'canceled') {
